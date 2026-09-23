@@ -17,7 +17,9 @@ https://shapi.localhost {
 	import cabeceras_seguras
 
 	@interno path /interno /interno/*
-	respond @interno 404
+	handle @interno {
+		respond 404
+	}
 
 	handle /api/* {
 		reverse_proxy host.docker.internal:5080
@@ -32,7 +34,9 @@ https://*.shapi.localhost {
 	import cabeceras_seguras
 
 	@interno path /interno /interno/*
-	respond @interno 404
+	handle @interno {
+		respond 404
+	}
 
 	handle /api/portal/* {
 		reverse_proxy host.docker.internal:5080 {
@@ -49,29 +53,45 @@ https://*.api.shapi.localhost {
 	import cabeceras_seguras
 
 	@interno path /interno /interno/*
-	respond @interno 404
+	handle @interno {
+		respond 404
+	}
 
-	reverse_proxy host.docker.internal:5090
+	handle {
+		reverse_proxy host.docker.internal:5090
+	}
 }
 
 https://correo.shapi.localhost {
 	import cabeceras_seguras
 
 	@interno path /interno /interno/*
-	respond @interno 404
+	handle @interno {
+		respond 404
+	}
 
-	reverse_proxy mailpit:8025
+	handle {
+		reverse_proxy mailpit:8025
+	}
 }
 
 https:// {
 	import cabeceras_seguras
 
 	@interno path /interno /interno/*
-	respond @interno 404
+	handle @interno {
+		respond 404
+	}
 
 	tls {
 		on_demand
 	}
 
-	reverse_proxy host.docker.internal:5090
+	handle {
+		reverse_proxy host.docker.internal:5090
+	}
+}
+
+http:// {
+	redir https://{host}{uri} permanent
 }

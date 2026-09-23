@@ -73,6 +73,78 @@ function solicitar(url, opciones = {}) {
   });
 }
 
+function iniciarServidor(puerto, destino) {
+  const servidor = http.createServer((peticion, respuesta) => {
+    if (
+      puerto === 5080 &&
+      peticion.url?.startsWith("/interno/tls/autorizar?domain=")
+    ) {
+      respuesta.writeHead(200).end();
+      return;
+    }
+
+    respuesta.writeHead(200, {
+      "Content-Type": "text/plain",
+      "X-Shapi-Prueba-Destino": destino,
+      "X-Shapi-Prueba-Host": peticion.headers.host ?? "",
+    });
+    respuesta.end(destino);
+  });
+
+  servidor.on("upgrade", (peticion, socket) => {
+    socket.end(
+      "HTTP/1.1 101 Switching Protocols\r\n" +
+        "Connection: Upgrade\r\n" +
+        "Upgrade: websocket\r\n" +
+        `X-Shapi-Prueba-Destino: ${destino}\r\n` +
+        `X-Shapi-Prueba-Host: ${peticion.headers.host ?? ""}\r\n` +
+        "\r\n",
+    );
+  });
+
+  return new Promise((resolve, reject) => {
+    servidor.once("error", reject);
+    servidor.listen(puerto, "0.0.0.0", () => resolve(servidor));
+  });
+}
+
+function cerrarServidor(servidor) {
+  return new Promise((resolve, reject) => {
+    servidor.close((error) => (error ? reject(error) : resolve()));
+  });
+}
+
+function solicitarUpgrade(url) {
+  return new Promise((resolve, reject) => {
+    const peticion = https.request(url, {
+      rejectUnauthorized: false,
+      lookup: (_host, _opciones, callback) =>
+        callback(null, "127.0.0.1", 4),
+      headers: {
+        Connection: "Upgrade",
+        Upgrade: "websocket",
+        "Sec-WebSocket-Key": "c2hhcGktanotMDE=",
+        "Sec-WebSocket-Version": "13",
+      },
+      timeout: 5_000,
+    });
+
+    peticion.on("upgrade", (respuesta, socket) => {
+      socket.destroy();
+      resolve(respuesta);
+    });
+    peticion.on("response", (respuesta) => {
+      respuesta.resume();
+      reject(new Error(`No hubo upgrade WebSocket: ${respuesta.statusCode}`));
+    });
+    peticion.on("timeout", () =>
+      peticion.destroy(new Error(`Tiempo agotado: ${url}`)),
+    );
+    peticion.on("error", reject);
+    peticion.end();
+  });
+}
+
 // RNF-09, RNF-14: configuración reproducible y verificable del entorno local.
 const compose = leer(rutaCompose);
 const caddyfile = leer(rutaCaddyfile);
@@ -107,6 +179,7 @@ exigirTexto(
     "https://*.api.shapi.localhost",
     "https://correo.shapi.localhost",
     "https:// {",
+    "http:// {",
     "host.docker.internal:5080",
     "host.docker.internal:5090",
     "host.docker.internal:5173",
@@ -191,29 +264,93 @@ for (const nombre of ["postgres", "redis", "mailpit", "borde"]) {
   assert.equal(servicio.Health, "healthy", `${nombre} no está sano`);
 }
 
-const correo = await solicitar("https://correo.shapi.localhost");
-assert.ok(
-  correo.statusCode >= 200 && correo.statusCode < 400,
-  `Mailpit respondió ${correo.statusCode}`,
-);
-assert.match(correo.headers["strict-transport-security"] ?? "", /max-age=/);
-assert.equal(correo.headers["x-content-type-options"], "nosniff");
-assert.equal(
-  correo.headers["referrer-policy"],
-  "strict-origin-when-cross-origin",
-);
+const servidores = [];
+try {
+  for (const [puerto, destino] of [
+    [5080, "api"],
+    [5090, "compuerta"],
+    [5173, "panel"],
+    [5174, "portal"],
+  ]) {
+    servidores.push(await iniciarServidor(puerto, destino));
+  }
 
-const redireccion = await solicitar("http://correo.shapi.localhost");
-assert.ok(
-  [301, 302, 307, 308].includes(redireccion.statusCode),
-  `HTTP no redirigió: respondió ${redireccion.statusCode}`,
-);
-assert.match(redireccion.headers.location ?? "", /^https:\/\//);
+  const casosEnrutamiento = [
+    ["https://shapi.localhost/api/prueba", "api"],
+    ["https://shapi.localhost/", "panel"],
+    ["https://envios.shapi.localhost/api/portal/prueba", "api"],
+    ["https://envios.shapi.localhost/", "portal"],
+    ["https://envios.api.shapi.localhost/rastreo", "compuerta"],
+    ["https://api.enviosxelaju.localhost/rastreo", "compuerta"],
+  ];
 
-const interno = await solicitar("https://shapi.localhost/interno/salud");
-assert.equal(interno.statusCode, 404, "/interno/* debe permanecer privado");
+  for (const [url, destino] of casosEnrutamiento) {
+    const respuesta = await solicitar(url);
+    assert.equal(
+      respuesta.headers["x-shapi-prueba-destino"],
+      destino,
+      `${url} no llegó a ${destino}`,
+    );
+  }
+
+  const portalApi = await solicitar(
+    "https://envios.shapi.localhost/api/portal/prueba",
+  );
+  assert.equal(
+    portalApi.headers["x-shapi-prueba-host"],
+    "envios.shapi.localhost",
+    "El portal debe conservar el encabezado Host",
+  );
+
+  const websocket = await solicitarUpgrade(
+    "https://shapi.localhost/@vite/client",
+  );
+  assert.equal(websocket.statusCode, 101);
+  assert.equal(websocket.headers["x-shapi-prueba-destino"], "panel");
+
+  const correo = await solicitar("https://correo.shapi.localhost");
+  assert.ok(
+    correo.statusCode >= 200 && correo.statusCode < 400,
+    `Mailpit respondió ${correo.statusCode}`,
+  );
+  assert.match(correo.headers["strict-transport-security"] ?? "", /max-age=/);
+  assert.equal(correo.headers["x-content-type-options"], "nosniff");
+  assert.equal(
+    correo.headers["referrer-policy"],
+    "strict-origin-when-cross-origin",
+  );
+
+  const redireccion = await solicitar(
+    "http://api.enviosxelaju.localhost/rastreo?id=GT-1001",
+  );
+  assert.ok(
+    [301, 302, 307, 308].includes(redireccion.statusCode),
+    `HTTP no redirigió: respondió ${redireccion.statusCode}`,
+  );
+  assert.equal(
+    redireccion.headers.location,
+    "https://api.enviosxelaju.localhost/rastreo?id=GT-1001",
+  );
+
+  for (const host of [
+    "shapi.localhost",
+    "envios.shapi.localhost",
+    "envios.api.shapi.localhost",
+    "api.enviosxelaju.localhost",
+  ]) {
+    const interno = await solicitar(`https://${host}/interno/salud`);
+    assert.equal(
+      interno.statusCode,
+      404,
+      `/interno/* debe permanecer privado en ${host}`,
+    );
+  }
+} finally {
+  await Promise.all(servidores.map(cerrarServidor));
+}
 
 console.log("✓ Configuración declarativa completa");
 console.log("✓ PostgreSQL, Redis, Mailpit y borde están sanos");
+console.log("✓ Caddy enruta cada host, conserva Host y admite WebSocket");
 console.log("✓ Caddy usa HTTPS, agrega cabeceras y no publica /interno/*");
 console.log("✓ https://correo.shapi.localhost responde correctamente");
