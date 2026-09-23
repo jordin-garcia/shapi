@@ -17,11 +17,18 @@ Este es el procedimiento **obligatorio** para cualquier agente (Claude Code, Cod
    Si hay cambios locales sin guardar, **no los descartes**: díselo a la persona y pregúntale qué hacer.
 3. **Lista sus tareas**: `node scripts/tareas.mjs --persona <clave>`.
 4. **Lee el archivo** de cada tarea **disponible** y las últimas 3 entradas de `docs/plan/bitacora/<persona>.md`.
-5. **Responde** con:
+5. **Busca los avisos que le dejaron los demás.** En las bitácoras de las otras personas (`docs/plan/bitacora/*.md`), revisa las líneas de "Pendiente o aviso para otros" dirigidas a esta persona. Se reconocen porque empiezan en negrita con:
+   - un ID de sus tareas (`**EM-03:**`, o también `**JG-04 y EM-03:**`);
+   - su nombre (`**Emilio:**`);
+   - `**Todos:**`.
+
+   Puedes usar la herramienta de búsqueda de tu harness, o `grep -n "\*\*.*\(EM-\|Emilio\|Todos\)" docs/plan/bitacora/*.md` cambiando el prefijo y el nombre. Quédate con los avisos de tareas que todavía no están hechas.
+6. **Responde** con:
    - las tareas disponibles, en el orden que da el script: ID, título y un resumen de 1 o 2 líneas de lo que hará;
    - las tareas en espera y de quién dependen, por si la persona quiere avisarle a un compañero;
+   - los avisos que le dejaron los demás (paso 5), indicando quién lo dejó y en qué tarea;
    - la siguiente tarea recomendada.
-6. **No implementes nada** hasta que te lo pidan.
+7. **No implementes nada** hasta que te lo pidan.
 
 ---
 
@@ -46,6 +53,7 @@ git switch -c <persona>/<ID>-<descripcion-corta>      # ejemplo: emilio/EM-02-re
 - Lee **todas** las secciones de especificación que enumera en "Contexto que debes leer". No leas todas las especificaciones enteras: lee lo que se indica.
 - Si la tarea tiene pantallas, abre el `.dc.html` de cada una en `mockups/` y fíjate en los textos, datos, orden, estados y colores. El catálogo está en `docs/specs/11-interfaz.md`.
 - Lee `docs/plan/convenciones.md` si todavía no lo has hecho en esta sesión.
+- Busca en las bitácoras de los demás los avisos dirigidos a **esta tarea** (`**<ID>:**`) o a tu persona, como en §A paso 5, y tenlos en cuenta al implementar. Si un aviso contradice la tarea o la especificación, aplica §C.
 - Si algo es ambiguo o contradictorio, aplica §C antes de escribir código.
 
 ### B4. Contrato primero (si la tarea tiene endpoints)
@@ -98,6 +106,7 @@ git switch -c <persona>/<ID>-<descripcion-corta>      # ejemplo: emilio/EM-02-re
   - Decisiones: ...
   - Pendiente o aviso para otros: ...
   ```
+  Cada aviso para otra persona va en su propia línea y empieza en negrita con **a quién va dirigido**: los IDs de las tareas afectadas (`**JZ-01:**`, `**JG-04 y JG-07:**`), el nombre de la persona (`**José Pablo:**`) o `**Todos:**`. Así el agente de esa persona lo encuentra en §A paso 5 y en B3. Si el aviso cambia lo que una tarea debe hacer, además sigue §C: el aviso no reemplaza a la tarea ni a la especificación.
 
 ### B11. Abrir el PR e integrarlo
 ```
