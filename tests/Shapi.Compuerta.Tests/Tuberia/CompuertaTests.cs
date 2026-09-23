@@ -245,6 +245,20 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
+    public async Task Reenviar_ClaveValida_ElOrigenRecibeSuPropioHost()
+    {
+        // 08 §3, paso 8: el destino es url_origen; el host de la API no se reenvía como Host.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
+        peticion.Headers.Add("X-Api-Key", clave);
+
+        await cliente.SendAsync(peticion);
+
+        entorno.Origen.Ultima!.Cabeceras["Host"].Should().Be(new Uri(EntornoCompuerta.UrlOrigen).Authority);
+    }
+
+    [Fact]
     public async Task Reenviar_ClienteEnviaCabecerasShapiFalsas_ElOrigenRecibeLasDeLaCompuerta()
     {
         // RF-31 (criterio 5): el consumidor no puede hacerse pasar por otro ni cambiar el entorno.

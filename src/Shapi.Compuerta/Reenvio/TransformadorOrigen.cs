@@ -11,6 +11,9 @@ internal sealed class TransformadorOrigen(ContextoClave clave) : HttpTransformer
     {
         await base.TransformRequestAsync(httpContext, proxyRequest, destinationPrefix, cancellationToken);
 
+        // El origen recibe el host de url_origen, no el de la API en Shapi.
+        proxyRequest.Headers.Host = null;
+
         // El origen nunca recibe la clave del consumidor.
         proxyRequest.Headers.Remove(CabecerasCompuerta.ApiKey);
         proxyRequest.Content?.Headers.Remove(CabecerasCompuerta.ApiKey);
