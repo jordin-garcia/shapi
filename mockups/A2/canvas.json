@@ -1,0 +1,10 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "A2.1 · Planes de plataforma · RF-19", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "Contratacion.dc.html", "title": "A2.2 · Contratación de un plan superior · RF-20", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "Confirmacion.dc.html", "title": "A2.3 · Confirmación de la contratación · RF-20", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "Rechazo.dc.html", "title": "A2.4 · Tarjeta rechazada · RF-20", "x": 0, "y": 1060, "w": 1440, "h": 900},
+    {"file": "CambioPlan.dc.html", "title": "A2.5 · Cambio de plan con prorrateo · RF-25", "x": 1560, "y": 1060, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

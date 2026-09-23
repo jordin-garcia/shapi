@@ -1,0 +1,334 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Public+Sans:wght@400;500;600&display=swap">
+  <style>
+    body { margin:0; background:#FFFFFF; color:#111418; font-family:"Public Sans","Segoe UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    a { color:#111418; text-decoration:underline; }
+    a:hover { color:#000000; }
+    h1,h2,h3 { font-family:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:600; margin:0; letter-spacing:-0.032em; }
+    p { margin:0; }
+    .et { font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:600; margin:0; }
+    .num { font-variant-numeric:tabular-nums; }
+    table { border-collapse:collapse; width:100%; }
+    .thc { text-align:left; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#616872; font-weight:600; padding:0 16px 10px 0; border-bottom:1px solid #D6D9DE; }
+    .tdc { padding:12px 16px 12px 0; border-bottom:1px solid #EDEEF0; font-size:14px; color:#2E333A; }
+  </style>
+</helmet>
+
+<div style="width:1440px; background:#FFFFFF;">
+
+  <div style="background:#0A0B0D; padding:56px 72px 48px; display:flex; align-items:flex-end; justify-content:space-between; gap:64px;">
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <p class="et" style="color:#7C838D;">Lámina de estilo · Variante 5</p>
+      <h1 style="font-size:52px; line-height:1.05; color:#EDEFF2;">Acero monocromo</h1>
+    </div>
+    <p style="font-size:15px; line-height:1.6; color:#9BA2AC; max-width:58ch; text-align:right;">Acero como color principal: el sistema no tiene ningún tono saturado propio, así que el verde y el naranja solo pueden significar estado. En una pantalla con cien filas, cualquier mancha de color es información y nunca decoración.</p>
+  </div>
+
+  <div style="background:#0A0B0D; padding:0 72px 64px;">
+    <p class="et" style="color:#EDEFF2; border-bottom:1px solid #23262B; padding-bottom:12px;">Superficie oscura · página de inicio</p>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; margin-top:28px;">
+      <div style="border:1px solid #23262B; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#0A0B0D;"></div>
+        <div style="padding:14px; border-top:1px solid #23262B; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600; color:#EDEFF2;">Fondo</span>
+          <span class="num" style="font-size:13px; color:#7C838D;">#0A0B0D</span>
+        </div>
+      </div>
+      <div style="border:1px solid #23262B; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#121416;"></div>
+        <div style="padding:14px; border-top:1px solid #23262B; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600; color:#EDEFF2;">Panel</span>
+          <span class="num" style="font-size:13px; color:#7C838D;">#121416</span>
+        </div>
+      </div>
+      <div style="border:1px solid #23262B; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#23262B;"></div>
+        <div style="padding:14px; border-top:1px solid #23262B; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600; color:#EDEFF2;">Borde</span>
+          <span class="num" style="font-size:13px; color:#7C838D;">#23262B</span>
+        </div>
+      </div>
+      <div style="border:1px solid #23262B; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#EDEFF2;"></div>
+        <div style="padding:14px; border-top:1px solid #23262B; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600; color:#EDEFF2;">Acero · acción</span>
+          <span class="num" style="font-size:13px; color:#7C838D;">#EDEFF2</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; margin-top:16px;">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#9BA2AC; border-radius:4px;"></div>
+        <span style="font-size:13px; color:#B3B9C2;">Texto suave <span class="num" style="color:#7C838D;">#9BA2AC</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#1F2329; border-radius:4px;"></div>
+        <span style="font-size:13px; color:#B3B9C2;">Punto de retícula <span class="num" style="color:#7C838D;">#1F2329</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#52B788; border-radius:4px;"></div>
+        <span style="font-size:13px; color:#B3B9C2;">Correcto <span class="num" style="color:#7C838D;">#52B788</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#E8845C; border-radius:4px;"></div>
+        <span style="font-size:13px; color:#B3B9C2;">Alerta <span class="num" style="color:#7C838D;">#E8845C</span></span>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:28px; margin-top:36px;">
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#7C838D;">Botones sobre oscuro</p>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:15px; font-weight:600; color:#0A0B0D; background:#EDEFF2; padding:13px 24px; border-radius:4px;">Crear cuenta</span>
+          <span style="font-size:15px; font-weight:600; color:#EDEFF2; border:1px solid #33383F; padding:12px 23px; border-radius:4px;">Ver precios</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#7C838D;">Panel sobre oscuro</p>
+        <div style="background:#121416; border:1px solid #23262B; border-radius:4px; padding:18px; display:flex; flex-direction:column; gap:8px;">
+          <h3 style="font-size:19px; color:#EDEFF2;">Plan Producto</h3>
+          <p style="font-size:14px; color:#9BA2AC;">Proveedores con clientes establecidos</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#7C838D;">Retícula de puntos</p>
+        <div style="height:92px; border:1px solid #23262B; border-radius:4px; background-image:radial-gradient(#1F2329 1px, transparent 1px); background-size:16px 16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 72px 0;">
+    <p class="et" style="color:#111418; border-bottom:1px solid #D6D9DE; padding-bottom:12px;">Superficie clara · aplicación y portal</p>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; margin-top:28px;">
+      <div style="border:1px solid #E0E2E6; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#111418;"></div>
+        <div style="padding:14px; border-top:1px solid #E0E2E6; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Principal · acero tinta</span>
+          <span class="num" style="font-size:13px; color:#616872;">#111418</span>
+          <span style="font-size:13px; color:#616872;">Acciones, texto, cabeceras</span>
+        </div>
+      </div>
+      <div style="border:1px solid #E0E2E6; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#616872;"></div>
+        <div style="padding:14px; border-top:1px solid #E0E2E6; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Tinta suave</span>
+          <span class="num" style="font-size:13px; color:#616872;">#616872</span>
+          <span style="font-size:13px; color:#616872;">Texto secundario y etiquetas</span>
+        </div>
+      </div>
+      <div style="border:1px solid #E0E2E6; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#1B7A4B;"></div>
+        <div style="padding:14px; border-top:1px solid #E0E2E6; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Correcto</span>
+          <span class="num" style="font-size:13px; color:#616872;">#1B7A4B</span>
+          <span style="font-size:13px; color:#616872;">Activa, pago confirmado</span>
+        </div>
+      </div>
+      <div style="border:1px solid #E0E2E6; border-radius:4px; overflow:hidden;">
+        <div style="height:88px; background:#B4441F;"></div>
+        <div style="padding:14px; border-top:1px solid #E0E2E6; display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Alerta</span>
+          <span class="num" style="font-size:13px; color:#616872;">#B4441F</span>
+          <span style="font-size:13px; color:#616872;">Cuota agotada, suspensión</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; margin-top:16px;">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#FFFFFF; border:1px solid #E0E2E6; border-radius:4px;"></div>
+        <span style="font-size:13px;">Base <span class="num" style="color:#616872;">#FFFFFF</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#F5F6F7; border:1px solid #E0E2E6; border-radius:4px;"></div>
+        <span style="font-size:13px;">Banda <span class="num" style="color:#616872;">#F5F6F7</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#E0E2E6; border-radius:4px;"></div>
+        <span style="font-size:13px;">Borde <span class="num" style="color:#616872;">#E0E2E6</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="height:48px; background:#EDEEF0; border-radius:4px;"></div>
+        <span style="font-size:13px;">Línea de tabla <span class="num" style="color:#616872;">#EDEEF0</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 72px 0;">
+    <p class="et" style="color:#111418; border-bottom:1px solid #D6D9DE; padding-bottom:12px;">Tipografía</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:56px; margin-top:28px;">
+      <div style="display:flex; flex-direction:column; gap:26px;">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <p class="et" style="color:#616872;">Títulos</p>
+          <p style="font-family:Archivo,Helvetica,Arial,sans-serif; font-size:46px; line-height:1.05; font-weight:700; letter-spacing:-0.038em;">Archivo</p>
+          <p style="font-size:14px; color:#616872;">Regular 400 · Seminegra 600 · Negra 700. Grotesca compacta: rinde bien en titulares grandes sin ocupar todo el ancho. Respaldo: Helvetica Neue.</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <p class="et" style="color:#616872;">Interfaz y datos</p>
+          <p style="font-size:42px; line-height:1.05; font-weight:600;">Public Sans</p>
+          <p style="font-size:14px; color:#616872;">Regular 400 · Media 500 · Seminegra 600. Cifras tabulares activas en toda tabla. Respaldo: Segoe UI.</p>
+        </div>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr><th class="thc" style="width:36%;">Estilo</th><th class="thc" style="width:28%;">Tamaño / interlínea</th><th class="thc">Familia y peso</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="tdc">Titular del inicio</td><td class="tdc num">66 / 1.04</td><td class="tdc">Archivo 600</td></tr>
+            <tr><td class="tdc">Título de sección</td><td class="tdc num">40 / 1.10</td><td class="tdc">Archivo 600</td></tr>
+            <tr><td class="tdc">Título de panel</td><td class="tdc num">21 / 1.30</td><td class="tdc">Archivo 600</td></tr>
+            <tr><td class="tdc">Título de fila</td><td class="tdc num">19 / 1.30</td><td class="tdc">Archivo 600</td></tr>
+            <tr><td class="tdc">Cifra destacada</td><td class="tdc num">30 / 1.00</td><td class="tdc">Archivo 700, tabular</td></tr>
+            <tr><td class="tdc">Entrada</td><td class="tdc num">19 / 1.60</td><td class="tdc">Public Sans 400</td></tr>
+            <tr><td class="tdc">Cuerpo</td><td class="tdc num">16 / 1.60</td><td class="tdc">Public Sans 400</td></tr>
+            <tr><td class="tdc">Dato de tabla</td><td class="tdc num">15 / 1.50</td><td class="tdc">Public Sans 400</td></tr>
+            <tr><td class="tdc">Etiqueta</td><td class="tdc num">11 / 1.20</td><td class="tdc">Public Sans 600, mayúsculas, +0.18em</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 72px 0;">
+    <p class="et" style="color:#111418; border-bottom:1px solid #D6D9DE; padding-bottom:12px;">Logotipo</p>
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; margin-top:28px;">
+      <div style="border:1px solid #E0E2E6; border-radius:4px; background:#FFFFFF; padding:40px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10.25" stroke="#111418" stroke-width="1.5"></circle>
+            <circle cx="12" cy="12" r="5.75" stroke="#8A9099" stroke-width="1.5"></circle>
+            <rect x="10.5" y="0" width="3" height="5" fill="#FFFFFF"></rect>
+            <rect x="10.5" y="19" width="3" height="5" fill="#FFFFFF"></rect>
+            <circle cx="12" cy="12" r="2" fill="#111418"></circle>
+          </svg>
+          <span style="font-family:Archivo,Helvetica,Arial,sans-serif; font-size:44px; font-weight:700; letter-spacing:-0.04em;">Shapi</span>
+        </div>
+        <p style="font-size:14px; line-height:1.6; color:#616872;">Positivo sobre claro. Dos anillos concéntricos con un corte arriba y abajo: la cuota que rodea a cada suscripción y el paso que la compuerta deja abierto.</p>
+      </div>
+      <div style="border:1px solid #23262B; border-radius:4px; background:#0A0B0D; padding:40px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10.25" stroke="#EDEFF2" stroke-width="1.5"></circle>
+            <circle cx="12" cy="12" r="5.75" stroke="#7C838D" stroke-width="1.5"></circle>
+            <rect x="10.5" y="0" width="3" height="5" fill="#0A0B0D"></rect>
+            <rect x="10.5" y="19" width="3" height="5" fill="#0A0B0D"></rect>
+            <circle cx="12" cy="12" r="2" fill="#EDEFF2"></circle>
+          </svg>
+          <span style="font-family:Archivo,Helvetica,Arial,sans-serif; font-size:44px; font-weight:700; letter-spacing:-0.04em; color:#EDEFF2;">Shapi</span>
+        </div>
+        <p style="font-size:14px; line-height:1.6; color:#9BA2AC;">Negativo sobre oscuro. Los cortes se rellenan con el fondo, así que la marca funciona sobre cualquier tono.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 72px 0;">
+    <p class="et" style="color:#111418; border-bottom:1px solid #D6D9DE; padding-bottom:12px;">Espaciado y radio</p>
+    <div style="display:flex; align-items:flex-end; gap:18px; margin-top:28px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:4px; height:4px; background:#111418; border-radius:1px;"></div><span class="num" style="font-size:13px; color:#616872;">4</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:8px; height:8px; background:#111418; border-radius:2px;"></div><span class="num" style="font-size:13px; color:#616872;">8</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:12px; height:12px; background:#111418; border-radius:3px;"></div><span class="num" style="font-size:13px; color:#616872;">12</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:16px; height:16px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">16</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:20px; height:20px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">20</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:26px; height:26px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">26</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:36px; height:36px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">36</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:48px; height:48px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">48</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:72px; height:72px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">72</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:96px; height:96px; background:#111418; border-radius:4px;"></div><span class="num" style="font-size:13px; color:#616872;">96</span></div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-left:36px;">
+        <div style="width:150px; height:64px; border:1px solid #111418; border-radius:4px;"></div>
+        <span style="font-size:13px; color:#616872;">Radio único: 4 px en paneles, botones, campos y etiquetas. Márgenes de página: 72 px.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 72px 80px;">
+    <p class="et" style="color:#111418; border-bottom:1px solid #D6D9DE; padding-bottom:12px;">Componentes base · superficie clara</p>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:36px; margin-top:28px;">
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#616872;">Botón principal</p>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:15px; font-weight:600; color:#FFFFFF; background:#111418; padding:13px 24px; border-radius:4px;">Publicar API</span>
+          <span style="font-size:15px; font-weight:600; color:#FFFFFF; background:#2E333A; padding:13px 24px; border-radius:4px;">Publicar API</span>
+        </div>
+        <p style="font-size:13px; color:#616872;">Reposo y cursor encima. Altura 46 px.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#616872;">Botón secundario</p>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:15px; font-weight:600; color:#111418; border:1px solid #C4C8CE; background:#FFFFFF; padding:12px 23px; border-radius:4px;">Cancelar</span>
+          <span style="font-size:15px; font-weight:600; color:#A8ADB5; border:1px solid #E6E8EB; background:#FFFFFF; padding:12px 23px; border-radius:4px;">Cancelar</span>
+        </div>
+        <p style="font-size:13px; color:#616872;">Reposo y deshabilitado.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#616872;">Etiqueta de estado</p>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#125437; background:#E6F2EC; border:1px solid #B5D8C6; padding:6px 10px; border-radius:4px;">Activa</span>
+          <span style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#822F14; background:#FAE9E3; border:1px solid #E9C2B4; padding:6px 10px; border-radius:4px;">Suspendida</span>
+          <span style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#616872; background:#F5F6F7; border:1px solid #E0E2E6; padding:6px 10px; border-radius:4px;">Despublicada</span>
+        </div>
+        <p style="font-size:13px; color:#616872;">Correcto, alerta y neutro. Son los únicos usos de color del sistema.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#616872;">Campo de formulario</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; font-weight:600;">Servidor de origen</span>
+          <div style="border:1px solid #C4C8CE; background:#FFFFFF; border-radius:4px; padding:11px 14px; font-size:15px; color:#A8ADB5;">https://</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; font-weight:600;">Subdominio</span>
+          <div style="border:1px solid #111418; box-shadow:0 0 0 3px #E4E6E9; background:#FFFFFF; border-radius:4px; padding:11px 14px; font-size:15px; color:#111418;">envios.shapi.com</div>
+        </div>
+        <p style="font-size:13px; color:#616872;">Vacío con texto guía, y enfocado.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#616872;">Tarjeta</p>
+        <div style="border:1px solid #E0E2E6; border-radius:4px; background:#FFFFFF; padding:20px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+            <h3 style="font-size:20px;">Plan Lanzamiento</h3>
+            <span style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#125437; background:#E6F2EC; border:1px solid #B5D8C6; padding:5px 9px; border-radius:4px;">Activa</span>
+          </div>
+          <p style="font-size:14px; color:#616872;">Empezar a cobrar por una API existente</p>
+          <div style="border-top:1px solid #EDEEF0; padding-top:12px; display:flex; align-items:baseline; gap:8px;">
+            <span class="num" style="font-family:Archivo,Helvetica,Arial,sans-serif; font-size:26px; font-weight:700; letter-spacing:-0.035em;">Q 199.00</span>
+            <span style="font-size:13px; color:#616872;">cada 30 días</span>
+          </div>
+        </div>
+        <p style="font-size:13px; color:#616872;">Borde de 1 px, radio 4 px, sin sombra.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et" style="color:#616872;">Tabla</p>
+        <table>
+          <thead>
+            <tr><th class="thc">Ruta</th><th class="thc" style="width:34%;">Llamadas</th><th class="thc" style="width:26%;">Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="tdc">/cotizaciones</td><td class="tdc num">128,400</td><td class="tdc" style="color:#1B7A4B; font-weight:600;">Expuesta</td></tr>
+            <tr><td class="tdc">/guias</td><td class="tdc num">64,120</td><td class="tdc" style="color:#1B7A4B; font-weight:600;">Expuesta</td></tr>
+            <tr><td class="tdc">/tarifas</td><td class="tdc num">9,860</td><td class="tdc" style="color:#616872;">Oculta</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:13px; color:#616872;">Filas de 42 px, cifras tabulares alineadas a la izquierda.</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

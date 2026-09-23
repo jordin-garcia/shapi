@@ -1,0 +1,10 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "B3.1 · Estado de los componentes · RF-39", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "Degradado.dc.html", "title": "B3.1 · Estado de los componentes · un componente degradado · RF-39", "x": 1560, "y": 0, "w": 1440, "h": 1000},
+    {"file": "Soporte.dc.html", "title": "B3.1 · Estado de los componentes · sesión de soporte · RF-39", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "Bitacora.dc.html", "title": "B3.2 · Bitácora de acciones sensibles · RF-41", "x": 0, "y": 1160, "w": 1440, "h": 1100},
+    {"file": "BitacoraVacia.dc.html", "title": "B3.2 · Bitácora · variante vacía · RF-41", "x": 1560, "y": 1160, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

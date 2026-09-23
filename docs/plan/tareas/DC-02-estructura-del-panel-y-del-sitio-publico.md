@@ -1,0 +1,58 @@
+---
+id: DC-02
+titulo: Estructura del panel y del sitio público
+persona: dominique
+responsable: Dominique Contreras
+avance: 1
+prioridad: P1
+estado: pendiente
+depende_de: [DC-01]
+requisitos: [RF-07, RNF-12]
+pantallas: [N.1]
+---
+
+# DC-02 · Estructura del panel y del sitio público
+
+**Responsable:** Dominique Contreras · **Avance:** 1 · **Prioridad:** P1 · **Depende de:** DC-01
+
+## Objetivo
+Crear los layouts del sitio público, del panel del proveedor y de la administración, la barra lateral de cada uno, los guardias por sesión y rol, y el router con **todas** las rutas del catálogo apuntando a páginas de relleno. Así cada persona solo reemplaza el archivo de su pantalla, sin tocar el router.
+
+## Contexto que debes leer
+- `docs/specs/11-interfaz.md` §3 **completo** (catálogo: IDs, archivos, rutas y responsables) y §4
+- `docs/specs/04-roles-y-permisos.md` §3.1 y §3.2 (qué ve cada rol)
+- `docs/specs/10-identidad-y-seguridad.md` §1 (destinos por rol)
+- Mockups: `mockups/Navegacion/Main.dc.html` (barra lateral del proveedor), `mockups/A6/Main.dc.html` y `mockups/B3/Soporte.dc.html` (barras de administración y de soporte), y `mockups/A1/Main.dc.html` (encabezado público)
+- `docs/plan/convenciones.md` §3 (regla de `rutas.tsx`)
+
+## Archivos que creas o modificas
+- `frontend/apps/panel/src/rutas.tsx` (crear)
+- `frontend/apps/panel/src/layouts/{LayoutPublico,LayoutPanel,LayoutAdmin}.tsx` (crear)
+- `frontend/apps/panel/src/paginas/<ID>-<Nombre>.tsx` (crear **una página de relleno por cada pantalla** del panel, la administración y el sitio público del catálogo, que muestre "Pantalla pendiente · <ID> · <nombre> · responsable <persona>")
+- `frontend/apps/panel/src/modulos/sesion/**` (crear: `RequiereSesion`, `RequiereRol` y un `useSesion` provisional que llama a `GET /api/auth/sesion`)
+- `frontend/apps/panel/src/modulos/apis/SelectorApi.tsx` (crear)
+- Páginas 404 y "sin permiso"
+
+## Criterios de aceptación
+1. Todas las rutas del panel, de la administración y del sitio público de 11 §3 existen, y cada una muestra su página de relleno con su ID. Las rutas cargan las páginas en forma diferida (`lazy`). **Implementar una pantalla es reemplazar el contenido de su archivo en `paginas/`, sin tocar `rutas.tsx`.**
+2. La barra lateral del proveedor reproduce N.1: grupos Publicación / API (con el selector de API) / Organización (con "Casos de soporte"), el pie con el nombre y el rol que lleva a `/panel/perfil`, y el botón para salir. El elemento activo se resalta.
+3. La barra de administración reproduce A6 (Plataforma / Soporte / Sistema) para el administrador, y la versión reducida de B3.1 (Soporte / Sistema) para el soporte.
+4. `RequiereSesion` redirige a `/entrar` si no hay sesión. `RequiereRol` muestra "No tiene permiso para ver esta página" si el rol no corresponde. El personal proveedor no entra a `/admin/*`, y el administrador y el soporte no entran a `/panel/*`.
+5. El selector de API lista las APIs con `GET /api/apis` y guarda la seleccionada en la URL (`/panel/apis/:id/...`). Mientras DC-04 no exista, muestra la lista vacía sin fallar.
+6. Los estados base de 11 §4 (cargando, error y sin permiso) quedan como componentes reutilizables.
+
+## Pruebas obligatorias
+- Vitest: todas las rutas del catálogo resuelven a una página, la barra lateral por rol y los guardias
+
+## Verificación
+Todos estos comandos deben pasar, además de los generales del protocolo (B7):
+```
+cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+```
+
+Verificación manual con el entorno levantado:
+- Captura de la barra lateral del proveedor comparada con `mockups/Navegacion/Main.dc.html`
+
+## Fuera de alcance
+- Pantallas concretas (cada responsable)
+- Estructura del portal (DC-03)

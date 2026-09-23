@@ -1,0 +1,30 @@
+# Artefactos de herramientas locales
+.playwright-mcp/
+.claude/settings.local.json
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vs/
+.idea/
+*.swp
+
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# Node / frontend
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Borradores de Word abiertos
+~$*.docx

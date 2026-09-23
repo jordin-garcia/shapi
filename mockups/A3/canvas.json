@@ -1,0 +1,14 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "A3.1 · APIs de la organización · RF-14, RF-43", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "ListaVacia.dc.html", "title": "A3.1 · APIs de la organización · variante vacía · RF-14", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "Registro.dc.html", "title": "A3.2 · Registrar una API · RF-08", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "Especificacion.dc.html", "title": "A3.3 · Cargar especificación OpenAPI · RF-09", "x": 0, "y": 1060, "w": 1440, "h": 900},
+    {"file": "Rutas.dc.html", "title": "A3.4 · Rutas expuestas · RF-10", "x": 1560, "y": 1060, "w": 1440, "h": 900},
+    {"file": "ConfigRutas.dc.html", "title": "A3.5 · Configuración por ruta · RF-13", "x": 3120, "y": 1060, "w": 1440, "h": 900},
+    {"file": "Dominio.dc.html", "title": "A3.6 · Direcciones, dominio propio y secreto de origen · RF-11, RF-12, RF-47", "x": 0, "y": 2120, "w": 1440, "h": 900},
+    {"file": "Portal.dc.html", "title": "A3.7 · Personalización del portal · RF-15", "x": 1560, "y": 2120, "w": 1440, "h": 1292},
+    {"file": "InicioPortal.dc.html", "title": "A3.7r · Referencia · inicio del portal a tamaño real · RF-16", "x": 3120, "y": 2120, "w": 1440, "h": 1882}
+  ],
+  "launch": { "view": "canvas" }
+}

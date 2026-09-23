@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap">
+  <style>
+    body { margin:0; background:#F4F6FA; color:#0B1220; font-family:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    a { color:#3B6FF0; text-decoration:none; }
+    a:hover { color:#2C57C9; text-decoration:underline; }
+    h1,h2,h3 { font-family:"Sora","Segoe UI",Helvetica,Arial,sans-serif; font-weight:400; margin:0; letter-spacing:-0.02em; }
+    p { margin:0; }
+    .num { font-variant-numeric:tabular-nums; }
+    .et { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#5A6884; font-weight:500; margin:0; }
+    .tarj { background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; }
+    .lbl { font-size:13px; font-weight:600; color:#0B1220; }
+    .campo { border:1px solid #C9D2E1; border-radius:8px; padding:11px 14px; font-size:15px; line-height:1.5; color:#0B1220; background:#FFFFFF; box-sizing:border-box; }
+    .guia { color:#A3AEC2; }
+    .sel { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .suf { font-size:14px; color:#5A6884; white-space:nowrap; }
+    .btn-p { background:#3B6FF0; color:#FFFFFF; font-size:15px; font-weight:500; text-align:center; padding:13px 24px; border-radius:8px; white-space:nowrap; }
+    .btn-s { border:1px solid #C9D2E1; background:#FFFFFF; color:#0B1220; font-size:15px; font-weight:500; text-align:center; padding:12px 23px; border-radius:8px; white-space:nowrap; line-height:1.3; }
+    .eti-c { display:inline-block; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:8px; color:#146542; background:#E4F3EC; border:1px solid #B6DCC9; white-space:nowrap; line-height:1.2; }
+    .eti-a { display:inline-block; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:8px; color:#8E3315; background:#FBE9E3; border:1px solid #EDC3B4; white-space:nowrap; line-height:1.2; }
+    .eti-n { display:inline-block; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:8px; color:#5A6884; background:#F4F6FA; border:1px solid #DCE3EE; white-space:nowrap; line-height:1.2; }
+    table { border-collapse:collapse; width:100%; }
+    .thc { text-align:left; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#5A6884; font-weight:600; padding:0 16px 10px 0; border-bottom:1px solid #DCE3EE; }
+    .tdc { padding:12px 16px 12px 0; border-bottom:1px solid #EBEFF5; font-size:15px; color:#2B3547; vertical-align:middle; font-variant-numeric:tabular-nums; }
+    .nom { font-size:15px; font-weight:500; color:#0B1220; line-height:1.4; }
+    .cor { font-size:14px; color:#5A6884; line-height:1.4; }
+    .fila { display:flex; align-items:baseline; justify-content:space-between; gap:24px; }
+    .fila-k { font-size:14px; color:#5A6884; }
+    .fila-v { font-size:15px; color:#0B1220; font-weight:500; font-variant-numeric:tabular-nums; }
+    .nav-et { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#7F8DA8; font-weight:600; padding:0 12px; line-height:1.2; }
+    .nav-i { display:block; font-size:14px; line-height:1.5; color:#B9C4D8; padding:7px 12px; border-radius:8px; }
+    .nav-i:hover { color:#E8EDF7; text-decoration:none; }
+    .nav-on { background:#0E1830; color:#7FA6FF; font-weight:500; }
+    .nav-on:hover { color:#7FA6FF; }
+    .salir { width:36px; height:36px; box-sizing:border-box; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:1px solid #2A3550; border-radius:8px; color:#B9C4D8; }
+    .salir:hover { color:#E8EDF7; border-color:#7FA6FF; }
+  </style>
+</helmet>
+
+<div style="width:1440px; height:900px; background:#F4F6FA; display:flex; flex-direction:column; overflow:hidden;">
+
+  <div style="height:76px; background:#060910; border-bottom:1px solid #131B2B; display:flex; align-items:center; justify-content:space-between; padding:0 44px 0 28px; flex-shrink:0; box-sizing:border-box;">
+    <div style="display:flex; align-items:center; gap:11px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="1" y="1" width="22" height="22" rx="6" stroke="#7FA6FF" stroke-width="1.5"></rect>
+        <path d="M6 8.5 H14" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 15.5 H12" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 12 H22" stroke="#E8EDF7" stroke-width="2.5" stroke-linecap="round"></path>
+      </svg>
+      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:20px; font-weight:500; letter-spacing:-0.03em; color:#E8EDF7;">Shapi</span>
+    </div>
+    <span style="font-size:14px; color:#8B98B0;">Plataforma Shapi</span>
+  </div>
+
+  <div style="flex-grow:1; display:flex; min-height:0;">
+
+    <div style="width:272px; flex-shrink:0; box-sizing:border-box; background:#060910; border-right:1px solid #131B2B; padding:24px 16px 20px; display:flex; flex-direction:column; justify-content:space-between;">
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <span class="nav-et">Plataforma</span>
+          <div style="display:flex; flex-direction:column; gap:1px;">
+            <a href="#" class="nav-i">Planes de plataforma</a>
+            <a href="#" class="nav-i">Organizaciones</a>
+            <a href="#" class="nav-i nav-on">Pagos</a>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <span class="nav-et">Soporte</span>
+          <div style="display:flex; flex-direction:column; gap:1px;">
+            <a href="#" class="nav-i">Casos</a>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <span class="nav-et">Sistema</span>
+          <div style="display:flex; flex-direction:column; gap:1px;">
+            <a href="#" class="nav-i">Estado de los componentes</a>
+            <a href="#" class="nav-i">Bitácora de acciones</a>
+            <a href="#" class="nav-i">Cuentas de plataforma</a>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid #131B2B; padding:16px 4px 0 12px;">
+        <div style="display:flex; flex-direction:column; gap:1px; min-width:0;">
+          <span style="font-size:14px; font-weight:500; line-height:1.5; color:#E8EDF7; white-space:nowrap;">Rodrigo Alvarado</span>
+          <span style="font-size:13px; line-height:1.5; color:#8B98B0;">Administrador</span>
+        </div>
+
+        <a href="#" class="salir" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M8 3.5 H5 A1.5 1.5 0 0 0 3.5 5 V15 A1.5 1.5 0 0 0 5 16.5 H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M8.5 10 H16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            <path d="M13.5 7 L16.5 10 L13.5 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </a>
+      </div>
+
+    </div>
+
+    <div style="flex-grow:1; min-width:0; display:flex; align-items:center; justify-content:center; padding:44px 44px;">
+      <div style="width:600px; background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; padding:40px;">
+
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="15" stroke="#C2481F" stroke-width="1.5"></circle>
+            <path d="M16 9.5 V18" stroke="#C2481F" stroke-width="2" stroke-linecap="round"></path>
+            <path d="M16 22.5 V22.5" stroke="#C2481F" stroke-width="2.5" stroke-linecap="round"></path>
+          </svg>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <p class="et">Pagos de la plataforma</p>
+            <h1 style="font-size:32px; line-height:1.2;">Revertir un pago</h1>
+            <p style="font-size:15px; line-height:1.55; color:#5A6884; margin-top:2px;">El monto se devuelve a la tarjeta y el pago queda registrado como <strong style="font-weight:600; color:#0B1220;">revertido</strong>.</p>
+            <p style="font-size:15px; line-height:1.55; color:#5A6884; margin-top:2px;">Si ese pago cubría el ciclo vigente, la suscripción de la organización entra en periodo de gracia y, terminado ese periodo, se suspende: sus APIs dejan de responder y sus consumidores reciben el código 403.</p>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px; border-top:1px solid #EBEFF5; margin-top:32px; padding-top:24px;">
+          <div class="fila"><span class="fila-k">Fecha</span><span class="fila-v">1 sep 2026</span></div>
+          <div class="fila"><span class="fila-k">Organización</span><span class="fila-v">Agro Precios, S.A.</span></div>
+          <div class="fila"><span class="fila-k">Plan</span><span class="fila-v">Lanzamiento</span></div>
+          <div class="fila"><span class="fila-k">Monto</span><span class="fila-v">Q 199.00</span></div>
+          <div class="fila"><span class="fila-k">Tarjeta</span><span class="fila-v">Mastercard •••• 3312</span></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px; border-top:1px solid #EBEFF5; margin-top:24px; padding-top:24px;">
+          <div class="btn-p">Revertir pago</div>
+          <p style="font-size:14px; color:#5A6884; text-align:center;"><a href="#">Cancelar</a></p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

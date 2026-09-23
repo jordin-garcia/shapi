@@ -1,0 +1,261 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+  <style>
+    body { margin:0; background:#F6F3EC; color:#17191B; font-family:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+    a { color:#0B5F55; text-decoration:none; }
+    a:hover { color:#084A42; text-decoration:underline; }
+    h1,h2,h3 { font-family:"Newsreader","Iowan Old Style",Georgia,serif; font-weight:500; margin:0; letter-spacing:-0.012em; }
+    p { margin:0; }
+    .et { font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:#5A5F63; font-weight:600; margin:0; }
+    .sec { font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:#17191B; font-weight:600; border-bottom:2px solid #17191B; padding-bottom:10px; margin:0; }
+    .cap { font-size:13px; color:#5A5F63; }
+    .mono { font-variant-numeric:tabular-nums; }
+    table { border-collapse:collapse; width:100%; }
+    .th { text-align:left; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:#5A5F63; font-weight:600; padding:0 16px 10px 0; border-bottom:2px solid #17191B; }
+    .td { padding:12px 16px 12px 0; border-bottom:1px solid #D8D2C6; font-size:14px; color:#31363A; }
+  </style>
+</helmet>
+
+<div style="width:1440px; background:#F6F3EC; padding-bottom:80px;">
+
+  <div style="padding:56px 96px 40px; border-bottom:1px solid #D8D2C6; display:flex; align-items:flex-end; justify-content:space-between; gap:64px;">
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <p class="et">Lámina de estilo · Variante 1</p>
+      <h1 style="font-size:44px; line-height:1.08;">Editorial impresa</h1>
+    </div>
+    <p style="font-size:15px; color:#4A4F53; max-width:56ch; text-align:right;">Verde petróleo como color principal: es serio, poco frecuente en herramientas de datos y mantiene contraste suficiente sobre papel cálido sin competir con las cifras de una tabla densa.</p>
+  </div>
+
+  <div style="padding:48px 96px 0;">
+    <p class="sec">Paleta</p>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:24px; margin-top:28px;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:96px; background:#0B5F55; border-radius:2px;"></div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Principal</span>
+          <span class="cap mono">#0B5F55</span>
+          <span class="cap">Acciones, énfasis, cifras clave</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:96px; background:#17191B; border-radius:2px;"></div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Tinta</span>
+          <span class="cap mono">#17191B</span>
+          <span class="cap">Texto principal y filetes fuertes</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:96px; background:#2E6F4E; border-radius:2px;"></div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Correcto</span>
+          <span class="cap mono">#2E6F4E</span>
+          <span class="cap">Suscripción activa, pago confirmado</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:96px; background:#A8410F; border-radius:2px;"></div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:14px; font-weight:600;">Alerta</span>
+          <span class="cap mono">#A8410F</span>
+          <span class="cap">Cuota agotada, suspensión, vencimiento</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:24px; margin-top:28px;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:56px; background:#F6F3EC; border:1px solid #D8D2C6; border-radius:2px;"></div>
+        <span style="font-size:13px; font-weight:600;">Papel <span class="cap mono" style="font-weight:400;">#F6F3EC</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:56px; background:#EFEBE2; border:1px solid #D8D2C6; border-radius:2px;"></div>
+        <span style="font-size:13px; font-weight:600;">Papel banda <span class="cap mono" style="font-weight:400;">#EFEBE2</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:56px; background:#D8D2C6; border-radius:2px;"></div>
+        <span style="font-size:13px; font-weight:600;">Filete <span class="cap mono" style="font-weight:400;">#D8D2C6</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:56px; background:#C9C2B4; border-radius:2px;"></div>
+        <span style="font-size:13px; font-weight:600;">Borde <span class="cap mono" style="font-weight:400;">#C9C2B4</span></span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="height:56px; background:#5A5F63; border-radius:2px;"></div>
+        <span style="font-size:13px; font-weight:600;">Tinta suave <span class="cap mono" style="font-weight:400;">#5A5F63</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 96px 0;">
+    <p class="sec">Tipografía</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:64px; margin-top:28px;">
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <p class="et">Títulos</p>
+          <p style="font-family:Newsreader,Georgia,serif; font-size:40px; line-height:1.1;">Newsreader</p>
+          <p class="cap">Regular 400 · Medio 500 · Seminegra 600. Alternativa de respaldo: Georgia.</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <p class="et">Interfaz y datos</p>
+          <p style="font-size:38px; line-height:1.1; font-weight:500;">IBM Plex Sans</p>
+          <p class="cap">Regular 400 · Medio 500 · Seminegra 600. Cifras tabulares activas. Respaldo: Segoe UI.</p>
+        </div>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr><th class="th" style="width:34%;">Estilo</th><th class="th" style="width:26%;">Tamaño / interlínea</th><th class="th">Familia y peso</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="td">Titular</td><td class="td mono">58 / 1.05</td><td class="td">Newsreader 500</td></tr>
+            <tr><td class="td">Título de sección</td><td class="td mono">34 / 1.15</td><td class="td">Newsreader 500</td></tr>
+            <tr><td class="td">Título de bloque</td><td class="td mono">22 / 1.30</td><td class="td">Newsreader 500</td></tr>
+            <tr><td class="td">Título menor</td><td class="td mono">21 / 1.25</td><td class="td">Newsreader 500</td></tr>
+            <tr><td class="td">Entrada</td><td class="td mono">20 / 1.50</td><td class="td">Plex Sans 400</td></tr>
+            <tr><td class="td">Cuerpo</td><td class="td mono">16 / 1.55</td><td class="td">Plex Sans 400</td></tr>
+            <tr><td class="td">Dato de tabla</td><td class="td mono">15 / 1.50</td><td class="td">Plex Sans 400</td></tr>
+            <tr><td class="td">Etiqueta</td><td class="td mono">12 / 1.20</td><td class="td">Plex Sans 600, mayúsculas, +0.09em</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 96px 0;">
+    <p class="sec">Logotipo</p>
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:24px; margin-top:28px;">
+      <div style="border:1px solid #D8D2C6; border-radius:2px; background:#F6F3EC; padding:40px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <svg width="40" height="40" viewBox="0 0 22 22" fill="none">
+            <rect x="0.75" y="0.75" width="20.5" height="20.5" stroke="#0B5F55" stroke-width="1.5"></rect>
+            <path d="M8 0.75 V21.25" stroke="#0B5F55" stroke-width="1.5"></path>
+            <rect x="12" y="9" width="6" height="4" fill="#0B5F55"></rect>
+          </svg>
+          <span style="font-family:Newsreader,Georgia,serif; font-size:44px; font-weight:600; letter-spacing:-0.02em;">shapi</span>
+        </div>
+        <p class="cap">Positivo sobre papel. El cuadrado es la plataforma, la línea vertical es la compuerta y el bloque es la petición que la atraviesa.</p>
+      </div>
+      <div style="border:1px solid #17191B; border-radius:2px; background:#17191B; padding:40px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <svg width="40" height="40" viewBox="0 0 22 22" fill="none">
+            <rect x="0.75" y="0.75" width="20.5" height="20.5" stroke="#F6F3EC" stroke-width="1.5"></rect>
+            <path d="M8 0.75 V21.25" stroke="#F6F3EC" stroke-width="1.5"></path>
+            <rect x="12" y="9" width="6" height="4" fill="#F6F3EC"></rect>
+          </svg>
+          <span style="font-family:Newsreader,Georgia,serif; font-size:44px; font-weight:600; letter-spacing:-0.02em; color:#F6F3EC;">shapi</span>
+        </div>
+        <p style="font-size:13px; color:#A9AEB2;">Negativo sobre tinta. Se usa en el pie y en bandas oscuras.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 96px 0;">
+    <p class="sec">Espaciado y radio</p>
+    <div style="display:flex; align-items:flex-end; gap:20px; margin-top:28px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:4px; height:4px; background:#0B5F55;"></div><span class="cap mono">4</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:8px; height:8px; background:#0B5F55;"></div><span class="cap mono">8</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:12px; height:12px; background:#0B5F55;"></div><span class="cap mono">12</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:16px; height:16px; background:#0B5F55;"></div><span class="cap mono">16</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:24px; height:24px; background:#0B5F55;"></div><span class="cap mono">24</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:32px; height:32px; background:#0B5F55;"></div><span class="cap mono">32</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:48px; height:48px; background:#0B5F55;"></div><span class="cap mono">48</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:64px; height:64px; background:#0B5F55;"></div><span class="cap mono">64</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;"><div style="width:96px; height:96px; background:#0B5F55;"></div><span class="cap mono">96</span></div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-left:48px;">
+        <div style="width:120px; height:64px; border:1px solid #17191B; border-radius:2px;"></div>
+        <span class="cap">Radio único: 2 px. Márgenes de página: 96 px.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:56px 96px 0;">
+    <p class="sec">Componentes base</p>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:40px; margin-top:28px;">
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et">Botón principal</p>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:15px; font-weight:500; color:#F6F3EC; background:#0B5F55; padding:12px 24px; border-radius:2px;">Publicar API</span>
+          <span style="font-size:15px; font-weight:500; color:#F6F3EC; background:#084A42; padding:12px 24px; border-radius:2px;">Publicar API</span>
+        </div>
+        <p class="cap">Reposo y cursor encima. Altura 44 px.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et">Botón secundario</p>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:15px; font-weight:500; color:#17191B; border:1px solid #17191B; padding:11px 23px; border-radius:2px;">Cancelar</span>
+          <span style="font-size:15px; font-weight:500; color:#9A9EA1; border:1px solid #C9C2B4; padding:11px 23px; border-radius:2px;">Cancelar</span>
+        </div>
+        <p class="cap">Reposo y deshabilitado.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et">Etiqueta de estado</p>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#2E6F4E; border:1px solid #2E6F4E; padding:5px 10px; border-radius:2px;">Activa</span>
+          <span style="font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#A8410F; border:1px solid #A8410F; padding:5px 10px; border-radius:2px;">Suspendida</span>
+          <span style="font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#5A5F63; border:1px solid #C9C2B4; padding:5px 10px; border-radius:2px;">Despublicada</span>
+        </div>
+        <p class="cap">Correcto, alerta y neutro. No hay más colores de estado.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et">Campo de formulario</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; font-weight:600; color:#31363A;">Servidor de origen</span>
+          <div style="border:1px solid #C9C2B4; border-radius:2px; background:#FFFFFF; padding:11px 14px; font-size:15px; color:#9A9EA1;">https://</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; font-weight:600; color:#31363A;">Subdominio</span>
+          <div style="border:1px solid #0B5F55; border-radius:2px; background:#FFFFFF; padding:11px 14px; font-size:15px; color:#17191B;">envios.shapi.com</div>
+        </div>
+        <p class="cap">Vacío con texto guía, y enfocado.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et">Tarjeta</p>
+        <div style="border:1px solid #C9C2B4; border-radius:2px; background:#FFFFFF; padding:20px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+            <h3 style="font-size:19px;">Plan Lanzamiento</h3>
+            <span style="font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#2E6F4E; border:1px solid #2E6F4E; padding:4px 9px; border-radius:2px;">Activa</span>
+          </div>
+          <p class="cap">Empezar a cobrar por una API existente</p>
+          <div style="border-top:1px solid #D8D2C6; padding-top:10px; display:flex; align-items:baseline; gap:8px;">
+            <span class="mono" style="font-size:22px; font-weight:600;">Q 199.00</span>
+            <span class="cap">cada 30 días</span>
+          </div>
+        </div>
+        <p class="cap">Filete de 1 px, sin sombra.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p class="et">Tabla</p>
+        <table>
+          <thead>
+            <tr><th class="th">Ruta</th><th class="th" style="width:34%;">Llamadas</th><th class="th" style="width:26%;">Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="td">/cotizaciones</td><td class="td mono">128,400</td><td class="td" style="color:#2E6F4E; font-weight:600;">Expuesta</td></tr>
+            <tr><td class="td">/guias</td><td class="td mono">64,120</td><td class="td" style="color:#2E6F4E; font-weight:600;">Expuesta</td></tr>
+            <tr><td class="td">/tarifas</td><td class="td mono">9,860</td><td class="td" style="color:#5A5F63;">Oculta</td></tr>
+          </tbody>
+        </table>
+        <p class="cap">Filas de 42 px, cifras tabulares alineadas a la izquierda.</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

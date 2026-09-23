@@ -1,0 +1,7 @@
+{
+  "artboards": [
+    {"file": "Perfil.dc.html", "title": "A8.1 · Mi perfil · RF-04", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "Invitacion.dc.html", "title": "A8.2 · Aceptar la invitación de un miembro · RF-06", "x": 1560, "y": 0, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

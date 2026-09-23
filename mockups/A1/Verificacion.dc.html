@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap">
+  <style>
+    body { margin:0; background:#F4F6FA; color:#0B1220; font-family:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    a { color:#3B6FF0; text-decoration:none; }
+    a:hover { color:#2C57C9; text-decoration:underline; }
+    h1 { font-family:"Sora","Segoe UI",Helvetica,Arial,sans-serif; font-weight:400; margin:0; letter-spacing:-0.02em; }
+    p { margin:0; }
+    .et { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#5A6884; font-weight:500; margin:0; }
+  </style>
+</helmet>
+
+<div style="width:1440px; height:900px; background:#F4F6FA; display:flex; flex-direction:column; overflow:hidden;">
+
+  <div style="height:76px; background:#060910; border-bottom:1px solid #131B2B; display:flex; align-items:center; padding:0 80px; box-sizing:border-box;">
+    <div style="display:flex; align-items:center; gap:11px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="1" y="1" width="22" height="22" rx="6" stroke="#7FA6FF" stroke-width="1.5"></rect>
+        <path d="M6 8.5 H14" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 15.5 H12" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 12 H22" stroke="#E8EDF7" stroke-width="2.5" stroke-linecap="round"></path>
+      </svg>
+      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:20px; font-weight:500; letter-spacing:-0.03em; color:#E8EDF7;">Shapi</span>
+    </div>
+  </div>
+
+  <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; padding:44px 80px;">
+    <div style="width:520px; background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; padding:40px;">
+
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="5" width="20" height="14" rx="3" stroke="#3B6FF0" stroke-width="1.5"></rect>
+          <path d="M3.5 7.5 L12 13.5 L20.5 7.5" stroke="#3B6FF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <p class="et">Verificación de correo</p>
+          <h1 style="font-size:32px; line-height:1.2;">Revise su correo</h1>
+        </div>
+
+        <p style="font-size:16px; line-height:1.6; color:#5A6884;">Enviamos un enlace de confirmación a <span style="color:#0B1220; font-weight:500;">ana.morales@enviosxelaju.com</span>. Abra ese enlace para confirmar su cuenta. Vence en <span class="num" style="color:#0B1220; font-weight:500;">24 horas</span>. ¿No le llegó? <a href="#">Enviar el enlace otra vez</a>.</p>
+
+        <p style="font-size:15px; line-height:1.55; color:#5A6884;">Su organización ya quedó en el plan <span style="color:#0B1220; font-weight:500;">Prueba</span>: 1 API y 10,000 peticiones, sin costo por 30 días.</p>
+
+        <div style="background:#FBE9E3; border:1px solid #EDC3B4; border-radius:8px; padding:16px 18px; display:flex; gap:12px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; margin-top:1px;">
+            <circle cx="12" cy="12" r="9.25" stroke="#8E3315" stroke-width="1.5"></circle>
+            <path d="M12 7.25 V13" stroke="#8E3315" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M12 16.4 V16.5" stroke="#8E3315" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+          <p style="font-size:14px; line-height:1.5; color:#8E3315;">No podrá publicar APIs mientras su correo no esté confirmado.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

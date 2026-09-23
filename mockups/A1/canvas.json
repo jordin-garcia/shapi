@@ -1,0 +1,10 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "A1.1 · Registro del proveedor · RF-01", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "Verificacion.dc.html", "title": "A1.2 · Aviso de verificación de correo · RF-02", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "Sesion.dc.html", "title": "A1.3 · Inicio de sesión · RF-04", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "Recuperacion.dc.html", "title": "A1.4a · Recuperación · solicitud del enlace · RF-03", "x": 0, "y": 1060, "w": 1440, "h": 900},
+    {"file": "NuevaContrasena.dc.html", "title": "A1.4b · Recuperación · contraseña nueva · RF-03", "x": 1560, "y": 1060, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

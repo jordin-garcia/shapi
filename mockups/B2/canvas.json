@@ -1,0 +1,17 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "B2.1 · Consumo del ciclo por ruta · RF-37", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "ConsumoVacia.dc.html", "title": "B2.1 · Consumo del ciclo · variante vacía · RF-37", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "Pagos.dc.html", "title": "B2.2 · Historial de pagos del consumidor · RF-21", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "PagosVacia.dc.html", "title": "B2.2 · Historial de pagos · variante vacía · RF-21", "x": 0, "y": 1060, "w": 1440, "h": 900},
+    {"file": "Suscripcion.dc.html", "title": "B2.3 · Suscripción y claves · vigente · RF-22, RF-26, RF-27, RF-28", "x": 1560, "y": 1060, "w": 1440, "h": 900},
+    {"file": "SuscripcionGracia.dc.html", "title": "B2.3 · Suscripción y claves · en periodo de gracia · RF-23", "x": 3120, "y": 1060, "w": 1440, "h": 960},
+    {"file": "SuscripcionNoDisponible.dc.html", "title": "B2.3 · La API no está disponible temporalmente · RF-23", "x": 0, "y": 2180, "w": 1440, "h": 900},
+    {"file": "SuscripcionVacia.dc.html", "title": "B2.3 · Suscripción y claves · variante vacía · RF-26", "x": 1560, "y": 2180, "w": 1440, "h": 900},
+    {"file": "RotarClave.dc.html", "title": "B2.4 · Rotar una clave · RF-27", "x": 3120, "y": 2180, "w": 1440, "h": 900},
+    {"file": "ClaveNueva.dc.html", "title": "B2.5 · Clave nueva (única vez) · RF-27", "x": 0, "y": 3240, "w": 1440, "h": 900},
+    {"file": "RevocarClave.dc.html", "title": "B2.6 · Revocar una clave propia · RF-28", "x": 1560, "y": 3240, "w": 1440, "h": 900},
+    {"file": "CambioPlan.dc.html", "title": "B2.7 · Cambio de plan del consumidor · RF-25", "x": 3120, "y": 3240, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

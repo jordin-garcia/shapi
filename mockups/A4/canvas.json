@@ -1,0 +1,15 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "A4.1 · Planes de la API · RF-18", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "PlanesVacia.dc.html", "title": "A4.1 · Planes de la API · variante vacía · RF-18", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "EditarPlan.dc.html", "title": "A4.1 · Editar un plan de pago · RF-18", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "NuevoPlan.dc.html", "title": "A4.1 · Plan nuevo marcado como gratuito · RF-18", "x": 0, "y": 1060, "w": 1440, "h": 900},
+    {"file": "Miembros.dc.html", "title": "A4.2 · Miembros y roles · RF-06, RF-43", "x": 1560, "y": 1060, "w": 1440, "h": 900},
+    {"file": "MiembrosVacia.dc.html", "title": "A4.2 · Miembros y roles · variante vacía · RF-06", "x": 3120, "y": 1060, "w": 1440, "h": 900},
+    {"file": "QuitarMiembro.dc.html", "title": "A4.2 · Quitar a un miembro · RF-06", "x": 0, "y": 2120, "w": 1440, "h": 900},
+    {"file": "Claves.dc.html", "title": "A4.3 · Claves de sus consumidores (solo revocar) · RF-26, RF-28", "x": 1560, "y": 2120, "w": 1440, "h": 900},
+    {"file": "ClavesVacia.dc.html", "title": "A4.3 · Claves · variante vacía · RF-26", "x": 3120, "y": 2120, "w": 1440, "h": 900},
+    {"file": "RevocarClave.dc.html", "title": "A4.3b · Revocar una clave · RF-28", "x": 0, "y": 3180, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

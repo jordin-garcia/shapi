@@ -1,0 +1,19 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "A6.1 · Planes de plataforma · RF-17", "x": 0, "y": 0, "w": 1440, "h": 900},
+    {"file": "NuevoPlan.dc.html", "title": "A6.1 · Crear un plan de plataforma · RF-17", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "EditarPlan.dc.html", "title": "A6.1 · Editar un plan de plataforma · RF-17", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "Organizaciones.dc.html", "title": "A6.2 · Organizaciones · RF-38", "x": 0, "y": 1060, "w": 1440, "h": 900},
+    {"file": "OrganizacionesVacia.dc.html", "title": "A6.2 · Organizaciones · variante vacía · RF-38", "x": 1560, "y": 1060, "w": 1440, "h": 900},
+    {"file": "Suspender.dc.html", "title": "A6.2b · Suspender una organización · RF-38", "x": 3120, "y": 1060, "w": 1440, "h": 900},
+    {"file": "Pagos.dc.html", "title": "A6.3 · Pagos de la plataforma · RF-24", "x": 0, "y": 2120, "w": 1440, "h": 900},
+    {"file": "PagosVacia.dc.html", "title": "A6.3 · Pagos de la plataforma · variante vacía · RF-24", "x": 1560, "y": 2120, "w": 1440, "h": 900},
+    {"file": "RevertirPago.dc.html", "title": "A6.3b · Revertir un pago · RF-24", "x": 3120, "y": 2120, "w": 1440, "h": 900},
+    {"file": "Casos.dc.html", "title": "A6.4 · Casos de soporte · sesión de soporte · RF-40", "x": 0, "y": 3180, "w": 1440, "h": 900},
+    {"file": "CasosVacia.dc.html", "title": "A6.4 · Casos de soporte · variante vacía · RF-40", "x": 1560, "y": 3180, "w": 1440, "h": 900},
+    {"file": "Caso.dc.html", "title": "A6.4b · Atención de un caso · conversación y solo lectura · RF-40", "x": 3120, "y": 3180, "w": 1440, "h": 900},
+    {"file": "Cuentas.dc.html", "title": "A6.5 · Cuentas de administración y soporte · RF-42", "x": 0, "y": 4240, "w": 1440, "h": 900},
+    {"file": "CuentasVacia.dc.html", "title": "A6.5 · Cuentas de administración y soporte · variante vacía · RF-42", "x": 1560, "y": 4240, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

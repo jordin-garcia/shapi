@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap">
+  <style>
+    body { margin:0; background:#F4F6FA; color:#0B1220; font-family:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    a { color:#3B6FF0; text-decoration:none; }
+    a:hover { color:#2C57C9; text-decoration:underline; }
+    h1 { font-family:"Sora","Segoe UI",Helvetica,Arial,sans-serif; font-weight:400; margin:0; letter-spacing:-0.02em; }
+    p { margin:0; }
+    .et { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#5A6884; font-weight:500; margin:0; }
+    .lbl { font-size:13px; font-weight:600; color:#0B1220; }
+    .campo { border:1px solid #C9D2E1; border-radius:8px; padding:11px 14px; font-size:15px; color:#0B1220; background:#FFFFFF; }
+    .num { font-variant-numeric:tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width:1440px; height:900px; background:#F4F6FA; display:flex; flex-direction:column; overflow:hidden;">
+
+  <div style="height:76px; background:#060910; border-bottom:1px solid #131B2B; display:flex; align-items:center; padding:0 80px; box-sizing:border-box;">
+    <div style="display:flex; align-items:center; gap:11px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="1" y="1" width="22" height="22" rx="6" stroke="#7FA6FF" stroke-width="1.5"></rect>
+        <path d="M6 8.5 H14" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 15.5 H12" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 12 H22" stroke="#E8EDF7" stroke-width="2.5" stroke-linecap="round"></path>
+      </svg>
+      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:20px; font-weight:500; letter-spacing:-0.03em; color:#E8EDF7;">Shapi</span>
+    </div>
+  </div>
+
+  <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; padding:44px 80px;">
+    <div style="width:480px; background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; padding:40px;">
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <p class="et">Recuperación · paso 1 de 2</p>
+        <h1 style="font-size:32px; line-height:1.2;">Recuperar la contraseña</h1>
+        <p style="font-size:15px; line-height:1.55; color:#5A6884;">Escriba su correo y le enviamos un enlace para definir una contraseña nueva.</p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:7px; margin-top:32px;">
+        <span class="lbl">Correo electrónico</span>
+        <div class="campo" style="border-color:#3B6FF0; box-shadow:0 0 0 3px #DEE7FC;">ana.morales@enviosxelaju.com</div>
+      </div>
+
+      <div style="margin-top:24px;">
+        <div style="background:#3B6FF0; color:#FFFFFF; font-size:15px; font-weight:500; text-align:center; padding:13px 24px; border-radius:8px;">Enviar el enlace</div>
+      </div>
+
+      <div style="background:#F4F6FA; border:1px solid #DCE3EE; border-radius:8px; padding:14px 16px; margin-top:24px;">
+        <p style="font-size:14px; line-height:1.5; color:#5A6884;">El enlace es de un solo uso y vence <span class="num" style="color:#0B1220; font-weight:500;">60 minutos</span> después de enviarse.</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

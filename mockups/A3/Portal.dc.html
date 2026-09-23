@@ -1,0 +1,338 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@300;400;500;600&display=swap">
+  <style>
+    body { margin:0; background:#F4F6FA; color:#0B1220; font-family:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    a { color:#3B6FF0; text-decoration:none; }
+    a:hover { color:#2C57C9; text-decoration:underline; }
+    h1,h2,h3 { font-family:"Sora","Segoe UI",Helvetica,Arial,sans-serif; font-weight:400; margin:0; letter-spacing:-0.02em; }
+    p { margin:0; }
+    .et { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#5A6884; font-weight:500; margin:0; }
+    .tarj { background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; }
+    .lbl { font-size:13px; font-weight:600; color:#0B1220; }
+    .campo { border:1px solid #C9D2E1; border-radius:8px; padding:11px 14px; font-size:15px; line-height:1.5; color:#0B1220; background:#FFFFFF; }
+    .btn-p { background:#3B6FF0; color:#FFFFFF; font-size:15px; font-weight:500; text-align:center; padding:13px 24px; border-radius:8px; white-space:nowrap; }
+    .nav-et { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#7F8DA8; font-weight:600; padding:0 12px; line-height:1.2; }
+    .nav-i { display:block; font-size:14px; line-height:1.5; color:#B9C4D8; padding:7px 12px; border-radius:8px; }
+    .nav-i:hover { color:#E8EDF7; text-decoration:none; }
+    .nav-on { background:#0E1830; color:#7FA6FF; font-weight:500; }
+    .nav-on:hover { color:#7FA6FF; }
+    .salir { width:36px; height:36px; box-sizing:border-box; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:1px solid #2A3550; border-radius:8px; color:#B9C4D8; }
+    .salir:hover { color:#E8EDF7; border-color:#7FA6FF; }
+  </style>
+</helmet>
+
+<div style="width:1440px; height:1292px; background:#F4F6FA; display:flex; flex-direction:column; overflow:hidden;">
+
+  <div style="height:76px; background:#060910; border-bottom:1px solid #131B2B; display:flex; align-items:center; justify-content:space-between; padding:0 44px 0 28px; flex-shrink:0; box-sizing:border-box;">
+    <div style="display:flex; align-items:center; gap:11px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="1" y="1" width="22" height="22" rx="6" stroke="#7FA6FF" stroke-width="1.5"></rect>
+        <path d="M6 8.5 H14" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 15.5 H12" stroke="#7FA6FF" stroke-width="1.5" stroke-linecap="round"></path>
+        <path d="M6 12 H22" stroke="#E8EDF7" stroke-width="2.5" stroke-linecap="round"></path>
+      </svg>
+      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:20px; font-weight:500; letter-spacing:-0.03em; color:#E8EDF7;">Shapi</span>
+    </div>
+    <span style="font-size:14px; color:#8B98B0;">Envíos Xelajú, S.A.</span>
+  </div>
+
+  <div style="flex-grow:1; display:flex; min-height:0;">
+
+    <div style="width:272px; flex-shrink:0; box-sizing:border-box; background:#060910; border-right:1px solid #131B2B; padding:24px 16px 20px; display:flex; flex-direction:column; justify-content:space-between;">
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <span class="nav-et">Publicación</span>
+          <a href="#" class="nav-i">APIs</a>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <span class="nav-et">API</span>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #2A3550; border-radius:8px; padding:9px 12px; font-size:14px; line-height:1.5; font-weight:500; color:#E8EDF7; background:#0C1220;">
+            <span style="white-space:nowrap;">API de Cotización de Envíos</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M4 6 L8 10 L12 6" stroke="#8B98B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:1px;">
+            <a href="#" class="nav-i">Especificación</a>
+            <a href="#" class="nav-i">Rutas expuestas</a>
+            <a href="#" class="nav-i">Configuración por ruta</a>
+            <a href="#" class="nav-i">Dominios</a>
+            <a href="#" class="nav-i nav-on">Portal</a>
+            <a href="#" class="nav-i">Planes</a>
+            <a href="#" class="nav-i">Claves</a>
+            <a href="#" class="nav-i">Consumo</a>
+            <a href="#" class="nav-i">Consumidores</a>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <span class="nav-et">Organización</span>
+          <div style="display:flex; flex-direction:column; gap:1px;">
+            <a href="#" class="nav-i">Miembros y roles</a>
+            <a href="#" class="nav-i">Suscripción de plataforma</a>
+            <a href="#" class="nav-i">Historial de pagos</a>
+            <a href="#" class="nav-i">Casos de soporte</a>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid #131B2B; padding:16px 4px 0 12px;">
+        <div style="display:flex; flex-direction:column; gap:1px; min-width:0;">
+          <span style="font-size:14px; font-weight:500; line-height:1.5; color:#E8EDF7; white-space:nowrap;">Ana Lucía Morales</span>
+          <span style="font-size:13px; line-height:1.5; color:#8B98B0;">Propietario</span>
+        </div>
+        <a href="#" class="salir" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M8 3.5 H5 A1.5 1.5 0 0 0 3.5 5 V15 A1.5 1.5 0 0 0 5 16.5 H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M8.5 10 H16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            <path d="M13.5 7 L16.5 10 L13.5 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </a>
+      </div>
+
+    </div>
+
+    <div style="flex-grow:1; min-width:0; padding:40px 44px 0;">
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <p class="et">API de Cotización de Envíos</p>
+        <h1 style="font-size:32px; line-height:1.2;">Personalización del portal</h1>
+        <p style="font-size:15px; line-height:1.55; color:#5A6884;">Su portal lleva su logotipo, su color y sus textos. Sus consumidores no ven la marca de Shapi.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:400px minmax(0,1fr); gap:24px; margin-top:28px; align-items:start;">
+
+        <div class="tarj" style="padding:20px; display:flex; flex-direction:column;">
+          <h2 style="font-size:21px; line-height:1.3;">Marca del portal</h2>
+
+          <div style="display:flex; flex-direction:column; gap:18px; border-top:1px solid #EBEFF5; margin-top:20px; padding-top:20px;">
+
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <span class="lbl">Logotipo</span>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; border:1px solid #C9D2E1; border-radius:8px; padding:10px 14px 10px 10px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                  <div style="width:44px; height:44px; border-radius:8px; background:#B8322A; color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-family:Sora,Helvetica,Arial,sans-serif; font-size:17px; font-weight:600; letter-spacing:-0.02em;">EX</div>
+                  <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span style="font-size:14px; font-weight:500; color:#0B1220;">logo-envios-xelaju.svg</span>
+                    <span style="font-size:13px; color:#5A6884;">PNG o SVG</span>
+                  </div>
+                </div>
+                <a href="#" style="font-size:14px; font-weight:500;">Cambiar</a>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <span class="lbl">Color principal</span>
+              <div class="campo" style="display:flex; align-items:center; gap:12px; font-variant-numeric:tabular-nums; letter-spacing:0.02em;">
+                <span style="width:20px; height:20px; border-radius:4px; background:#B8322A; flex-shrink:0;"></span>
+                <span>#B8322A</span>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <span class="lbl">Nombre del portal</span>
+              <div class="campo">Envíos Xelajú</div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <span class="lbl">Texto de bienvenida</span>
+              <div class="campo" style="border-color:#3B6FF0; box-shadow:0 0 0 3px #DEE7FC; min-height:72px;">Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.</div>
+            </div>
+
+          </div>
+
+          <div class="btn-p" style="margin-top:24px;">Guardar personalización</div>
+        </div>
+
+        <div class="tarj" style="padding:20px; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px;">
+            <h2 style="font-size:21px; line-height:1.3;">Vista previa</h2>
+            <a href="#" style="display:flex; align-items:center; gap:7px; font-size:14px; font-weight:500;">
+              Abrir mi portal
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5.5 2.75 H2.75 V11.25 H11.25 V8.5" stroke="#3B6FF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M8 2.75 H11.25 V6" stroke="#3B6FF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M11 3 L6.5 7.5" stroke="#3B6FF0" stroke-width="1.5" stroke-linecap="round"></path>
+              </svg>
+            </a>
+          </div>
+
+          <div style="margin-top:20px; width:100%; height:803px; box-sizing:border-box; border:1px solid #DCE3EE; border-radius:8px; overflow:hidden; background:#FFFFFF;">
+            <div style="--marca-principal:#B8322A; width:1440px; height:1882px; background:#FFFFFF; color:#0B1220; display:flex; flex-direction:column; overflow:hidden; font-family:'IBM Plex Sans','Segoe UI',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; transform:scale(0.42569); transform-origin:top left;">
+            
+              <div style="height:76px; border-bottom:1px solid #DCE3EE; display:flex; align-items:center; justify-content:space-between; padding:0 80px; flex-shrink:0; background:#FFFFFF;">
+                <div style="display:flex; align-items:center; gap:11px;">
+                  <div style="width:28px; height:28px; border-radius:6px; background:var(--marca-principal); color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-family:Sora,Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:-0.02em;">EX</div>
+                  <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:20px; font-weight:500; letter-spacing:-0.03em; color:#0B1220;">Envíos Xelajú</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:32px;">
+                  <span style="font-size:15px; color:#5A6884;">Documentación</span>
+                  <span style="font-size:15px; color:#5A6884;">Planes</span>
+                  <span style="font-size:15px; font-weight:500; color:#0B1220;">Entrar</span>
+                  <div style="background:var(--marca-principal); color:#FFFFFF; font-size:15px; font-weight:500; padding:13px 24px; border-radius:8px; white-space:nowrap; line-height:1.3;">Crear cuenta</div>
+                </div>
+              </div>
+            
+              <div style="position:relative; padding:80px; flex-shrink:0; border-bottom:1px solid #DCE3EE; overflow:hidden;">
+                <div style="position:absolute; top:0; right:0; bottom:0; left:0; opacity:0.08; background-image:linear-gradient(var(--marca-principal) 1px, transparent 1px), linear-gradient(90deg, var(--marca-principal) 1px, transparent 1px); background-size:48px 48px;"></div>
+                <div style="position:relative; display:grid; grid-template-columns:minmax(0,1fr) 520px; gap:64px; align-items:center;">
+            
+                  <div style="display:flex; flex-direction:column; gap:20px;">
+                    <p style="margin:0; font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; color:var(--marca-principal);">API de Cotización de Envíos</p>
+                    <p style="margin:0; font-family:Sora,Helvetica,Arial,sans-serif; font-size:44px; line-height:1.15; font-weight:300; letter-spacing:-0.03em; color:#0B1220;">Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.</p>
+                    <p style="margin:0; font-size:20px; line-height:1.55; color:#5A6884; max-width:52ch;">Cotice envíos entre municipios, genere guías, consulte la cobertura y rastree sus paquetes directamente desde su propio sistema.</p>
+                    <div style="display:flex; gap:12px; margin-top:12px;">
+                      <div style="background:var(--marca-principal); color:#FFFFFF; font-size:15px; font-weight:500; padding:13px 24px; border-radius:8px; white-space:nowrap; line-height:1.3;">Crear cuenta</div>
+                      <div style="border:1px solid #C9D2E1; background:#FFFFFF; color:#0B1220; font-size:15px; font-weight:500; padding:12px 23px; border-radius:8px; white-space:nowrap; line-height:1.3;">Ver documentación</div>
+                    </div>
+                  </div>
+            
+                  <div style="background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; overflow:hidden;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #EBEFF5;">
+                      <span style="font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; color:#5A6884;">Petición</span>
+                      <span style="font-size:14px; color:#0B1220;"><span style="font-weight:600; letter-spacing:.06em; color:var(--marca-principal);">POST</span>&nbsp;&nbsp;/cotizaciones</span>
+                    </div>
+                    <div style="padding:18px 20px; font-size:14px; line-height:1.7; color:#2B3547; white-space:pre; font-variant-numeric:tabular-nums;">{
+              "origen": "0901",
+              "destino": "0301",
+              "peso_kg": 2.5,
+              "tipo_servicio": "normal"
+            }</div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-top:1px solid #EBEFF5; border-bottom:1px solid #EBEFF5; background:#F4F6FA;">
+                      <span style="font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; color:#5A6884;">Respuesta</span>
+                      <span style="font-size:14px; font-weight:600; color:#1F8A5B;">200</span>
+                    </div>
+                    <div style="padding:18px 20px; font-size:14px; line-height:1.7; color:#2B3547; white-space:pre; font-variant-numeric:tabular-nums;">{
+              "origen": "Quetzaltenango",
+              "destino": "Antigua Guatemala",
+              "tarifa": "Q 38.50",
+              "entrega_estimada": "2 días hábiles"
+            }</div>
+                  </div>
+            
+                </div>
+              </div>
+            
+              <div style="padding:64px 80px; flex-shrink:0;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <p style="margin:0; font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; color:#5A6884;">Documentación</p>
+                  <p style="margin:0; font-family:Sora,Helvetica,Arial,sans-serif; font-size:44px; line-height:1.15; font-weight:300; letter-spacing:-0.03em; color:#0B1220;">Rutas disponibles</p>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:20px; margin-top:40px;">
+                  <div style="border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:14px; background:#FFFFFF;">
+                    <span style="font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--marca-principal); line-height:1.2;">POST</span>
+                    <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:22px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">/cotizaciones</span>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884; min-height:63px;">Calcula el costo de un envío según origen, destino, peso y tipo de servicio.</p>
+                    <span style="border-top:1px solid #EBEFF5; padding-top:14px; font-size:13px; color:#5A6884;">Descuenta 1 llamada de su cuota</span>
+                  </div>
+                  <div style="border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:14px; background:#FFFFFF;">
+                    <span style="font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--marca-principal); line-height:1.2;">POST</span>
+                    <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:22px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">/guias</span>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884; min-height:63px;">Genera la guía de envío de un paquete ya cotizado.</p>
+                    <span style="border-top:1px solid #EBEFF5; padding-top:14px; font-size:13px; color:#5A6884;">Descuenta 5 llamadas de su cuota</span>
+                  </div>
+                  <div style="border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:14px; background:#FFFFFF;">
+                    <span style="font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--marca-principal); line-height:1.2;">GET</span>
+                    <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:22px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">/rastreo</span>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884; min-height:63px;">Consulta el estado de un paquete con su número de guía.</p>
+                    <span style="border-top:1px solid #EBEFF5; padding-top:14px; font-size:13px; color:#5A6884;">Descuenta 1 llamada de su cuota</span>
+                  </div>
+                  <div style="border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:14px; background:#FFFFFF;">
+                    <span style="font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--marca-principal); line-height:1.2;">GET</span>
+                    <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:22px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">/cobertura</span>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884; min-height:63px;">Indica si un municipio tiene cobertura de entrega.</p>
+                    <span style="border-top:1px solid #EBEFF5; padding-top:14px; font-size:13px; color:#5A6884;">Descuenta 1 llamada de su cuota</span>
+                  </div>
+                </div>
+              </div>
+            
+              <div style="background:#F4F6FA; border-top:1px solid #DCE3EE; border-bottom:1px solid #DCE3EE; padding:64px 80px; flex-shrink:0;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <p style="margin:0; font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:500; color:#5A6884;">Precios</p>
+                  <p style="margin:0; font-family:Sora,Helvetica,Arial,sans-serif; font-size:44px; line-height:1.15; font-weight:300; letter-spacing:-0.03em; color:#0B1220;">Planes de la API</p>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px; margin-top:40px;">
+            
+                  <div style="background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:20px;">
+                    <p style="margin:0; font-family:Sora,Helvetica,Arial,sans-serif; font-size:21px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">Básico</p>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884;">Para tiendas que empiezan a vender en línea.</p>
+                    <div style="display:flex; flex-direction:column; gap:5px; border-top:1px solid #EBEFF5; padding-top:20px;">
+                      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:32px; line-height:1; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">Q 149.00</span>
+                      <span style="font-size:13px; color:#5A6884;">Vigencia de 30 días</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:11px;">
+                      <span style="font-size:14.5px; color:#2B3547; font-variant-numeric:tabular-nums;">5,000 llamadas al mes</span>
+                      <span style="font-size:14.5px; color:#2B3547; font-variant-numeric:tabular-nums;">30 peticiones por minuto</span>
+                    </div>
+                    <div style="background:var(--marca-principal); color:#FFFFFF; font-size:15px; font-weight:500; text-align:center; padding:13px 24px; border-radius:8px; line-height:1.3;">Contratar</div>
+                  </div>
+            
+                  <div style="background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:20px;">
+                    <p style="margin:0; font-family:Sora,Helvetica,Arial,sans-serif; font-size:21px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">Comercio</p>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884;">Para tiendas con envíos todos los días.</p>
+                    <div style="display:flex; flex-direction:column; gap:5px; border-top:1px solid #EBEFF5; padding-top:20px;">
+                      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:32px; line-height:1; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">Q 450.00</span>
+                      <span style="font-size:13px; color:#5A6884;">Vigencia de 30 días</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:11px;">
+                      <span style="font-size:14.5px; color:#2B3547; font-variant-numeric:tabular-nums;">50,000 llamadas al mes</span>
+                      <span style="font-size:14.5px; color:#2B3547; font-variant-numeric:tabular-nums;">120 peticiones por minuto</span>
+                    </div>
+                    <div style="background:var(--marca-principal); color:#FFFFFF; font-size:15px; font-weight:500; text-align:center; padding:13px 24px; border-radius:8px; line-height:1.3;">Contratar</div>
+                  </div>
+            
+                  <div style="background:#FFFFFF; border:1px solid #DCE3EE; border-radius:8px; padding:24px; display:flex; flex-direction:column; gap:20px;">
+                    <p style="margin:0; font-family:Sora,Helvetica,Arial,sans-serif; font-size:21px; line-height:1.3; font-weight:400; letter-spacing:-0.02em;">Volumen</p>
+                    <p style="margin:0; font-size:14px; line-height:1.5; color:#5A6884;">Para operaciones con alto volumen de guías.</p>
+                    <div style="display:flex; flex-direction:column; gap:5px; border-top:1px solid #EBEFF5; padding-top:20px;">
+                      <span style="font-family:Sora,Helvetica,Arial,sans-serif; font-size:32px; line-height:1; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">Q 1,200.00</span>
+                      <span style="font-size:13px; color:#5A6884;">Vigencia de 30 días</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:11px;">
+                      <span style="font-size:14.5px; color:#2B3547; font-variant-numeric:tabular-nums;">500,000 llamadas al mes</span>
+                      <span style="font-size:14.5px; color:#2B3547; font-variant-numeric:tabular-nums;">600 peticiones por minuto</span>
+                    </div>
+                    <div style="background:var(--marca-principal); color:#FFFFFF; font-size:15px; font-weight:500; text-align:center; padding:13px 24px; border-radius:8px; line-height:1.3;">Contratar</div>
+                  </div>
+            
+                </div>
+              </div>
+            
+              <div style="flex-grow:1; padding:32px 80px; display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:11px;">
+                  <div style="width:24px; height:24px; border-radius:6px; background:var(--marca-principal); color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-family:Sora,Helvetica,Arial,sans-serif; font-size:10px; font-weight:600;">EX</div>
+                  <span style="font-size:14px; color:#5A6884;">Envíos Xelajú, S.A.</span>
+                </div>
+                <div style="display:flex; gap:32px; font-size:14px; color:#5A6884;">
+                  <span>Documentación</span>
+                  <span>Planes</span>
+                  <span>Entrar</span>
+                </div>
+              </div>
+            
+            </div>
+          </div>
+
+          <p style="font-size:13px; line-height:1.5; color:#5A6884; margin-top:14px;">Página de inicio de su portal en https://envios.shapi.localhost: es lo primero que ve su cliente al abrir el enlace. Todo su contenido sale de lo que usted ingresó: la marca y los textos de esta pantalla; la descripción, las rutas y el ejemplo, de su especificación; las llamadas por ruta, de la configuración de cada ruta; y los precios, de sus planes de API. La vista previa refleja sus cambios antes de guardarlos; «Abrir mi portal» muestra el portal tal como está guardado.</p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

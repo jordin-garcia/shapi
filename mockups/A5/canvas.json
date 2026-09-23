@@ -1,0 +1,20 @@
+{
+  "artboards": [
+    {"file": "Main.dc.html", "title": "A5.0 · Inicio del portal · RF-15, RF-16", "x": 0, "y": 0, "w": 1440, "h": 1882},
+    {"file": "Documentacion.dc.html", "title": "A5.1 · Documentación generada · RF-16", "x": 1560, "y": 0, "w": 1440, "h": 900},
+    {"file": "Consola.dc.html", "title": "A5.2 · Consola de pruebas (clave pegada) · RF-16, RF-45", "x": 3120, "y": 0, "w": 1440, "h": 900},
+    {"file": "Registro.dc.html", "title": "A5.3 · Registro del consumidor · desde el portal · RF-05", "x": 0, "y": 2042, "w": 1440, "h": 900},
+    {"file": "RegistroInvitacion.dc.html", "title": "A5.3b · Registro del consumidor · por invitación · RF-05", "x": 1560, "y": 2042, "w": 1440, "h": 920},
+    {"file": "Planes.dc.html", "title": "A5.4 · Planes de la API · RF-19", "x": 3120, "y": 2042, "w": 1440, "h": 900},
+    {"file": "PlanesVacia.dc.html", "title": "A5.4 · Planes de la API · variante vacía · RF-19", "x": 0, "y": 3122, "w": 1440, "h": 900},
+    {"file": "Pago.dc.html", "title": "A5.6 · Contratación de un plan de pago · RF-20", "x": 1560, "y": 3122, "w": 1440, "h": 900},
+    {"file": "Confirmacion.dc.html", "title": "A5.4b · Plan contratado y claves (única vez) · RF-20, RF-26", "x": 3120, "y": 3122, "w": 1440, "h": 900},
+    {"file": "Acceso.dc.html", "title": "A5.7 · Inicio de sesión del consumidor · RF-04", "x": 0, "y": 4182, "w": 1440, "h": 900},
+    {"file": "Verificacion.dc.html", "title": "A5.8 · Verificación de correo del consumidor · RF-02", "x": 1560, "y": 4182, "w": 1440, "h": 900},
+    {"file": "Recuperacion.dc.html", "title": "A5.9 · Recuperación · solicitud del enlace · RF-03", "x": 3120, "y": 4182, "w": 1440, "h": 900},
+    {"file": "NuevaContrasena.dc.html", "title": "A5.10 · Recuperación · contraseña nueva · RF-03", "x": 0, "y": 5242, "w": 1440, "h": 900},
+    {"file": "InicioAgro.dc.html", "title": "A5.5 · El mismo portal con otra marca · inicio · RF-15", "x": 1560, "y": 5242, "w": 1440, "h": 1882},
+    {"file": "DocumentacionAgro.dc.html", "title": "A5.5 · El mismo portal con otra marca · documentación · RF-15, RF-16", "x": 3120, "y": 5242, "w": 1440, "h": 900}
+  ],
+  "launch": { "view": "canvas" }
+}

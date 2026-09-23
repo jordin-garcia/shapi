@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/tareas.mjs*)",
+      "Bash(dotnet *)",
+      "Bash(pnpm *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(docker compose *)",
+      "Bash(docker ps*)",
+      "Bash(docker logs *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git switch *)",
+      "Bash(git checkout -b *)",
+      "Bash(git pull*)",
+      "Bash(git fetch*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git rebase *)",
+      "Bash(git push -u origin *)",
+      "Bash(git push origin *)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(gh api user*)",
+      "Bash(curl *)"
+    ],
+    "deny": [
+      "Bash(git push origin main*)",
+      "Bash(git push --force origin main*)",
+      "Bash(git push -f origin main*)",
+      "Bash(git commit *--no-verify*)",
+      "Read(./.env)",
+      "Read(./**/.env)"
+    ]
+  }
+}

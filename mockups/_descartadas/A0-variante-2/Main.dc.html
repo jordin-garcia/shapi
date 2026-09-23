@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#FFFFFF; color:#0E1116; font-family:"Libre Franklin","Helvetica Neue",Helvetica,Arial,sans-serif; font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    a { color:#1B4DD1; text-decoration:none; }
+    a:hover { color:#143BA3; text-decoration:underline; }
+    h1,h2,h3 { font-family:"Space Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:500; margin:0; letter-spacing:-0.028em; }
+    p { margin:0; }
+    .et { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#545B66; font-weight:600; margin:0; }
+    .num { font-variant-numeric:tabular-nums; }
+    ul { margin:0; padding:0; list-style:none; }
+  </style>
+</helmet>
+
+<div style="width:1440px; background:#FFFFFF;">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:0 80px; height:72px; border-bottom:1px solid #0E1116;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <svg width="24" height="24" viewBox="0 0 24 24">
+        <rect x="0" y="0" width="24" height="6" fill="#1B4DD1"></rect>
+        <rect x="0" y="9" width="17" height="6" fill="#1B4DD1"></rect>
+        <rect x="7" y="18" width="17" height="6" fill="#1B4DD1"></rect>
+      </svg>
+      <span style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:21px; font-weight:700; letter-spacing:-0.01em; text-transform:uppercase;">Shapi</span>
+    </div>
+    <div style="display:flex; align-items:stretch; gap:0; height:100%;">
+      <a href="#planes" style="display:flex; align-items:center; padding:0 24px; font-size:14px; font-weight:500; color:#0E1116; border-left:1px solid #D3D8DE;">Precios</a>
+      <a href="#" style="display:flex; align-items:center; padding:0 24px; font-size:14px; font-weight:500; color:#0E1116; border-left:1px solid #D3D8DE;">Entrar</a>
+      <a href="#" style="display:flex; align-items:center; padding:0 24px; font-size:14px; font-weight:600; color:#FFFFFF; background:#1B4DD1;">Crear cuenta</a>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 468px; gap:0; border-bottom:1px solid #0E1116;">
+    <div style="padding:72px 64px 64px 80px; display:flex; flex-direction:column; align-items:flex-start; gap:32px;">
+      <p class="et">Plataforma como servicio · Servidores web como servicio</p>
+      <h1 style="font-size:70px; line-height:0.98; max-width:14ch;">Publique su API, controle quién la usa y cobre por ella.</h1>
+      <div style="width:100%; height:1px; background:#D3D8DE;"></div>
+      <p style="font-size:18px; line-height:1.6; color:#3A414B; max-width:56ch;">Sin modificar el servidor que ya tiene. Usted conecta su servidor, sube su especificación OpenAPI y define los planes. Shapi genera el portal con su marca, emite las claves de acceso, aplica las cuotas en cada petición y lleva el registro del consumo y los pagos.</p>
+      <div style="display:flex; align-items:center; gap:0;">
+        <a href="#" style="font-size:16px; font-weight:600; color:#FFFFFF; background:#1B4DD1; padding:16px 32px;">Crear cuenta</a>
+        <a href="#planes" style="font-size:16px; font-weight:600; color:#0E1116; border:1px solid #0E1116; border-left:none; padding:15px 32px;">Ver precios</a>
+      </div>
+    </div>
+    <div style="background:#1B4DD1; border-left:1px solid #0E1116; display:flex; align-items:center; justify-content:center; padding:64px;">
+      <svg viewBox="0 0 340 340" width="100%" style="display:block;">
+        <g stroke="#FFFFFF" stroke-width="1" opacity="0.45">
+          <path d="M0 0 H340"></path><path d="M0 68 H340"></path><path d="M0 136 H340"></path>
+          <path d="M0 204 H340"></path><path d="M0 272 H340"></path><path d="M0 340 H340"></path>
+          <path d="M0 0 V340"></path><path d="M68 0 V340"></path><path d="M136 0 V340"></path>
+          <path d="M204 0 V340"></path><path d="M272 0 V340"></path><path d="M340 0 V340"></path>
+        </g>
+        <rect x="0" y="0" width="68" height="68" fill="#FFFFFF"></rect>
+        <rect x="68" y="68" width="68" height="68" fill="#FFFFFF"></rect>
+        <rect x="136" y="136" width="136" height="68" fill="#FFFFFF"></rect>
+        <rect x="204" y="204" width="68" height="68" fill="#FFFFFF"></rect>
+        <rect x="272" y="272" width="68" height="68" fill="#FFFFFF"></rect>
+        <rect x="136" y="68" width="68" height="68" fill="#0E1116"></rect>
+        <rect x="272" y="136" width="68" height="68" fill="#0E1116"></rect>
+      </svg>
+    </div>
+  </div>
+
+  <div style="background:#EEF0F3; border-bottom:1px solid #0E1116;">
+    <div style="padding:64px 80px 24px; display:flex; align-items:flex-end; justify-content:space-between; gap:64px;">
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <p class="et">Cómo funciona</p>
+        <h2 style="font-size:40px; line-height:1.05;">Tres pasos para publicar y cobrar por su API.</h2>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0; padding:0 80px 64px; margin-top:40px;">
+      <div style="border-top:3px solid #0E1116; padding:24px 40px 0 0; display:flex; flex-direction:column; gap:12px;">
+        <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:52px; line-height:1; font-weight:700; color:#1B4DD1; letter-spacing:-0.04em;">01</span>
+        <h3 style="font-size:24px; line-height:1.2;">Conectar el servidor de origen</h3>
+        <p style="font-size:16px; line-height:1.55; color:#3A414B;">Indique la dirección del servidor que ya tiene en funcionamiento. Shapi no lo modifica: solamente enruta el tráfico hacia él.</p>
+      </div>
+      <div style="border-top:3px solid #0E1116; border-left:1px solid #C6CCD4; padding:24px 40px 0; display:flex; flex-direction:column; gap:12px;">
+        <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:52px; line-height:1; font-weight:700; color:#1B4DD1; letter-spacing:-0.04em;">02</span>
+        <h3 style="font-size:24px; line-height:1.2;">Cargar la especificación OpenAPI</h3>
+        <p style="font-size:16px; line-height:1.55; color:#3A414B;">Suba el archivo. Shapi extrae las rutas y usted decide cuáles quedan expuestas y cuáles permanecen ocultas.</p>
+      </div>
+      <div style="border-top:3px solid #0E1116; border-left:1px solid #C6CCD4; padding:24px 0 0 40px; display:flex; flex-direction:column; gap:12px;">
+        <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:52px; line-height:1; font-weight:700; color:#1B4DD1; letter-spacing:-0.04em;">03</span>
+        <h3 style="font-size:24px; line-height:1.2;">Definir los planes</h3>
+        <p style="font-size:16px; line-height:1.55; color:#3A414B;">Nombre, descripción, precio, vigencia, cuota mensual y límite por minuto para cada plan de su API.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:64px 80px; border-bottom:1px solid #0E1116;">
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <p class="et">Qué recibe el proveedor</p>
+      <h2 style="font-size:40px; line-height:1.05; max-width:24ch;">Todo lo que hace falta para operar una API de paga.</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:32px; margin-top:44px;">
+      <div style="border-top:1px solid #0E1116; padding-top:20px; display:flex; flex-direction:column; gap:10px;">
+        <h3 style="font-size:21px; line-height:1.2;">Portal con su propia marca</h3>
+        <p style="font-size:15px; line-height:1.55; color:#3A414B;">Su logotipo, su color principal y sus textos. La documentación se genera desde su especificación OpenAPI e incluye consola de pruebas.</p>
+      </div>
+      <div style="border-top:1px solid #0E1116; padding-top:20px; display:flex; flex-direction:column; gap:10px;">
+        <h3 style="font-size:21px; line-height:1.2;">Claves de acceso</h3>
+        <p style="font-size:15px; line-height:1.55; color:#3A414B;">Claves de producción y de pruebas, emitidas al activarse cada suscripción. Se pueden rotar y revocar cuando lo necesite.</p>
+      </div>
+      <div style="border-top:1px solid #0E1116; padding-top:20px; display:flex; flex-direction:column; gap:10px;">
+        <h3 style="font-size:21px; line-height:1.2;">Cuotas en cada petición</h3>
+        <p style="font-size:15px; line-height:1.55; color:#3A414B;">La compuerta verifica la clave, la suscripción, el límite por minuto y la cuota antes de que la petición llegue a su servidor.</p>
+      </div>
+      <div style="border-top:1px solid #0E1116; padding-top:20px; display:flex; flex-direction:column; gap:10px;">
+        <h3 style="font-size:21px; line-height:1.2;">Registro de consumo y pagos</h3>
+        <p style="font-size:15px; line-height:1.55; color:#3A414B;">Consumo consolidado por suscripción, ruta y día, e historial de pagos de la organización y de cada consumidor.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="planes" style="padding:64px 80px 72px;">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:64px;">
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <p class="et">Planes</p>
+        <h2 style="font-size:40px; line-height:1.05;">Los planes de Shapi.</h2>
+      </div>
+      <p style="font-size:15px; color:#545B66; max-width:36ch; text-align:right;">Precios en quetzales. La vigencia se cuenta desde la contratación del plan.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:0; margin-top:40px; border:1px solid #0E1116;">
+
+      <div style="border-right:1px solid #0E1116; display:flex; flex-direction:column;">
+        <div style="background:#0E1116; padding:20px 24px; display:flex; flex-direction:column; gap:6px; min-height:92px;">
+          <h3 style="font-size:24px; color:#FFFFFF;">Prueba</h3>
+          <p style="font-size:13px; line-height:1.4; color:#A7AEB8;">Publicar una primera API sin costo</p>
+        </div>
+        <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:34px; font-weight:700; letter-spacing:-0.03em;">Q 0.00</span>
+            <span style="font-size:13px; color:#545B66;">Vigencia de 30 días</span>
+          </div>
+          <ul style="display:flex; flex-direction:column; gap:10px; border-top:1px solid #D3D8DE; padding-top:16px;">
+            <li style="font-size:15px; color:#3A414B;">1 API</li>
+            <li style="font-size:15px; color:#3A414B;" class="num">10,000 llamadas</li>
+            <li style="font-size:15px; color:#3A414B;">Prueba gratis por 30 días</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="border-right:1px solid #0E1116; display:flex; flex-direction:column;">
+        <div style="background:#0E1116; padding:20px 24px; display:flex; flex-direction:column; gap:6px; min-height:92px;">
+          <h3 style="font-size:24px; color:#FFFFFF;">Lanzamiento</h3>
+          <p style="font-size:13px; line-height:1.4; color:#A7AEB8;">Empezar a cobrar por una API existente</p>
+        </div>
+        <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:34px; font-weight:700; letter-spacing:-0.03em;">Q 199.00</span>
+            <span style="font-size:13px; color:#545B66;">Vigencia de 30 días</span>
+          </div>
+          <ul style="display:flex; flex-direction:column; gap:10px; border-top:1px solid #D3D8DE; padding-top:16px;">
+            <li style="font-size:15px; color:#3A414B;">3 APIs</li>
+            <li style="font-size:15px; color:#3A414B;" class="num">250,000 llamadas</li>
+            <li style="font-size:15px; color:#3A414B;">3 miembros</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="border-right:1px solid #0E1116; display:flex; flex-direction:column;">
+        <div style="background:#1B4DD1; padding:20px 24px; display:flex; flex-direction:column; gap:6px; min-height:92px;">
+          <h3 style="font-size:24px; color:#FFFFFF;">Producto</h3>
+          <p style="font-size:13px; line-height:1.4; color:#C6D3F5;">Proveedores con clientes establecidos</p>
+        </div>
+        <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:34px; font-weight:700; letter-spacing:-0.03em;">Q 599.00</span>
+            <span style="font-size:13px; color:#545B66;">Vigencia de 30 días</span>
+          </div>
+          <ul style="display:flex; flex-direction:column; gap:10px; border-top:1px solid #D3D8DE; padding-top:16px;">
+            <li style="font-size:15px; color:#3A414B;">10 APIs</li>
+            <li style="font-size:15px; color:#3A414B;" class="num">2,000,000 llamadas</li>
+            <li style="font-size:15px; color:#3A414B;">Dominio propio</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column;">
+        <div style="background:#0E1116; padding:20px 24px; display:flex; flex-direction:column; gap:6px; min-height:92px;">
+          <h3 style="font-size:24px; color:#FFFFFF;">Escala</h3>
+          <p style="font-size:13px; line-height:1.4; color:#A7AEB8;">Varias APIs y alto volumen</p>
+        </div>
+        <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="num" style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:34px; font-weight:700; letter-spacing:-0.03em;">Q 1,500.00</span>
+            <span style="font-size:13px; color:#545B66;">Vigencia de 30 días o anual</span>
+          </div>
+          <ul style="display:flex; flex-direction:column; gap:10px; border-top:1px solid #D3D8DE; padding-top:16px;">
+            <li style="font-size:15px; color:#3A414B;">APIs ilimitadas</li>
+            <li style="font-size:15px; color:#3A414B;" class="num">10,000,000 llamadas</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="background:#0E1116; padding:48px 80px 56px; display:flex; align-items:flex-start; justify-content:space-between; gap:64px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <rect x="0" y="0" width="24" height="6" fill="#FFFFFF"></rect>
+        <rect x="0" y="9" width="17" height="6" fill="#FFFFFF"></rect>
+        <rect x="7" y="18" width="17" height="6" fill="#FFFFFF"></rect>
+      </svg>
+      <span style="font-family:'Space Grotesk',Helvetica,Arial,sans-serif; font-size:19px; font-weight:700; letter-spacing:-0.01em; text-transform:uppercase; color:#FFFFFF;">Shapi</span>
+    </div>
+    <p style="font-size:14px; color:#A7AEB8; text-align:right;">Shapi es un proyecto académico de la Universidad Rafael Landívar, Facultad de Ingeniería.</p>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
