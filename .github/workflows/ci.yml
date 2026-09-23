@@ -1,0 +1,87 @@
+# Verificaciones obligatorias para integrar en main (convenciones §4): plan, backend y frontend.
+# Los nombres de los jobs son los que exige la protección de la rama: no cambiarlos.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validar las tareas del plan
+        run: node scripts/tareas.mjs --validar
+
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Restaurar
+        run: dotnet restore Shapi.slnx
+      - name: Compilar
+        run: dotnet build Shapi.slnx --no-restore --configuration Release
+      - name: Formato
+        run: dotnet format Shapi.slnx --verify-no-changes --no-restore
+      # Docker ya está disponible en ubuntu-latest para Testcontainers.
+      - name: Pruebas
+        run: dotnet test Shapi.slnx --no-build --configuration Release
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - name: Buscar el frontend
+        id: frontend
+        working-directory: .
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "Todavía no existe frontend/package.json (lo crea DC-01): no hay nada que verificar."
+          fi
+      - if: steps.frontend.outputs.existe == 'true'
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - if: steps.frontend.outputs.existe == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - if: steps.frontend.outputs.existe == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.frontend.outputs.existe == 'true'
+        run: pnpm lint
+      - if: steps.frontend.outputs.existe == 'true'
+        run: pnpm typecheck
+      - if: steps.frontend.outputs.existe == 'true'
+        run: pnpm test
+      - if: steps.frontend.outputs.existe == 'true'
+        run: pnpm build
