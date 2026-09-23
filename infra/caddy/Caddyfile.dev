@@ -1,0 +1,77 @@
+{
+	local_certs
+	on_demand_tls {
+		ask http://host.docker.internal:5080/interno/tls/autorizar
+	}
+}
+
+(cabeceras_seguras) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+
+https://shapi.localhost {
+	import cabeceras_seguras
+
+	@interno path /interno /interno/*
+	respond @interno 404
+
+	handle /api/* {
+		reverse_proxy host.docker.internal:5080
+	}
+
+	handle {
+		reverse_proxy host.docker.internal:5173
+	}
+}
+
+https://*.shapi.localhost {
+	import cabeceras_seguras
+
+	@interno path /interno /interno/*
+	respond @interno 404
+
+	handle /api/portal/* {
+		reverse_proxy host.docker.internal:5080 {
+			header_up Host {http.request.host}
+		}
+	}
+
+	handle {
+		reverse_proxy host.docker.internal:5174
+	}
+}
+
+https://*.api.shapi.localhost {
+	import cabeceras_seguras
+
+	@interno path /interno /interno/*
+	respond @interno 404
+
+	reverse_proxy host.docker.internal:5090
+}
+
+https://correo.shapi.localhost {
+	import cabeceras_seguras
+
+	@interno path /interno /interno/*
+	respond @interno 404
+
+	reverse_proxy mailpit:8025
+}
+
+https:// {
+	import cabeceras_seguras
+
+	@interno path /interno /interno/*
+	respond @interno 404
+
+	tls {
+		on_demand
+	}
+
+	reverse_proxy host.docker.internal:5090
+}
