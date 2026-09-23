@@ -23,7 +23,9 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
             new TransformadorOrigen(clave));
     }
 
-    /// <summary>Un solo cliente con pool de conexiones para todos los orígenes (08 §8).</summary>
+    /// <summary>
+    /// El cliente de YARP. <see cref="SocketsHttpHandler"/> mantiene un pool de conexiones por destino (08 §8).
+    /// </summary>
     public static HttpMessageInvoker CrearInvocador() => new(new SocketsHttpHandler
     {
         UseProxy = false,

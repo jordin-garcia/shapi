@@ -99,9 +99,10 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     {
         // 07 §4: el host de la llave va en minúsculas.
         var (host, _, clave) = await SembrarApiYClaveAsync();
-        using var cliente = entorno.Cliente(host.ToUpperInvariant());
+        using var cliente = entorno.Cliente(host);
         using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
         peticion.Headers.Add("X-Api-Key", clave);
+        peticion.Headers.Host = host.ToUpperInvariant();
 
         var respuesta = await cliente.SendAsync(peticion);
 
@@ -252,9 +253,11 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
         using var cliente = entorno.Cliente(host);
         using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
         peticion.Headers.Add("X-Api-Key", clave);
+        entorno.Origen.Olvidar();
 
-        await cliente.SendAsync(peticion);
+        var respuesta = await cliente.SendAsync(peticion);
 
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
         entorno.Origen.Ultima!.Cabeceras["Host"].Should().Be(new Uri(EntornoCompuerta.UrlOrigen).Authority);
     }
 
