@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: []
 requisitos: [RNF-14, RNF-15]
 pantallas: []
@@ -78,3 +78,17 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
 ## Notas
 - **Este primer PR todavía no puede usar auto-merge** porque la protección no existe. Cuando la CI pase, intégralo con `gh pr merge --squash --delete-branch` y **después** aplica la configuración del criterio 6 (en un segundo PR, solo si hace falta cambiar archivos; los ajustes de GitHub se hacen con `gh` y no necesitan PR).
 - Si DC-01 o JZ-01 se integraron antes que esta tarea, conserva sus archivos. Esta tarea no los toca.
+
+## Resultado
+- **Solución:** `Shapi.slnx` con los 7 proyectos de `src/` y los 3 de `tests/`. `Directory.Build.props` fija `net10.0`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors` y `AnalysisLevel=latest`. `Directory.Packages.props` declara todos los paquetes del stack con versión fija, y ningún `.csproj` declara versiones. Cada proyecto ya referencia los paquetes que va a usar, para que las tareas siguientes no tengan que editar los `.csproj`.
+- **API:** `Program.cs` configura ProblemDetails, `GET /salud` y OpenAPI en desarrollo, y llama a `AgregarModulo<X>()` y `MapearModulo<X>()` de los 15 módulos. Las firmas son `IServiceCollection AgregarModulo<X>(this IServiceCollection services)` y `WebApplication MapearModulo<X>(this WebApplication app)`. Cada dueño edita solo su `Modulos/<X>Modulo.cs`. Puertos de desarrollo: API en 5080 y compuerta en 5090.
+- **Comunes** (`Shapi.Aplicacion/Comun`): `Resultado` y `Resultado<T>` (con conversiones implícitas desde el valor y desde `Error`), `Error(Codigo, Mensaje, Detalle?)`, `IReloj.Ahora`, `IColaCorreo.Encolar(plantilla, destinatario, datos)`, `IBitacora.Registrar(EntradaBitacora)`, `IPublicadorCache` (`PublicarApi`, `PublicarClave`, `ExpirarClave`, `EliminarClave`, `PublicarSuscripcion` y `PublicarOrganizacion`), `IContextoOrganizacion.OrganizacionId` y `AccionesBitacora`, con las 31 acciones de 10 §7 y la lista `Todas`.
+- **Infraestructura** (`Shapi.Infraestructura/Comun`): `AgregarServiciosComunes()` registra `RelojSistema` (sobre `TimeProvider`) y las implementaciones nulas `ColaCorreoNula`, `BitacoraNula` y `PublicadorCacheNulo`. Program.cs la llama antes que a los módulos, así que el dueño las reemplaza con solo registrar la suya en su módulo, o con `services.Replace(...)`. Las nulas nunca escriben en el log datos del correo ni hashes de claves.
+- **Contratos:** `CodigosError` tiene los 12 códigos de 08 §4, los de 03, 09 y convenciones §5, y los que definen los criterios de aceptación de las demás tareas del plan. `LlavesRedis` genera todos los formatos de 07 §4, más `demo:reloj:desplazamiento` (09 §9).
+- **Pruebas** (98): humo de `/salud` en la API y la compuerta, humo del Dominio, cada formato de `LlavesRedis`, `Resultado` y los servicios comunes (nulos por defecto, reemplazables). Tres pruebas leen las especificaciones: los códigos de la tabla de 08 §4, las acciones de la tabla de 10 §7 y los 15 módulos llamados desde `Program.cs`. Si la especificación cambia, esas pruebas fallan hasta que el código se actualice.
+- **CI** (`.github/workflows/ci.yml`): jobs `plan`, `backend` y `frontend`, con `concurrency` por PR. El job `frontend` termina con éxito y muestra un mensaje mientras no exista `frontend/package.json`.
+- **Decisiones:**
+  - `Microsoft.OpenApi` y `Microsoft.OpenApi.YamlReader` se fijan en 2.12.2 porque `Microsoft.AspNetCore.OpenApi` 10 exige `[2.12, 3.0)`.
+  - Se agrega `Microsoft.Extensions.Hosting`, que necesita el SDK Worker del trabajador (06 §3).
+  - En 07 §4 se precisó la normalización de las llaves (UUID, host y hash en minúsculas; el hash de `cache:`; `{aaaammdd}` en America/Guatemala) y se agregó la fila de `demo:reloj:desplazamiento`.
+- **Configuración de GitHub** (criterio 6): se aplica con `gh` después de integrar este PR.
