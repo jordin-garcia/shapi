@@ -29,6 +29,9 @@ public static class CodigosError
     public const string TokenInvalido = "token_invalido";
     public const string ConsumidorExistente = "consumidor_existente";
 
+    // Protección CSRF de la API de control (convenciones §5)
+    public const string Csrf = "csrf";
+
     // Planes y suscripciones (09 §5 y §6)
     public const string LimiteDelPlan = "limite_del_plan";
     public const string ExcedeLimitesDelPlan = "excede_limites_del_plan";
@@ -53,4 +56,7 @@ public static class CodigosError
 
     // Claves (rotación, 06 §5.4)
     public const string ClaveNoRotable = "clave_no_rotable";
+
+    // Soporte
+    public const string CasoCerrado = "caso_cerrado";
 }

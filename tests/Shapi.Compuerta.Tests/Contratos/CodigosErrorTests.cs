@@ -56,6 +56,8 @@ public partial class CodigosErrorTests
     [InlineData("publicacion_incompleta")]
     [InlineData("logo_invalido")]
     [InlineData("clave_no_rotable")]
+    [InlineData("csrf")]
+    [InlineData("caso_cerrado")]
     public void CodigosError_CodigoDeLaApiDeControl_EstaDeclarado(string codigo)
     {
         Codigos.Should().Contain(codigo);

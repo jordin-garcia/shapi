@@ -49,6 +49,7 @@ public static class LlavesRedis
     public static string LimiteMinutoPruebas(Guid claveId, long minutoEpoch) =>
         $"rl:p:{claveId}:{minutoEpoch.ToString(CultureInfo.InvariantCulture)}";
 
+    /// <param name="dia">El día en la zona America/Guatemala (07 §4); lo calcula quien llama.</param>
     public static string LimiteDiaPruebas(Guid claveId, DateOnly dia) =>
         $"dia:p:{claveId}:{Aaaammdd(dia)}";
 
@@ -64,6 +65,7 @@ public static class LlavesRedis
     }
 
     /// <summary><c>met:{aaaammdd}:{api}:{ruta|-}:{susc|-}:{entorno}</c>.</summary>
+    /// <param name="fecha">El día en la zona America/Guatemala, que termina en <c>consumo_diario.fecha</c>; lo calcula quien llama.</param>
     public static string Metricas(DateOnly fecha, Guid apiId, Guid? rutaId, Guid? suscripcionId, string entorno) =>
         $"met:{Aaaammdd(fecha)}:{apiId}:{rutaId?.ToString() ?? "-"}:{suscripcionId?.ToString() ?? "-"}:{entorno}";
 

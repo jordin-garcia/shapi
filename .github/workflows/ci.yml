@@ -9,7 +9,8 @@ on:
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # En los PR se cancela la ejecución anterior; en main se verifica cada commit.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

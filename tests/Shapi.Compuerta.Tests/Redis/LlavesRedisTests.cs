@@ -2,7 +2,7 @@ using Shapi.Contratos.Redis;
 
 namespace Shapi.Compuerta.Tests.Redis;
 
-// Formatos de docs/specs/07-modelo-de-datos.md §4 (y demo:reloj de 09 §9).
+// RNF-15: formatos de docs/specs/07-modelo-de-datos.md §4 (y demo:reloj de 09 §9).
 public class LlavesRedisTests
 {
     private static readonly Guid ApiId = Guid.Parse("0199a5b2-7c3d-7e4f-8a9b-0c1d2e3f4a5b");

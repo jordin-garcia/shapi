@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Shapi.Api.Tests;
 
+// RNF-15: humo para que el proyecto corra en la CI.
 public class SaludTests(WebApplicationFactory<Program> fabrica) : IClassFixture<WebApplicationFactory<Program>>
 {
     [Fact]

@@ -2,6 +2,7 @@ using System.Reflection;
 
 namespace Shapi.Dominio.Tests;
 
+// RNF-15: humo para que el proyecto corra en la CI.
 public class HumoTests
 {
     [Fact]
