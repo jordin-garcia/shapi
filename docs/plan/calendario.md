@@ -50,7 +50,7 @@
 
 | Persona | Tareas |
 |---|---|
-| Jordin | JG-03 (revisión con Claude), JG-04 (publicación en Redis), JG-05 (filtros de la compuerta), JG-06 (límites y cuotas), JG-07 (claves), JG-08 (convergencia, jueves 8) |
+| Jordin | JG-03 (revisión con Claude y tablero del plan), JG-04 (publicación en Redis), JG-05 (filtros de la compuerta), JG-06 (límites y cuotas), JG-07 (claves), JG-08 (convergencia, jueves 8) |
 | Emilio | EM-04 (recuperación y perfil), EM-05 (identidad del consumidor), EM-06 (pasarela simulada), EM-07 (planes de API), EM-08 (contratación de un plan de API) |
 | Dominique | DC-03 (estructura del portal), DC-04 (registrar una API), DC-05 (especificación y rutas), DC-06 (configuración y publicación), DC-07 (portal público), DC-08 (acceso del consumidor) |
 | José Pablo | JZ-04 (bitácora), JZ-05 (siembra de demostración), JZ-06 (imágenes y ambiente productivo), JZ-07 (E2E y capturas) |
