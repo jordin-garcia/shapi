@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 2
 prioridad: P2
-estado: pendiente
+estado: hecha
 depende_de: [JG-01]
 requisitos: [RNF-15]
 pantallas: []
@@ -33,7 +33,7 @@ Dos automatizaciones de GitHub para el equipo:
 - `scripts/tareas.mjs` (modificar: opción `--json`)
 - `scripts/tablero.mjs` (crear)
 - `scripts/tablero.test.mjs` (crear)
-- `.github/workflows/ci.yml` (modificar: el *job* `plan` también ejecuta `node --test scripts/`)
+- `.github/workflows/ci.yml` (modificar: el *job* `plan` también ejecuta `node --test "scripts/*.test.mjs"`)
 
 ## Criterios de aceptación
 
@@ -82,7 +82,7 @@ Dos automatizaciones de GitHub para el equipo:
 Todos estos comandos deben pasar, además de los generales del protocolo (B7):
 ```
 node scripts/tareas.mjs --validar
-node --test scripts/
+node --test "scripts/*.test.mjs"
 node scripts/tareas.mjs --json
 gh pr view --comments                     # en el PR de esta tarea debe aparecer el comentario de revisión de Claude
 gh workflow run tablero-plan.yml          # después de integrar: crea o actualiza el issue "Tablero del plan"
@@ -103,3 +103,28 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 - El consumo de la revisión se descuenta del plan Pro de Jordin. Si se agota el cupo, la revisión falla sin bloquear nada. La revisión local del protocolo (B9) sigue siendo obligatoria.
 - GitHub solo notifica una mención si el usuario tiene acceso al repositorio. Los cuatro integrantes son colaboradores.
 - Los *push* hechos con `GITHUB_TOKEN` no disparan otros workflows. Los merges automáticos de los PR sí los disparan, porque cuentan como hechos por quien activó el auto-merge.
+
+## Resultado
+- **Revisión con Claude** (`.github/workflows/revision-claude.yml`):
+  - El *job* `revision-claude` revisa cada PR que no es borrador con `docs/plan/prompts/revision.md` y deja un solo comentario.
+  - Toma el ID del título `[XX-00]` en un paso aparte, a través de `env`, para evitar inyecciones.
+  - Usa `concurrency` por número de PR con cancelación.
+  - El *job* `claude-interactivo` responde a `@claude` en comentarios de issues y PR.
+  - Ninguno de los dos es una verificación obligatoria de `main`.
+- **Tablero** (`.github/workflows/tablero-plan.yml` y `scripts/tablero.mjs`):
+  - Busca o crea el issue fijo "Tablero del plan", con la etiqueta `tablero`.
+  - Publica primero el comentario de avisos y después reemplaza el cuerpo. El cuerpo guarda el estado en `<!-- estado-tablero: ... -->`: si algo falla a la mitad, el aviso se repite en lugar de perderse.
+  - `generar(tareas, cuerpoAnterior, fecha)` es una función pura, y `scripts/tablero.test.mjs` la prueba con 11 casos, incluida la forma de `--json`.
+- **`scripts/tareas.mjs`:**
+  - Tiene la opción `--json`.
+  - Exporta `PERSONAS`, `AVANCES`, `cargar`, `clasificar`, `hoy` y `aJson`.
+  - Solo se ejecuta como programa cuando es el módulo principal: `import.meta.main`, y en Node < 24.2 una comparación de rutas.
+- **Decisiones:**
+  - `node --test scripts/` no funciona en Node 24, que trata el directorio como archivo. En la CI y en la Verificación se usa `node --test "scripts/*.test.mjs"`.
+  - Modelo fijo `claude-opus-5-5` con `--effort high`, a pedido de Jordin. Sin `--effort`, Opus 5.5 usa `medium`.
+  - La acción usa `github_token: ${{ github.token }}` en lugar de la GitHub App de Claude, así que los comentarios aparecen como `github-actions`.
+  - El JSON incluye además `depende_de`, que hace falta para nombrar las dependencias integradas.
+  - Si el título del PR no tiene ID, la revisión cubre solo los errores, la seguridad y las pruebas.
+  - El cuerpo del tablero no usa `@` (las menciones van solo en los avisos).
+  - Una tarea que sale de `bloqueada` recibe un aviso genérico ("ya no está bloqueada y está disponible").
+  - El workflow usa `TZ=America/Guatemala` para que `no_antes_de` se compare con el día de Guatemala.

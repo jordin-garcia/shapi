@@ -45,3 +45,17 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **JG-04 y JG-07:** escriban `api:{id}` y `clave:{hash}` con `ContextoApi.ACampos()` y `ContextoClave.ACampos()`, y calculen el hash con `ContextoClave.CalcularHash`.
   - **JG-05:** 502, 504 y 413 en JSON, `X-Forwarded-*`, `X-Shapi-Secreto`, quitar las demás `X-Shapi-*` y las cookies del portal, y leer el contexto en un solo *pipeline*.
 
+## 2026-09-23 · JG-03 · Revisión automática con Claude y tablero del plan
+- Hecho:
+  - Workflow `revision-claude.yml`: revisión automática de cada PR y respuesta a `@claude`. Se paga con la suscripción de Jordin.
+  - Workflow `tablero-plan.yml` y `scripts/tablero.mjs`: issue fijo "Tablero del plan", con avisos por persona.
+  - Opción `node scripts/tareas.mjs --json`.
+  - 11 pruebas con `node:test`, que la CI ejecuta en el *job* `plan`.
+- Decisiones:
+  - Pruebas de scripts con `node --test "scripts/*.test.mjs"`, porque Node 24 no recorre directorios.
+  - Opus 5.5 con esfuerzo `high`.
+  - `github_token` en lugar de la GitHub App.
+  - El estado del tablero se guarda en el cuerpo del issue.
+- Pendiente o aviso para otros:
+  - **Todos:** el estado de todas las tareas está en el issue fijo "Tablero del plan", y cuando una tarea de ustedes queda disponible los menciona ahí. No editen ese issue: se reemplaza solo.
+  - **Todos:** cada PR recibe un comentario "🤖 Revisión automática con Claude". No es obligatorio y no reemplaza la revisión local del protocolo (B9). Para que encuentre la tarea, el título del PR debe empezar con `[<ID>]`. Usen `@claude` en comentarios con moderación: consume la cuota del plan de Jordin.
