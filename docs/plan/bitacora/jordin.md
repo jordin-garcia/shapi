@@ -50,7 +50,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - Workflow `revision-claude.yml`: revisión automática de cada PR y respuesta a `@claude`. Se paga con la suscripción de Jordin.
   - Workflow `tablero-plan.yml` y `scripts/tablero.mjs`: issue fijo "Tablero del plan", con avisos por persona.
   - Opción `node scripts/tareas.mjs --json`.
-  - 10 pruebas con `node:test`, que la CI ejecuta en el *job* `plan`.
+  - 11 pruebas con `node:test`, que la CI ejecuta en el *job* `plan`.
 - Decisiones:
   - Pruebas de scripts con `node --test "scripts/*.test.mjs"`, porque Node 24 no recorre directorios.
   - Opus 5.5 con esfuerzo `high`.

@@ -114,7 +114,7 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 - **Tablero** (`.github/workflows/tablero-plan.yml` y `scripts/tablero.mjs`):
   - Busca o crea el issue fijo "Tablero del plan", con la etiqueta `tablero`.
   - Publica primero el comentario de avisos y después reemplaza el cuerpo. El cuerpo guarda el estado en `<!-- estado-tablero: ... -->`: si algo falla a la mitad, el aviso se repite en lugar de perderse.
-  - `generar(tareas, cuerpoAnterior, fecha)` es una función pura, y `scripts/tablero.test.mjs` la prueba con 10 casos.
+  - `generar(tareas, cuerpoAnterior, fecha)` es una función pura, y `scripts/tablero.test.mjs` la prueba con 11 casos, incluida la forma de `--json`.
 - **`scripts/tareas.mjs`:**
   - Tiene la opción `--json`.
   - Exporta `PERSONAS`, `AVANCES`, `cargar`, `clasificar`, `hoy` y `aJson`.

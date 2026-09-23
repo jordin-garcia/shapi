@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generar, leerEstado } from "./tablero.mjs";
+import { aJson, cargar, clasificar } from "./tareas.mjs";
 
 const GITHUB = { jordin: "jordin-garcia", emilio: "MiloDou", dominique: "Dom-cs13", "jose-pablo": "PabloZ7-425" };
 
@@ -162,4 +163,20 @@ test("JG-03: dos ejecuciones seguidas sin cambios no repiten avisos", () => {
   const tercera = generar(plan, segunda.cuerpo, "2026-09-24");
   assert.equal(tercera.avisos, "");
   assert.equal(tercera.cuerpo, segunda.cuerpo);
+});
+
+test("JG-03: tareas.mjs --json trae los campos que usa el tablero", () => {
+  const { tareas } = cargar();
+  clasificar(tareas);
+  const json = tareas.map(aJson);
+  assert.ok(json.length > 0);
+  for (const t of json) {
+    assert.deepEqual(Object.keys(t).sort(), [
+      "avance", "bloqueo", "depende_de", "estado", "faltan", "github", "id",
+      "no_antes_de", "persona", "prioridad", "situacion", "titulo",
+    ]);
+    assert.ok(["disponible", "en_espera", "bloqueada", "hecha"].includes(t.situacion), t.id);
+    assert.ok(Array.isArray(t.faltan) && Array.isArray(t.depende_de), t.id);
+    assert.ok(t.github, t.id);
+  }
 });

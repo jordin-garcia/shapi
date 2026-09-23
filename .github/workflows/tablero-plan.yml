@@ -40,7 +40,8 @@ jobs:
         id: issue
         run: |
           gh label create tablero --color 0E8A16 --description "Tablero del plan (se actualiza solo)" --force
-          numero=$(gh issue list --label tablero --state all --search 'in:title "Tablero del plan"' --limit 1 --json number --jq '.[0].number // empty')
+          # API de listado (sin el retraso de indexación de --search), filtrando además por título.
+          numero=$(gh issue list --label tablero --state all --limit 100 --json number,title --jq 'map(select(.title == "Tablero del plan")) | .[0].number // empty')
           if [ -z "$numero" ]; then
             url=$(gh issue create --title "Tablero del plan" --label tablero --body "Generando el tablero…")
             numero="${url##*/}"
