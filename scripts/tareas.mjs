@@ -8,24 +8,25 @@
 //   node scripts/tareas.mjs --siguiente emilio  solo el ID de la siguiente tarea disponible
 //   node scripts/tareas.mjs --ver EM-02         verifica si una tarea se puede empezar
 //   node scripts/tareas.mjs --validar           valida el formato de todas las tareas (se usa en la CI)
+//   node scripts/tareas.mjs --json              todas las tareas con su situación, en JSON (lo usa scripts/tablero.mjs)
 //
 // Personas válidas: jordin, emilio, dominique, jose-pablo
 
-import { readdirSync, readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readdirSync, readFileSync, realpathSync } from "node:fs";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(RAIZ, "docs", "plan", "tareas");
 
-const PERSONAS = {
+export const PERSONAS = {
   jordin: { nombre: "Jordin García", prefijo: "JG", github: "jordin-garcia" },
   emilio: { nombre: "Emilio Méndez", prefijo: "EM", github: "MiloDou" },
   dominique: { nombre: "Dominique Contreras", prefijo: "DC", github: "Dom-cs13" },
   "jose-pablo": { nombre: "José Pablo Zúñiga", prefijo: "JZ", github: "PabloZ7-425" },
 };
 const ESTADOS = ["pendiente", "hecha", "bloqueada"];
-const AVANCES = ["1", "2", "3", "final"];
+export const AVANCES = ["1", "2", "3", "final"];
 const PRIORIDADES = ["P1", "P2", "P3"];
 const ORDEN_AVANCE = { 1: 1, 2: 2, 3: 3, final: 4 };
 const CAMPOS = ["id", "titulo", "persona", "responsable", "avance", "prioridad", "estado", "depende_de"];
@@ -50,7 +51,7 @@ function parsearFrontmatter(texto, archivo) {
   return datos;
 }
 
-function cargar() {
+export function cargar() {
   const archivos = readdirSync(DIR).filter((a) => a.endsWith(".md") && !a.startsWith("_") && a !== "README.md");
   const tareas = [];
   const errores = [];
@@ -104,12 +105,12 @@ function validar(tareas, erroresIniciales) {
   return errores;
 }
 
-function hoy() {
+export function hoy() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function clasificar(tareas) {
+export function clasificar(tareas) {
   const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
   const fecha = hoy();
   for (const t of tareas) {
@@ -174,29 +175,54 @@ function resumen(tareas) {
   console.log(`\nPara ver las tareas de una persona: node scripts/tareas.mjs --persona <jordin|emilio|dominique|jose-pablo>`);
 }
 
-const args = process.argv.slice(2);
-const { tareas, errores: erroresCarga } = cargar();
-const errores = validar(tareas, erroresCarga);
-
-if (args[0] === "--validar") {
-  if (errores.length) { console.error("El plan tiene errores:\n- " + errores.join("\n- ")); process.exit(1); }
-  console.log(`Plan válido: ${tareas.length} tareas.`);
-  process.exit(0);
+// Forma pública de una tarea (--json y scripts/tablero.mjs).
+export function aJson(t) {
+  return {
+    id: t.id,
+    titulo: t.titulo,
+    persona: t.persona,
+    github: PERSONAS[t.persona]?.github ?? null,
+    avance: String(t.avance),
+    prioridad: t.prioridad,
+    estado: t.estado,
+    depende_de: t.depende_de,
+    situacion: t.situacion,
+    faltan: t.faltan,
+    no_antes_de: t.no_antes_de || null,
+    bloqueo: t.bloqueo || null,
+  };
 }
-if (errores.length) console.error("Advertencia, el plan tiene errores de formato (corra --validar):\n- " + errores.join("\n- ") + "\n");
 
-clasificar(tareas);
+// Solo se ejecuta como programa, no cuando otro script lo importa.
+// import.meta.main existe desde Node 24.2; la comparación de rutas cubre versiones anteriores.
+const esPrincipal = import.meta.main ?? (process.argv[1] && pathToFileURL(realpathSync(resolve(process.argv[1]))).href === import.meta.url);
 
-if (args[0] === "--persona" && args[1]) mostrarPersona(args[1], tareas);
-else if (args[0] === "--siguiente" && args[1]) {
-  const t = tareas.find((x) => x.persona === args[1] && x.situacion === "disponible");
-  console.log(t ? t.id : "NINGUNA");
-} else if (args[0] === "--ver" && args[1]) {
-  const t = tareas.find((x) => x.id === args[1]);
-  if (!t) { console.error(`No existe la tarea ${args[1]}`); process.exit(2); }
-  const porId = Object.fromEntries(tareas.map((x) => [x.id, x]));
-  console.log(linea(t, porId));
-  console.log(`  Archivo: ${t.archivo}`);
-  console.log(`  Situación: ${t.situacion}${t.situacion === "disponible" ? " (se puede empezar)" : ""}`);
-  process.exit(t.situacion === "disponible" ? 0 : 1);
-} else resumen(tareas);
+if (esPrincipal) {
+  const args = process.argv.slice(2);
+  const { tareas, errores: erroresCarga } = cargar();
+  const errores = validar(tareas, erroresCarga);
+
+  if (args[0] === "--validar") {
+    if (errores.length) { console.error("El plan tiene errores:\n- " + errores.join("\n- ")); process.exit(1); }
+    console.log(`Plan válido: ${tareas.length} tareas.`);
+    process.exit(0);
+  }
+  if (errores.length) console.error("Advertencia, el plan tiene errores de formato (corra --validar):\n- " + errores.join("\n- ") + "\n");
+
+  clasificar(tareas);
+
+  if (args[0] === "--json") console.log(JSON.stringify(tareas.map(aJson), null, 2));
+  else if (args[0] === "--persona" && args[1]) mostrarPersona(args[1], tareas);
+  else if (args[0] === "--siguiente" && args[1]) {
+    const t = tareas.find((x) => x.persona === args[1] && x.situacion === "disponible");
+    console.log(t ? t.id : "NINGUNA");
+  } else if (args[0] === "--ver" && args[1]) {
+    const t = tareas.find((x) => x.id === args[1]);
+    if (!t) { console.error(`No existe la tarea ${args[1]}`); process.exit(2); }
+    const porId = Object.fromEntries(tareas.map((x) => [x.id, x]));
+    console.log(linea(t, porId));
+    console.log(`  Archivo: ${t.archivo}`);
+    console.log(`  Situación: ${t.situacion}${t.situacion === "disponible" ? " (se puede empezar)" : ""}`);
+    process.exit(t.situacion === "disponible" ? 0 : 1);
+  } else resumen(tareas);
+}

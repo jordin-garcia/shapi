@@ -33,7 +33,7 @@ Dos automatizaciones de GitHub para el equipo:
 - `scripts/tareas.mjs` (modificar: opción `--json`)
 - `scripts/tablero.mjs` (crear)
 - `scripts/tablero.test.mjs` (crear)
-- `.github/workflows/ci.yml` (modificar: el *job* `plan` también ejecuta `node --test scripts/`)
+- `.github/workflows/ci.yml` (modificar: el *job* `plan` también ejecuta `node --test "scripts/*.test.mjs"`)
 
 ## Criterios de aceptación
 
@@ -82,7 +82,7 @@ Dos automatizaciones de GitHub para el equipo:
 Todos estos comandos deben pasar, además de los generales del protocolo (B7):
 ```
 node scripts/tareas.mjs --validar
-node --test scripts/
+node --test "scripts/*.test.mjs"
 node scripts/tareas.mjs --json
 gh pr view --comments                     # en el PR de esta tarea debe aparecer el comentario de revisión de Claude
 gh workflow run tablero-plan.yml          # después de integrar: crea o actualiza el issue "Tablero del plan"
