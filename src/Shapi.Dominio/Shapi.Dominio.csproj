@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Capa de lógica sin dependencias. -->
+</Project>

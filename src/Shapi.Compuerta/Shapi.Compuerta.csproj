@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <!-- Plano de datos: depende solo de Shapi.Contratos y de StackExchange.Redis (06 §9). -->
+    <ItemGroup>
+        <ProjectReference Include="..\Shapi.Contratos\Shapi.Contratos.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="StackExchange.Redis" />
+        <PackageReference Include="Yarp.ReverseProxy" />
+    </ItemGroup>
+</Project>

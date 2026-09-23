@@ -1,0 +1,16 @@
+<Solution>
+    <Folder Name="/src/">
+        <Project Path="src/Shapi.Api/Shapi.Api.csproj" />
+        <Project Path="src/Shapi.Aplicacion/Shapi.Aplicacion.csproj" />
+        <Project Path="src/Shapi.Compuerta/Shapi.Compuerta.csproj" />
+        <Project Path="src/Shapi.Contratos/Shapi.Contratos.csproj" />
+        <Project Path="src/Shapi.Dominio/Shapi.Dominio.csproj" />
+        <Project Path="src/Shapi.Infraestructura/Shapi.Infraestructura.csproj" />
+        <Project Path="src/Shapi.Trabajador/Shapi.Trabajador.csproj" />
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/Shapi.Api.Tests/Shapi.Api.Tests.csproj" />
+        <Project Path="tests/Shapi.Compuerta.Tests/Shapi.Compuerta.Tests.csproj" />
+        <Project Path="tests/Shapi.Dominio.Tests/Shapi.Dominio.Tests.csproj" />
+    </Folder>
+</Solution>

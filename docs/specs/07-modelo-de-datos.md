@@ -718,6 +718,9 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 | `met:pendientes` | set | Llaves `met:` que tienen datos | Compuerta | Trabajador |
 | `met:lote:{lote_id}:{llave}` | hash | Una instantánea que se está consolidando | Trabajador | Trabajador |
 | `salud:compuerta:{instancia}` y `salud:trabajador` | string | Marca de tiempo. TTL 30 s | Compuerta y trabajador | API |
+| `demo:reloj:desplazamiento` | string | Desplazamiento del reloj del modo demostración ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostracion)) | API de control | API y trabajador |
+
+**Normalización de las llaves:** los UUID van en minúsculas con guiones, el `{host}` en minúsculas y el `{sha256}` de la clave en hex minúsculas. En `cache:`, el hash se calcula sobre el método en mayúsculas seguido del camino y de la query tal como llega (con su `?` inicial), en UTF-8. Las fechas `{aaaammdd}` son el día en la zona America/Guatemala, el mismo que se guarda en `consumo_diario.fecha`.
 
 **Resincronización:** cada 5 minutos, y al arrancar, el trabajador recalcula desde PostgreSQL todas las llaves de configuración (`api:*`, `clave:*`, `susc:*` y `org:*`) de las APIs publicadas y las reescribe. Los contadores no se tocan. Si Redis se vació, la compuerta vuelve a funcionar en cuanto termina la resincronización.
 

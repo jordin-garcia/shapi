@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\Shapi.Dominio\Shapi.Dominio.csproj" />
+        <ProjectReference Include="..\Shapi.Contratos\Shapi.Contratos.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="FluentValidation" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    </ItemGroup>
+</Project>

@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Compartido por la API, la compuerta y el trabajador: sin dependencias. -->
+</Project>
