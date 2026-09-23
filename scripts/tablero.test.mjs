@@ -1,4 +1,4 @@
-// Pruebas del tablero del plan (JG-03). Se ejecutan con: node --test scripts/
+// Pruebas del tablero del plan (JG-03). Se ejecutan con: node --test "scripts/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generar, leerEstado } from "./tablero.mjs";
@@ -115,6 +115,16 @@ test("JG-03: una tarea que pasa a bloqueada menciona al coordinador con el dueñ
     avisos,
     "**Novedades del plan** (2026-09-24)\n\n**Jordin García**\n- @jordin-garcia: la tarea DC-04 (Título DC-04), de Dominique Contreras, quedó bloqueada: falta la decisión del equipo sobre SSRF.\n",
   );
+});
+
+test("JG-03: una tarea que sale de bloqueada no dice que llegó su fecha", () => {
+  const antes = [tarea("JG-08", "jordin", "bloqueada", { no_antes_de: "2026-10-08", bloqueo: "falta algo" })];
+  const { cuerpo: anterior } = generar(antes, "", "2026-10-20");
+  const despues = [tarea("JG-08", "jordin", "disponible", { no_antes_de: "2026-10-08" })];
+
+  const { avisos } = generar(despues, anterior, "2026-10-21");
+  assert.match(avisos, /- @jordin-garcia: tu tarea JG-08 \(Título JG-08\) ya no está bloqueada y está disponible\./);
+  assert.doesNotMatch(avisos, /llegó su fecha/);
 });
 
 test("JG-03: los avisos van en un solo comentario agrupado por persona", () => {

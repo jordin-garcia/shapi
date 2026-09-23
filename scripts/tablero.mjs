@@ -65,6 +65,8 @@ function avisos(tareas, anterior, fecha) {
       if (integradas.length) {
         const verbo = integradas.length === 1 ? "integrada" : "integradas";
         agregar(t.persona, `${mencion}: con ${enumerar(integradas)} ${verbo}, tu tarea ${t.id} (${t.titulo}) ya está disponible.`);
+      } else if (antes.bloqueadas.has(t.id)) {
+        agregar(t.persona, `${mencion}: tu tarea ${t.id} (${t.titulo}) ya no está bloqueada y está disponible.`);
       } else if (t.no_antes_de) {
         agregar(t.persona, `${mencion}: tu tarea ${t.id} (${t.titulo}) ya está disponible: llegó su fecha (${t.no_antes_de}).`);
       } else {

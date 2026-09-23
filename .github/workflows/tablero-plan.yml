@@ -40,13 +40,16 @@ jobs:
         id: issue
         run: |
           gh label create tablero --color 0E8A16 --description "Tablero del plan (se actualiza solo)" --force
-          numero=$(gh issue list --label tablero --state all --limit 1 --json number --jq '.[0].number // empty')
+          numero=$(gh issue list --label tablero --state all --search 'in:title "Tablero del plan"' --limit 1 --json number --jq '.[0].number // empty')
           if [ -z "$numero" ]; then
             url=$(gh issue create --title "Tablero del plan" --label tablero --body "Generando el tablero…")
             numero="${url##*/}"
-            gh issue pin "$numero"
           elif [ "$(gh issue view "$numero" --json state --jq .state)" = "CLOSED" ]; then
             gh issue reopen "$numero"
+          fi
+          # Se revisa en cada ejecución, por si el pin falló la primera vez o alguien lo quitó.
+          if [ "$(gh issue view "$numero" --json isPinned --jq .isPinned)" != "true" ]; then
+            gh issue pin "$numero"
           fi
           echo "numero=$numero" >> "$GITHUB_OUTPUT"
 
