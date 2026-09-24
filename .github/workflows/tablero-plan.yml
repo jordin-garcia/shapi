@@ -1,0 +1,71 @@
+# Tablero del plan (JG-03): mantiene el issue fijo "Tablero del plan" con el estado de todas las tareas
+# y menciona al dueño de cada tarea que queda disponible, y al coordinador si una tarea se bloquea.
+# La lógica está en scripts/tablero.mjs; el estado anterior se guarda en el propio cuerpo del issue.
+name: Tablero del plan
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 07:00 en Guatemala (UTC-6), para las tareas que se desbloquean por fecha (no_antes_de).
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+# Una sola ejecución a la vez y sin cancelar la anterior, para que no se pierdan avisos.
+concurrency:
+  group: tablero-plan
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  tablero:
+    name: tablero
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      # Las fechas de no_antes_de se comparan con el día de Guatemala, no con el de UTC.
+      TZ: America/Guatemala
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Buscar o crear el issue
+        id: issue
+        run: |
+          gh label create tablero --color 0E8A16 --description "Tablero del plan (se actualiza solo)" --force
+          # API de listado (sin el retraso de indexación de --search), filtrando además por título.
+          numero=$(gh issue list --label tablero --state all --limit 100 --json number,title --jq 'map(select(.title == "Tablero del plan")) | .[0].number // empty')
+          if [ -z "$numero" ]; then
+            url=$(gh issue create --title "Tablero del plan" --label tablero --body "Generando el tablero…")
+            numero="${url##*/}"
+          elif [ "$(gh issue view "$numero" --json state --jq .state)" = "CLOSED" ]; then
+            gh issue reopen "$numero"
+          fi
+          # Se revisa en cada ejecución, por si el pin falló la primera vez o alguien lo quitó.
+          if [ "$(gh issue view "$numero" --json isPinned --jq .isPinned)" != "true" ]; then
+            gh issue pin "$numero"
+          fi
+          echo "numero=$numero" >> "$GITHUB_OUTPUT"
+
+      - name: Generar el tablero y los avisos
+        run: |
+          gh issue view "${{ steps.issue.outputs.numero }}" --json body --jq .body > "$RUNNER_TEMP/cuerpo-anterior.md"
+          node scripts/tablero.mjs "$RUNNER_TEMP/cuerpo-anterior.md" "$RUNNER_TEMP/cuerpo-nuevo.md" "$RUNNER_TEMP/avisos.md"
+
+      # Primero el comentario y después el cuerpo (que guarda el estado): si algo falla a la mitad,
+      # la siguiente ejecución repite el aviso en lugar de perderlo.
+      - name: Publicar los avisos
+        run: |
+          if [ -s "$RUNNER_TEMP/avisos.md" ]; then
+            gh issue comment "${{ steps.issue.outputs.numero }}" --body-file "$RUNNER_TEMP/avisos.md"
+          fi
+
+      - name: Actualizar el tablero
+        run: gh issue edit "${{ steps.issue.outputs.numero }}" --body-file "$RUNNER_TEMP/cuerpo-nuevo.md"

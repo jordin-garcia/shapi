@@ -9,6 +9,7 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 - **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (`/rastreo/{guia}` coincide con `/rastreo/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
 - **Cuerpo:** máximo 10 MB. Si es más grande se responde 413 `cuerpo_demasiado_grande`.
 - **Tiempo de espera del origen:** 30 segundos.
+- **Salud:** `GET /salud` solo responde cuando el `Host` es `localhost`, para no tapar una ruta `/salud` de las APIs. Con cualquier otro host, la petición pasa por la tubería.
 
 ## 2. Formato de la clave
 
@@ -125,7 +126,7 @@ Las respuestas del **origen** se devuelven tal cual, incluidos sus errores. Las 
 | `X-Cuota-Reinicio` | Fecha ISO 8601 en que termina el ciclo |
 | `X-Shapi-Cache` | `HIT` o `MISS` (solo en las rutas con caché) |
 
-**Hacia el origen:** `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` y `X-Forwarded-*`. **Nunca** se envían `X-Api-Key` ni las cookies del portal.
+**Hacia el origen:** `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` y `X-Forwarded-*`. **Nunca** se envían `X-Api-Key` ni las cookies del portal. El `Host` que recibe el origen es el de `url_origen`, no el de la API en Shapi. El host original viaja en `X-Forwarded-Host`. Si el cliente manda `X-Shapi-Consumidor` o `X-Shapi-Entorno`, la compuerta reemplaza sus valores.
 
 ## 6. CORS
 

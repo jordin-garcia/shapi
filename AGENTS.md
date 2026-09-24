@@ -18,7 +18,7 @@ Shapi es una plataforma como servicio para publicar APIs, controlar quién las u
 
 ## Pedidos habituales del usuario
 
-- **"¿Qué me toca?" / "Revisa el plan"**: ejecuta `node scripts/tareas.mjs --persona <clave>`, lee los archivos de las tareas disponibles y resúmelas: qué hace cada una, su prioridad, su avance y de quién depende lo que está en espera. Recomienda la siguiente. **No implementes nada todavía.**
+- **"¿Qué me toca?" / "Revisa el plan"**: ejecuta `node scripts/tareas.mjs --persona <clave>`, lee los archivos de las tareas disponibles y resúmelas: qué hace cada una, su prioridad, su avance y de quién depende lo que está en espera. Incluye los avisos que los demás le dejaron en sus bitácoras (`docs/plan/protocolo.md` §A, paso 5). Recomienda la siguiente. **No implementes nada todavía.**
 - **"Implementa <ID>"** o **"continúa"**: sigue la sección B de `docs/plan/protocolo.md` de principio a fin, hasta que el *pull request* quede integrado en `main`, **sin volver a preguntarle al usuario**, salvo en los casos de "Preguntar antes" o si necesitas algo a lo que no puedes acceder.
 
 ## Comandos
