@@ -95,10 +95,14 @@ public sealed class EnviosXelajuTests(WebApplicationFactory<EnviosXelajuAplicaci
         using var cliente = fabricaSegura.CreateClient();
 
         var sinSecreto = await cliente.GetAsync("/salud");
+        cliente.DefaultRequestHeaders.Add("X-Shapi-Secreto", "secreto-incorrecto");
+        var conSecretoIncorrecto = await cliente.GetAsync("/salud");
+        cliente.DefaultRequestHeaders.Remove("X-Shapi-Secreto");
         cliente.DefaultRequestHeaders.Add("X-Shapi-Secreto", "secreto-de-prueba");
         var conSecreto = await cliente.GetAsync("/salud");
 
         sinSecreto.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        conSecretoIncorrecto.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         conSecreto.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

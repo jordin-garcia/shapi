@@ -44,6 +44,23 @@ public sealed class AgroPreciosTests(WebApplicationFactory<AgroPreciosAplicacion
     }
 
     [Fact]
+    public async Task Historial_RangoDeUnDia_SoloDevuelveEseDia()
+    {
+        // JZ-02 CA2
+        using var cliente = fabrica.CreateClient();
+
+        var respuesta = await cliente.GetAsync(
+            "/historial?producto=frijol_negro&mercado=cenma&desde=2026-09-10&hasta=2026-09-10");
+        var contenido = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        var precios = contenido.GetProperty("precios");
+        precios.GetArrayLength().Should().Be(1);
+        precios[0].GetProperty("fecha").GetString().Should().Be("2026-09-10");
+        precios[0].GetProperty("precio").GetString().Should().Be("Q 510.00");
+    }
+
+    [Fact]
     public async Task Salud_AplicacionDisponible_Devuelve200()
     {
         // JZ-02 CA5
@@ -67,10 +84,14 @@ public sealed class AgroPreciosTests(WebApplicationFactory<AgroPreciosAplicacion
         using var cliente = fabricaSegura.CreateClient();
 
         var sinSecreto = await cliente.GetAsync("/salud");
+        cliente.DefaultRequestHeaders.Add("X-Shapi-Secreto", "secreto-incorrecto");
+        var conSecretoIncorrecto = await cliente.GetAsync("/salud");
+        cliente.DefaultRequestHeaders.Remove("X-Shapi-Secreto");
         cliente.DefaultRequestHeaders.Add("X-Shapi-Secreto", "secreto-de-prueba");
         var conSecreto = await cliente.GetAsync("/salud");
 
         sinSecreto.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        conSecretoIncorrecto.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         conSecreto.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

@@ -55,13 +55,57 @@ public sealed class OpenApiTests
         foreach (var camino in documento.Paths.Values)
         {
             camino.Operations.Should().NotBeNull();
-            camino.Operations!.Values.Should().OnlyContain(operacion =>
-                !string.IsNullOrWhiteSpace(operacion.Description));
+            foreach (var operacion in camino.Operations!.Values)
+            {
+                operacion.Description.Should().NotBeNullOrWhiteSpace();
+
+                foreach (var parametro in operacion.Parameters ?? [])
+                {
+                    parametro.Description.Should().NotBeNullOrWhiteSpace();
+                    parametro.Schema.Should().NotBeNull();
+                    parametro.Schema!.Type.Should().NotBeNull();
+                    parametro.Example.Should().NotBeNull();
+                }
+
+                if (operacion.RequestBody is not null)
+                {
+                    operacion.RequestBody.Required.Should().BeTrue();
+                    var peticionJson = operacion.RequestBody.Content!["application/json"];
+                    peticionJson.Schema.Should().NotBeNull();
+                    peticionJson.Example.Should().NotBeNull();
+                }
+
+                operacion.Responses.Should().ContainKey("200");
+                var respuestaJson = operacion.Responses!["200"].Content!["application/json"];
+                respuestaJson.Schema.Should().NotBeNull();
+                respuestaJson.Example.Should().NotBeNull();
+            }
         }
 
-        var yaml = await File.ReadAllTextAsync(ruta);
-        yaml.Should().Contain("required:");
-        yaml.Should().Contain("type:");
-        yaml.Should().Contain("example:");
+        VerificarParametrosObligatorios(documento, rutaRelativa);
+    }
+
+    private static void VerificarParametrosObligatorios(OpenApiDocument documento, string rutaRelativa)
+    {
+        if (rutaRelativa.Contains("envios-xelaju", StringComparison.Ordinal))
+        {
+            Parametro(documento, "/rastreo", "guia").Required.Should().BeTrue();
+            Parametro(documento, "/cobertura", "municipio").Required.Should().BeTrue();
+            return;
+        }
+
+        Parametro(documento, "/precios", "producto").Required.Should().BeTrue();
+        Parametro(documento, "/precios", "mercado").Required.Should().BeTrue();
+        Parametro(documento, "/precios", "fecha").Required.Should().BeFalse();
+        Parametro(documento, "/historial", "producto").Required.Should().BeTrue();
+        Parametro(documento, "/historial", "mercado").Required.Should().BeTrue();
+        Parametro(documento, "/historial", "desde").Required.Should().BeFalse();
+        Parametro(documento, "/historial", "hasta").Required.Should().BeFalse();
+    }
+
+    private static IOpenApiParameter Parametro(OpenApiDocument documento, string ruta, string nombre)
+    {
+        return documento.Paths[ruta].Operations![HttpMethod.Get].Parameters!
+            .Single(parametro => parametro.Name == nombre);
     }
 }

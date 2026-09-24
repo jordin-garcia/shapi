@@ -35,19 +35,25 @@ app.MapGet("/mercados", () => Results.Ok(new
     mercados = DatosAgro.Mercados,
 }));
 
-app.MapGet("/historial", (string producto, string mercado, DateOnly? desde, DateOnly? hasta) => Results.Ok(new
+app.MapGet("/historial", (string producto, string mercado, DateOnly? desde, DateOnly? hasta) =>
 {
-    producto,
-    mercado,
-    desde = desde?.ToString("yyyy-MM-dd") ?? "2026-09-08",
-    hasta = hasta?.ToString("yyyy-MM-dd") ?? "2026-09-10",
-    precios = new[]
+    var fechaDesde = desde ?? new DateOnly(2026, 9, 8);
+    var fechaHasta = hasta ?? new DateOnly(2026, 9, 10);
+    if (fechaDesde > fechaHasta)
     {
-        new { fecha = "2026-09-08", precio = "Q 505.00", moneda = "GTQ" },
-        new { fecha = "2026-09-09", precio = "Q 508.00", moneda = "GTQ" },
-        new { fecha = "2026-09-10", precio = "Q 510.00", moneda = "GTQ" },
-    },
-}));
+        return Results.BadRequest(new { error = "La fecha desde no puede ser posterior a la fecha hasta." });
+    }
+
+    var precios = DatosAgro.ObtenerHistorial(producto, mercado, fechaDesde, fechaHasta);
+    return Results.Ok(new
+    {
+        producto,
+        mercado,
+        desde = fechaDesde.ToString("yyyy-MM-dd"),
+        hasta = fechaHasta.ToString("yyyy-MM-dd"),
+        precios,
+    });
+});
 
 app.MapGet("/salud", () => Results.Ok(new { estado = "saludable" }));
 
@@ -99,5 +105,37 @@ namespace OrigenesDemo.AgroPrecios
                 fecha = string.IsNullOrWhiteSpace(fecha) || fecha == "2026-09-10" ? "10 sep 2026" : fecha,
             };
         }
+
+        public static object[] ObtenerHistorial(
+            string producto,
+            string mercado,
+            DateOnly desde,
+            DateOnly hasta)
+        {
+            if (!string.Equals(producto, "frijol_negro", StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(mercado, "cenma", StringComparison.OrdinalIgnoreCase))
+            {
+                return [];
+            }
+
+            var precios = new[]
+            {
+                new PrecioHistorico(new DateOnly(2026, 9, 8), "Q 505.00"),
+                new PrecioHistorico(new DateOnly(2026, 9, 9), "Q 508.00"),
+                new PrecioHistorico(new DateOnly(2026, 9, 10), "Q 510.00"),
+            };
+
+            return precios
+                .Where(precio => precio.Fecha >= desde && precio.Fecha <= hasta)
+                .Select(precio => (object)new
+                {
+                    fecha = precio.Fecha.ToString("yyyy-MM-dd"),
+                    precio = precio.Precio,
+                    moneda = "GTQ",
+                })
+                .ToArray();
+        }
+
+        private sealed record PrecioHistorico(DateOnly Fecha, string Precio);
     }
 }
