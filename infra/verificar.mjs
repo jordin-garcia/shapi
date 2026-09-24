@@ -50,6 +50,40 @@ function interpretarServicios(texto) {
   }
 }
 
+function esperar(milisegundos) {
+  return new Promise((resolve) => setTimeout(resolve, milisegundos));
+}
+
+function resolverLocal(_host, opciones, callback) {
+  if (typeof opciones === "object" && opciones.all) {
+    callback(null, [{ address: "127.0.0.1", family: 4 }]);
+    return;
+  }
+
+  callback(null, "127.0.0.1", 4);
+}
+
+async function esperarServiciosSanos(nombres) {
+  const limite = Date.now() + 30_000;
+  let servicios = [];
+
+  while (Date.now() < limite) {
+    servicios = interpretarServicios(
+      ejecutarDocker(["compose", "-f", rutaCompose, "ps", "--format", "json"]),
+    );
+
+    const todosSanos = nombres.every((nombre) => {
+      const servicio = servicios.find((actual) => actual.Service === nombre);
+      return servicio?.State === "running" && servicio.Health === "healthy";
+    });
+
+    if (todosSanos) return servicios;
+    await esperar(1_000);
+  }
+
+  return servicios;
+}
+
 function solicitar(url, opciones = {}) {
   const cliente = url.startsWith("https:") ? https : http;
   return new Promise((resolve, reject) => {
@@ -57,8 +91,7 @@ function solicitar(url, opciones = {}) {
       url,
       {
         rejectUnauthorized: false,
-        lookup: (_host, _opciones, callback) =>
-          callback(null, "127.0.0.1", 4),
+        lookup: resolverLocal,
         timeout: 5_000,
         ...opciones,
       },
@@ -118,8 +151,7 @@ function solicitarUpgrade(url) {
   return new Promise((resolve, reject) => {
     const peticion = https.request(url, {
       rejectUnauthorized: false,
-      lookup: (_host, _opciones, callback) =>
-        callback(null, "127.0.0.1", 4),
+      lookup: resolverLocal,
       headers: {
         Connection: "Upgrade",
         Upgrade: "websocket",
@@ -253,11 +285,10 @@ ejecutarDocker([
   "caddyfile",
 ]);
 
-const servicios = interpretarServicios(
-  ejecutarDocker(["compose", "-f", rutaCompose, "ps", "--format", "json"]),
-);
+const nombresServicios = ["postgres", "redis", "mailpit", "borde"];
+const servicios = await esperarServiciosSanos(nombresServicios);
 
-for (const nombre of ["postgres", "redis", "mailpit", "borde"]) {
+for (const nombre of nombresServicios) {
   const servicio = servicios.find((actual) => actual.Service === nombre);
   assert.ok(servicio, `No se encontró el servicio ${nombre}`);
   assert.equal(servicio.State, "running", `${nombre} no está en ejecución`);
