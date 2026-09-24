@@ -23,7 +23,9 @@ public sealed class OpenApiTests
     {
         // JZ-02 CA3
         var ruta = Path.Combine(RaizRepositorio.Ruta, rutaRelativa);
-        var resultado = await OpenApiDocument.LoadAsync(ruta, new OpenApiReaderSettings());
+        var configuracion = new OpenApiReaderSettings();
+        configuracion.AddYamlReader();
+        var resultado = await OpenApiDocument.LoadAsync(ruta, configuracion);
 
         var diagnostico = resultado.Diagnostic;
         diagnostico.Should().NotBeNull();
@@ -33,6 +35,22 @@ public sealed class OpenApiTests
         var documento = resultado.Document;
         documento.Should().NotBeNull();
         documento!.Paths.Keys.Should().Contain(rutas);
+
+        if (rutaRelativa.Contains("envios-xelaju", StringComparison.Ordinal))
+        {
+            documento.Paths["/cotizaciones"].Operations!.Should().ContainKey(HttpMethod.Post);
+            documento.Paths["/guias"].Operations!.Should().ContainKey(HttpMethod.Post);
+            documento.Paths["/tarifas"].Operations!.Should().ContainKey(HttpMethod.Get);
+            documento.Paths["/rastreo"].Operations!.Should().ContainKey(HttpMethod.Get);
+            documento.Paths["/cobertura"].Operations!.Should().ContainKey(HttpMethod.Get);
+        }
+        else
+        {
+            documento.Paths["/precios"].Operations!.Should().ContainKey(HttpMethod.Get);
+            documento.Paths["/productos"].Operations!.Should().ContainKey(HttpMethod.Get);
+            documento.Paths["/mercados"].Operations!.Should().ContainKey(HttpMethod.Get);
+            documento.Paths["/historial"].Operations!.Should().ContainKey(HttpMethod.Get);
+        }
 
         foreach (var camino in documento.Paths.Values)
         {

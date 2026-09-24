@@ -1,0 +1,248 @@
+openapi: 3.0.3
+info:
+  title: API de Precios de Mercado
+  version: 1.0.0
+  description: API de demostración de Agro Precios para consultar precios mayoristas de Guatemala.
+servers:
+  - url: https://agro.api.shapi.localhost
+    description: Compuerta local de Shapi
+  - url: http://localhost:5102
+    description: Origen local directo
+paths:
+  /precios:
+    get:
+      summary: Consultar el precio del día
+      description: Devuelve el precio de un producto en un mercado y fecha determinados.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+        - $ref: '#/components/parameters/Producto'
+        - $ref: '#/components/parameters/Mercado'
+        - name: fecha
+          in: query
+          required: false
+          description: Fecha del precio; si se omite se devuelve el precio del día.
+          schema:
+            type: string
+            format: date
+          example: '2026-09-10'
+      responses:
+        '200':
+          description: Precio encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Precio'
+              example:
+                producto: Frijol negro
+                mercado: CENMA
+                unidad: quintal
+                precio: Q 510.00
+                fecha: 10 sep 2026
+        '401':
+          description: El secreto de origen no coincide.
+        '404':
+          description: No existe un precio para el producto y mercado solicitados.
+  /productos:
+    get:
+      summary: Listar productos
+      description: Lista los productos que tienen precio publicado.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      responses:
+        '200':
+          description: Catálogo de productos.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [productos]
+                properties:
+                  productos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductoCatalogo'
+              example:
+                productos:
+                  - clave: frijol_negro
+                    nombre: Frijol negro
+                    categoria: granos
+                    unidad: quintal
+        '401':
+          description: El secreto de origen no coincide.
+  /mercados:
+    get:
+      summary: Listar mercados
+      description: Lista los mercados mayoristas donde se registran precios.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      responses:
+        '200':
+          description: Catálogo de mercados.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mercados]
+                properties:
+                  mercados:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MercadoCatalogo'
+              example:
+                mercados:
+                  - clave: cenma
+                    nombre: CENMA
+                    municipio: Villa Nueva
+        '401':
+          description: El secreto de origen no coincide.
+  /historial:
+    get:
+      summary: Consultar historial
+      description: Devuelve los precios de un producto en un rango de fechas.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+        - $ref: '#/components/parameters/Producto'
+        - $ref: '#/components/parameters/Mercado'
+        - name: desde
+          in: query
+          required: false
+          description: Primera fecha incluida en el historial.
+          schema:
+            type: string
+            format: date
+          example: '2026-09-08'
+        - name: hasta
+          in: query
+          required: false
+          description: Última fecha incluida en el historial.
+          schema:
+            type: string
+            format: date
+          example: '2026-09-10'
+      responses:
+        '200':
+          description: Historial del producto y mercado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [producto, mercado, desde, hasta, precios]
+                properties:
+                  producto:
+                    type: string
+                  mercado:
+                    type: string
+                  desde:
+                    type: string
+                    format: date
+                  hasta:
+                    type: string
+                    format: date
+                  precios:
+                    type: array
+                    items:
+                      type: object
+                      required: [fecha, precio, moneda]
+                      properties:
+                        fecha:
+                          type: string
+                          format: date
+                        precio:
+                          type: string
+                        moneda:
+                          type: string
+              example:
+                producto: frijol_negro
+                mercado: cenma
+                desde: '2026-09-08'
+                hasta: '2026-09-10'
+                precios:
+                  - fecha: '2026-09-10'
+                    precio: Q 510.00
+                    moneda: GTQ
+        '401':
+          description: El secreto de origen no coincide.
+  /salud:
+    get:
+      summary: Consultar salud
+      description: Confirma que el origen de Agro Precios está disponible.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      responses:
+        '200':
+          description: El origen está saludable.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [estado]
+                properties:
+                  estado:
+                    type: string
+              example:
+                estado: saludable
+        '401':
+          description: El secreto de origen no coincide.
+components:
+  parameters:
+    SecretoOrigen:
+      name: X-Shapi-Secreto
+      in: header
+      required: false
+      description: Secreto compartido; solo es obligatorio cuando SECRETO_ORIGEN está configurado.
+      schema:
+        type: string
+      example: secreto-compartido
+    Producto:
+      name: producto
+      in: query
+      required: true
+      description: Clave del producto.
+      schema:
+        type: string
+      example: frijol_negro
+    Mercado:
+      name: mercado
+      in: query
+      required: true
+      description: Clave del mercado mayorista.
+      schema:
+        type: string
+      example: cenma
+  schemas:
+    Precio:
+      type: object
+      required: [producto, mercado, unidad, precio, fecha]
+      properties:
+        producto:
+          type: string
+        mercado:
+          type: string
+        unidad:
+          type: string
+        precio:
+          type: string
+        fecha:
+          type: string
+    ProductoCatalogo:
+      type: object
+      required: [clave, nombre, categoria, unidad]
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        categoria:
+          type: string
+        unidad:
+          type: string
+    MercadoCatalogo:
+      type: object
+      required: [clave, nombre, municipio]
+      properties:
+        clave:
+          type: string
+        nombre:
+          type: string
+        municipio:
+          type: string

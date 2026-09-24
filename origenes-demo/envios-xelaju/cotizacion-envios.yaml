@@ -1,0 +1,295 @@
+openapi: 3.0.3
+info:
+  title: API de Cotización de Envíos
+  version: 1.0.0
+  description: API de demostración de Envíos Xelajú para cotizar, crear y rastrear envíos.
+servers:
+  - url: https://envios.api.shapi.localhost
+    description: Compuerta local de Shapi
+  - url: http://localhost:5101
+    description: Origen local directo
+paths:
+  /cotizaciones:
+    post:
+      summary: Cotizar un envío
+      description: Calcula el costo de un envío según origen, destino, peso y tipo de servicio.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CotizacionSolicitud'
+            example:
+              origen: '0901'
+              destino: '0301'
+              peso_kg: 2.5
+              tipo_servicio: normal
+      responses:
+        '200':
+          description: Cotización calculada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CotizacionRespuesta'
+              example:
+                origen: Quetzaltenango
+                destino: Antigua Guatemala
+                tarifa: Q 38.50
+                entrega_estimada: 2 días hábiles
+        '400':
+          description: Datos de cotización incompletos o inválidos.
+        '401':
+          description: El secreto de origen no coincide.
+  /guias:
+    post:
+      summary: Crear una guía
+      description: Crea una guía para recoger y entregar un paquete cotizado.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuiaSolicitud'
+            example:
+              origen: '0901'
+              destino: '0301'
+              destinatario: Mercadito Antigua
+              direccion: 5a avenida norte 12, Antigua Guatemala
+              peso_kg: 2.5
+      responses:
+        '200':
+          description: Guía creada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [numero_guia, estado, origen, destino, destinatario]
+                properties:
+                  numero_guia:
+                    type: string
+                  estado:
+                    type: string
+                  origen:
+                    type: string
+                  destino:
+                    type: string
+                  destinatario:
+                    type: string
+              example:
+                numero_guia: GX-2026-0001
+                estado: creada
+                origen: Quetzaltenango
+                destino: Antigua Guatemala
+                destinatario: Mercadito Antigua
+        '400':
+          description: Datos de la guía incompletos o inválidos.
+        '401':
+          description: El secreto de origen no coincide.
+  /tarifas:
+    get:
+      summary: Listar tarifas
+      description: Devuelve las tarifas base para los servicios normal y urgente.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      responses:
+        '200':
+          description: Tarifas vigentes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [moneda, tarifas]
+                properties:
+                  moneda:
+                    type: string
+                  tarifas:
+                    type: array
+                    items:
+                      type: object
+                      required: [tipo_servicio, precio_base, precio_por_kg]
+                      properties:
+                        tipo_servicio:
+                          type: string
+                        precio_base:
+                          type: number
+                          format: decimal
+                        precio_por_kg:
+                          type: number
+                          format: decimal
+              example:
+                moneda: GTQ
+                tarifas:
+                  - tipo_servicio: normal
+                    precio_base: 18.00
+                    precio_por_kg: 8.20
+        '401':
+          description: El secreto de origen no coincide.
+  /rastreo:
+    get:
+      summary: Rastrear una guía
+      description: Devuelve el estado actual y los eventos de una guía.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+        - name: guia
+          in: query
+          required: true
+          description: Número de guía asignado por Envíos Xelajú.
+          schema:
+            type: string
+          example: GX-2026-0001
+      responses:
+        '200':
+          description: Estado y eventos de la guía.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [numero_guia, estado, eventos]
+                properties:
+                  numero_guia:
+                    type: string
+                  estado:
+                    type: string
+                  eventos:
+                    type: array
+                    items:
+                      type: object
+                      required: [fecha, descripcion, ubicacion]
+                      properties:
+                        fecha:
+                          type: string
+                          format: date-time
+                        descripcion:
+                          type: string
+                        ubicacion:
+                          type: string
+              example:
+                numero_guia: GX-2026-0001
+                estado: en_transito
+                eventos:
+                  - fecha: '2026-09-10T08:30:00-06:00'
+                    descripcion: Guía creada
+                    ubicacion: Quetzaltenango
+        '401':
+          description: El secreto de origen no coincide.
+  /cobertura:
+    get:
+      summary: Consultar cobertura
+      description: Indica si un municipio tiene cobertura y el tiempo estimado de entrega.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+        - name: municipio
+          in: query
+          required: true
+          description: Código del municipio que se desea consultar.
+          schema:
+            type: string
+          example: '0301'
+      responses:
+        '200':
+          description: Cobertura del municipio.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [municipio, nombre, cubierto, dias_habiles]
+                properties:
+                  municipio:
+                    type: string
+                  nombre:
+                    type: string
+                  cubierto:
+                    type: boolean
+                  dias_habiles:
+                    type: integer
+              example:
+                municipio: '0301'
+                nombre: Antigua Guatemala
+                cubierto: true
+                dias_habiles: 2
+        '401':
+          description: El secreto de origen no coincide.
+  /salud:
+    get:
+      summary: Consultar salud
+      description: Confirma que el origen de Envíos Xelajú está disponible.
+      parameters:
+        - $ref: '#/components/parameters/SecretoOrigen'
+      responses:
+        '200':
+          description: El origen está saludable.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [estado]
+                properties:
+                  estado:
+                    type: string
+              example:
+                estado: saludable
+        '401':
+          description: El secreto de origen no coincide.
+components:
+  parameters:
+    SecretoOrigen:
+      name: X-Shapi-Secreto
+      in: header
+      required: false
+      description: Secreto compartido; solo es obligatorio cuando SECRETO_ORIGEN está configurado.
+      schema:
+        type: string
+      example: secreto-compartido
+  schemas:
+    CotizacionSolicitud:
+      type: object
+      required: [origen, destino, peso_kg]
+      properties:
+        origen:
+          type: string
+          description: Código del municipio de origen.
+        destino:
+          type: string
+          description: Código del municipio de destino.
+        peso_kg:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Peso del paquete en kilogramos.
+        tipo_servicio:
+          type: string
+          enum: [normal, urgente]
+          default: normal
+          description: Tipo de servicio; si se omite se usa normal.
+    CotizacionRespuesta:
+      type: object
+      required: [origen, destino, tarifa, entrega_estimada]
+      properties:
+        origen:
+          type: string
+        destino:
+          type: string
+        tarifa:
+          type: string
+        entrega_estimada:
+          type: string
+    GuiaSolicitud:
+      type: object
+      required: [origen, destino, destinatario, direccion, peso_kg]
+      properties:
+        origen:
+          type: string
+        destino:
+          type: string
+        destinatario:
+          type: string
+        direccion:
+          type: string
+        peso_kg:
+          type: number
+          format: decimal
+          minimum: 0.01

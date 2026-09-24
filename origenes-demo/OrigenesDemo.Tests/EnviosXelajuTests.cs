@@ -31,7 +31,7 @@ public sealed class EnviosXelajuTests(WebApplicationFactory<EnviosXelajuAplicaci
         contenido.GetProperty("origen").GetString().Should().Be("Quetzaltenango");
         contenido.GetProperty("destino").GetString().Should().Be("Antigua Guatemala");
         contenido.GetProperty("tarifa").GetString().Should().Be("Q 38.50");
-        contenido.GetProperty("entrega_estimada").GetString().Should().Be("2 dias habiles");
+        contenido.GetProperty("entrega_estimada").GetString().Should().Be("2 días hábiles");
     }
 
     [Fact]
