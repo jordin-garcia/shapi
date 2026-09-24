@@ -64,7 +64,7 @@ function resolverLocal(_host, opciones, callback) {
 }
 
 async function esperarServiciosSanos(nombres) {
-  const limite = Date.now() + 30_000;
+  const limite = Date.now() + 90_000;
   let servicios = [];
 
   while (Date.now() < limite) {
