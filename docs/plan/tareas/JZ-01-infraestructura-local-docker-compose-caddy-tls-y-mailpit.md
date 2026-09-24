@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: []
 requisitos: [RNF-09, RNF-14]
 pantallas: []
@@ -55,3 +55,17 @@ node scripts/tareas.mjs --validar
 
 ## Notas
 - Si JG-01 todavía no se integró, no hay CI. Verifica localmente e integra con `gh pr merge --squash --delete-branch`.
+
+## Resultado
+
+- Se creó el entorno local con PostgreSQL 16, Redis 7.4 con AOF, Mailpit y Caddy, todos con verificaciones de salud y volúmenes persistentes.
+- Caddy enruta el panel, el portal, la API de control, la compuerta y Mailpit mediante HTTPS local; conserva el `Host` del portal, admite WebSocket, autoriza TLS bajo demanda y bloquea `/interno/*`.
+- Se agregó `.env.example` con la configuración completa de desarrollo y `docs/manual-tecnico.md` con instalación, certificados, puertos y administración del entorno.
+- `infra/verificar.mjs` valida la configuración, espera hasta 90 segundos por la salud, prueba cada destino con orígenes controlados, verifica WebSocket, cabeceras, redirección y Mailpit.
+- La raíz de Caddy se importó en el almacén del usuario y Mailpit respondió 200 con validación TLS normal.
+
+### Decisiones
+
+- Las cabeceras de seguridad se aplican de forma diferida para sobrescribir valores del origen y mantener exactamente la política especificada.
+- El sitio HTTP comodín redirige también los dominios propios desconocidos hacia HTTPS.
+- Los procesos .NET y Vite permanecen en el equipo, mientras Compose administra únicamente la infraestructura de desarrollo.
