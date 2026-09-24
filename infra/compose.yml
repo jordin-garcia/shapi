@@ -76,6 +76,24 @@ services:
       retries: 12
       start_period: 5s
 
+  origen-envios:
+    build:
+      context: ..
+      dockerfile: origenes-demo/envios-xelaju/Dockerfile
+    ports:
+      - "5101:8080"
+    environment:
+      SECRETO_ORIGEN: ${SHAPI_SECRETO_ORIGEN_ENVIOS:-}
+
+  origen-agro:
+    build:
+      context: ..
+      dockerfile: origenes-demo/agro-precios/Dockerfile
+    ports:
+      - "5102:8080"
+    environment:
+      SECRETO_ORIGEN: ${SHAPI_SECRETO_ORIGEN_AGRO:-}
+
 volumes:
   pgdata:
   redisdata:

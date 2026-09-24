@@ -1,4 +1,9 @@
 <Solution>
+    <Folder Name="/origenes-demo/">
+        <Project Path="origenes-demo/agro-precios/AgroPrecios.csproj" />
+        <Project Path="origenes-demo/envios-xelaju/EnviosXelaju.csproj" />
+        <Project Path="origenes-demo/OrigenesDemo.Tests/OrigenesDemo.Tests.csproj" />
+    </Folder>
     <Folder Name="/src/">
         <Project Path="src/Shapi.Api/Shapi.Api.csproj" />
         <Project Path="src/Shapi.Aplicacion/Shapi.Aplicacion.csproj" />

@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [JG-01]
 requisitos: []
 pantallas: []
@@ -52,3 +52,10 @@ curl http://localhost:5101/salud
 
 ## Fuera de alcance
 - Registrar las APIs en Shapi (JZ-05)
+
+## Resultado
+
+- Se crearon las Minimal APIs .NET 10 de Envíos Xelajú y Agro Precios con todos los endpoints, datos y ejemplos de los mockups.
+- Ambos orígenes admiten un secreto opcional mediante `SECRETO_ORIGEN` y `X-Shapi-Secreto`, exponen `/salud` y se ejecutan desde `infra/compose.yml` en los puertos 5101 y 5102.
+- Se agregaron `cotizacion-envios.yaml` y `openapi.yaml`, validados como OpenAPI 3.0.3 con Microsoft.OpenApi, además de pruebas de integración para rutas, parámetros, ejemplos, seguridad y rangos de fechas.
+- Se decidió mantener datos deterministas con fecha de demostración del 10 de septiembre de 2026 para que las respuestas coincidan con los mockups.
