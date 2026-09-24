@@ -31,7 +31,9 @@ node infra/verificar.mjs
 
 El primer comando inicia PostgreSQL, Redis, Mailpit y Caddy. El segundo valida la
 configuración, la salud de los cuatro contenedores, HTTPS, las cabeceras de
-seguridad y la bandeja de correo.
+seguridad y la bandeja de correo. Ejecute la verificación antes de iniciar .NET o
+Vite: el verificador ocupa temporalmente los puertos 5080, 5090, 5173 y 5174 y
+fallará con `EADDRINUSE` si alguno ya está en uso.
 
 Los procesos de Shapi y Vite se ejecutan en el equipo para conservar la recarga
 en caliente:
@@ -42,6 +44,21 @@ dotnet run --project src/Shapi.Compuerta
 dotnet run --project src/Shapi.Trabajador
 cd frontend && pnpm install && pnpm dev
 ```
+
+En Linux con Docker Engine nativo, `host.docker.internal` apunta al puente de
+Docker y no puede alcanzar procesos que escuchen solo en `localhost`. Inicie los
+procesos HTTP en todas las interfaces para que Caddy pueda conectarse:
+
+```bash
+dotnet run --project src/Shapi.Api --urls http://0.0.0.0:5080
+dotnet run --project src/Shapi.Compuerta --urls http://0.0.0.0:5090
+cd frontend && pnpm dev -- --host 0.0.0.0
+```
+
+La configuración definitiva de Vite debe conservar `server.host: "0.0.0.0"` y
+usar `server.hmr.clientPort: 443` para que la recarga en caliente funcione detrás
+de Caddy. Estos puertos son exclusivamente de desarrollo; no exponga este
+entorno en una red no confiable.
 
 ### Confiar en la autoridad certificadora local
 
