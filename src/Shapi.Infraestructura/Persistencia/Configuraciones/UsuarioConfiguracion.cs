@@ -13,14 +13,18 @@ public class UsuarioConfiguracion : IEntityTypeConfiguration<Usuario>
 
         builder.Property(x => x.Nombre).IsRequired();
         builder.Property(x => x.Correo).IsRequired();
+
+        // RNF-08: UNIQUE lower(correo) - se aplica como SQL en la migración
+        // HasIndex aquí registra el índice normal; el lower() va en migración
         builder.HasIndex(x => x.Correo).IsUnique();
 
         builder.Property(x => x.Estado)
             .IsRequired()
-            .HasDefaultValue(EstadoCuenta.Activo)
-            .HasConversion<string>();
+            .HasConversion(Conversores.EstadoCuenta);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_usuario_estado", "estado IN ('Activo','Desactivado')"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_usuario_estado",
+            "estado IN ('activo','desactivado')"));
+
         builder.Property(x => x.IntentosFallidos).HasDefaultValue(0);
     }
 }

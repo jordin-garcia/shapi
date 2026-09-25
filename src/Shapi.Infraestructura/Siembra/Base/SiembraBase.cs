@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
 using Shapi.Dominio.Planes;
@@ -8,7 +9,7 @@ namespace Shapi.Infraestructura.Siembra.Base;
 
 public static class SiembraBase
 {
-    public static async Task EjecutarAsync(ShapiDbContext db, string? adminCorreo, string? adminNombre, string? adminContrasena, Shapi.Aplicacion.Comun.IReloj reloj, Microsoft.AspNetCore.Identity.IPasswordHasher<Usuario> hasher)
+    public static async Task EjecutarAsync(ShapiDbContext db, string? adminCorreo, string? adminNombre, string? adminContrasena, Shapi.Aplicacion.Comun.IReloj reloj, Microsoft.AspNetCore.Identity.IPasswordHasher<Usuario> hasher, Microsoft.Extensions.Logging.ILogger logger)
     {
         await db.Database.MigrateAsync();
 
@@ -26,8 +27,13 @@ public static class SiembraBase
 
         await SembrarPlanesAsync(db);
 
-        if (!string.IsNullOrWhiteSpace(adminCorreo) && !string.IsNullOrWhiteSpace(adminNombre) && !string.IsNullOrWhiteSpace(adminContrasena))
+        if (string.IsNullOrWhiteSpace(adminCorreo) || string.IsNullOrWhiteSpace(adminNombre) || string.IsNullOrWhiteSpace(adminContrasena))
         {
+            logger.LogWarning("Faltan las variables SHAPI_ADMIN_*; no se creará el administrador inicial.");
+        }
+        else
+        {
+            adminCorreo = adminCorreo.Trim().ToLowerInvariant();
             var admin = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == adminCorreo);
             if (admin == null)
             {

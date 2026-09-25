@@ -23,6 +23,8 @@ public class PlanPlataformaConfiguracion : IEntityTypeConfiguration<PlanPlatafor
         builder.ToTable(t => t.HasCheckConstraint("CK_plan_plataforma_cuota", "cuota_peticiones > 0"));
 
         builder.Property(x => x.EsPrueba).HasDefaultValue(false);
+
+        // RNF-08: Un solo plan es_prueba
         builder.HasIndex(x => x.EsPrueba).IsUnique().HasFilter("es_prueba = true");
 
         builder.Property(x => x.Activo).HasDefaultValue(true);

@@ -18,5 +18,21 @@ public class EntradaBitacora
     public string? Detalle { get; private set; } // JSONB
     public IPAddress? Ip { get; private set; }
 
+
+    public EntradaBitacora(ActorTipo actorTipo, Guid? actorId, string actorNombre, Guid? organizacionId, string accion, string? objetivoTipo, Guid? objetivoId, string descripcion, string? detalle, IPAddress? ip)
+    {
+        Fecha = DateTimeOffset.UtcNow;
+        ActorTipo = actorTipo;
+        ActorId = actorId;
+        ActorNombre = actorNombre;
+        OrganizacionId = organizacionId;
+        Accion = accion;
+        ObjetivoTipo = objetivoTipo;
+        ObjetivoId = objetivoId;
+        Descripcion = descripcion;
+        Detalle = detalle;
+        Ip = ip;
+    }
+
     protected EntradaBitacora() { }
 }

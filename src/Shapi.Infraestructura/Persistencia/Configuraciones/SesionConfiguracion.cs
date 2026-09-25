@@ -11,18 +11,34 @@ public class SesionConfiguracion : IEntityTypeConfiguration<Sesion>
         builder.ToTable("sesion");
         builder.HasKey(x => x.Id);
 
+        builder.HasOne<Usuario>()
+            .WithMany()
+            .HasForeignKey(x => x.UsuarioId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Consumidor>()
+            .WithMany()
+            .HasForeignKey(x => x.ConsumidorId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Property(x => x.Ambito)
             .IsRequired()
-            .HasConversion<string>();
+            .HasConversion(Conversores.AmbitoSesion);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_sesion_ambito", "ambito IN ('Personal','Consumidor')"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_sesion_usuario_consumidor", "num_nonnulls(usuario_id, consumidor_id) = 1"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_sesion_ambito",
+            "ambito IN ('personal','consumidor')"));
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_sesion_actor",
+            "num_nonnulls(usuario_id, consumidor_id) = 1"));
 
         builder.Property(x => x.HashIdentificador).IsRequired().HasMaxLength(64).IsFixedLength();
         builder.HasIndex(x => x.HashIdentificador).IsUnique();
 
         builder.Property(x => x.Host).IsRequired();
-        builder.Property(x => x.CreadaEn).IsRequired();
+
+        builder.Property(x => x.CreadaEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.UltimoUsoEn).IsRequired();
         builder.Property(x => x.ExpiraEn).IsRequired();
     }

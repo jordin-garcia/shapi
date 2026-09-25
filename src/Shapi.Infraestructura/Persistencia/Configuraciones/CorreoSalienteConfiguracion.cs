@@ -18,8 +18,11 @@ public class CorreoSalienteConfiguracion : IEntityTypeConfiguration<CorreoSalien
 
         builder.Property(x => x.Estado)
             .IsRequired()
-            .HasConversion<string>();
+            .HasConversion(Conversores.EstadoCorreo);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_correo_saliente_estado", "estado IN ('Pendiente','Enviado','Fallido')"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_correo_saliente_estado",
+            "estado IN ('pendiente','enviado','fallido')"));
+
+        builder.Property(x => x.Intentos).HasDefaultValue(0);
     }
 }

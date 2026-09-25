@@ -1,36 +1,69 @@
+#pragma warning disable CS0618
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Shapi.Aplicacion.Comun;
 using Shapi.Infraestructura.Comun;
+using Shapi.Infraestructura.Persistencia;
+using Testcontainers.PostgreSql;
 
 namespace Shapi.Api.Tests.Comun;
 
 // Criterio 7 de JG-01: implementaciones nulas por defecto, reemplazables por el módulo dueño.
-public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : IClassFixture<WebApplicationFactory<Program>>
+// (Modificado en EM-01 para usar BD directamente)
+public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
+    private readonly WebApplicationFactory<Program> _fabrica;
+    private readonly PostgreSqlContainer _dbContainer;
+
+    public ServiciosComunesTests(WebApplicationFactory<Program> fabrica)
+    {
+        _dbContainer = new PostgreSqlBuilder().WithImage("postgres:16-alpine").Build();
+        _fabrica = fabrica;
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _dbContainer.StartAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _dbContainer.DisposeAsync();
+    }
+
+    private WebApplicationFactory<Program> CrearFabrica()
+    {
+        return _fabrica.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", _dbContainer.GetConnectionString());
+        });
+    }
+
     [Fact]
     public void ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas()
     {
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
+        var fabricaConfigurada = CrearFabrica();
         using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
 
         servicios.GetRequiredService<IReloj>().Should().BeOfType<RelojSistema>();
-        servicios.GetRequiredService<IColaCorreo>().Should().BeOfType<ColaCorreoNula>();
-        servicios.GetRequiredService<IBitacora>().Should().BeOfType<BitacoraNula>();
+        servicios.GetRequiredService<IColaCorreo>().Should().BeOfType<Shapi.Infraestructura.Correo.ColaCorreoBaseDatos>();
+        servicios.GetRequiredService<IBitacora>().Should().BeOfType<Shapi.Infraestructura.Bitacora.BitacoraBaseDatos>();
         servicios.GetRequiredService<IPublicadorCache>().Should().BeOfType<PublicadorCacheNulo>();
     }
 
     [Fact]
     public async Task ServiciosNulos_AlUsarlos_TerminanSinError()
     {
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
+        var fabricaConfigurada = CrearFabrica();
         using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
+        var db = servicios.GetRequiredService<ShapiDbContext>();
+        await db.Database.MigrateAsync();
+
         var entrada = new EntradaBitacora(TipoActor.Sistema, null, "Sistema", null,
             AccionesBitacora.SuscripcionSuspendida, "Suspendió por falta de pago la suscripción");
 
@@ -51,9 +84,9 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
         var bitacora = Substitute.For<IBitacora>();
         var colaCorreo = Substitute.For<IColaCorreo>();
         var publicador = Substitute.For<IPublicadorCache>();
-        using var fabricaConModulos = fabrica.WithWebHostBuilder(constructor =>
+
+        using var fabricaConModulos = CrearFabrica().WithWebHostBuilder(constructor =>
         {
-            constructor.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy");
             constructor.ConfigureTestServices(servicios =>
             {
                 servicios.AddScoped(_ => bitacora);

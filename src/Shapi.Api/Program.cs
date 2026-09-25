@@ -55,7 +55,7 @@ app
     .MapearModuloCorreo()
     .MapearModuloEstado();
 
-if (builder.Configuration.GetValue<bool>("SHAPI_APLICAR_MIGRACIONES"))
+if (bool.TryParse(app.Configuration["SHAPI_APLICAR_MIGRACIONES"], out var aplicar) && aplicar || app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<Shapi.Infraestructura.Persistencia.ShapiDbContext>();
@@ -66,7 +66,8 @@ if (builder.Configuration.GetValue<bool>("SHAPI_APLICAR_MIGRACIONES"))
     var reloj = scope.ServiceProvider.GetRequiredService<Shapi.Aplicacion.Comun.IReloj>();
     var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Shapi.Dominio.Identidad.Usuario>();
 
-    await Shapi.Infraestructura.Siembra.Base.SiembraBase.EjecutarAsync(db, correo, nombre, contrasena, reloj, hasher);
+    var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
+    await Shapi.Infraestructura.Siembra.Base.SiembraBase.EjecutarAsync(db, correo, nombre, contrasena, reloj, hasher, logger);
 }
 
 app.Run();

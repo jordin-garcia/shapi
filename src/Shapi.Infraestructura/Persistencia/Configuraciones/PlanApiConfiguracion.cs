@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shapi.Dominio.Apis;
 using Shapi.Dominio.Planes;
 
 namespace Shapi.Infraestructura.Persistencia.Configuraciones;
@@ -10,6 +11,11 @@ public class PlanApiConfiguracion : IEntityTypeConfiguration<PlanApi>
     {
         builder.ToTable("plan_api");
         builder.HasKey(x => x.Id);
+
+        builder.HasOne<Api>()
+            .WithMany()
+            .HasForeignKey(x => x.ApiId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(x => x.Nombre).IsRequired();
         builder.HasIndex(x => new { x.ApiId, x.Nombre }).IsUnique();

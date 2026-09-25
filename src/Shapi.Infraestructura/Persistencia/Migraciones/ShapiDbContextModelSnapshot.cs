@@ -3,21 +3,18 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shapi.Infraestructura.Persistencia;
 
 #nullable disable
 
-namespace Shapi.Infraestructura.Migrations
+namespace Shapi.Infraestructura.Persistencia.Migraciones
 {
     [DbContext(typeof(ShapiDbContext))]
-    [Migration("20260925063257_Inicial")]
-    partial class Inicial
+    partial class ShapiDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,6 +22,9 @@ namespace Shapi.Infraestructura.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.HasSequence("caso_numero_seq")
+                .IncrementsBy(10);
 
             modelBuilder.Entity("Shapi.Dominio.Apis.Api", b =>
                 {
@@ -71,9 +71,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasDefaultValue("Borrador")
                         .HasColumnName("estado");
 
                     b.Property<string>("Nombre")
@@ -86,7 +84,8 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("organizacion_id");
 
                     b.Property<string>("PortalBienvenida")
-                        .HasColumnType("text")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)")
                         .HasColumnName("portal_bienvenida");
 
                     b.Property<string>("PortalColor")
@@ -132,19 +131,22 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_api");
 
+                    b.HasIndex("OrganizacionId")
+                        .HasDatabaseName("ix_api_organizacion_id");
+
                     b.HasIndex("Subdominio")
                         .IsUnique()
                         .HasDatabaseName("ix_api_subdominio");
 
                     b.ToTable("api", null, t =>
                         {
-                            t.HasCheckConstraint("CK_api_especificacion_formato", "especificacion_formato IS NULL OR especificacion_formato IN ('Json','Yaml')");
+                            t.HasCheckConstraint("CK_api_especificacion_formato", "especificacion_formato IS NULL OR especificacion_formato IN ('json','yaml')");
 
-                            t.HasCheckConstraint("CK_api_estado", "estado IN ('Borrador','Publicada','Despublicada')");
+                            t.HasCheckConstraint("CK_api_estado", "estado IN ('borrador','publicada','despublicada')");
 
                             t.HasCheckConstraint("CK_api_portal_color", "portal_color ~ '^#[0-9A-Fa-f]{6}$'");
 
-                            t.HasCheckConstraint("CK_api_portal_logo_tipo", "portal_logo_tipo IS NULL OR portal_logo_tipo IN ('Png','Svg')");
+                            t.HasCheckConstraint("CK_api_portal_logo_tipo", "portal_logo_tipo IS NULL OR portal_logo_tipo IN ('image/png','image/svg+xml')");
 
                             t.HasCheckConstraint("CK_api_subdominio", "subdominio ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'");
                         });
@@ -213,7 +215,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("dominio_propio", null, t =>
                         {
-                            t.HasCheckConstraint("CK_dominio_propio_estado", "estado IN ('Pendiente','Verificado','Fallido')");
+                            t.HasCheckConstraint("CK_dominio_propio_estado", "estado IN ('pendiente','verificado','fallido')");
                         });
                 });
 
@@ -333,7 +335,7 @@ namespace Shapi.Infraestructura.Migrations
 
                             t.HasCheckConstraint("CK_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0");
 
-                            t.HasCheckConstraint("CK_ruta_metodo", "metodo IN ('Get','Post','Put','Patch','Delete','Head','Options')");
+                            t.HasCheckConstraint("CK_ruta_metodo", "metodo IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')");
 
                             t.HasCheckConstraint("CK_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000");
                         });
@@ -401,9 +403,12 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bitacora");
 
+                    b.HasIndex("OrganizacionId")
+                        .HasDatabaseName("ix_bitacora_organizacion_id");
+
                     b.ToTable("bitacora", null, t =>
                         {
-                            t.HasCheckConstraint("CK_bitacora_actor_tipo", "actor_tipo IN ('Usuario','Consumidor','Sistema')");
+                            t.HasCheckConstraint("CK_bitacora_actor_tipo", "actor_tipo IN ('usuario','consumidor','sistema')");
                         });
                 });
 
@@ -481,15 +486,15 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasIndex("SuscripcionId", "Tipo")
                         .IsUnique()
                         .HasDatabaseName("ix_clave_suscripcion_id_tipo")
-                        .HasFilter("estado = 'Activa'");
+                        .HasFilter("estado = 'activa'");
 
                     b.ToTable("clave", null, t =>
                         {
-                            t.HasCheckConstraint("CK_clave_estado", "estado IN ('Activa','Rotada','Revocada')");
+                            t.HasCheckConstraint("CK_clave_estado", "estado IN ('activa','rotada','revocada')");
 
-                            t.HasCheckConstraint("CK_clave_revocada_por", "revocada_por IS NULL OR revocada_por IN ('Consumidor','Proveedor')");
+                            t.HasCheckConstraint("CK_clave_revocada_por", "revocada_por IS NULL OR revocada_por IN ('consumidor','proveedor')");
 
-                            t.HasCheckConstraint("CK_clave_tipo", "tipo IN ('Produccion','Pruebas')");
+                            t.HasCheckConstraint("CK_clave_tipo", "tipo IN ('produccion','pruebas')");
                         });
                 });
 
@@ -622,6 +627,9 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_consumo_diario");
 
+                    b.HasIndex("RutaId")
+                        .HasDatabaseName("ix_consumo_diario_ruta_id");
+
                     b.HasIndex("ApiId", "Fecha")
                         .HasDatabaseName("ix_consumo_diario_api_id_fecha");
 
@@ -636,7 +644,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("consumo_diario", null, t =>
                         {
-                            t.HasCheckConstraint("CK_consumo_entorno", "entorno IN ('Produccion','Pruebas')");
+                            t.HasCheckConstraint("CK_consumo_entorno", "entorno IN ('produccion','pruebas')");
                         });
                 });
 
@@ -689,7 +697,9 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("estado");
 
                     b.Property<int>("Intentos")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
+                        .HasDefaultValue(0)
                         .HasColumnName("intentos");
 
                     b.Property<string>("Plantilla")
@@ -710,7 +720,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("correo_saliente", null, t =>
                         {
-                            t.HasCheckConstraint("CK_correo_saliente_estado", "estado IN ('Pendiente','Enviado','Fallido')");
+                            t.HasCheckConstraint("CK_correo_saliente_estado", "estado IN ('pendiente','enviado','fallido')");
                         });
                 });
 
@@ -736,9 +746,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasDefaultValue("Activo")
                         .HasColumnName("estado");
 
                     b.Property<string>("HashContrasena")
@@ -775,7 +783,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("consumidor", null, t =>
                         {
-                            t.HasCheckConstraint("CK_consumidor_estado", "estado IN ('Activo','Desactivado')");
+                            t.HasCheckConstraint("CK_consumidor_estado", "estado IN ('activo','desactivado')");
                         });
                 });
 
@@ -800,8 +808,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("consumidor_id");
 
                     b.Property<DateTimeOffset>("CreadaEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("creada_en");
+                        .HasColumnName("creada_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("ExpiraEn")
                         .HasColumnType("timestamp with time zone")
@@ -838,15 +848,21 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_sesion");
 
+                    b.HasIndex("ConsumidorId")
+                        .HasDatabaseName("ix_sesion_consumidor_id");
+
                     b.HasIndex("HashIdentificador")
                         .IsUnique()
                         .HasDatabaseName("ix_sesion_hash_identificador");
 
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_sesion_usuario_id");
+
                     b.ToTable("sesion", null, t =>
                         {
-                            t.HasCheckConstraint("CK_sesion_ambito", "ambito IN ('Personal','Consumidor')");
+                            t.HasCheckConstraint("CK_sesion_actor", "num_nonnulls(usuario_id, consumidor_id) = 1");
 
-                            t.HasCheckConstraint("CK_sesion_usuario_consumidor", "num_nonnulls(usuario_id, consumidor_id) = 1");
+                            t.HasCheckConstraint("CK_sesion_ambito", "ambito IN ('personal','consumidor')");
                         });
                 });
 
@@ -901,13 +917,22 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_token");
 
+                    b.HasIndex("ConsumidorId")
+                        .HasDatabaseName("ix_token_consumidor_id");
+
                     b.HasIndex("HashToken")
                         .IsUnique()
                         .HasDatabaseName("ix_token_hash_token");
 
+                    b.HasIndex("OrganizacionId")
+                        .HasDatabaseName("ix_token_organizacion_id");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_token_usuario_id");
+
                     b.ToTable("token", null, t =>
                         {
-                            t.HasCheckConstraint("CK_token_tipo", "tipo IN ('VerificacionCorreo','Recuperacion','InvitacionMiembro','InvitacionConsumidor','DefinirContrasena')");
+                            t.HasCheckConstraint("CK_token_tipo", "tipo IN ('verificacion_correo','recuperacion','invitacion_miembro','invitacion_consumidor','definir_contrasena')");
                         });
                 });
 
@@ -933,9 +958,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.Property<string>("Estado")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasDefaultValue("Activo")
                         .HasColumnName("estado");
 
                     b.Property<string>("HashContrasena")
@@ -962,7 +985,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("usuario", null, t =>
                         {
-                            t.HasCheckConstraint("CK_usuario_estado", "estado IN ('Activo','Desactivado')");
+                            t.HasCheckConstraint("CK_usuario_estado", "estado IN ('activo','desactivado')");
                         });
                 });
 
@@ -992,7 +1015,7 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasIndex("OrganizacionId")
                         .IsUnique()
                         .HasDatabaseName("ix_membresia_organizacion_id")
-                        .HasFilter("rol = 'Propietario'");
+                        .HasFilter("rol = 'propietario'");
 
                     b.HasIndex("UsuarioId")
                         .IsUnique()
@@ -1000,7 +1023,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("membresia", null, t =>
                         {
-                            t.HasCheckConstraint("CK_membresia_rol", "rol IN ('Administrador','Soporte','Propietario','Editor','Lector')");
+                            t.HasCheckConstraint("CK_membresia_rol", "rol IN ('administrador','soporte','propietario','editor','lector')");
                         });
                 });
 
@@ -1025,9 +1048,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.Property<string>("EstadoAdmin")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasDefaultValue("Activa")
                         .HasColumnName("estado_admin");
 
                     b.Property<string>("MotivoSuspension")
@@ -1051,13 +1072,13 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasIndex("Tipo")
                         .IsUnique()
                         .HasDatabaseName("ix_organizacion_tipo")
-                        .HasFilter("tipo = 'Plataforma'");
+                        .HasFilter("tipo = 'plataforma'");
 
                     b.ToTable("organizacion", null, t =>
                         {
-                            t.HasCheckConstraint("CK_organizacion_estado_admin", "estado_admin IN ('Activa','Suspendida')");
+                            t.HasCheckConstraint("CK_organizacion_estado_admin", "estado_admin IN ('activa','suspendida')");
 
-                            t.HasCheckConstraint("CK_organizacion_tipo", "tipo IN ('Plataforma','Proveedor')");
+                            t.HasCheckConstraint("CK_organizacion_tipo", "tipo IN ('plataforma','proveedor')");
                         });
                 });
 
@@ -1115,9 +1136,15 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_medio_pago");
 
+                    b.HasIndex("ConsumidorId")
+                        .HasDatabaseName("ix_medio_pago_consumidor_id");
+
+                    b.HasIndex("OrganizacionId")
+                        .HasDatabaseName("ix_medio_pago_organizacion_id");
+
                     b.ToTable("medio_pago", null, t =>
                         {
-                            t.HasCheckConstraint("CK_medio_pago_marca", "marca IN ('Visa','Mastercard','AmericanExpress')");
+                            t.HasCheckConstraint("CK_medio_pago_marca", "marca IN ('Visa','Mastercard','American Express')");
 
                             t.HasCheckConstraint("CK_medio_pago_org_cons", "num_nonnulls(organizacion_id, consumidor_id) = 1");
                         });
@@ -1204,6 +1231,12 @@ namespace Shapi.Infraestructura.Migrations
                         .IsDescending()
                         .HasDatabaseName("ix_pago_creado_en");
 
+                    b.HasIndex("MedioPagoId")
+                        .HasDatabaseName("ix_pago_medio_pago_id");
+
+                    b.HasIndex("RevertidoPor")
+                        .HasDatabaseName("ix_pago_revertido_por");
+
                     b.HasIndex("SuscripcionApiId", "CreadoEn")
                         .IsDescending(false, true)
                         .HasDatabaseName("ix_pago_suscripcion_api_id_creado_en");
@@ -1214,9 +1247,9 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("pago", null, t =>
                         {
-                            t.HasCheckConstraint("CK_pago_concepto", "concepto IN ('Contratacion','Renovacion','CambioPlan','Reactivacion')");
+                            t.HasCheckConstraint("CK_pago_concepto", "concepto IN ('contratacion','renovacion','cambio_plan','reactivacion')");
 
-                            t.HasCheckConstraint("CK_pago_estado", "estado IN ('Autorizado','Rechazado','Revertido')");
+                            t.HasCheckConstraint("CK_pago_estado", "estado IN ('autorizado','rechazado','revertido')");
 
                             t.HasCheckConstraint("CK_pago_monto", "monto > 0");
 
@@ -1446,8 +1479,7 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("numero");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Numero"));
-                    NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<int>("Numero"), 100L, null, null, null, null, null);
+                    NpgsqlPropertyBuilderExtensions.UseHiLo(b.Property<int>("Numero"), "caso_numero_seq");
 
                     b.Property<Guid>("OrganizacionId")
                         .HasColumnType("uuid")
@@ -1456,13 +1488,25 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_caso");
 
+                    b.HasIndex("ApiId")
+                        .HasDatabaseName("ix_caso_api_id");
+
+                    b.HasIndex("AsignadoA")
+                        .HasDatabaseName("ix_caso_asignado_a");
+
+                    b.HasIndex("CreadoPor")
+                        .HasDatabaseName("ix_caso_creado_por");
+
                     b.HasIndex("Numero")
                         .IsUnique()
                         .HasDatabaseName("ix_caso_numero");
 
+                    b.HasIndex("OrganizacionId")
+                        .HasDatabaseName("ix_caso_organizacion_id");
+
                     b.ToTable("caso", null, t =>
                         {
-                            t.HasCheckConstraint("CK_caso_estado", "estado IN ('Abierto','Cerrado')");
+                            t.HasCheckConstraint("CK_caso_estado", "estado IN ('abierto','cerrado')");
                         });
                 });
 
@@ -1494,6 +1538,12 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_caso_mensaje");
+
+                    b.HasIndex("AutorId")
+                        .HasDatabaseName("ix_caso_mensaje_autor_id");
+
+                    b.HasIndex("CasoId")
+                        .HasDatabaseName("ix_caso_mensaje_caso_id");
 
                     b.ToTable("caso_mensaje", (string)null);
                 });
@@ -1557,10 +1607,19 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_suscripcion_api");
 
+                    b.HasIndex("ApiId")
+                        .HasDatabaseName("ix_suscripcion_api_api_id");
+
+                    b.HasIndex("MedioPagoId")
+                        .HasDatabaseName("ix_suscripcion_api_medio_pago_id");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("ix_suscripcion_api_plan_id");
+
                     b.HasIndex("ConsumidorId", "ApiId")
                         .IsUnique()
                         .HasDatabaseName("ix_suscripcion_api_consumidor_id_api_id")
-                        .HasFilter("estado <> 'Finalizada'");
+                        .HasFilter("estado <> 'finalizada'");
 
                     b.HasIndex("Estado", "Fin")
                         .HasDatabaseName("ix_suscripcion_api_estado_fin");
@@ -1570,7 +1629,7 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("suscripcion_api", null, t =>
                         {
-                            t.HasCheckConstraint("CK_suscripcion_api_estado", "estado IN ('Activa','EnGracia','Suspendida','Finalizada')");
+                            t.HasCheckConstraint("CK_suscripcion_api_estado", "estado IN ('activa','en_gracia','suspendida','finalizada')");
 
                             t.HasCheckConstraint("CK_suscripcion_api_fechas", "fin > inicio");
                         });
@@ -1631,10 +1690,16 @@ namespace Shapi.Infraestructura.Migrations
                     b.HasKey("Id")
                         .HasName("pk_suscripcion_plataforma");
 
+                    b.HasIndex("MedioPagoId")
+                        .HasDatabaseName("ix_suscripcion_plataforma_medio_pago_id");
+
                     b.HasIndex("OrganizacionId")
                         .IsUnique()
                         .HasDatabaseName("ix_suscripcion_plataforma_organizacion_id")
-                        .HasFilter("estado <> 'Finalizada'");
+                        .HasFilter("estado <> 'finalizada'");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("ix_suscripcion_plataforma_plan_id");
 
                     b.HasIndex("Estado", "Fin")
                         .HasDatabaseName("ix_suscripcion_plataforma_estado_fin");
@@ -1644,10 +1709,30 @@ namespace Shapi.Infraestructura.Migrations
 
                     b.ToTable("suscripcion_plataforma", null, t =>
                         {
-                            t.HasCheckConstraint("CK_suscripcion_plat_estado", "estado IN ('Activa','EnGracia','Suspendida','Finalizada')");
+                            t.HasCheckConstraint("CK_suscripcion_plat_estado", "estado IN ('activa','en_gracia','suspendida','finalizada')");
 
                             t.HasCheckConstraint("CK_suscripcion_plat_fechas", "fin > inicio");
                         });
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Apis.Api", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_api_organizacion_organizacion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Apis.DominioPropio", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Apis.Api", null)
+                        .WithMany()
+                        .HasForeignKey("ApiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_dominio_propio_api_api_id");
                 });
 
             modelBuilder.Entity("Shapi.Dominio.Apis.Ruta", b =>
@@ -1658,6 +1743,261 @@ namespace Shapi.Infraestructura.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_ruta_api_api_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Bitacora.EntradaBitacora", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_bitacora_organizacion_organizacion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Claves.Clave", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Suscripciones.SuscripcionApi", null)
+                        .WithMany()
+                        .HasForeignKey("SuscripcionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_clave_suscripcion_api_suscripcion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Consumo.ConsumoDiario", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Apis.Api", null)
+                        .WithMany()
+                        .HasForeignKey("ApiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consumo_diario_api_api_id");
+
+                    b.HasOne("Shapi.Dominio.Apis.Ruta", null)
+                        .WithMany()
+                        .HasForeignKey("RutaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consumo_diario_ruta_ruta_id");
+
+                    b.HasOne("Shapi.Dominio.Suscripciones.SuscripcionApi", null)
+                        .WithMany()
+                        .HasForeignKey("SuscripcionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consumo_diario_suscripcion_api_suscripcion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Identidad.Consumidor", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consumidor_organizacion_organizacion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Identidad.Sesion", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Identidad.Consumidor", null)
+                        .WithMany()
+                        .HasForeignKey("ConsumidorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_sesion_consumidor_consumidor_id");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_sesion_usuario_usuario_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Identidad.Token", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Identidad.Consumidor", null)
+                        .WithMany()
+                        .HasForeignKey("ConsumidorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_token_consumidor_consumidor_id");
+
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_token_organizacion_organizacion_id");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_token_usuario_usuario_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Organizaciones.Membresia", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_membresia_organizacion_organizacion_id");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_membresia_usuario_usuario_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Pagos.MedioPago", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Identidad.Consumidor", null)
+                        .WithMany()
+                        .HasForeignKey("ConsumidorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_medio_pago_consumidor_consumidor_id");
+
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_medio_pago_organizacion_organizacion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Pagos.Pago", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Pagos.MedioPago", null)
+                        .WithMany()
+                        .HasForeignKey("MedioPagoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_pago_medio_pago_medio_pago_id");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("RevertidoPor")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_pago_usuario_revertido_por");
+
+                    b.HasOne("Shapi.Dominio.Suscripciones.SuscripcionApi", null)
+                        .WithMany()
+                        .HasForeignKey("SuscripcionApiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_pago_suscripcion_api_suscripcion_api_id");
+
+                    b.HasOne("Shapi.Dominio.Suscripciones.SuscripcionPlataforma", null)
+                        .WithMany()
+                        .HasForeignKey("SuscripcionPlataformaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_pago_suscripcion_plataforma_suscripcion_plataforma_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Planes.PlanApi", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Apis.Api", null)
+                        .WithMany()
+                        .HasForeignKey("ApiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_plan_api_api_api_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Soporte.Caso", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Apis.Api", null)
+                        .WithMany()
+                        .HasForeignKey("ApiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_caso_api_api_id");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("AsignadoA")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_caso_usuario_asignado_a");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("CreadoPor")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_caso_usuario_creado_por");
+
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_caso_organizacion_organizacion_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Soporte.CasoMensaje", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Identidad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("AutorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_caso_mensaje_usuario_autor_id");
+
+                    b.HasOne("Shapi.Dominio.Soporte.Caso", null)
+                        .WithMany()
+                        .HasForeignKey("CasoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_caso_mensaje_caso_caso_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Suscripciones.SuscripcionApi", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Apis.Api", null)
+                        .WithMany()
+                        .HasForeignKey("ApiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_suscripcion_api_api_api_id");
+
+                    b.HasOne("Shapi.Dominio.Identidad.Consumidor", null)
+                        .WithMany()
+                        .HasForeignKey("ConsumidorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_suscripcion_api_consumidor_consumidor_id");
+
+                    b.HasOne("Shapi.Dominio.Pagos.MedioPago", null)
+                        .WithMany()
+                        .HasForeignKey("MedioPagoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_suscripcion_api_medio_pago_medio_pago_id");
+
+                    b.HasOne("Shapi.Dominio.Planes.PlanApi", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_suscripcion_api_plan_api_plan_id");
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Suscripciones.SuscripcionPlataforma", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Pagos.MedioPago", null)
+                        .WithMany()
+                        .HasForeignKey("MedioPagoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_suscripcion_plataforma_medio_pago_medio_pago_id");
+
+                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_suscripcion_plataforma_organizacion_organizacion_id");
+
+                    b.HasOne("Shapi.Dominio.Planes.PlanPlataforma", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_suscripcion_plataforma_plan_plataforma_plan_id");
                 });
 #pragma warning restore 612, 618
         }

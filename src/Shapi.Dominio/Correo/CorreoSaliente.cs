@@ -13,5 +13,16 @@ public class CorreoSaliente
     public string? UltimoError { get; private set; }
     public DateTimeOffset? EnviadoEn { get; private set; }
 
+
+    public CorreoSaliente(EstadoCorreo estado, string plantilla, string destinatario, string datos, string asunto)
+    {
+        Id = Guid.NewGuid();
+        Estado = estado;
+        Plantilla = plantilla;
+        Destinatario = destinatario;
+        Datos = datos;
+        Asunto = asunto;
+    }
+
     protected CorreoSaliente() { }
 }

@@ -51,7 +51,7 @@ public class ShapiDbContextTests : IAsyncLifetime
         typeof(EntradaBitacora).GetProperty("ActorNombre")!.SetValue(entrada, "Sistema");
         typeof(EntradaBitacora).GetProperty("Accion")!.SetValue(entrada, "Prueba");
         typeof(EntradaBitacora).GetProperty("Descripcion")!.SetValue(entrada, "Prueba trigger");
-        typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(entrada, Guid.NewGuid());
+        typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(entrada, null);
 
         _db!.Set<EntradaBitacora>().Add(entrada);
         await _db.SaveChangesAsync();
@@ -114,7 +114,7 @@ public class ShapiDbContextTests : IAsyncLifetime
         var reloj = new Shapi.Infraestructura.Comun.RelojSistema(TimeProvider.System);
         var hasher = new PasswordHasher<Usuario>();
 
-        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher);
+        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
         var countPlanes = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
         var countUsuarios = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
 
@@ -128,7 +128,7 @@ public class ShapiDbContextTests : IAsyncLifetime
         Assert.NotNull(orgPlataforma);
 
         // Ejecutar de nuevo
-        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher);
+        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
 
         var countPlanes2 = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
         var countUsuarios2 = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
