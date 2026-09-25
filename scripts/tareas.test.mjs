@@ -8,7 +8,7 @@ const IDS = ["JG-01", "EM-03", "DC-04", "JZ-12"];
 test("acepta [ID] título con una tarea del plan", () => {
   assert.deepEqual(validarTituloPr("[EM-03] Pantallas de registro, verificación y acceso", IDS), []);
   assert.deepEqual(validarTituloPr("[JZ-12] Bloqueada: falta la cuenta de correo", IDS), []);
-  assert.deepEqual(validarTituloPr("  [JG-01] Validar el título de los PR  ", IDS), []);
+  assert.deepEqual(validarTituloPr("[JG-01] Validar el título de los PR  ", IDS), []);
 });
 
 test("rechaza títulos sin el ID entre corchetes al inicio", () => {
@@ -18,6 +18,7 @@ test("rechaza títulos sin el ID entre corchetes al inicio", () => {
     "Pantallas de registro [EM-03]",
     "[em-03] Pantallas de registro",
     "(EM-03) Pantallas de registro",
+    "  [EM-03] Pantallas de registro", // la revisión con Claude no encontraría el ID
   ]) {
     const errores = validarTituloPr(titulo, IDS);
     assert.equal(errores.length, 1, titulo);

@@ -23,6 +23,7 @@ jobs:
     name: revision-claude
     if: >-
       github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+      github.event.pull_request.state == 'open' &&
       (github.event.action != 'edited' || github.event.changes.title.from != null)
     runs-on: ubuntu-latest
     timeout-minutes: 20

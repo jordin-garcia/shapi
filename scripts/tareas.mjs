@@ -180,11 +180,11 @@ function resumen(tareas) {
 // La revisión con Claude toma el ID del título: sin él, no revisa criterios ni alcance.
 export const FORMATO_TITULO = /^\[([A-Z]{2}-\d{2,})\] +\S/;
 
+// Se aplica al título tal como llega, sin recortar, igual que en revision-claude.yml.
 export function validarTituloPr(titulo, ids) {
-  const texto = (titulo ?? "").trim();
-  const coincidencia = FORMATO_TITULO.exec(texto);
+  const coincidencia = FORMATO_TITULO.exec(titulo ?? "");
   if (!coincidencia) {
-    return [`El título "${texto}" no sigue el formato "[<ID>] <título>", por ejemplo "[EM-03] Pantallas de registro, verificación y acceso".`];
+    return [`El título "${(titulo ?? "").trim()}" no sigue el formato "[<ID>] <título>", por ejemplo "[EM-03] Pantallas de registro, verificación y acceso".`];
   }
   if (!ids.includes(coincidencia[1])) {
     return [`La tarea ${coincidencia[1]} del título no existe en docs/plan/tareas/.`];
@@ -231,7 +231,7 @@ if (esPrincipal) {
       console.error(`${erroresTitulo.join("\n")}\nCorrija el título del PR: la CI se vuelve a ejecutar sola al editarlo.`);
       process.exit(1);
     }
-    console.log(`Título válido: ${titulo.trim()}`);
+    console.log(`Título válido: ${titulo}`);
     process.exit(0);
   }
   if (errores.length) console.error("Advertencia, el plan tiene errores de formato (corra --validar):\n- " + errores.join("\n- ") + "\n");
