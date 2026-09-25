@@ -1,8 +1,10 @@
 @import "tailwindcss";
-@import "@fontsource/instrument-sans/400.css";
-@import "@fontsource/instrument-sans/500.css";
-@import "@fontsource/instrument-sans/600.css";
-@import "@fontsource/instrument-sans/700.css";
+@import "@fontsource/sora/300.css";
+@import "@fontsource/sora/400.css";
+@import "@fontsource/sora/500.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
 
 @theme {
   --color-principal: var(--principal);
@@ -27,10 +29,11 @@
   --color-neutro-fondo: var(--neutro-fondo);
   --color-neutro-borde: var(--neutro-borde);
 
-  --font-sans: "Instrument Sans", sans-serif;
-  --font-display: "Instrument Sans", sans-serif;
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-display: "Sora", sans-serif;
 
   --radius-base: 8px;
+  --spacing: 4px;
 }
 
 @layer base {
@@ -82,6 +85,8 @@
 
   body {
     @apply bg-fondo text-tinta font-sans antialiased;
+    font-size: 16px;
+    line-height: 1.6;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -91,15 +96,12 @@
 
 @layer components {
   .eti-c {
-    @apply bg-correcto-fondo text-correcto px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+    @apply bg-correcto-fondo text-correcto border-correcto-borde px-[10px] py-[5px] text-xs uppercase rounded-base font-semibold tracking-[.06em] border whitespace-nowrap;
   }
   .eti-a {
-    @apply bg-alerta-fondo text-alerta px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+    @apply bg-alerta-fondo text-alerta border-alerta-borde px-[10px] py-[5px] text-xs uppercase rounded-base font-semibold tracking-[.06em] border whitespace-nowrap;
   }
   .eti-n {
-    @apply bg-neutro-fondo text-neutro px-2 py-0.5 text-xs capitalize rounded-md font-medium;
-  }
-  .eti-i {
-    @apply bg-[#EAF1FF] text-principal px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+    @apply bg-neutro-fondo text-neutro border-borde px-[10px] py-[5px] text-xs uppercase rounded-base font-semibold tracking-[.06em] border whitespace-nowrap;
   }
 }

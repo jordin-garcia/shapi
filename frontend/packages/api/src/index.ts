@@ -1,4 +1,4 @@
-import createClient, { Middleware } from 'openapi-fetch';
+import createClient, { type Middleware } from 'openapi-fetch';
 
 export interface ErrorApi {
   codigo: string;
@@ -13,40 +13,44 @@ export class ProblemDetailsError extends Error {
   }
 }
 
+function esObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
+}
+
 const problemDetailsMiddleware: Middleware = {
-  async onRequest({ request }) {
+  onRequest({ request }) {
     request.headers.set('X-Requested-With', 'shapi');
     return request;
   },
   async onResponse({ response }) {
-    if (!response.ok) {
-      const contentType = response.headers.get("content-type");
-      if (contentType?.includes("application/problem+json")) {
-        const problem = await response.clone().json();
-        const errorApi: ErrorApi = {
-          codigo: problem.type || 'error',
-          titulo: problem.title || 'Ocurrió un error inesperado',
-          errores: problem.errors || undefined
-        };
-        throw new ProblemDetailsError(errorApi);
+    if (!response.ok && response.headers.get('content-type')?.includes('application/problem+json')) {
+      let problem: Record<string, unknown> = {};
+      try {
+        const cuerpo: unknown = await response.clone().json();
+        if (esObjeto(cuerpo)) problem = cuerpo;
+      } catch {
+        // Un cuerpo inválido sigue siendo un error HTTP normalizado.
       }
+      const errores = esObjeto(problem.errores)
+        ? Object.fromEntries(Object.entries(problem.errores).filter((entrada): entrada is [string, string[]] =>
+          Array.isArray(entrada[1]) && entrada[1].every(valor => typeof valor === 'string')))
+        : undefined;
+      throw new ProblemDetailsError({
+        codigo: typeof problem.codigo === 'string' && problem.codigo ? problem.codigo : 'error',
+        titulo: typeof problem.title === 'string' && problem.title ? problem.title : 'Ocurrió un error inesperado',
+        errores,
+      });
     }
     return response;
-  }
+  },
 };
 
-export function crearCliente(baseUrl?: string) {
-  const client = createClient<Record<string, never>>({
+export function crearCliente<T extends object>(baseUrl?: string) {
+  const client = createClient<T>({
     baseUrl,
-    // Note: Some options like credentials might be passed per request, but we can configure base options or just add it to fetch
-    fetch: async (request: Request) => {
-      // For global credentials we can reconstruct the request
-      const req = new Request(request, { credentials: 'include' });
-      return fetch(req);
-    }
+    credentials: 'include',
+    fetch: (...args) => globalThis.fetch(...args),
   });
-
   client.use(problemDetailsMiddleware);
-
   return client;
 }

@@ -58,3 +58,11 @@ node scripts/tareas.mjs --validar
 
 ## Notas
 - Si JG-01 todavía no se integró, no hay CI. Verifica localmente e integra con `gh pr merge --squash --delete-branch`. Cuando exista la CI, el *job* `frontend` se activará solo.
+
+## Resultado
+- Monorepo pnpm configurado para el frontend con aplicaciones `panel` y `portal`, y paquetes compartidos `@shapi/ui` y `@shapi/api`.
+- Sistema de diseño de la variante 4 ("Plano azul") implementado con Tailwind 4, variables CSS y tipografías Sora e IBM Plex Sans.
+- Componentes base (`Boton`, `Campo`, `Etiqueta`, `Tarjeta`, `Tabla`, `Aviso`, `Esqueleto`, `Toast`, `DialogoConfirmacion`, `Selector`) implementados y probados.
+- Cliente HTTP base en `@shapi/api` con `openapi-fetch`, credenciales incluidas, cabecera `X-Requested-With: shapi` y manejo de ProblemDetails con `ErrorApi`.
+- Script `generar:api` para procesar contratos OpenAPI y generar tipos TypeScript de forma modular y estricta.
+- Lámina interactiva `/_ui` basada en `mockups/A0/Lamina.dc.html` con todos los tokens y componentes.
