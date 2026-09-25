@@ -92,3 +92,9 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
   - Se agrega `Microsoft.Extensions.Hosting`, que necesita el SDK Worker del trabajador (06 §3).
   - En 07 §4 se precisó la normalización de las llaves (UUID, host y hash en minúsculas; el hash de `cache:`; `{aaaammdd}` en America/Guatemala) y se agregó la fila de `demo:reloj:desplazamiento`.
 - **Configuración de GitHub** (criterio 6): se aplica con `gh` después de integrar este PR.
+
+### Corrección · 2026-09-25
+- El job `plan` valida el título de cada PR con `node scripts/tareas.mjs --validar-titulo`: exige `[<ID>] <título>` con una tarea que exista. El título se pasa en la variable `TITULO_PR` y no se interpola en el comando.
+- La CI también corre con el evento `edited`, para volver a validar cuando se corrige el título. La revisión con Claude (JG-03) se repite solo si cambió el título.
+- Motivo: EM-02 (#10) se integró con el título "EM-02: …", y la revisión automática no revisó criterios ni alcance. Pruebas en `scripts/tareas.test.mjs`.
+

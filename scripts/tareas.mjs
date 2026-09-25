@@ -9,6 +9,7 @@
 //   node scripts/tareas.mjs --ver EM-02         verifica si una tarea se puede empezar
 //   node scripts/tareas.mjs --validar           valida el formato de todas las tareas (se usa en la CI)
 //   node scripts/tareas.mjs --json              todas las tareas con su situación, en JSON (lo usa scripts/tablero.mjs)
+//   node scripts/tareas.mjs --validar-titulo    valida el título de un PR (argumento o variable TITULO_PR; se usa en la CI)
 //
 // Personas válidas: jordin, emilio, dominique, jose-pablo
 
@@ -175,6 +176,22 @@ function resumen(tareas) {
   console.log(`\nPara ver las tareas de una persona: node scripts/tareas.mjs --persona <jordin|emilio|dominique|jose-pablo>`);
 }
 
+// Título de un PR: "[<ID>] <título>", con el ID de una tarea que existe (protocolo §B11).
+// La revisión con Claude toma el ID del título: sin él, no revisa criterios ni alcance.
+export const FORMATO_TITULO = /^\[([A-Z]{2}-\d{2,})\] +\S/;
+
+export function validarTituloPr(titulo, ids) {
+  const texto = (titulo ?? "").trim();
+  const coincidencia = FORMATO_TITULO.exec(texto);
+  if (!coincidencia) {
+    return [`El título "${texto}" no sigue el formato "[<ID>] <título>", por ejemplo "[EM-03] Pantallas de registro, verificación y acceso".`];
+  }
+  if (!ids.includes(coincidencia[1])) {
+    return [`La tarea ${coincidencia[1]} del título no existe en docs/plan/tareas/.`];
+  }
+  return [];
+}
+
 // Forma pública de una tarea (--json y scripts/tablero.mjs).
 export function aJson(t) {
   return {
@@ -205,6 +222,16 @@ if (esPrincipal) {
   if (args[0] === "--validar") {
     if (errores.length) { console.error("El plan tiene errores:\n- " + errores.join("\n- ")); process.exit(1); }
     console.log(`Plan válido: ${tareas.length} tareas.`);
+    process.exit(0);
+  }
+  if (args[0] === "--validar-titulo") {
+    const titulo = args[1] ?? process.env.TITULO_PR;
+    const erroresTitulo = validarTituloPr(titulo, tareas.map((t) => t.id));
+    if (erroresTitulo.length) {
+      console.error(`${erroresTitulo.join("\n")}\nCorrija el título del PR: la CI se vuelve a ejecutar sola al editarlo.`);
+      process.exit(1);
+    }
+    console.log(`Título válido: ${titulo.trim()}`);
     process.exit(0);
   }
   if (errores.length) console.error("Advertencia, el plan tiene errores de formato (corra --validar):\n- " + errores.join("\n- ") + "\n");

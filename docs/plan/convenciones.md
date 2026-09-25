@@ -78,7 +78,7 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
 
 - **Ramas:** `<persona>/<ID>-<descripcion>`, por ejemplo `jose-pablo/JZ-01-infraestructura-local`.
 - ***Commits*** en español, con el formato `tipo(modulo): descripción (ID)`. Los tipos son `feat`, `fix`, `test`, `docs`, `refactor`, `chore` y `ci`.
-- **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla.
+- **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla. La CI rechaza los títulos sin `[<ID>]` o con un ID que no existe.
 - **Integración:** *squash*, con auto-merge cuando pasan las verificaciones obligatorias (`plan`, `backend`, `frontend`). No se exigen aprobaciones humanas. La rama debe estar al día con `main`.
 - `main` siempre tiene que compilar y pasar todas las pruebas.
 
