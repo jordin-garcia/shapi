@@ -66,3 +66,8 @@ node scripts/tareas.mjs --validar
 - Cliente HTTP base en `@shapi/api` con `openapi-fetch`, credenciales incluidas, cabecera `X-Requested-With: shapi` y manejo de ProblemDetails con `ErrorApi`.
 - Script `generar:api` para procesar contratos OpenAPI y generar tipos TypeScript de forma modular y estricta.
 - Lámina interactiva `/_ui` basada en `mockups/A0/Lamina.dc.html` con todos los tokens y componentes.
+
+### Corrección · 2026-09-25
+- DC-02 reemplazó `main.tsx` por el router y la lámina quedó sin ruta: `/_ui` mostraba "Página no encontrada". Se agregó la ruta `/_ui` en `apps/panel/src/rutas.tsx`, fuera de los layouts y sin consultar la sesión, con carga diferida (`A0Lamina` en `paginasDiferidas.tsx`).
+- `tests/rutas.test.tsx` comprueba ahora `/_ui` a través del router. La prueba de `_UI.test.tsx` renderiza el componente directo y por eso no detectó la regresión.
+- `docs/specs/11-interfaz.md` indica la ruta de A0.2: `shapi.localhost/_ui`.

@@ -7,9 +7,10 @@ import { RequiereSesion } from './modulos/sesion/RequiereSesion';
 import { RequiereRol } from './modulos/sesion/RequiereRol';
 import Error404 from './paginas/Error-404';
 
-import { Suspensify, A0Inicio, A1Registro, A1Verificacion, A1Sesion, A1Recuperacion, A1NuevaContrasena, A2PlanesPlataforma, A2Contratacion, A2CambioPlan, A3Apis, A3Registro, A3Especificacion, A3Rutas, A3ConfigRutas, A3Dominio, A3Portal, A4PlanesApi, A4Miembros, A4Claves, A6PlanesPlataforma, A6Organizaciones, A6Pagos, A6Casos, A6Caso, A6Cuentas, A7Casos, A7Caso, A8Perfil, A8Invitacion, B1Consumo, B1Consumidores, B1Pagos, B1Suscripcion, B1InvitarConsumidores, B3Estado, B3Bitacora } from './paginasDiferidas';
+import { Suspensify, A0Lamina, A0Inicio, A1Registro, A1Verificacion, A1Sesion, A1Recuperacion, A1NuevaContrasena, A2PlanesPlataforma, A2Contratacion, A2CambioPlan, A3Apis, A3Registro, A3Especificacion, A3Rutas, A3ConfigRutas, A3Dominio, A3Portal, A4PlanesApi, A4Miembros, A4Claves, A6PlanesPlataforma, A6Organizaciones, A6Pagos, A6Casos, A6Caso, A6Cuentas, A7Casos, A7Caso, A8Perfil, A8Invitacion, B1Consumo, B1Consumidores, B1Pagos, B1Suscripcion, B1InvitarConsumidores, B3Estado, B3Bitacora } from './paginasDiferidas';
 
 export const router = createBrowserRouter([
+  { path: '/_ui', element: <Suspensify><A0Lamina /></Suspensify>, errorElement: <Error404 /> },
   {
     path: '/',
     element: <LayoutPublico />,
