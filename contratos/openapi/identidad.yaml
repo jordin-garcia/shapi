@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+  title: API de Control - Identidad
+  version: 1.0.0
+paths:
+  /api/auth/sesion:
+    get:
+      summary: Obtiene la sesión actual
+      responses:
+        "200":
+          description: Sesión activa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nombre:
+                    type: string
+                  rol:
+                    type: string
+                  organizacionId:
+                    type: string
+                    format: uuid
+        "401":
+          description: No hay sesión

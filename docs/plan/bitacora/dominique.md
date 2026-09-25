@@ -26,3 +26,19 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Todos:** ya pueden usar los componentes base importando desde `@shapi/ui` y el cliente HTTP desde `@shapi/api`.
   - **DC-02:** implementará las rutas y los layouts del panel sobre esta base.
+
+## 2026-09-25 · DC-02 · Estructura del panel y del sitio público
+- Hecho:
+  - Layouts para el sitio público, panel de proveedor y administrador (`LayoutPublico`, `LayoutPanel`, `LayoutAdmin`).
+  - Barras laterales según los *mockups* N.1 y A6.
+  - Generación de un componente *lazy placeholder* por cada pantalla del catálogo de 11 §3.
+  - Guardias de acceso `RequiereSesion` y `RequiereRol` con redirección a `/entrar` y pantalla de error 403.
+  - Router (`rutas.tsx`) con **todas** las rutas del catálogo apuntando a las páginas de relleno.
+  - Tipos generados en `@shapi/api` para `GET /api/apis` y `GET /api/auth/sesion`.
+  - Pruebas en Vitest para Layouts y Guardias del Router.
+- Decisiones:
+  - El selector de API y `useSesion` llaman a los endpoints usando `openapi-fetch`.
+  - Las pantallas de error general (`Error-403.tsx` y `Error-404.tsx`) se manejan como páginas.
+- Pendiente o aviso para otros:
+  - **EM-02:** el endpoint `GET /api/auth/sesion` que crees debe coincidir con la definición añadida en `identidad.yaml`.
+  - **Todos:** ya pueden implementar sus pantallas modificando el archivo generado de su componente en `frontend/apps/panel/src/paginas/`. ¡No toquen `rutas.tsx`!

@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [DC-01]
 requisitos: [RF-07, RNF-12]
 pantallas: [N.1]
@@ -56,3 +56,10 @@ Verificación manual con el entorno levantado:
 ## Fuera de alcance
 - Pantallas concretas (cada responsable)
 - Estructura del portal (DC-03)
+
+## Resultado
+- Se crearon los Layouts (`LayoutPublico`, `LayoutPanel`, `LayoutAdmin`), incluyendo la estructura principal y la barra lateral de los mockups N.1 y A6.
+- Se agregaron las vistas placeholder (paginas de relleno) para todas las rutas del panel y sitio público, permitiendo trabajo en paralelo sin conflictos en el router.
+- El archivo `rutas.tsx` define todo el árbol de navegación usando Lazy Loading.
+- Se generaron los contratos OpenAPI para `/api/apis` y `/api/auth/sesion`, que luego fueron utilizados para autogenerar los clientes con `openapi-fetch`.
+- Los guardias `RequiereSesion` y `RequiereRol` están configurados y funcionando en el router.

@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./identidad": "./src/generado/identidad.ts",
+    "./apis": "./src/generado/apis.ts"
   },
   "scripts": {
     "lint": "eslint .",
