@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [JG-01]
 requisitos: [RNF-08]
 pantallas: []
