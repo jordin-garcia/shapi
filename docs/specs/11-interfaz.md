@@ -184,3 +184,10 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **Error de validación:** el mensaje va debajo del campo, en `--alerta`, y el campo lleva un borde de ese color.
 - **Sin permiso:** el menú oculta la opción. Si se entra directo por la URL, se muestra "No tiene permiso para ver esta página".
 - **Acción confirmada:** un aviso breve (4 s) en la esquina superior derecha.
+
+### Comportamiento de la estructura de navegación (DC-02)
+
+- La API seleccionada se representa en `/panel/apis/:id/...`. Al elegir desde una página sin ID, se abre su especificación; al cambiar de API desde una sección, se conserva esa sección. Sin selección, se indica que debe elegir una API y no se crean enlaces a un ID ficticio.
+- Mientras no exista el listado de DC-04, una respuesta 404 o 501 se presenta como «Sin APIs». Los demás errores muestran el aviso recuperable con «Reintentar».
+- Una sesión ausente (401) redirige a `/entrar`; un error de red o servidor mantiene la dirección y ofrece reintentar. Al cerrar sesión se espera la revocación del servidor antes de salir y limpiar los datos privados del cliente; si falla, se conserva la pantalla con un aviso y reintento.
+- El encabezado del proveedor muestra el nombre de su organización. Mientras el contrato provisional de sesión no lo suministre, muestra «Panel del proveedor».

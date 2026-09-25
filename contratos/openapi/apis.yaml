@@ -1,0 +1,28 @@
+openapi: 3.1.0
+info:
+  title: API de Control - APIs
+  version: 1.0.0
+paths:
+  /api/apis:
+    get:
+      summary: Lista las APIs de la organización
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  elementos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        nombre:
+                          type: string
+                  total:
+                    type: integer
