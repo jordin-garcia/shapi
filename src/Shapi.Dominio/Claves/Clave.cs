@@ -2,18 +2,18 @@ namespace Shapi.Dominio.Claves;
 
 public class Clave
 {
-    public Guid Id { get; private set; }
-    public Guid SuscripcionId { get; private set; }
-    public TipoClave Tipo { get; private set; }
-    public string Prefijo { get; private set; } = null!;
-    public string Ultimos4 { get; private set; } = null!;
-    public string HashSha256 { get; private set; } = null!;
-    public EstadoClave Estado { get; private set; }
-    public DateTimeOffset? ExpiraEn { get; private set; }
-    public DateTimeOffset? RevocadaEn { get; private set; }
-    public RevocadaPor? RevocadaPor { get; private set; }
-    public DateTimeOffset CreadoEn { get; private set; }
-    public DateTimeOffset ActualizadoEn { get; private set; }
+    public Guid Id { get; set; }
+    public Guid SuscripcionId { get; set; }
+    public TipoClave Tipo { get; set; }
+    public string Prefijo { get; set; } = null!;
+    public string Ultimos4 { get; set; } = null!;
+    public string HashSha256 { get; set; } = null!;
+    public EstadoClave Estado { get; set; }
+    public DateTimeOffset? ExpiraEn { get; set; }
+    public DateTimeOffset? RevocadaEn { get; set; }
+    public RevocadaPor? RevocadaPor { get; set; }
+    public DateTimeOffset CreadoEn { get; set; }
+    public DateTimeOffset ActualizadoEn { get; set; }
 
-    protected Clave() { }
+    public Clave() { }
 }

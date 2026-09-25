@@ -45,12 +45,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public void ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas()
     {
-<<<<<<< HEAD
         var fabricaConfigurada = CrearFabrica();
-=======
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
 
@@ -63,12 +58,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task ServiciosNulos_AlUsarlos_TerminanSinError()
     {
-<<<<<<< HEAD
         var fabricaConfigurada = CrearFabrica();
-=======
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
         var db = servicios.GetRequiredService<ShapiDbContext>();
@@ -94,12 +84,8 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
         var bitacora = Substitute.For<IBitacora>();
         var colaCorreo = Substitute.For<IColaCorreo>();
         var publicador = Substitute.For<IPublicadorCache>();
-<<<<<<< HEAD
 
         using var fabricaConModulos = CrearFabrica().WithWebHostBuilder(constructor =>
-=======
-        using var fabricaConModulos = fabrica.WithWebHostBuilder(constructor =>
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         {
             constructor.ConfigureTestServices(servicios =>
             {

@@ -2,11 +2,11 @@ namespace Shapi.Dominio.Soporte;
 
 public class CasoMensaje
 {
-    public Guid Id { get; private set; }
-    public Guid CasoId { get; private set; }
-    public Guid AutorId { get; private set; }
-    public string Cuerpo { get; private set; } = null!;
-    public DateTimeOffset CreadoEn { get; private set; }
+    public Guid Id { get; set; }
+    public Guid CasoId { get; set; }
+    public Guid AutorId { get; set; }
+    public string Cuerpo { get; set; } = null!;
+    public DateTimeOffset CreadoEn { get; set; }
 
-    protected CasoMensaje() { }
+    public CasoMensaje() { }
 }

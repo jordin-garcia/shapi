@@ -31,15 +31,10 @@ public class SaludTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncL
     [Fact]
     public async Task Salud_ApiEnEjecucion_Responde200()
     {
-<<<<<<< HEAD
         var fabricaConfigurada = _fabrica.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("SHAPI_POSTGRES_CADENA", _dbContainer.GetConnectionString());
         });
-=======
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         using var cliente = fabricaConfigurada.CreateClient();
         var respuesta = await cliente.GetAsync("/salud");
         respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
