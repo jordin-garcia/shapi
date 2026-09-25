@@ -16,18 +16,18 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
         builder.Property(x => x.Concepto)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_pago_concepto", "concepto IN ('Contratacion','Renovacion','CambioPlan','Reactivacion')"));
 
         builder.Property(x => x.Descripcion).IsRequired();
-        
+
         builder.Property(x => x.Monto).HasColumnType("numeric(12,2)");
         builder.ToTable(t => t.HasCheckConstraint("CK_pago_monto", "monto > 0"));
 
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_pago_estado", "estado IN ('Autorizado','Rechazado','Revertido')"));
 
         builder.HasIndex(x => new { x.SuscripcionPlataformaId, x.CreadoEn }).IsDescending(false, true);

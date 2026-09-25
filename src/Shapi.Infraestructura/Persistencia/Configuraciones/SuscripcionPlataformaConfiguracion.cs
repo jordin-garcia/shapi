@@ -14,7 +14,7 @@ public class SuscripcionPlataformaConfiguracion : IEntityTypeConfiguration<Suscr
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_estado", "estado IN ('Activa','EnGracia','Suspendida','Finalizada')"));
         builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_fechas", "fin > inicio"));
 

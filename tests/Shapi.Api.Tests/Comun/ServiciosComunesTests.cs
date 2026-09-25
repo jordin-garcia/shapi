@@ -13,7 +13,7 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
     [Fact]
     public void ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas()
     {
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder => 
+        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
             builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
         using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
@@ -27,7 +27,7 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
     [Fact]
     public async Task ServiciosNulos_AlUsarlos_TerminanSinError()
     {
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder => 
+        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
             builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
         using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
@@ -51,7 +51,7 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
         var bitacora = Substitute.For<IBitacora>();
         var colaCorreo = Substitute.For<IColaCorreo>();
         var publicador = Substitute.For<IPublicadorCache>();
-        using var fabricaConModulos = fabrica.WithWebHostBuilder(constructor => 
+        using var fabricaConModulos = fabrica.WithWebHostBuilder(constructor =>
         {
             constructor.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy");
             constructor.ConfigureTestServices(servicios =>

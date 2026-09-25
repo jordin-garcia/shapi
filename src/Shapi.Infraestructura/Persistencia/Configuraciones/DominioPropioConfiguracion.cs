@@ -14,13 +14,13 @@ public class DominioPropioConfiguracion : IEntityTypeConfiguration<DominioPropio
         builder.HasIndex(x => x.ApiId).IsUnique();
         builder.Property(x => x.Dominio).IsRequired();
         builder.HasIndex(x => x.Dominio).IsUnique();
-        
+
         builder.Property(x => x.DestinoCname).IsRequired();
 
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_dominio_propio_estado", "estado IN ('Pendiente','Verificado','Fallido')"));
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");

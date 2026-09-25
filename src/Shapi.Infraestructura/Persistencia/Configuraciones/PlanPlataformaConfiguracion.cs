@@ -26,7 +26,7 @@ public class PlanPlataformaConfiguracion : IEntityTypeConfiguration<PlanPlatafor
         builder.HasIndex(x => x.EsPrueba).IsUnique().HasFilter("es_prueba = true");
 
         builder.Property(x => x.Activo).HasDefaultValue(true);
-        
+
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();
     }

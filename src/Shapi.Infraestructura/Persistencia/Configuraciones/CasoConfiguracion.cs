@@ -15,7 +15,7 @@ public class CasoConfiguracion : IEntityTypeConfiguration<Caso>
             .ValueGeneratedOnAdd()
             .UseIdentityByDefaultColumn()
             .HasIdentityOptions(startValue: 100);
-            
+
         builder.HasIndex(x => x.Numero).IsUnique();
 
         builder.Property(x => x.Asunto).IsRequired().HasMaxLength(120);
@@ -23,7 +23,7 @@ public class CasoConfiguracion : IEntityTypeConfiguration<Caso>
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_caso_estado", "estado IN ('Abierto','Cerrado')"));
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");

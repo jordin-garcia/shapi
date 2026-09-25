@@ -1,9 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shapi.Aplicacion.Comun;
-
-using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Infraestructura.Comun;

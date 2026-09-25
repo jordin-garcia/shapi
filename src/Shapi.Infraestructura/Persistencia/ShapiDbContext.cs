@@ -44,12 +44,12 @@ public class ShapiDbContext : DbContext
                 var contextProperty = System.Linq.Expressions.Expression.Property(
                     System.Linq.Expressions.Expression.Constant(this),
                     nameof(OrganizacionIdActual));
-                
+
                 var castedProperty = System.Linq.Expressions.Expression.Convert(property, typeof(Guid?));
                 var equalExpression = System.Linq.Expressions.Expression.Equal(castedProperty, contextProperty);
                 var nullCheck = System.Linq.Expressions.Expression.Equal(contextProperty, System.Linq.Expressions.Expression.Constant(null, typeof(Guid?)));
                 var orExpression = System.Linq.Expressions.Expression.OrElse(nullCheck, equalExpression);
-                
+
                 var lambda = System.Linq.Expressions.Expression.Lambda(orExpression, parameter);
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }

@@ -13,23 +13,23 @@ public class ConsumoDiarioConfiguracion : IEntityTypeConfiguration<ConsumoDiario
 
         builder.Property(x => x.Id).UseIdentityByDefaultColumn();
         builder.Property(x => x.Fecha).IsRequired();
-        
+
         builder.Property(x => x.Entorno)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_consumo_entorno", "entorno IN ('Produccion','Pruebas')"));
 
         builder.Property(x => x.Peticiones).HasDefaultValue(0);
         builder.Property(x => x.Llamadas).HasDefaultValue(0);
         builder.Property(x => x.BytesEntrada).HasDefaultValue(0);
         builder.Property(x => x.BytesSalida).HasDefaultValue(0);
-        
+
         builder.Property(x => x.Rechazos401).HasDefaultValue(0);
         builder.Property(x => x.Rechazos403).HasDefaultValue(0);
         builder.Property(x => x.Rechazos404).HasDefaultValue(0);
         builder.Property(x => x.Rechazos429).HasDefaultValue(0);
-        
+
         builder.Property(x => x.Origen2xx).HasDefaultValue(0);
         builder.Property(x => x.Origen3xx).HasDefaultValue(0);
         builder.Property(x => x.Origen4xx).HasDefaultValue(0);

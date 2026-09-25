@@ -14,7 +14,7 @@ public class UsuarioConfiguracion : IEntityTypeConfiguration<Usuario>
         builder.Property(x => x.Nombre).IsRequired();
         builder.Property(x => x.Correo).IsRequired();
         builder.HasIndex(x => x.Correo).IsUnique();
-        
+
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasDefaultValue(EstadoCuenta.Activo)

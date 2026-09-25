@@ -15,14 +15,14 @@ public class ConsumidorConfiguracion : IEntityTypeConfiguration<Consumidor>
         builder.Property(x => x.NombreEmpresa).IsRequired();
         builder.Property(x => x.Correo).IsRequired();
         builder.Property(x => x.HashContrasena).IsRequired();
-        
+
         builder.HasIndex(x => new { x.OrganizacionId, x.Correo }).IsUnique();
 
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasDefaultValue(EstadoCuenta.Activo)
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_consumidor_estado", "estado IN ('Activo','Desactivado')"));
         builder.Property(x => x.IntentosFallidos).HasDefaultValue(0);
     }

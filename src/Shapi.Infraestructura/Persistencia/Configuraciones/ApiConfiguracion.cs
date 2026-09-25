@@ -17,12 +17,12 @@ public class ApiConfiguracion : IEntityTypeConfiguration<Api>
         builder.ToTable(t => t.HasCheckConstraint("CK_api_subdominio", "subdominio ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'"));
 
         builder.Property(x => x.UrlOrigen).IsRequired();
-        
+
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasDefaultValue(EstadoApi.Borrador)
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_api_estado", "estado IN ('Borrador','Publicada','Despublicada')"));
 
         builder.Property(x => x.EspecificacionFormato).HasConversion<string>();
@@ -35,7 +35,7 @@ public class ApiConfiguracion : IEntityTypeConfiguration<Api>
         builder.ToTable(t => t.HasCheckConstraint("CK_api_portal_logo_tipo", "portal_logo_tipo IS NULL OR portal_logo_tipo IN ('Png','Svg')"));
 
         builder.Property(x => x.SecretoOrigenCifrado).IsRequired();
-        
+
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();
     }

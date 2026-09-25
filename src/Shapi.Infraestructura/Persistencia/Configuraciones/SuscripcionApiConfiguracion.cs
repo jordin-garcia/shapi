@@ -14,7 +14,7 @@ public class SuscripcionApiConfiguracion : IEntityTypeConfiguration<SuscripcionA
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_api_estado", "estado IN ('Activa','EnGracia','Suspendida','Finalizada')"));
         builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_api_fechas", "fin > inicio"));
 

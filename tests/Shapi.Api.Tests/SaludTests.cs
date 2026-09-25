@@ -9,7 +9,7 @@ public class SaludTests(WebApplicationFactory<Program> fabrica) : IClassFixture<
     [Fact]
     public async Task Salud_ApiEnEjecucion_Responde200()
     {
-        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder => 
+        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder =>
             builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
         using var cliente = fabricaConfigurada.CreateClient();
 

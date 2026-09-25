@@ -14,7 +14,7 @@ public class SesionConfiguracion : IEntityTypeConfiguration<Sesion>
         builder.Property(x => x.Ambito)
             .IsRequired()
             .HasConversion<string>();
-            
+
         builder.ToTable(t => t.HasCheckConstraint("CK_sesion_ambito", "ambito IN ('Personal','Consumidor')"));
         builder.ToTable(t => t.HasCheckConstraint("CK_sesion_usuario_consumidor", "num_nonnulls(usuario_id, consumidor_id) = 1"));
 

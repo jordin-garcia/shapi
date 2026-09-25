@@ -24,7 +24,7 @@ public class ShapiDbContextTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
-        
+
         var options = new DbContextOptionsBuilder<ShapiDbContext>()
             .UseNpgsql(_dbContainer.GetConnectionString())
             .Options;
@@ -35,7 +35,11 @@ public class ShapiDbContextTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (_db != null) await _db.DisposeAsync();
+        if (_db != null)
+        {
+            await _db.DisposeAsync();
+        }
+
         await _dbContainer.DisposeAsync();
     }
 
@@ -48,7 +52,7 @@ public class ShapiDbContextTests : IAsyncLifetime
         typeof(EntradaBitacora).GetProperty("Accion")!.SetValue(entrada, "Prueba");
         typeof(EntradaBitacora).GetProperty("Descripcion")!.SetValue(entrada, "Prueba trigger");
         typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(entrada, Guid.NewGuid());
-        
+
         _db!.Set<EntradaBitacora>().Add(entrada);
         await _db.SaveChangesAsync();
 
@@ -63,7 +67,7 @@ public class ShapiDbContextTests : IAsyncLifetime
 
         var entradaParaBorrar = await _db.Set<EntradaBitacora>().FirstAsync();
         _db.Set<EntradaBitacora>().Remove(entradaParaBorrar);
-        
+
         var exDelete = await Assert.ThrowsAsync<DbUpdateException>(() => _db.SaveChangesAsync());
         Assert.Contains("This table is append-only", exDelete.InnerException!.Message);
     }
@@ -102,7 +106,7 @@ public class ShapiDbContextTests : IAsyncLifetime
 
         // Ejecutar de nuevo
         await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123");
-        
+
         var countPlanes2 = await _db!.Set<Shapi.Dominio.Planes.PlanPlataforma>().CountAsync();
         var countUsuarios2 = await _db!.Set<Usuario>().CountAsync();
 
