@@ -1,22 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-export function Boton({ principal = true, deshabilitado = false, className = '', children, ...props }: React.ComponentPropsWithoutRef<"button"> & { principal?: boolean; deshabilitado?: boolean }) {
-  const base = "h-[46px] rounded-md px-6 font-medium transition-colors inline-flex items-center justify-center";
+export function Boton({ principal = true, deshabilitado = false, disabled = false, className = '', children, ...props }: React.ComponentPropsWithoutRef<"button"> & { principal?: boolean; deshabilitado?: boolean }) {
+  const base = "h-[46px] rounded-base px-6 font-medium transition-colors inline-flex items-center justify-center";
   let variant = "bg-principal text-white hover:bg-principal-hover";
   if (!principal) {
     variant = "border border-borde-campo text-tinta bg-white hover:bg-gray-50";
   }
-  if (deshabilitado) {
+  const inactivo = deshabilitado || disabled;
+  if (inactivo) {
     variant = "border border-[#E4E9F1] text-[#A3AEC2] bg-white cursor-not-allowed";
   }
-  return <button disabled={deshabilitado} className={`${base} ${variant} ${className}`} {...props}>{children}</button>;
+  return <button disabled={inactivo} className={`${base} ${variant} ${className}`} {...props}>{children}</button>;
 }
 
 export function Campo({ error, className = '', ...props }: React.ComponentPropsWithoutRef<"input"> & { error?: string }) {
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <input 
-        className={`h-11 rounded-md border px-3 outline-none transition-colors ${error ? 'border-alerta focus:border-alerta' : 'border-borde-campo focus:border-principal'} bg-white text-tinta`} 
+        className={`h-11 rounded-base border px-3 outline-none transition-colors ${error ? 'border-alerta focus:border-alerta' : 'border-borde-campo focus:border-principal'} bg-white text-tinta`} 
         {...props} 
       />
       {error && <span className="text-alerta text-sm">{error}</span>}
@@ -24,18 +25,17 @@ export function Campo({ error, className = '', ...props }: React.ComponentPropsW
   );
 }
 
-export function Etiqueta({ estado, children }: { estado: 'correcto' | 'alerta' | 'neutro' | 'info', children: React.ReactNode }) {
+export function Etiqueta({ estado, children }: { estado: 'correcto' | 'alerta' | 'neutro', children: React.ReactNode }) {
   const map = {
     correcto: 'eti-c',
     alerta: 'eti-a',
-    neutro: 'eti-n',
-    info: 'eti-i'
+    neutro: 'eti-n'
   };
   return <span className={map[estado]}>{children}</span>;
 }
 
 export function Tarjeta({ children, className = '' }: React.ComponentPropsWithoutRef<"div">) {
-  return <div className={`bg-white border border-borde rounded-md p-6 ${className}`}>{children}</div>;
+  return <div className={`bg-white border border-borde rounded-base p-6 ${className}`}>{children}</div>;
 }
 
 export function Tabla({ headers, rows }: { headers: string[], rows: React.ReactNode[][] }) {
@@ -63,25 +63,34 @@ export function Tabla({ headers, rows }: { headers: string[], rows: React.ReactN
   );
 }
 
-export function Aviso({ estado, children }: { estado: 'error' | 'exito' | 'info', children: React.ReactNode }) {
+export function Aviso({ estado, children }: { estado: 'error' | 'exito' | 'neutro', children: React.ReactNode }) {
   if (estado === 'error') {
     return <div className="eti-a inline-flex gap-2 items-center">{children}</div>;
+  }
+  if (estado === 'exito') {
+    return <div className="eti-c inline-flex gap-2 items-center">{children}</div>;
   }
   return <div className="eti-n inline-flex gap-2 items-center">{children}</div>;
 }
 
 export function Esqueleto({ className = '' }: React.ComponentPropsWithoutRef<"div">) {
-  return <div className={`animate-pulse bg-borde rounded-md ${className}`} />;
+  return <div className={`animate-pulse bg-borde rounded-base ${className}`} />;
 }
 
 export function Toast({ children }: React.ComponentPropsWithoutRef<"div">) {
-  return <div className="fixed top-4 right-4 bg-tinta text-white px-4 py-2 rounded-md shadow-lg z-50">{children}</div>;
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const temporizador = setTimeout(() => setVisible(false), 4000);
+    return () => clearTimeout(temporizador);
+  }, []);
+  if (!visible) return null;
+  return <div role="status" className="fixed top-4 right-4 bg-tinta text-white px-4 py-2 rounded-base shadow-lg z-50">{children}</div>;
 }
 
 export function DialogoConfirmacion({ open, titulo, onClose, onConfirm }: { open: boolean; titulo: string; onClose: () => void; onConfirm: () => void }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center z-50">
+    <div role="dialog" aria-modal="true" aria-label={titulo} className="fixed inset-0 bg-tinta/50 flex items-center justify-center z-50">
       <Tarjeta className="max-w-md w-full">
         <h3 className="text-[22px] font-display mb-4">{titulo}</h3>
         <div className="flex gap-4 justify-end mt-6">
@@ -98,7 +107,7 @@ export function Selector({ options, value, onChange }: { options: {label: string
     <select 
       value={value} 
       onChange={onChange}
-      className="h-11 rounded-md border border-borde-campo px-3 bg-white text-tinta outline-none focus:border-principal"
+      className="h-11 rounded-base border border-borde-campo px-3 bg-white text-tinta outline-none focus:border-principal"
     >
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
