@@ -1,6 +1,8 @@
 #pragma warning disable CS0618
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +14,6 @@ using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Persistencia;
 using Testcontainers.PostgreSql;
 using Xunit;
-using System.Text.Json;
-using System.Net.Http.Headers;
 
 namespace Shapi.Api.Tests.Integracion;
 
@@ -59,7 +59,11 @@ public class AutenticacionTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (_factory != null) await _factory.DisposeAsync();
+        if (_factory != null)
+        {
+            await _factory.DisposeAsync();
+        }
+
         await _dbContainer.DisposeAsync();
     }
 
@@ -108,7 +112,7 @@ public class AutenticacionTests : IAsyncLifetime
 
         using var scope = _factory!.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ShapiDbContext>();
-        
+
         // Reenvío
         var resReenvio = await _client.SendAsync(CrearPeticion(HttpMethod.Post, "/api/auth/reenviar-verificacion", new PeticionReenviar(correo)));
         Assert.Equal(HttpStatusCode.OK, resReenvio.StatusCode);
@@ -116,7 +120,7 @@ public class AutenticacionTests : IAsyncLifetime
         // Debería haber 2 tokens
         var tokens = await db.Set<Token>().IgnoreQueryFilters().Where(t => t.Correo == correo).ToListAsync();
         Assert.Equal(2, tokens.Count);
-        
+
         // Verificar que CorreoSaliente.Asunto no es nulo
         var correos = await db.Set<CorreoSaliente>().Where(c => c.Destinatario == correo).ToListAsync();
         Assert.Equal(2, correos.Count);
@@ -182,7 +186,7 @@ public class AutenticacionTests : IAsyncLifetime
         var uid = Guid.NewGuid().ToString("N");
         var correo = $"salir_{uid}@test.com";
         await _client!.SendAsync(CrearPeticion(HttpMethod.Post, "/api/auth/registro", new PeticionRegistro("Salir", correo, "OrgS", "ContraValida123")));
-        
+
         var resLogin = await _client.SendAsync(CrearPeticion(HttpMethod.Post, "/api/auth/entrar", new PeticionLogin(correo, "ContraValida123")));
         var cookie = resLogin.Headers.GetValues("Set-Cookie").First().Split(';')[0];
 

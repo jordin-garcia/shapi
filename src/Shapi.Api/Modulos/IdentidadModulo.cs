@@ -48,7 +48,7 @@ public static class IdentidadModulo
                             Window = TimeSpan.FromMinutes(1)
                         });
                 }
-                
+
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     factory: _ => new FixedWindowRateLimiterOptions
@@ -88,7 +88,7 @@ public static class IdentidadModulo
         [FromServices] IPasswordHasher<Usuario> hasher,
         [FromServices] IReloj reloj)
     {
-        if (string.IsNullOrWhiteSpace(peticion.Contrasena) || peticion.Contrasena.Length < 10 || 
+        if (string.IsNullOrWhiteSpace(peticion.Contrasena) || peticion.Contrasena.Length < 10 ||
             string.IsNullOrWhiteSpace(peticion.Correo) || string.IsNullOrWhiteSpace(peticion.Nombre) ||
             peticion.Contrasena == peticion.Correo)
         {

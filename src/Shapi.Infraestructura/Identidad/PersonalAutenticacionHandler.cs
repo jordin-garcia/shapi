@@ -2,12 +2,12 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Microsoft.Extensions.Configuration;
 
 namespace Shapi.Infraestructura.Identidad;
 
