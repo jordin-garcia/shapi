@@ -37,7 +37,7 @@ public partial class Inicial : Migration
                 secreto_origen_cifrado = table.Column<string>(type: "text", nullable: false),
                 publicada_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -59,7 +59,7 @@ public partial class Inicial : Migration
                 actor_tipo = table.Column<string>(type: "text", nullable: false),
                 actor_id = table.Column<Guid>(type: "uuid", nullable: true),
                 actor_nombre = table.Column<string>(type: "text", nullable: false),
-                organizacion_id = table.Column<Guid>(type: "uuid", nullable: false),
+                organizacion_id = table.Column<Guid>(type: "uuid", nullable: true),
                 accion = table.Column<string>(type: "text", nullable: false),
                 objetivo_tipo = table.Column<string>(type: "text", nullable: true),
                 objetivo_id = table.Column<Guid>(type: "uuid", nullable: true),
@@ -89,7 +89,7 @@ public partial class Inicial : Migration
                 estado = table.Column<string>(type: "text", nullable: false),
                 cerrado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -127,7 +127,7 @@ public partial class Inicial : Migration
                 revocada_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                 revocada_por = table.Column<string>(type: "text", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -227,7 +227,7 @@ public partial class Inicial : Migration
                 verificado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                 ultimo_intento_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -294,7 +294,7 @@ public partial class Inicial : Migration
                 estado_admin = table.Column<string>(type: "text", nullable: false, defaultValue: "Activa"),
                 motivo_suspension = table.Column<string>(type: "text", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -322,7 +322,7 @@ public partial class Inicial : Migration
                 revertido_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                 revertido_por = table.Column<Guid>(type: "uuid", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -348,7 +348,7 @@ public partial class Inicial : Migration
                 limite_minuto = table.Column<int>(type: "integer", nullable: false),
                 activo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -377,7 +377,7 @@ public partial class Inicial : Migration
                 activo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                 orden = table.Column<int>(type: "integer", nullable: false),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -400,33 +400,6 @@ public partial class Inicial : Migration
             {
                 table.PrimaryKey("pk_registro_dns_simulado", x => x.id);
                 table.CheckConstraint("CK_registro_dns_tipo", "tipo IN ('CNAME')");
-            });
-
-        migrationBuilder.CreateTable(
-            name: "ruta",
-            columns: table => new
-            {
-                id = table.Column<Guid>(type: "uuid", nullable: false),
-                api_id = table.Column<Guid>(type: "uuid", nullable: false),
-                metodo = table.Column<string>(type: "text", nullable: false),
-                patron = table.Column<string>(type: "text", nullable: false),
-                resumen = table.Column<string>(type: "text", nullable: true),
-                descripcion = table.Column<string>(type: "text", nullable: true),
-                definicion = table.Column<string>(type: "jsonb", nullable: false),
-                expuesta = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                limite_minuto = table.Column<int>(type: "integer", nullable: true),
-                cache_segundos = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                peso_llamadas = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
-                creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-            },
-            constraints: table =>
-            {
-                table.PrimaryKey("pk_ruta", x => x.id);
-                table.CheckConstraint("CK_ruta_cache_segundos", "cache_segundos BETWEEN 0 AND 86400");
-                table.CheckConstraint("CK_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0");
-                table.CheckConstraint("CK_ruta_metodo", "metodo IN ('Get','Post','Put','Patch','Delete','Head','Options')");
-                table.CheckConstraint("CK_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000");
             });
 
         migrationBuilder.CreateTable(
@@ -468,7 +441,7 @@ public partial class Inicial : Migration
                 plan_siguiente_id = table.Column<Guid>(type: "uuid", nullable: true),
                 medio_pago_id = table.Column<Guid>(type: "uuid", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -491,7 +464,7 @@ public partial class Inicial : Migration
                 plan_siguiente_id = table.Column<Guid>(type: "uuid", nullable: true),
                 medio_pago_id = table.Column<Guid>(type: "uuid", nullable: true),
                 creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
             },
             constraints: table =>
             {
@@ -538,6 +511,39 @@ public partial class Inicial : Migration
             {
                 table.PrimaryKey("pk_usuario", x => x.id);
                 table.CheckConstraint("CK_usuario_estado", "estado IN ('Activo','Desactivado')");
+            });
+
+        migrationBuilder.CreateTable(
+            name: "ruta",
+            columns: table => new
+            {
+                id = table.Column<Guid>(type: "uuid", nullable: false),
+                api_id = table.Column<Guid>(type: "uuid", nullable: false),
+                metodo = table.Column<string>(type: "text", nullable: false),
+                patron = table.Column<string>(type: "text", nullable: false),
+                resumen = table.Column<string>(type: "text", nullable: true),
+                descripcion = table.Column<string>(type: "text", nullable: true),
+                definicion = table.Column<string>(type: "jsonb", nullable: false),
+                expuesta = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                limite_minuto = table.Column<int>(type: "integer", nullable: true),
+                cache_segundos = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                peso_llamadas = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                creado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                actualizado_en = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("pk_ruta", x => x.id);
+                table.CheckConstraint("CK_ruta_cache_segundos", "cache_segundos BETWEEN 0 AND 86400");
+                table.CheckConstraint("CK_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0");
+                table.CheckConstraint("CK_ruta_metodo", "metodo IN ('Get','Post','Put','Patch','Delete','Head','Options')");
+                table.CheckConstraint("CK_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000");
+                table.ForeignKey(
+                    name: "fk_ruta_api_api_id",
+                    column: x => x.api_id,
+                    principalTable: "api",
+                    principalColumn: "id",
+                    onDelete: ReferentialAction.Cascade);
             });
 
         migrationBuilder.CreateIndex(
@@ -725,7 +731,7 @@ public partial class Inicial : Migration
 CREATE OR REPLACE FUNCTION trg_prevent_update_delete()
 RETURNS TRIGGER AS $$
 BEGIN
-    RAISE EXCEPTION 'This table is append-only. UPDATE and DELETE are not allowed.';
+    RAISE EXCEPTION 'This table is append-only';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -743,9 +749,6 @@ EXECUTE FUNCTION trg_prevent_update_delete();
 DROP TRIGGER IF EXISTS trg_bitacora_append_only ON bitacora;
 DROP FUNCTION IF EXISTS trg_prevent_update_delete();
             ");
-
-        migrationBuilder.DropTable(
-            name: "api");
 
         migrationBuilder.DropTable(
             name: "bitacora");
@@ -812,5 +815,8 @@ DROP FUNCTION IF EXISTS trg_prevent_update_delete();
 
         migrationBuilder.DropTable(
             name: "usuario");
+
+        migrationBuilder.DropTable(
+            name: "api");
     }
 }

@@ -31,8 +31,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -153,8 +155,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("ApiId")
                         .HasColumnType("uuid")
@@ -253,8 +257,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("ApiId")
                         .HasColumnType("uuid")
@@ -385,7 +391,7 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnType("text")
                         .HasColumnName("objetivo_tipo");
 
-                    b.Property<Guid>("OrganizacionId")
+                    b.Property<Guid?>("OrganizacionId")
                         .HasColumnType("uuid")
                         .HasColumnName("organizacion_id");
 
@@ -406,8 +412,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -1001,8 +1009,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -1118,8 +1128,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Concepto")
                         .IsRequired()
@@ -1223,8 +1235,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("activo");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("ApiId")
                         .HasColumnType("uuid")
@@ -1301,8 +1315,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("activo");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -1384,8 +1400,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid?>("ApiId")
                         .HasColumnType("uuid")
@@ -1485,8 +1503,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("ApiId")
                         .HasColumnType("uuid")
@@ -1561,8 +1581,10 @@ namespace Shapi.Infraestructura.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("actualizado_en");
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("CreadoEn")
                         .ValueGeneratedOnAdd()
@@ -1623,6 +1645,16 @@ namespace Shapi.Infraestructura.Migrations
 
                             t.HasCheckConstraint("CK_suscripcion_plat_fechas", "fin > inicio");
                         });
+                });
+
+            modelBuilder.Entity("Shapi.Dominio.Apis.Ruta", b =>
+                {
+                    b.HasOne("Shapi.Dominio.Apis.Api", null)
+                        .WithMany()
+                        .HasForeignKey("ApiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ruta_api_api_id");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,10 +1,10 @@
 #pragma warning disable CS0618
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Shapi.Dominio.Bitacora;
 using Shapi.Dominio.Identidad;
-using Shapi.Dominio.Organizaciones;
-using Shapi.Infraestructura.Comun;
+using Shapi.Dominio.Planes;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Infraestructura.Siembra.Base;
 using Testcontainers.PostgreSql;
@@ -78,55 +78,78 @@ public class ShapiDbContextTests : IAsyncLifetime
         var org1Id = Guid.NewGuid();
         var org2Id = Guid.NewGuid();
 
-        var entrada1 = CrearEntrada("Org 1", org1Id);
-        var entrada2 = CrearEntrada("Org 2", org2Id);
+        var org1 = (Shapi.Dominio.Organizaciones.Organizacion)Activator.CreateInstance(typeof(Shapi.Dominio.Organizaciones.Organizacion), true)!;
+        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Nombre")!.SetValue(org1, "Org 1");
+        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Tipo")!.SetValue(org1, Shapi.Dominio.Organizaciones.TipoOrganizacion.Plataforma);
 
-        _db!.Set<EntradaBitacora>().AddRange(entrada1, entrada2);
+        var org2 = (Shapi.Dominio.Organizaciones.Organizacion)Activator.CreateInstance(typeof(Shapi.Dominio.Organizaciones.Organizacion), true)!;
+        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Nombre")!.SetValue(org2, "Org 2");
+        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Tipo")!.SetValue(org2, Shapi.Dominio.Organizaciones.TipoOrganizacion.Proveedor);
+
+        _db!.Set<Shapi.Dominio.Organizaciones.Organizacion>().AddRange(org1, org2);
         await _db.SaveChangesAsync();
 
-        // Sin contexto, debería ver ambos
-        _contextoOrganizacion.OrganizacionIdActual = null;
-        var conteoTotal = await _db.Set<EntradaBitacora>().CountAsync();
-        Assert.Equal(2, conteoTotal);
+        var api1 = CrearApi("Api 1", org1.Id);
+        var api2 = CrearApi("Api 2", org2.Id);
+
+        _db!.Set<Shapi.Dominio.Apis.Api>().AddRange(api1, api2);
+        await _db.SaveChangesAsync();
+
+        // Sin contexto, debería devolver CERO filas (fail-closed)
+        _contextoOrganizacion.OrganizacionId = null;
+        var conteoNulo = await _db.Set<Shapi.Dominio.Apis.Api>().CountAsync();
+        Assert.Equal(0, conteoNulo);
 
         // Con contexto, solo ve org1
-        _contextoOrganizacion.OrganizacionIdActual = org1Id;
-        var conteoOrg1 = await _db.Set<EntradaBitacora>().CountAsync();
+        _contextoOrganizacion.OrganizacionId = org1.Id;
+        var conteoOrg1 = await _db.Set<Shapi.Dominio.Apis.Api>().CountAsync();
         Assert.Equal(1, conteoOrg1);
-        var itemOrg1 = await _db.Set<EntradaBitacora>().FirstAsync();
-        Assert.Equal(org1Id, itemOrg1.OrganizacionId);
+        var itemOrg1 = await _db.Set<Shapi.Dominio.Apis.Api>().FirstAsync();
+        Assert.Equal(org1.Id, itemOrg1.OrganizacionId);
     }
 
     [Fact]
-    public async Task SiembraBase_EsIdempotente()
+    public async Task SiembraBase_EsIdempotente_Y_VerificaDatos()
     {
-        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123");
-        var countPlanes = await _db!.Set<Shapi.Dominio.Planes.PlanPlataforma>().CountAsync();
-        var countUsuarios = await _db!.Set<Usuario>().CountAsync();
+        var reloj = new Shapi.Infraestructura.Comun.RelojSistema(TimeProvider.System);
+        var hasher = new PasswordHasher<Usuario>();
+
+        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher);
+        var countPlanes = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
+        var countUsuarios = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
+
+        Assert.Equal(5, countPlanes);
+
+        var admin = await _db!.Set<Usuario>().IgnoreQueryFilters().FirstAsync(u => u.Correo == "admin@shapi.test");
+        Assert.NotEqual("Contra123", admin.HashContrasena);
+        Assert.Equal(PasswordVerificationResult.Success, hasher.VerifyHashedPassword(admin, admin.HashContrasena!, "Contra123"));
+
+        var orgPlataforma = await _db!.Set<Shapi.Dominio.Organizaciones.Organizacion>().IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Tipo == Shapi.Dominio.Organizaciones.TipoOrganizacion.Plataforma);
+        Assert.NotNull(orgPlataforma);
 
         // Ejecutar de nuevo
-        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123");
+        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher);
 
-        var countPlanes2 = await _db!.Set<Shapi.Dominio.Planes.PlanPlataforma>().CountAsync();
-        var countUsuarios2 = await _db!.Set<Usuario>().CountAsync();
+        var countPlanes2 = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
+        var countUsuarios2 = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
 
         Assert.Equal(countPlanes, countPlanes2);
         Assert.Equal(countUsuarios, countUsuarios2);
     }
 
-    private EntradaBitacora CrearEntrada(string accion, Guid orgId)
+    private Shapi.Dominio.Apis.Api CrearApi(string nombre, Guid orgId)
     {
-        var e = (EntradaBitacora)Activator.CreateInstance(typeof(EntradaBitacora), true)!;
-        typeof(EntradaBitacora).GetProperty("ActorTipo")!.SetValue(e, ActorTipo.Sistema);
-        typeof(EntradaBitacora).GetProperty("ActorNombre")!.SetValue(e, "Sis");
-        typeof(EntradaBitacora).GetProperty("Accion")!.SetValue(e, accion);
-        typeof(EntradaBitacora).GetProperty("Descripcion")!.SetValue(e, "Desc");
-        typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(e, orgId);
+        var e = (Shapi.Dominio.Apis.Api)Activator.CreateInstance(typeof(Shapi.Dominio.Apis.Api), true)!;
+        typeof(Shapi.Dominio.Apis.Api).GetProperty("Nombre")!.SetValue(e, nombre);
+        typeof(Shapi.Dominio.Apis.Api).GetProperty("OrganizacionId")!.SetValue(e, orgId);
+        typeof(Shapi.Dominio.Apis.Api).GetProperty("Subdominio")!.SetValue(e, Guid.NewGuid().ToString("N")[..20]);
+        typeof(Shapi.Dominio.Apis.Api).GetProperty("UrlOrigen")!.SetValue(e, "https://ejemplo.com");
+        typeof(Shapi.Dominio.Apis.Api).GetProperty("SecretoOrigenCifrado")!.SetValue(e, "secreto");
         return e;
     }
 }
 
-public class ContextoPrueba : IContextoOrganizacion
+public class ContextoPrueba : Shapi.Aplicacion.Comun.IContextoOrganizacion
 {
-    public Guid? OrganizacionIdActual { get; set; }
+    public Guid? OrganizacionId { get; set; }
 }

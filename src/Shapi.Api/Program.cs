@@ -63,7 +63,10 @@ if (builder.Configuration.GetValue<bool>("SHAPI_APLICAR_MIGRACIONES"))
     var nombre = builder.Configuration["SHAPI_ADMIN_NOMBRE"];
     var contrasena = builder.Configuration["SHAPI_ADMIN_CONTRASENA"];
 
-    await Shapi.Infraestructura.Siembra.Base.SiembraBase.EjecutarAsync(db, correo, nombre, contrasena);
+    var reloj = scope.ServiceProvider.GetRequiredService<Shapi.Aplicacion.Comun.IReloj>();
+    var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Shapi.Dominio.Identidad.Usuario>();
+
+    await Shapi.Infraestructura.Siembra.Base.SiembraBase.EjecutarAsync(db, correo, nombre, contrasena, reloj, hasher);
 }
 
 app.Run();

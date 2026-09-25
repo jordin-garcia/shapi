@@ -1,11 +1,8 @@
-namespace Shapi.Infraestructura.Comun;
+using Shapi.Aplicacion.Comun;
 
-public interface IContextoOrganizacion
-{
-    Guid? OrganizacionIdActual { get; }
-}
+namespace Shapi.Infraestructura.Comun;
 
 public class ContextoOrganizacionNulo : IContextoOrganizacion
 {
-    public Guid? OrganizacionIdActual => null;
+    public Guid? OrganizacionId => null;
 }

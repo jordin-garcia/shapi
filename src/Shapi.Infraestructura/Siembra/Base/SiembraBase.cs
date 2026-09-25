@@ -8,12 +8,12 @@ namespace Shapi.Infraestructura.Siembra.Base;
 
 public static class SiembraBase
 {
-    public static async Task EjecutarAsync(ShapiDbContext db, string? adminCorreo, string? adminNombre, string? adminContrasena)
+    public static async Task EjecutarAsync(ShapiDbContext db, string? adminCorreo, string? adminNombre, string? adminContrasena, Shapi.Aplicacion.Comun.IReloj reloj, Microsoft.AspNetCore.Identity.IPasswordHasher<Usuario> hasher)
     {
         await db.Database.MigrateAsync();
 
         var plataformaOrgId = Guid.Empty;
-        var orgPlataforma = await db.Set<Organizacion>().FirstOrDefaultAsync(o => o.Tipo == TipoOrganizacion.Plataforma);
+        var orgPlataforma = await db.Set<Organizacion>().IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Tipo == TipoOrganizacion.Plataforma);
         if (orgPlataforma == null)
         {
             orgPlataforma = (Organizacion)Activator.CreateInstance(typeof(Organizacion), true)!;
@@ -28,14 +28,14 @@ public static class SiembraBase
 
         if (!string.IsNullOrWhiteSpace(adminCorreo) && !string.IsNullOrWhiteSpace(adminNombre) && !string.IsNullOrWhiteSpace(adminContrasena))
         {
-            var admin = await db.Set<Usuario>().FirstOrDefaultAsync(u => u.Correo == adminCorreo);
+            var admin = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == adminCorreo);
             if (admin == null)
             {
                 admin = (Usuario)Activator.CreateInstance(typeof(Usuario), true)!;
                 typeof(Usuario).GetProperty("Nombre")!.SetValue(admin, adminNombre);
                 typeof(Usuario).GetProperty("Correo")!.SetValue(admin, adminCorreo);
-                typeof(Usuario).GetProperty("HashContrasena")!.SetValue(admin, adminContrasena);
-                typeof(Usuario).GetProperty("CorreoVerificadoEn")!.SetValue(admin, DateTimeOffset.UtcNow);
+                typeof(Usuario).GetProperty("HashContrasena")!.SetValue(admin, hasher.HashPassword(admin, adminContrasena));
+                typeof(Usuario).GetProperty("CorreoVerificadoEn")!.SetValue(admin, reloj.Ahora);
                 db.Set<Usuario>().Add(admin);
                 await db.SaveChangesAsync();
 
@@ -51,7 +51,7 @@ public static class SiembraBase
 
     private static async Task SembrarPlanesAsync(ShapiDbContext db)
     {
-        var planesExistentes = await db.Set<PlanPlataforma>().ToListAsync();
+        var planesExistentes = await db.Set<PlanPlataforma>().IgnoreQueryFilters().ToListAsync();
 
         var planes = new List<PlanPlataforma>
         {

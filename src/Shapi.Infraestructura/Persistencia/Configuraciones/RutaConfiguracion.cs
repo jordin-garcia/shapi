@@ -11,6 +11,11 @@ public class RutaConfiguracion : IEntityTypeConfiguration<Ruta>
         builder.ToTable("ruta");
         builder.HasKey(x => x.Id);
 
+        builder.HasOne<Api>()
+            .WithMany()
+            .HasForeignKey(x => x.ApiId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Property(x => x.Metodo)
             .IsRequired()
             .HasConversion<string>();
