@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/500.css";
+@import "@fontsource/instrument-sans/600.css";
+@import "@fontsource/instrument-sans/700.css";
+
+@theme {
+  --color-principal: var(--principal);
+  --color-principal-hover: var(--principal-hover);
+  --color-tinta: var(--tinta);
+  --color-tinta-suave: var(--tinta-suave);
+  --color-fondo: var(--fondo);
+  --color-panel: var(--panel);
+  --color-borde: var(--borde);
+  --color-borde-campo: var(--borde-campo);
+  --color-borde-fila: var(--borde-fila);
+
+  --color-correcto: var(--correcto);
+  --color-correcto-fondo: var(--correcto-fondo);
+  --color-correcto-borde: var(--correcto-borde);
+
+  --color-alerta: var(--alerta);
+  --color-alerta-fondo: var(--alerta-fondo);
+  --color-alerta-borde: var(--alerta-borde);
+
+  --color-neutro: var(--neutro);
+  --color-neutro-fondo: var(--neutro-fondo);
+  --color-neutro-borde: var(--neutro-borde);
+
+  --font-sans: "Instrument Sans", sans-serif;
+  --font-display: "Instrument Sans", sans-serif;
+
+  --radius-base: 8px;
+}
+
+@layer base {
+  :root {
+    --principal: #3B6FF0;
+    --principal-hover: #2C57C9;
+    --tinta: #0B1220;
+    --tinta-suave: #5A6884;
+    --fondo: #F4F6FA;
+    --panel: #FFFFFF;
+    --borde: #DCE3EE;
+    --borde-campo: #C9D2E1;
+    --borde-fila: #EBEFF5;
+    
+    --correcto: #146542;
+    --correcto-fondo: #E4F3EC;
+    --correcto-borde: #B6DCC9;
+    
+    --alerta: #8E3315;
+    --alerta-fondo: #FBE9E3;
+    --alerta-borde: #EDC3B4;
+
+    --neutro: #5A6884;
+    --neutro-fondo: #F4F6FA;
+    --neutro-borde: #DCE3EE;
+  }
+
+  .dark {
+    --principal: #7FA6FF;
+    --principal-hover: #7FA6FF; /* Defaulting as unspecified */
+    --tinta: #E8EDF7;
+    --tinta-suave: #8B98B0;
+    --fondo: #060910;
+    --panel: #0C1220;
+    --borde: #1B2436;
+    --borde-campo: #2A3550;
+    --borde-fila: #1B2436; /* Defaulting as unspecified */
+
+    --correcto: #3FBF88;
+    --correcto-fondo: transparent; /* Unspecified */
+    --correcto-borde: transparent; /* Unspecified */
+    
+    --alerta: #F08A5F;
+    --alerta-fondo: transparent; /* Unspecified */
+    --alerta-borde: transparent; /* Unspecified */
+    
+    /* Neutro not specified in dark mode */
+  }
+
+  body {
+    @apply bg-fondo text-tinta font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .eti-c {
+    @apply bg-correcto-fondo text-correcto px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+  }
+  .eti-a {
+    @apply bg-alerta-fondo text-alerta px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+  }
+  .eti-n {
+    @apply bg-neutro-fondo text-neutro px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+  }
+  .eti-i {
+    @apply bg-[#EAF1FF] text-principal px-2 py-0.5 text-xs capitalize rounded-md font-medium;
+  }
+}

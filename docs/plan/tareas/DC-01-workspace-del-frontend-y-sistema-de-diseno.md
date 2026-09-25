@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: []
 requisitos: [RNF-12]
 pantallas: []

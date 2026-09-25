@@ -1,0 +1,21 @@
+{
+  "name": "@shapi/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "generar:api": "openapi-typescript ../../../contratos/openapi/shapi.yaml -o src/generado/shapi.ts || echo 'No contracts found, skipping...'"
+  },
+  "peerDependencies": {
+    "openapi-fetch": "^0.13.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0"
+  }
+}
