@@ -46,10 +46,8 @@ export const B1InvitarConsumidores = lazy(() => import('./paginas/B1-5-InvitarCo
 // B3
 export const B3Estado = lazy(() => import('./paginas/B3-1-Estado'));
 export const B3Bitacora = lazy(() => import('./paginas/B3-2-Bitacora'));
-
 export const Suspensify = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<EstadoCargando />}>
     {children}
   </Suspense>
 );
-

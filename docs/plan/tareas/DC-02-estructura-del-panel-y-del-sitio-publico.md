@@ -61,7 +61,7 @@ Verificación manual con el entorno levantado:
 - Se crearon los Layouts (`LayoutPublico`, `LayoutPanel`, `LayoutAdmin`), incluyendo la estructura principal y la barra lateral de los mockups N.1 y A6.
 - Se agregaron las vistas placeholder (paginas de relleno) para todas las rutas del panel y sitio público, permitiendo trabajo en paralelo sin conflictos en el router.
 - El archivo `rutas.tsx` define todo el árbol de navegación usando Lazy Loading.
-- Se generaron los contratos OpenAPI para `/api/apis` y `/api/auth/sesion`, que luego fueron utilizados para autogenerar los clientes con `openapi-fetch`.
+- Se generó el contrato OpenAPI de `/api/apis`; el cliente provisional de sesión mantiene su tipo dentro del módulo hasta que Identidad publique su contrato propio.
 - Los guardias `RequiereSesion` y `RequiereRol` están configurados y funcionando en el router.
 
 ### Correcciones verificadas · 2026-09-25
@@ -79,9 +79,9 @@ Evidencia local (Node 24.14.0):
 ```text
 pnpm lint                  OK (4 paquetes)
 pnpm typecheck             OK (4 paquetes)
-pnpm test                  4 archivos; 75 pruebas aprobadas
+pnpm test                  6 archivos; 99 pruebas aprobadas
 pnpm build                 OK (panel y portal)
-pnpm generar:api           OK (apis.yaml e identidad.yaml)
+pnpm generar:api           OK (apis.yaml)
 node scripts/tareas.mjs --validar  Plan válido: 65 tareas
 git diff --check           OK
 ```
@@ -89,4 +89,5 @@ git diff --check           OK
 - Fase roja: una ruta protegida no resolvía a su página por la consulta incorrecta de sesión; la prueba pasa tras la corrección.
 - Comparación con Chromium/Playwright y API simulada: proveedor, administrador, soporte y encabezado público; estados cargando, error, sin APIs, sin permiso y 404. Capturas locales en `/tmp/shapi-dc02-capturas/`. Se comprobó el proveedor a 1440 y 1280 px, encabezado de 76 px, barra de 272 px y contenido/grupos de N.1.
 - Revisión independiente según `docs/plan/prompts/revision.md`: **LISTO**, sin hallazgos pendientes tras corregir encabezado y ampliar pruebas.
-- Estas correcciones quedan locales, pendientes de la aprobación del usuario para el commit. No se ha ejecutado CI ni integrado un PR para ellas.
+- La rama se rebasó sobre `main` después de integrar DC-01 y se conservó su generador de contratos y la normalización segura de errores.
+- El cliente provisional de sesión se alineó con la respuesta real de la rama EM-02 (`usuario` y `organizacion` anidados, respuesta 200 al salir) y la transforma al modelo que consumen los layouts, sin apropiarse del contrato OpenAPI de Identidad.

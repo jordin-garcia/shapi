@@ -42,7 +42,7 @@ describe('RNF-12 / RF-07 · Layouts - Barras Laterales', () => {
     } as ReturnType<typeof sesionHook.useSesion>);
 
     renderWithLayout(LayoutPanel);
-    
+
     // N.1
     expect(screen.getByText('Envíos Xelajú, S.A.')).toBeDefined();
     expect(screen.getByRole('link', { name: 'User' }).getAttribute('href')).toBe('/panel/perfil');
@@ -53,6 +53,8 @@ describe('RNF-12 / RF-07 · Layouts - Barras Laterales', () => {
     expect(screen.getByText('Especificación')).toBeDefined();
     expect(screen.getByText('Organización')).toBeDefined();
     expect(screen.getByText('Casos de soporte')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Planes' }).className).toContain('bg-[#0E1830]');
+    expect(screen.getByRole('link', { name: 'APIs' }).className).not.toContain('bg-[#0E1830]');
   });
 
   it('LayoutAdmin muestra los grupos correctos para administrador', () => {
@@ -63,7 +65,7 @@ describe('RNF-12 / RF-07 · Layouts - Barras Laterales', () => {
     } as ReturnType<typeof sesionHook.useSesion>);
 
     renderWithLayout(LayoutAdmin);
-    
+
     // A6
     expect(screen.getByText('Plataforma')).toBeDefined();
     expect(screen.getByText('Planes de plataforma')).toBeDefined();
@@ -80,7 +82,7 @@ describe('RNF-12 / RF-07 · Layouts - Barras Laterales', () => {
     } as ReturnType<typeof sesionHook.useSesion>);
 
     renderWithLayout(LayoutAdmin);
-    
+
     expect(screen.queryByText('Plataforma')).toBeNull();
     expect(screen.queryByText('Cuentas de plataforma')).toBeNull();
     expect(screen.getAllByText('Soporte').length).toBeGreaterThan(0);

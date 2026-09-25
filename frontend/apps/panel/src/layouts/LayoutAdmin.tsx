@@ -6,7 +6,7 @@ export function LayoutAdmin() {
   const { data } = useSesion();
   const isAdmin = data?.rol === 'administrador';
 
-  const navItem = ({ isActive }: { isActive: boolean }) => 
+  const navItem = ({ isActive }: { isActive: boolean }) =>
     `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[#7FA6FF] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
 
   return (

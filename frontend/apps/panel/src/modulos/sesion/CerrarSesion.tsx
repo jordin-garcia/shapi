@@ -2,9 +2,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { ProblemDetailsError, crearCliente } from '@shapi/api';
 import { EstadoError } from '@shapi/ui';
-import type { paths } from '@shapi/api/identidad';
+import type { ContratoSesion } from './contratoSesion';
 
-const cliente = crearCliente<paths>(window.location.origin);
+const cliente = crearCliente<ContratoSesion>(window.location.origin);
 
 export function CerrarSesion() {
   const cache = useQueryClient();

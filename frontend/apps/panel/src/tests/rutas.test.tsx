@@ -10,6 +10,13 @@ import { server } from '../../../../test/servidor';
 
 let rol = 'propietario';
 let cliente: QueryClient;
+const respuestaSesion = () => ({
+  usuario: { nombre: 'Ana', correo: 'ana@enviosxelaju.com' },
+  organizacion: { id: 'org-1', nombre: 'Envíos Xelajú, S.A.' },
+  rol,
+  correoVerificado: true,
+  destino: rol === 'administrador' ? '/admin/organizaciones' : rol === 'soporte' ? '/admin/casos' : '/panel/apis',
+});
 const rutas = [...catalogo.matchAll(/^\| (A[0-468][\w.]*|A7[\w.]*|B[13][\w.]*) \|[^\n]+$/gm)]
   .flatMap(([fila, id]) => [...fila.matchAll(/`(\/(?:[^`]*))`/g)].map(([, ruta]) => ({
     ruta: ruta.replace(':id', 'api-1').replace(':plan', 'escala').replace(':numero', '123'),
@@ -26,7 +33,7 @@ beforeEach(() => {
   rol = 'propietario';
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   server.use(
-    http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ nombre: 'Ana', nombreOrganizacion: 'Envíos Xelajú, S.A.', rol, organizacionId: 'org-1' })),
+    http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())),
     http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'Envíos Xelajú' }, { id: 'api-2', nombre: 'Agro Precios' }], total: 2 })),
   );
 });
@@ -68,7 +75,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     await abrir('/panel/apis');
     await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
     expect(router.state.location.pathname).toBe('/panel/apis');
-    server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ nombre: 'Ana', rol })));
+    server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())));
     await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
     expect(await screen.findByText(/^A3-1 ·/)).toBeDefined();
   });
@@ -82,6 +89,11 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'API' }), 'api-1');
     await waitFor(() => expect(router.state.location.pathname).toBe('/panel/apis/api-1/planes'));
   });
+  it('adapta la respuesta de sesión de EM-02 al encabezado y perfil', async () => {
+    await abrir('/panel/apis');
+    expect(await screen.findByText('Envíos Xelajú, S.A.')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Ana' }).getAttribute('href')).toBe('/panel/perfil');
+  });
   it('muestra lista vacía si DC-04 todavía no existe', async () => {
     server.use(http.get('http://localhost/api/apis', () => new HttpResponse(null, { status: 404 })));
     await abrir('/panel/apis');
@@ -94,7 +106,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     server.use(http.post('http://localhost/api/auth/salir', ({ request }) => {
       expect(request.headers.get('X-Requested-With')).toBe('shapi');
       cerrada = true;
-      return new HttpResponse(null, { status: 204 });
+      return new HttpResponse(null, { status: 200 });
     }));
     await abrir(ruta);
     await userEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
@@ -106,7 +118,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
   it('RNF-12 muestra esqueleto durante la consulta de sesión', async () => {
     server.use(http.get('http://localhost/api/auth/sesion', async () => {
       await delay(100);
-      return HttpResponse.json({ nombre: 'Ana', rol });
+      return HttpResponse.json(respuestaSesion());
     }));
     await abrir('/panel/apis');
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeDefined();

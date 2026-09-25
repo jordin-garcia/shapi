@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./identidad": "./src/generado/identidad.ts",
     "./apis": "./src/generado/apis.ts"
   },
   "scripts": {

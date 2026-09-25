@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../test/servidor';
 import { crearCliente, ProblemDetailsError } from './index';
-import type { paths } from './generado/identidad';
+
+type ContratoSesion = {
+  '/api/auth/sesion': { get: { responses: { 200: { content: { 'application/json': unknown } } } } };
+  '/api/auth/salir': { post: { parameters: { header: { 'X-Requested-With': 'shapi' } }; responses: { 200: { content?: never } } } };
+};
 
 type Contrato = { '/prueba': { post: { responses: { 200: { content: { 'application/json': { listo: boolean } } } } } } };
 const cliente = crearCliente<Contrato>('http://localhost');
@@ -40,17 +44,17 @@ describe('RF-07 · cliente de sesión', () => {
     server.use(http.post('http://localhost/api/auth/salir', ({ request }) => {
       expect(request.headers.get('X-Requested-With')).toBe('shapi');
       expect(request.credentials).toBe('include');
-      return new HttpResponse(null, { status: 204 });
+      return new HttpResponse(null, { status: 200 });
     }));
-    const cliente = crearCliente<paths>('http://localhost');
+    const cliente = crearCliente<ContratoSesion>('http://localhost');
     const { response } = await cliente.POST('/api/auth/salir', { params: { header: { 'X-Requested-With': 'shapi' } } });
-    expect(response.status).toBe(204);
+    expect(response.status).toBe(200);
   });
   it('conserva estado HTTP, código y errores de ProblemDetails', async () => {
     server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({
       title: 'Sin sesión', codigo: 'sin_sesion', errores: { sesion: ['Vencida'] },
     }, { status: 401, headers: { 'Content-Type': 'application/problem+json' } })));
-    const cliente = crearCliente<paths>('http://localhost');
+    const cliente = crearCliente<ContratoSesion>('http://localhost');
     await expect(cliente.GET('/api/auth/sesion')).rejects.toMatchObject({
       status: 401, details: { codigo: 'sin_sesion', titulo: 'Sin sesión', errores: { sesion: ['Vencida'] } },
     });
