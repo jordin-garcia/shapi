@@ -7,7 +7,8 @@ name: Revisión con Claude
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
+    # edited solo cuenta si cambió el título (ver la condición del job): así, al corregirlo, llega la revisión completa.
+    types: [opened, synchronize, ready_for_review, reopened, edited]
   issue_comment:
     types: [created]
   pull_request_review_comment:
@@ -20,7 +21,10 @@ jobs:
   # Revisión automática de cada PR con docs/plan/prompts/revision.md.
   revision:
     name: revision-claude
-    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    if: >-
+      github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+      github.event.pull_request.state == 'open' &&
+      (github.event.action != 'edited' || github.event.changes.title.from != null)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Los commits nuevos cancelan la revisión anterior del mismo PR.

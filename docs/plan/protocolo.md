@@ -115,6 +115,7 @@ gh pr create --title "[<ID>] <título>" --body-file <archivo con la plantilla co
 gh pr merge --auto --squash --delete-branch
 gh pr checks --watch
 ```
+- **El título es obligatorio en el formato `[<ID>] <título>`**, con el ID de una tarea que existe; por ejemplo, `[EM-03] Pantallas de registro, verificación y acceso`. El job `plan` de la CI rechaza cualquier otro, porque sin el ID la revisión automática no revisa criterios ni alcance. Una corrección posterior de una tarea ya hecha usa el ID de esa tarea. Si el título está mal, edítalo con `gh pr edit --title "[<ID>] <título>"`: la CI y la revisión se vuelven a ejecutar solas.
 - El cuerpo del PR sigue `.github/pull_request_template.md`, con la evidencia de B7 y B8 y el resultado de B9.
 - **Si falla una verificación de la CI:** lee el registro (`gh run view --log-failed`), corrige, haz *commit* y *push*, y vuelve a esperar. Tienes como máximo 5 intentos; después aplica §C.
 - **Si GitHub dice que la rama está desactualizada:** ejecuta `gh pr update-branch`, o haz `git pull --rebase origin main`, resuelve los conflictos según `docs/plan/convenciones.md` §3 y haz `git push --force-with-lease` **sobre tu rama**. Luego espera la CI otra vez.
