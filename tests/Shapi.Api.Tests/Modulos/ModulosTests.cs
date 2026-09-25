@@ -17,7 +17,7 @@ public class ModulosTests
     public static TheoryData<string> Modulos => new(NombresDeModulos);
 
     private static readonly Type[] ClasesDeModulo = typeof(Program).Assembly.GetTypes()
-        .Where(tipo => tipo.Namespace == "Shapi.Api.Modulos" && tipo.IsAbstract && tipo.IsSealed)
+        .Where(tipo => tipo.Namespace == "Shapi.Api.Modulos" && tipo.IsAbstract && tipo.IsSealed && !tipo.Name.Contains('<'))
         .ToArray();
 
     [Fact]
