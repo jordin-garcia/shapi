@@ -4,10 +4,10 @@ namespace Shapi.Dominio.Organizaciones;
 
 public class Membresia : IPerteneceAOrganizacion
 {
-    public Guid Id { get; set; }
-    public Guid UsuarioId { get; set; }
-    public Guid OrganizacionId { get; set; }
-    public Rol Rol { get; set; }
+    public Guid Id { get; private set; }
+    public Guid UsuarioId { get; private set; }
+    public Guid OrganizacionId { get; private set; }
+    public Rol Rol { get; private set; }
 
-    public Membresia() { }
+    protected Membresia() { }
 }

@@ -42,16 +42,10 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
 
         builder.Property(x => x.Concepto)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.ConceptoPago);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_pago_concepto",
             "concepto IN ('contratacion','renovacion','cambio_plan','reactivacion')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_pago_concepto", "concepto IN ('Contratacion','Renovacion','CambioPlan','Reactivacion')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.Descripcion).IsRequired();
 
@@ -60,16 +54,10 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
 
         builder.Property(x => x.Estado)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.EstadoPago);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_pago_estado",
             "estado IN ('autorizado','rechazado','revertido')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_pago_estado", "estado IN ('Autorizado','Rechazado','Revertido')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.HasIndex(x => new { x.SuscripcionPlataformaId, x.CreadoEn }).IsDescending(false, true);
         builder.HasIndex(x => new { x.SuscripcionApiId, x.CreadoEn }).IsDescending(false, true);

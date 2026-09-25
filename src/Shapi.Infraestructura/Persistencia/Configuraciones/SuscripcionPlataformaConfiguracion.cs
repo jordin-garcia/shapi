@@ -32,16 +32,10 @@ public class SuscripcionPlataformaConfiguracion : IEntityTypeConfiguration<Suscr
 
         builder.Property(x => x.Estado)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.EstadoSuscripcion);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_estado",
             "estado IN ('activa','en_gracia','suspendida','finalizada')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_estado", "estado IN ('Activa','EnGracia','Suspendida','Finalizada')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_fechas", "fin > inicio"));
 
         // RNF-08: Una sola suscripción vigente por organización

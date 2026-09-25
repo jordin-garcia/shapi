@@ -35,16 +35,10 @@ public class ConsumoDiarioConfiguracion : IEntityTypeConfiguration<ConsumoDiario
 
         builder.Property(x => x.Entorno)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.EntornoConsumo);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_consumo_entorno",
             "entorno IN ('produccion','pruebas')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_consumo_entorno", "entorno IN ('Produccion','Pruebas')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.Peticiones).HasDefaultValue(0);
         builder.Property(x => x.Llamadas).HasDefaultValue(0);

@@ -4,16 +4,16 @@ namespace Shapi.Dominio.Identidad;
 
 public class Consumidor : IPerteneceAOrganizacion
 {
-    public Guid Id { get; set; }
-    public Guid OrganizacionId { get; set; }
-    public string Nombre { get; set; } = null!;
-    public string NombreEmpresa { get; set; } = null!;
-    public string Correo { get; set; } = null!;
-    public string HashContrasena { get; set; } = null!;
-    public DateTimeOffset? CorreoVerificadoEn { get; set; }
-    public EstadoCuenta Estado { get; set; }
-    public int IntentosFallidos { get; set; }
-    public DateTimeOffset? BloqueadoHasta { get; set; }
+    public Guid Id { get; private set; }
+    public Guid OrganizacionId { get; private set; }
+    public string Nombre { get; private set; } = null!;
+    public string NombreEmpresa { get; private set; } = null!;
+    public string Correo { get; private set; } = null!;
+    public string HashContrasena { get; private set; } = null!;
+    public DateTimeOffset? CorreoVerificadoEn { get; private set; }
+    public EstadoCuenta Estado { get; private set; }
+    public int IntentosFallidos { get; private set; }
+    public DateTimeOffset? BloqueadoHasta { get; private set; }
 
-    public Consumidor() { }
+    protected Consumidor() { }
 }

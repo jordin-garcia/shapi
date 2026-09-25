@@ -3,11 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shapi.Aplicacion.Comun;
-<<<<<<< HEAD
 using Shapi.Infraestructura.Bitacora;
 using Shapi.Infraestructura.Correo;
-=======
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Infraestructura.Comun;

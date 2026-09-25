@@ -15,7 +15,6 @@ public class OrganizacionConfiguracion : IEntityTypeConfiguration<Organizacion>
 
         builder.Property(x => x.Tipo)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.TipoOrganizacion);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_organizacion_tipo",
@@ -27,18 +26,6 @@ public class OrganizacionConfiguracion : IEntityTypeConfiguration<Organizacion>
 
         builder.ToTable(t => t.HasCheckConstraint("CK_organizacion_estado_admin",
             "estado_admin IN ('activa','suspendida')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_organizacion_tipo", "tipo IN ('Plataforma','Proveedor')"));
-
-        builder.Property(x => x.EstadoAdmin)
-            .IsRequired()
-            .HasDefaultValue(EstadoAdmin.Activa)
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_organizacion_estado_admin", "estado_admin IN ('Activa','Suspendida')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();

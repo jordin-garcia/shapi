@@ -2,14 +2,14 @@ namespace Shapi.Dominio.Identidad;
 
 public class Usuario
 {
-    public Guid Id { get; set; }
-    public string Nombre { get; set; } = null!;
-    public string Correo { get; set; } = null!;
-    public string? HashContrasena { get; set; }
-    public DateTimeOffset? CorreoVerificadoEn { get; set; }
-    public EstadoCuenta Estado { get; set; }
-    public int IntentosFallidos { get; set; }
-    public DateTimeOffset? BloqueadoHasta { get; set; }
+    public Guid Id { get; private set; }
+    public string Nombre { get; private set; } = null!;
+    public string Correo { get; private set; } = null!;
+    public string? HashContrasena { get; private set; }
+    public DateTimeOffset? CorreoVerificadoEn { get; private set; }
+    public EstadoCuenta Estado { get; private set; }
+    public int IntentosFallidos { get; private set; }
+    public DateTimeOffset? BloqueadoHasta { get; private set; }
 
-    public Usuario() { }
+    protected Usuario() { }
 }

@@ -18,15 +18,9 @@ public class RutaConfiguracion : IEntityTypeConfiguration<Ruta>
 
         builder.Property(x => x.Metodo)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.MetodoHttp);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_ruta_metodo", "metodo IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_ruta_metodo", "metodo IN ('Get','Post','Put','Patch','Delete','Head','Options')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.Patron).IsRequired();
 

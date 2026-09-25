@@ -32,16 +32,10 @@ public class MedioPagoConfiguracion : IEntityTypeConfiguration<MedioPago>
 
         builder.Property(x => x.Marca)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.MarcaTarjeta);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_medio_pago_marca",
             "marca IN ('Visa','Mastercard','American Express')"));
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_medio_pago_marca", "marca IN ('Visa','Mastercard','AmericanExpress')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.Ultimos4).IsRequired().HasMaxLength(4).IsFixedLength();
         builder.Property(x => x.Titular).IsRequired();

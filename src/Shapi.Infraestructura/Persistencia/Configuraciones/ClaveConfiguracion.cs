@@ -19,35 +19,19 @@ public class ClaveConfiguracion : IEntityTypeConfiguration<Clave>
 
         builder.Property(x => x.Tipo)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.TipoClave);
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_clave_tipo", "tipo IN ('Produccion','Pruebas')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.ToTable(t => t.HasCheckConstraint("CK_clave_tipo",
             "tipo IN ('produccion','pruebas')"));
 
         builder.Property(x => x.Prefijo).IsRequired();
         builder.Property(x => x.Ultimos4).IsRequired().HasMaxLength(4).IsFixedLength();
-<<<<<<< HEAD
-=======
-
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         builder.Property(x => x.HashSha256).IsRequired().HasMaxLength(64).IsFixedLength();
         builder.HasIndex(x => x.HashSha256).IsUnique();
 
         builder.Property(x => x.Estado)
             .IsRequired()
-<<<<<<< HEAD
             .HasConversion(Conversores.EstadoClave);
-=======
-            .HasConversion<string>();
-
-        builder.ToTable(t => t.HasCheckConstraint("CK_clave_estado", "estado IN ('Activa','Rotada','Revocada')"));
->>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.ToTable(t => t.HasCheckConstraint("CK_clave_estado",
             "estado IN ('activa','rotada','revocada')"));
