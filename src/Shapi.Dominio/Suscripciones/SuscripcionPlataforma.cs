@@ -4,7 +4,7 @@ namespace Shapi.Dominio.Suscripciones;
 
 public class SuscripcionPlataforma : Suscripcion, IPerteneceAOrganizacion
 {
-    public Guid OrganizacionId { get; private set; }
+    public Guid OrganizacionId { get; set; }
 
-    protected SuscripcionPlataforma() { }
+    public SuscripcionPlataforma() { }
 }
