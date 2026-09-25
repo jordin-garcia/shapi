@@ -1,37 +1,19 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace Shapi.Infraestructura.Identidad;
 
 /// <summary>
-/// Clase utilitaria para generar tokens aleatorios seguros y calcular su hash SHA-256.
+/// Valores aleatorios de las cookies de sesión y de los enlaces de un solo uso (10 §1).
+/// La base de datos solo guarda su SHA-256 en hex minúsculas (07 §3.1: <c>char(64)</c>).
 /// </summary>
 public static class SeguridadTokens
 {
-    /// <summary>
-    /// Genera un token aleatorio criptográficamente seguro y lo devuelve codificado en Base64Url.
-    /// </summary>
-    /// <param name="bytes">Cantidad de bytes (por defecto 32)</param>
-    /// <returns>Token codificado (e.g. jZ2n...)</returns>
-    public static string GenerarToken(int bytes = 32)
-    {
-        var buffer = new byte[bytes];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(buffer);
-        return Base64UrlTextEncoder.Encode(buffer);
-    }
+    /// <summary>Genera 32 bytes aleatorios en Base64Url, aptos para una cookie o un enlace.</summary>
+    public static string GenerarToken() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
-    /// <summary>
-    /// Calcula el hash SHA-256 de una cadena UTF-8 y lo devuelve codificado en Base64Url,
-    /// o como cadena hexadecimal si se prefiere. El requisito pide SHA-256 (32 bytes).
-    /// </summary>
-    /// <param name="token">Token en claro</param>
-    /// <returns>Hash en formato Base64Url</returns>
-    public static string HashearToken(string token)
-    {
-        var inputBytes = Encoding.UTF8.GetBytes(token);
-        var hashBytes = SHA256.HashData(inputBytes);
-        return Base64UrlTextEncoder.Encode(hashBytes);
-    }
+    /// <summary>SHA-256 del valor en UTF-8, en hex minúsculas (64 caracteres).</summary>
+    public static string HashearToken(string token) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }

@@ -9,11 +9,11 @@
 | Vencimiento | A las 8 h de inactividad (`Sesion:InactividadHoras`) o a los 7 días desde el inicio de sesión. Cada petición actualiza `ultimo_uso_en`, como máximo una vez por minuto |
 | CSRF | `SameSite=Lax`, más la cabecera `X-Requested-With: shapi` obligatoria en todo método que no sea GET, más la comprobación de `Origin`. Los frontends llaman a la API **en su mismo host**, así que no hace falta CORS entre el panel y la API |
 | Contraseñas | Tienen entre 10 y 128 caracteres y no pueden ser iguales al correo. Se guardan con `PasswordHasher<T>` de ASP.NET Core Identity (PBKDF2-HMAC-SHA512, 100,000 iteraciones o más) |
-| Bloqueo | Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos (`bloqueado_hasta`). Los mensajes de error son genéricos |
+| Bloqueo | Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos (`bloqueado_hasta`). Los mensajes de error son genéricos: `401 credenciales_invalidas` si la cuenta no existe o la contraseña no coincide, con el mismo tiempo de respuesta en los dos casos. Durante el bloqueo responde `423 cuenta_bloqueada`. Una cuenta desactivada responde `403 cuenta_desactivada` (CU-02 2b), solo si la contraseña es correcta |
 | Recuperación | Siempre se responde lo mismo, exista o no la cuenta. El enlace es de un solo uso y vence a los 60 minutos. Al usarlo **se revocan todas las sesiones** de la cuenta ([RF-03](03-requisitos.md#rf-03)) |
 | Verificación de correo | El enlace vence a las 24 horas. Mientras no se confirme, el proveedor no puede **publicar** APIs y el consumidor no puede **contratar** planes ([RF-02](03-requisitos.md#rf-02)) |
 | Cuentas de plataforma | Las crea el administrador y reciben un enlace `definir_contrasena` que vence a los 7 días ([RF-42](03-requisitos.md#rf-42)) |
-| Limitación de peticiones | La API de control limita `/api/auth/*` a 10 peticiones por minuto por IP (`RateLimiter` de ASP.NET Core) |
+| Limitación de peticiones | La API de control limita a 10 peticiones por minuto por IP (`RateLimiter` de ASP.NET Core) los endpoints de `/api/auth/*` que reciben credenciales o tokens: `registro`, `verificar-correo`, `reenviar-verificacion` y `entrar`. Al pasarse responde `429 demasiadas_peticiones` con `Retry-After`. `GET /api/auth/sesion` y `POST /api/auth/salir` no se limitan, porque no sirven para adivinar credenciales y el panel consulta la sesión en cada carga. La IP del cliente se toma de `X-Forwarded-For` solo si la conexión viene del borde (la máquina o una red privada, como la de Docker) |
 
 ### Enrutamiento después de iniciar sesión
 
