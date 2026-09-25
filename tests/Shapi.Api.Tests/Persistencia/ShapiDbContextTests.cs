@@ -51,7 +51,11 @@ public class ShapiDbContextTests : IAsyncLifetime
         typeof(EntradaBitacora).GetProperty("ActorNombre")!.SetValue(entrada, "Sistema");
         typeof(EntradaBitacora).GetProperty("Accion")!.SetValue(entrada, "Prueba");
         typeof(EntradaBitacora).GetProperty("Descripcion")!.SetValue(entrada, "Prueba trigger");
+<<<<<<< HEAD
         typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(entrada, null);
+=======
+        typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(entrada, Guid.NewGuid());
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         _db!.Set<EntradaBitacora>().Add(entrada);
         await _db.SaveChangesAsync();
@@ -128,10 +132,17 @@ public class ShapiDbContextTests : IAsyncLifetime
         Assert.NotNull(orgPlataforma);
 
         // Ejecutar de nuevo
+<<<<<<< HEAD
         await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
 
         var countPlanes2 = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
         var countUsuarios2 = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
+=======
+        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123");
+
+        var countPlanes2 = await _db!.Set<Shapi.Dominio.Planes.PlanPlataforma>().CountAsync();
+        var countUsuarios2 = await _db!.Set<Usuario>().CountAsync();
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         Assert.Equal(countPlanes, countPlanes2);
         Assert.Equal(countUsuarios, countUsuarios2);

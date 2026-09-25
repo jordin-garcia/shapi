@@ -38,17 +38,30 @@ public class CasoConfiguracion : IEntityTypeConfiguration<Caso>
 
         // RF-03: secuencia de numero empieza en 100
         builder.Property(x => x.Numero)
+<<<<<<< HEAD
             .UseHiLo("caso_numero_seq");
+=======
+            .ValueGeneratedOnAdd()
+            .UseIdentityByDefaultColumn()
+            .HasIdentityOptions(startValue: 100);
+
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
         builder.HasIndex(x => x.Numero).IsUnique();
 
         builder.Property(x => x.Asunto).IsRequired().HasMaxLength(120);
 
         builder.Property(x => x.Estado)
             .IsRequired()
+<<<<<<< HEAD
             .HasConversion(Conversores.EstadoCaso);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_caso_estado",
             "estado IN ('abierto','cerrado')"));
+=======
+            .HasConversion<string>();
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_caso_estado", "estado IN ('Abierto','Cerrado')"));
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();

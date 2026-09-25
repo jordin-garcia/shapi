@@ -21,7 +21,7 @@ public static class Permisos
     public const string ContratarSuscripcion = "ContratarSuscripcion";
     public const string VerSuscripcion = "VerSuscripcion";
     public const string AdministrarCasos = "AdministrarCasos";
-    
+
     // Panel de administración
     public const string GestionarPlanesPlataforma = "GestionarPlanesPlataforma";
     public const string VerOrganizaciones = "VerOrganizaciones";

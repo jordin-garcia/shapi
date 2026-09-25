@@ -27,7 +27,14 @@ public class ApiConfiguracion : IEntityTypeConfiguration<Api>
 
         builder.Property(x => x.Estado)
             .IsRequired()
+<<<<<<< HEAD
             .HasConversion(Conversores.EstadoApi);
+=======
+            .HasDefaultValue(EstadoApi.Borrador)
+            .HasConversion<string>();
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_api_estado", "estado IN ('Borrador','Publicada','Despublicada')"));
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.ToTable(t => t.HasCheckConstraint("CK_api_estado",
             "estado IN ('borrador','publicada','despublicada')"));

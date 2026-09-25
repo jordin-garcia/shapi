@@ -32,10 +32,16 @@ public class TokenConfiguracion : IEntityTypeConfiguration<Token>
 
         builder.Property(x => x.Tipo)
             .IsRequired()
+<<<<<<< HEAD
             .HasConversion(Conversores.TipoToken);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_token_tipo",
             "tipo IN ('verificacion_correo','recuperacion','invitacion_miembro','invitacion_consumidor','definir_contrasena')"));
+=======
+            .HasConversion<string>();
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_token_tipo", "tipo IN ('VerificacionCorreo','Recuperacion','InvitacionMiembro','InvitacionConsumidor','DefinirContrasena')"));
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.HashToken).IsRequired().HasMaxLength(64).IsFixedLength();
         builder.HasIndex(x => x.HashToken).IsUnique();

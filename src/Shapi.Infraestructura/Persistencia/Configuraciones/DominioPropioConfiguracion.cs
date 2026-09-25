@@ -24,10 +24,16 @@ public class DominioPropioConfiguracion : IEntityTypeConfiguration<DominioPropio
 
         builder.Property(x => x.Estado)
             .IsRequired()
+<<<<<<< HEAD
             .HasConversion(Conversores.EstadoDominio);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_dominio_propio_estado",
             "estado IN ('pendiente','verificado','fallido')"));
+=======
+            .HasConversion<string>();
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_dominio_propio_estado", "estado IN ('Pendiente','Verificado','Fallido')"));
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();

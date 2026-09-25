@@ -25,7 +25,7 @@ public static class AutorizacionExtensiones
             .AddPolicy(Permisos.ContratarSuscripcion, p => p.RequireRole(Rol.Propietario.ToString()))
             .AddPolicy(Permisos.VerSuscripcion, p => p.RequireRole(Rol.Propietario.ToString(), Rol.Lector.ToString()))
             .AddPolicy(Permisos.AdministrarCasos, p => p.RequireRole(Rol.Propietario.ToString(), Rol.Editor.ToString(), Rol.Lector.ToString()))
-            
+
             // Administrador y Soporte
             .AddPolicy(Permisos.GestionarPlanesPlataforma, p => p.RequireRole(Rol.Administrador.ToString()))
             .AddPolicy(Permisos.VerOrganizaciones, p => p.RequireRole(Rol.Administrador.ToString(), Rol.Soporte.ToString()))

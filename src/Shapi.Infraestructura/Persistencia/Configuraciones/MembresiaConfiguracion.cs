@@ -26,7 +26,13 @@ public class MembresiaConfiguracion : IEntityTypeConfiguration<Membresia>
 
         builder.Property(x => x.Rol)
             .IsRequired()
+<<<<<<< HEAD
             .HasConversion(Conversores.Rol);
+=======
+            .HasConversion<string>();
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_membresia_rol", "rol IN ('Administrador','Soporte','Propietario','Editor','Lector')"));
+>>>>>>> 8cc28d6 (style: aplicar formato con dotnet format)
 
         builder.ToTable(t => t.HasCheckConstraint("CK_membresia_rol",
             "rol IN ('administrador','soporte','propietario','editor','lector')"));

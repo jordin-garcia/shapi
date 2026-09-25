@@ -1,10 +1,16 @@
+using System.Security.Claims;
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shapi.Api.Extensiones;
+using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Correo;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
@@ -12,12 +18,6 @@ using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Shapi.Aplicacion.Comun;
-using System.Security.Claims;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
-using System.Text.Json;
-using Shapi.Api.Extensiones;
 
 namespace Shapi.Api.Modulos;
 
@@ -27,13 +27,13 @@ public static class IdentidadModulo
     {
         services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
         services.AgregarPoliticasShapi();
-        
+
         services.AddAuthentication(PersonalAutenticacionOpciones.Esquema)
             .AddScheme<PersonalAutenticacionOpciones, PersonalAutenticacionHandler>(PersonalAutenticacionOpciones.Esquema, null);
-            
-        services.AddRateLimiter(options => 
+
+        services.AddRateLimiter(options =>
         {
-            options.AddFixedWindowLimiter("AuthLimiter", opt => 
+            options.AddFixedWindowLimiter("AuthLimiter", opt =>
             {
                 opt.PermitLimit = 10;
                 opt.Window = TimeSpan.FromMinutes(1);
@@ -169,7 +169,9 @@ public static class IdentidadModulo
 
         token.UsadoEn = ahora;
         if (usuario != null)
+        {
             usuario.CorreoVerificadoEn = ahora;
+        }
 
         var tokenSesion = SeguridadTokens.GenerarToken();
         var sesion = new Sesion
@@ -198,7 +200,7 @@ public static class IdentidadModulo
         var usuario = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == peticion.Correo);
         if (usuario == null)
         {
-            return TypedResults.Ok(); 
+            return TypedResults.Ok();
         }
 
         var ahora = reloj.Ahora;
@@ -307,14 +309,16 @@ public static class IdentidadModulo
     {
         var userIdStr = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+        {
             return TypedResults.Unauthorized();
+        }
 
         var orgIdStr = context.User.FindFirstValue("OrganizacionId");
         Guid.TryParse(orgIdStr, out var orgId);
 
         var usuario = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
         var org = await db.Set<Organizacion>().IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Id == orgId);
-        
+
         var rolStr = context.User.FindFirstValue(ClaimTypes.Role);
         var rol = rolStr?.ToLower() ?? "sin_rol";
 

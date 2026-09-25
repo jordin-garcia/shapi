@@ -16,9 +16,9 @@ public class CsrfMiddleware
     {
         // Solo aplica para métodos diferentes a GET, HEAD, OPTIONS, TRACE
         var method = context.Request.Method;
-        if (!HttpMethods.IsGet(method) && 
-            !HttpMethods.IsHead(method) && 
-            !HttpMethods.IsOptions(method) && 
+        if (!HttpMethods.IsGet(method) &&
+            !HttpMethods.IsHead(method) &&
+            !HttpMethods.IsOptions(method) &&
             !HttpMethods.IsTrace(method))
         {
             // Verificamos cabecera X-Requested-With

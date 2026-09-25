@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Shapi.Aplicacion.Comun;
 
 namespace Shapi.Infraestructura.Identidad;
 
@@ -25,7 +25,7 @@ public class PersonalAutenticacionHandler : AuthenticationHandler<PersonalAutent
         ILoggerFactory logger,
         UrlEncoder encoder,
         ShapiDbContext db,
-        IReloj reloj) 
+        IReloj reloj)
         : base(options, logger, encoder)
     {
         _db = db;
@@ -65,7 +65,10 @@ public class PersonalAutenticacionHandler : AuthenticationHandler<PersonalAutent
         }
 
         var usuario = await _db.Set<Usuario>().FirstOrDefaultAsync(u => u.Id == sesion.UsuarioId);
-        if (usuario == null) return AuthenticateResult.Fail("Usuario no encontrado.");
+        if (usuario == null)
+        {
+            return AuthenticateResult.Fail("Usuario no encontrado.");
+        }
 
         var membresia = await _db.Set<Shapi.Dominio.Organizaciones.Membresia>()
                                  .FirstOrDefaultAsync(m => m.UsuarioId == usuario.Id);
