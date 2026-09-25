@@ -1,0 +1,167 @@
+openapi: 3.1.0
+info:
+  title: Identidad y Seguridad
+  version: 1.0.0
+  description: API de autenticación y gestión de sesiones para la plataforma Shapi.
+servers:
+  - url: http://localhost:5000
+    description: Servidor local
+
+paths:
+  /api/auth/registro:
+    post:
+      summary: Registro de proveedor
+      description: Crea un usuario proveedor, su organización y membresía inicial con plan Prueba. Encola el correo de verificación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nombre
+                - correo
+                - organizacion
+                - contrasena
+              properties:
+                nombre:
+                  type: string
+                correo:
+                  type: string
+                  format: email
+                organizacion:
+                  type: string
+                contrasena:
+                  type: string
+                  minLength: 10
+      responses:
+        '200':
+          description: Registro exitoso
+        '400':
+          description: Datos inválidos
+        '409':
+          description: Correo ya registrado
+
+  /api/auth/verificar-correo:
+    post:
+      summary: Verificación de correo
+      description: Verifica el correo usando el token recibido y establece la sesión si es correcto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Correo verificado y sesión iniciada
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        '422':
+          description: Token inválido, expirado o ya usado
+
+  /api/auth/reenviar-verificacion:
+    post:
+      summary: Reenviar verificación de correo
+      description: Genera y envía un nuevo token de verificación al correo indicado, si existe. Siempre retorna 200 por seguridad.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - correo
+              properties:
+                correo:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Operación completada (exista o no el usuario)
+
+  /api/auth/entrar:
+    post:
+      summary: Inicio de sesión
+      description: Verifica las credenciales y establece la cookie de sesión. Bloquea la cuenta temporalmente tras 5 intentos fallidos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - correo
+                - contrasena
+              properties:
+                correo:
+                  type: string
+                  format: email
+                contrasena:
+                  type: string
+      responses:
+        '200':
+          description: Sesión iniciada
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        '401':
+          description: Credenciales inválidas o cuenta bloqueada
+
+  /api/auth/salir:
+    post:
+      summary: Cierre de sesión
+      description: Revoca la sesión actual y elimina la cookie.
+      responses:
+        '200':
+          description: Sesión cerrada
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        '401':
+          description: No autenticado
+
+  /api/auth/sesion:
+    get:
+      summary: Obtener sesión actual
+      description: Devuelve los datos de la sesión actual (usuario, organización, rol y destino sugerido).
+      responses:
+        '200':
+          description: Datos de la sesión
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario:
+                    type: object
+                    properties:
+                      nombre:
+                        type: string
+                      correo:
+                        type: string
+                  organizacion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      nombre:
+                        type: string
+                  rol:
+                    type: string
+                  correoVerificado:
+                    type: boolean
+                  destino:
+                    type: string
+        '401':
+          description: No autenticado

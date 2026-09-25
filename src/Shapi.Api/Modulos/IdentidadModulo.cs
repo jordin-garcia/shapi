@@ -147,6 +147,7 @@ public static class IdentidadModulo
 
         var token = new Token
         {
+            Id = Guid.NewGuid(),
             HashToken = tokenHash,
             UsuarioId = usuario.Id,
             Correo = usuario.Correo,
@@ -156,6 +157,7 @@ public static class IdentidadModulo
 
         var correo = new CorreoSaliente
         {
+            Id = Guid.NewGuid(),
             Destinatario = usuario.Correo,
             Asunto = "Verifica tu correo electrónico",
             Plantilla = "verificacion_correo",
@@ -210,12 +212,16 @@ public static class IdentidadModulo
         var tokenSesion = SeguridadTokens.GenerarToken();
         var sesion = new Sesion
         {
+            Id = Guid.NewGuid(),
             HashIdentificador = SeguridadTokens.HashearToken(tokenSesion),
             UsuarioId = token.UsuarioId,
             Ambito = AmbitoSesion.Personal,
             ExpiraEn = ahora.AddDays(7),
             CreadaEn = ahora,
-            UltimoUsoEn = ahora
+            UltimoUsoEn = ahora,
+            Host = string.IsNullOrEmpty(context.Request.Host.Value) ? "unknown" : context.Request.Host.Value,
+            Ip = context.Connection.RemoteIpAddress,
+            AgenteUsuario = context.Request.Headers.UserAgent.ToString()
         };
 
         db.Add(sesion);
@@ -247,15 +253,19 @@ public static class IdentidadModulo
         var tokenClaro = SeguridadTokens.GenerarToken();
         var token = new Token
         {
+            Id = Guid.NewGuid(),
             HashToken = SeguridadTokens.HashearToken(tokenClaro),
             UsuarioId = usuario.Id,
+            Correo = usuario.Correo,
             Tipo = TipoToken.VerificacionCorreo,
             ExpiraEn = ahora.AddHours(24)
         };
 
         var correo = new CorreoSaliente
         {
+            Id = Guid.NewGuid(),
             Destinatario = usuario.Correo,
+            Asunto = "Verifica tu correo electrónico",
             Plantilla = "verificacion_correo",
             Datos = $"{{\"token\":\"{tokenClaro}\"}}",
             Estado = EstadoCorreo.Pendiente
@@ -313,12 +323,16 @@ public static class IdentidadModulo
         var tokenSesion = SeguridadTokens.GenerarToken();
         var sesion = new Sesion
         {
+            Id = Guid.NewGuid(),
             HashIdentificador = SeguridadTokens.HashearToken(tokenSesion),
             UsuarioId = usuario.Id,
             Ambito = AmbitoSesion.Personal,
             ExpiraEn = ahora.AddDays(7),
             CreadaEn = ahora,
-            UltimoUsoEn = ahora
+            UltimoUsoEn = ahora,
+            Host = string.IsNullOrEmpty(context.Request.Host.Value) ? "unknown" : context.Request.Host.Value,
+            Ip = context.Connection.RemoteIpAddress,
+            AgenteUsuario = context.Request.Headers.UserAgent.ToString()
         };
 
         db.Add(sesion);
