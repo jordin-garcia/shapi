@@ -62,7 +62,8 @@ public static class IdentidadModulo
             opciones.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             opciones.OnRejected = async (contexto, _) =>
             {
-                contexto.HttpContext.Response.Headers.RetryAfter = "60";
+                var espera = contexto.Lease.TryGetMetadata(MetadataName.RetryAfter, out var restante) ? restante : TimeSpan.FromMinutes(1);
+                contexto.HttpContext.Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling(espera.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 await Problemas.Escribir(contexto.HttpContext, StatusCodes.Status429TooManyRequests, CodigosError.DemasiadasPeticiones,
                     "Demasiadas peticiones. Espere un minuto e intente de nuevo.");
             };
@@ -140,8 +141,9 @@ public static class IdentidadModulo
 
         try
         {
-            // Encolar guarda todo lo pendiente en una sola transacción, junto con el correo.
+            // Todo se guarda en una sola transacción, junto con el correo. Si la cola ya guardó, SaveChanges no hace nada.
             await colaCorreo.Encolar(PlantillaVerificacionCorreo, usuario.Correo, new { nombre = usuario.Nombre, token = valorToken }, cancelacion);
+            await db.SaveChangesAsync(cancelacion);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, TableName: "usuario" })
         {
@@ -174,6 +176,9 @@ public static class IdentidadModulo
             return TokenInvalido();
         }
 
+        // Marcar el token, verificar el correo e iniciar la sesión van juntos: si algo falla, el enlace sigue sin usarse.
+        await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
+
         // Se marca usado con una actualización condicional para que dos peticiones simultáneas no lo usen dos veces.
         var marcados = await db.Set<Token>().IgnoreQueryFilters()
             .Where(t => t.Id == token.Id && t.UsadoEn == null)
@@ -188,10 +193,12 @@ public static class IdentidadModulo
         if (usuario.Estado == EstadoCuenta.Desactivado)
         {
             await db.SaveChangesAsync(cancelacion);
+            await transaccion.CommitAsync(cancelacion);
             return CuentaDesactivada();
         }
 
         await IniciarSesionPersonal(db, contexto, usuario, ahora, cancelacion);
+        await transaccion.CommitAsync(cancelacion);
         return TypedResults.Ok();
     }
 
@@ -218,6 +225,7 @@ public static class IdentidadModulo
         var valorToken = SeguridadTokens.GenerarToken();
         db.Add(Token.VerificacionCorreo(SeguridadTokens.HashearToken(valorToken), usuario, reloj.Ahora));
         await colaCorreo.Encolar(PlantillaVerificacionCorreo, usuario.Correo, new { nombre = usuario.Nombre, token = valorToken }, cancelacion);
+        await db.SaveChangesAsync(cancelacion);
         return TypedResults.Ok();
     }
 

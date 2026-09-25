@@ -111,7 +111,7 @@ La bitácora ([RF-41](03-requisitos.md#rf-41)) registra las acciones que cambian
 | Saltarse la compuerta llamando directo al origen | La URL de origen nunca aparece en el portal. El proveedor puede validar `X-Shapi-Secreto` o limitar las IP que acepta su origen. Es una limitación documentada |
 | SSRF desde la URL de origen | [§4](#4-proteccion-del-origen-ssrf) |
 | Fuerza bruta en el inicio de sesión | Bloqueo tras 5 intentos y limitación por IP |
-| Enumeración de cuentas | Mensajes genéricos al iniciar sesión y al recuperar la contraseña |
+| Enumeración de cuentas | Mensajes genéricos al iniciar sesión y al recuperar la contraseña, con el mismo tiempo de respuesta exista o no la cuenta. Se acepta que el registro (`409 correo_ya_registrado`, CU-01 2a) y el bloqueo (`423 cuenta_bloqueada`) revelen que una cuenta existe: la limitación por IP frena la enumeración masiva |
 | XSS a través de la marca o de la especificación | Escape de textos, sanitización del Markdown, SVG solo como `<img>` y CSP |
 | Acceso a datos de otra organización | Filtro global, 404 y pruebas automatizadas de aislamiento |
 | Abuso de peticiones | Límites por minuto y cuotas en la compuerta, y limitación en `/api/auth/*` |

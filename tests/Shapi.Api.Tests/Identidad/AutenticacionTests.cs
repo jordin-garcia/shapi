@@ -375,6 +375,24 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     }
 
     [Fact]
+    public async Task RNF_08_ContextoDeLaSesion_ElFiltroGlobalSoloMuestraLaOrganizacionDelUsuario()
+    {
+        var (_, propia) = await CrearMiembro(Rol.Propietario);
+        var (_, ajena) = await CrearMiembro(Rol.Editor);
+        using var scope = _fabrica.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(PoliticasAutorizacion.ClaimOrganizacion, propia.Id.ToString())], "Personal")),
+        };
+        var db = scope.ServiceProvider.GetRequiredService<ShapiDbContext>();
+
+        var visibles = await db.Set<Membresia>().Select(m => m.OrganizacionId).Distinct().ToListAsync();
+
+        Assert.Equal([propia.Id], visibles);
+        Assert.NotEqual(propia.Id, ajena.Id);
+    }
+
+    [Fact]
     public async Task RF_04_Sesion_SinCookie_Responde401()
     {
         Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion")).StatusCode);
