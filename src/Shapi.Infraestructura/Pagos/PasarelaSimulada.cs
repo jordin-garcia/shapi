@@ -233,7 +233,7 @@ public class PasarelaSimulada : IPasarelaPagos
             anio += 2000;
         }
 
-        var ahora = _reloj.AhoraUtc;
+        var ahora = _reloj.Ahora.UtcDateTime;
         if (anio < ahora.Year)
         {
             return false;
