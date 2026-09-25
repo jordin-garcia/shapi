@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Persistencia;
+using Microsoft.Extensions.Configuration;
 
 namespace Shapi.Infraestructura.Identidad;
 
@@ -19,17 +20,20 @@ public class PersonalAutenticacionHandler : AuthenticationHandler<PersonalAutent
 {
     private readonly ShapiDbContext _db;
     private readonly IReloj _reloj;
+    private readonly IConfiguration _config;
 
     public PersonalAutenticacionHandler(
         IOptionsMonitor<PersonalAutenticacionOpciones> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
         ShapiDbContext db,
-        IReloj reloj)
+        IReloj reloj,
+        IConfiguration config)
         : base(options, logger, encoder)
     {
         _db = db;
         _reloj = reloj;
+        _config = config;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -52,7 +56,13 @@ public class PersonalAutenticacionHandler : AuthenticationHandler<PersonalAutent
             return AuthenticateResult.Fail("Sesión no encontrada.");
         }
 
-        if (sesion.RevocadaEn.HasValue || sesion.ExpiraEn < ahora || sesion.UltimoUsoEn.AddHours(8) < ahora)
+        if (sesion.Ambito != AmbitoSesion.Personal)
+        {
+            return AuthenticateResult.Fail("Ámbito de sesión inválido.");
+        }
+
+        var inactividadHoras = _config.GetValue<int?>("Sesion:InactividadHoras") ?? 8;
+        if (sesion.RevocadaEn.HasValue || sesion.ExpiraEn < ahora || sesion.UltimoUsoEn.AddHours(inactividadHoras) < ahora)
         {
             return AuthenticateResult.Fail("Sesión inválida o expirada.");
         }
@@ -65,9 +75,9 @@ public class PersonalAutenticacionHandler : AuthenticationHandler<PersonalAutent
         }
 
         var usuario = await _db.Set<Usuario>().FirstOrDefaultAsync(u => u.Id == sesion.UsuarioId);
-        if (usuario == null)
+        if (usuario == null || usuario.Estado == EstadoCuenta.Desactivado)
         {
-            return AuthenticateResult.Fail("Usuario no encontrado.");
+            return AuthenticateResult.Fail("Usuario no encontrado o desactivado.");
         }
 
         var membresia = await _db.Set<Shapi.Dominio.Organizaciones.Membresia>()

@@ -25,6 +25,8 @@ public static class IdentidadModulo
 {
     public static IServiceCollection AgregarModuloIdentidad(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<Shapi.Aplicacion.Comun.IContextoOrganizacion, Shapi.Api.Filtros.ContextoOrganizacionHttp>();
         services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
         services.AgregarPoliticasShapi();
 
@@ -33,10 +35,27 @@ public static class IdentidadModulo
 
         services.AddRateLimiter(options =>
         {
-            options.AddFixedWindowLimiter("AuthLimiter", opt =>
+            options.AddPolicy("AuthLimiter", context =>
             {
-                opt.PermitLimit = 10;
-                opt.Window = TimeSpan.FromMinutes(1);
+                var isSesion = context.Request.Path.StartsWithSegments("/api/auth/sesion", StringComparison.OrdinalIgnoreCase);
+                if (isSesion)
+                {
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 100,
+                            Window = TimeSpan.FromMinutes(1)
+                        });
+                }
+                
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1)
+                    });
             });
         });
 
@@ -69,12 +88,16 @@ public static class IdentidadModulo
         [FromServices] IPasswordHasher<Usuario> hasher,
         [FromServices] IReloj reloj)
     {
-        if (peticion.Contrasena.Length < 10 || peticion.Contrasena == peticion.Correo)
+        if (string.IsNullOrWhiteSpace(peticion.Contrasena) || peticion.Contrasena.Length < 10 || 
+            string.IsNullOrWhiteSpace(peticion.Correo) || string.IsNullOrWhiteSpace(peticion.Nombre) ||
+            peticion.Contrasena == peticion.Correo)
         {
-            return TypedResults.BadRequest(new { error = "errores", detalle = "Contraseña inválida" });
+            return TypedResults.BadRequest(new { error = "errores", detalle = "Datos inválidos" });
         }
 
-        var existe = await db.Set<Usuario>().IgnoreQueryFilters().AnyAsync(u => u.Correo == peticion.Correo);
+        var correoNormalizado = peticion.Correo.Trim().ToLowerInvariant();
+
+        var existe = await db.Set<Usuario>().IgnoreQueryFilters().AnyAsync(u => u.Correo == correoNormalizado);
         if (existe)
         {
             return TypedResults.Conflict(new { error = "correo_ya_registrado" });
@@ -83,14 +106,16 @@ public static class IdentidadModulo
         var ahora = reloj.Ahora;
         var usuario = new Usuario
         {
+            Id = Guid.NewGuid(),
             Nombre = peticion.Nombre,
-            Correo = peticion.Correo,
+            Correo = correoNormalizado,
             HashContrasena = ""
         };
         usuario.HashContrasena = hasher.HashPassword(usuario, peticion.Contrasena);
 
         var org = new Organizacion
         {
+            Id = Guid.NewGuid(),
             Nombre = peticion.Organizacion,
             Tipo = TipoOrganizacion.Proveedor
         };
@@ -124,6 +149,7 @@ public static class IdentidadModulo
         {
             HashToken = tokenHash,
             UsuarioId = usuario.Id,
+            Correo = usuario.Correo,
             Tipo = TipoToken.VerificacionCorreo,
             ExpiraEn = ahora.AddHours(24)
         };
@@ -131,6 +157,7 @@ public static class IdentidadModulo
         var correo = new CorreoSaliente
         {
             Destinatario = usuario.Correo,
+            Asunto = "Verifica tu correo electrónico",
             Plantilla = "verificacion_correo",
             Datos = $"{{\"token\":\"{tokenClaro}\"}}",
             Estado = EstadoCorreo.Pendiente
@@ -142,7 +169,14 @@ public static class IdentidadModulo
         db.Add(token);
         db.Add(correo);
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return TypedResults.Conflict(new { error = "correo_ya_registrado", detalle = ex.InnerException?.Message ?? ex.Message });
+        }
 
         return TypedResults.Ok();
     }
@@ -197,7 +231,13 @@ public static class IdentidadModulo
         [FromServices] ShapiDbContext db,
         [FromServices] IReloj reloj)
     {
-        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == peticion.Correo);
+        if (string.IsNullOrWhiteSpace(peticion.Correo))
+        {
+            return TypedResults.Ok();
+        }
+
+        var correoNormalizado = peticion.Correo.Trim().ToLowerInvariant();
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == correoNormalizado);
         if (usuario == null)
         {
             return TypedResults.Ok();
@@ -235,20 +275,26 @@ public static class IdentidadModulo
         [FromServices] IReloj reloj,
         HttpContext context)
     {
-        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == peticion.Correo);
+        if (string.IsNullOrWhiteSpace(peticion.Correo) || string.IsNullOrWhiteSpace(peticion.Contrasena))
+        {
+            return TypedResults.Json(new { error = "credenciales_invalidas" }, statusCode: 401);
+        }
+
+        var correoNormalizado = peticion.Correo.Trim().ToLowerInvariant();
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == correoNormalizado);
         var ahora = reloj.Ahora;
 
-        if (usuario == null)
+        if (usuario == null || usuario.Estado == EstadoCuenta.Desactivado || usuario.HashContrasena == null)
         {
             return TypedResults.Json(new { error = "credenciales_invalidas" }, statusCode: 401);
         }
 
         if (usuario.BloqueadoHasta > ahora)
         {
-            return TypedResults.Json(new { error = "cuenta_bloqueada" }, statusCode: 401);
+            return TypedResults.Json(new { error = "credenciales_invalidas" }, statusCode: 401);
         }
 
-        var result = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena!, peticion.Contrasena);
+        var result = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena, peticion.Contrasena);
         if (result == PasswordVerificationResult.Failed)
         {
             usuario.IntentosFallidos++;
@@ -258,7 +304,7 @@ public static class IdentidadModulo
                 usuario.IntentosFallidos = 0;
             }
             await db.SaveChangesAsync();
-            return TypedResults.Json(new { error = usuario.BloqueadoHasta > ahora ? "cuenta_bloqueada" : "credenciales_invalidas" }, statusCode: 401);
+            return TypedResults.Json(new { error = "credenciales_invalidas" }, statusCode: 401);
         }
 
         usuario.IntentosFallidos = 0;

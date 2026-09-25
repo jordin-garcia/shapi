@@ -35,6 +35,26 @@ public class CsrfMiddleware
                 });
                 return;
             }
+
+            // Verificamos cabecera Origin (si está presente)
+            if (context.Request.Headers.TryGetValue("Origin", out var originStr) && !string.IsNullOrEmpty(originStr))
+            {
+                if (Uri.TryCreate(originStr, UriKind.Absolute, out var originUri))
+                {
+                    if (!string.Equals(originUri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsJsonAsync(new ProblemDetails
+                        {
+                            Status = StatusCodes.Status403Forbidden,
+                            Type = "csrf",
+                            Title = "La cabecera Origin no coincide con el Host esperado."
+                        });
+                        return;
+                    }
+                }
+            }
         }
 
         await _next(context);
