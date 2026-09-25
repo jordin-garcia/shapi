@@ -13,7 +13,9 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
     [Fact]
     public void ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas()
     {
-        using var alcance = fabrica.Services.CreateScope();
+        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder => 
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
+        using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
 
         servicios.GetRequiredService<IReloj>().Should().BeOfType<RelojSistema>();
@@ -25,7 +27,9 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
     [Fact]
     public async Task ServiciosNulos_AlUsarlos_TerminanSinError()
     {
-        using var alcance = fabrica.Services.CreateScope();
+        var fabricaConfigurada = fabrica.WithWebHostBuilder(builder => 
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy"));
+        using var alcance = fabricaConfigurada.Services.CreateScope();
         var servicios = alcance.ServiceProvider;
         var entrada = new EntradaBitacora(TipoActor.Sistema, null, "Sistema", null,
             AccionesBitacora.SuscripcionSuspendida, "Suspendió por falta de pago la suscripción");
@@ -47,12 +51,16 @@ public class ServiciosComunesTests(WebApplicationFactory<Program> fabrica) : ICl
         var bitacora = Substitute.For<IBitacora>();
         var colaCorreo = Substitute.For<IColaCorreo>();
         var publicador = Substitute.For<IPublicadorCache>();
-        using var fabricaConModulos = fabrica.WithWebHostBuilder(constructor => constructor.ConfigureTestServices(servicios =>
+        using var fabricaConModulos = fabrica.WithWebHostBuilder(constructor => 
         {
-            servicios.AddScoped(_ => bitacora);
-            servicios.AddScoped(_ => colaCorreo);
-            servicios.AddSingleton(publicador);
-        }));
+            constructor.UseSetting("SHAPI_POSTGRES_CADENA", "Host=localhost;Database=dummy");
+            constructor.ConfigureTestServices(servicios =>
+            {
+                servicios.AddScoped(_ => bitacora);
+                servicios.AddScoped(_ => colaCorreo);
+                servicios.AddSingleton(publicador);
+            });
+        });
         using var alcance = fabricaConModulos.Services.CreateScope();
 
         alcance.ServiceProvider.GetRequiredService<IBitacora>().Should().BeSameAs(bitacora);
