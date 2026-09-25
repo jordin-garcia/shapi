@@ -24,11 +24,16 @@ export default function PaginaA11Registro() {
         contrasena,
       });
       navigate(`/verificar-correo?correo=${encodeURIComponent(correo)}`);
-    } catch (error: any) {
-      if (error.details && error.details.errores) {
-        setErrores(error.details.errores);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'details' in error) {
+        const err = error as any;
+        if (err.details && err.details.errores) {
+          setErrores(err.details.errores);
+        } else {
+          setErrores({ general: [err.message] });
+        }
       } else {
-        setErrores({ general: [error.message] });
+        setErrores({ general: [String(error)] });
       }
     }
   };

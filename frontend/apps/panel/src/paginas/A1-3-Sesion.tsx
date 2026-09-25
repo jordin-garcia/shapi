@@ -25,11 +25,16 @@ export default function PaginaA13Sesion() {
       } else {
         navigate('/panel');
       }
-    } catch (error: any) {
-      if (error.details && error.details.titulo) {
-        setErrorVisible(error.details.titulo);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'details' in error) {
+        const err = error as any;
+        if (err.details && err.details.titulo) {
+          setErrorVisible(err.details.titulo);
+        } else {
+          setErrorVisible(err.message);
+        }
       } else {
-        setErrorVisible(error.message);
+        setErrorVisible(String(error));
       }
     }
   };

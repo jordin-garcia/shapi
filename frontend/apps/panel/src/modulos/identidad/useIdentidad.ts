@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { crearCliente, ProblemDetailsError } from '@shapi/api';
 import type { paths } from '@shapi/api/identidad';
-import { clienteSesion } from '../sesion/useSesion';
 
 export const clienteIdentidad = crearCliente<paths>(window.location.origin);
 
