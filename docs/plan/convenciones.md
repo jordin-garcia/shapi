@@ -90,7 +90,7 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
   ```json
   { "type": "about:blank", "title": "El plan no permite más APIs", "status": 422, "codigo": "limite_del_plan", "detalle": { "limite": "apis" } }
   ```
-  Los códigos (`codigo`) son los que aparecen en las especificaciones: `correo_no_verificado`, `limite_del_plan`, `pago_rechazado`, `origen_inaccesible`, etc. Validación de datos → 400, con `errores` por campo. Sin sesión → 401. Sin permiso → 403. Recurso de otra organización o inexistente → 404. Regla de negocio → 422. Conflicto (un duplicado) → 409.
+  Los códigos (`codigo`) son los que aparecen en las especificaciones: `correo_no_verificado`, `limite_del_plan`, `pago_rechazado`, `origen_inaccesible`, etc. Validación de datos → 400 `datos_invalidos`, con `errores` por campo (nombre del campo en camelCase → lista de mensajes). Sin sesión → 401. Sin permiso → 403. Recurso de otra organización o inexistente → 404. Regla de negocio → 422. Conflicto (un duplicado) → 409.
 - **Listas paginadas:** `?pagina=1&tamano=20`, con la respuesta `{ "elementos": [...], "total": 123 }`.
 - **Autorización:** cada endpoint declara su política (`RequireAuthorization("Permiso.X")`) según `docs/specs/04-roles-y-permisos.md`. Los endpoints del portal usan la sesión del ámbito `consumidor` y la organización se resuelve por el host.
 - **CSRF:** todo método distinto de GET exige la cabecera `X-Requested-With: shapi`. El cliente del frontend la agrega siempre.

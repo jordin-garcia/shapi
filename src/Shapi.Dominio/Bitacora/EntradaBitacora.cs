@@ -5,18 +5,18 @@ namespace Shapi.Dominio.Bitacora;
 
 public class EntradaBitacora
 {
-    public long Id { get; set; }
-    public DateTimeOffset Fecha { get; set; }
-    public ActorTipo ActorTipo { get; set; }
-    public Guid? ActorId { get; set; }
-    public string ActorNombre { get; set; } = null!;
-    public Guid? OrganizacionId { get; set; }
-    public string Accion { get; set; } = null!;
-    public string? ObjetivoTipo { get; set; }
-    public Guid? ObjetivoId { get; set; }
-    public string Descripcion { get; set; } = null!;
-    public string? Detalle { get; set; } // JSONB
-    public IPAddress? Ip { get; set; }
+    public long Id { get; private set; }
+    public DateTimeOffset Fecha { get; private set; }
+    public ActorTipo ActorTipo { get; private set; }
+    public Guid? ActorId { get; private set; }
+    public string ActorNombre { get; private set; } = null!;
+    public Guid? OrganizacionId { get; private set; }
+    public string Accion { get; private set; } = null!;
+    public string? ObjetivoTipo { get; private set; }
+    public Guid? ObjetivoId { get; private set; }
+    public string Descripcion { get; private set; } = null!;
+    public string? Detalle { get; private set; } // JSONB
+    public IPAddress? Ip { get; private set; }
 
 
     public EntradaBitacora(ActorTipo actorTipo, Guid? actorId, string actorNombre, Guid? organizacionId, string accion, string? objetivoTipo, Guid? objetivoId, string descripcion, string? detalle, IPAddress? ip)
@@ -34,5 +34,5 @@ public class EntradaBitacora
         Ip = ip;
     }
 
-    public EntradaBitacora() { }
+    protected EntradaBitacora() { }
 }

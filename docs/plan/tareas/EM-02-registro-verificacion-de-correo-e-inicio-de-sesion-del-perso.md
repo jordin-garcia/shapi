@@ -61,3 +61,23 @@ dotnet format Shapi.slnx --verify-no-changes
 - Consumidores (EM-05)
 - Pantallas (EM-03)
 - Envío del correo (JZ-03)
+
+## Resultado
+
+La implementación original es de Emilio (PR #10). Se integró sin la revisión completa, y el 25 de septiembre de 2026 Jordin la corrigió (PR de corrección) para que cumpla los criterios. Lo que queda:
+
+- **Endpoints** (`src/Shapi.Api/Modulos/IdentidadModulo.cs`): `POST /api/auth/registro`, `verificar-correo`, `reenviar-verificacion`, `entrar` y `salir`, y `GET /api/auth/sesion`. Todos los errores son ProblemDetails con `codigo` (`Problemas.Crear`), y el 400 trae `errores` por campo.
+- **Registro:** `RegistroProveedor` y `ValidadorRegistroProveedor` (FluentValidation) en `Shapi.Aplicacion/Identidad`. Crea el usuario, la organización, la membresía de propietario y la Prueba con el ciclo de 09 §4 (`SuscripcionPlataforma.IniciarPrueba`), y encola `verificacion_correo` con `IColaCorreo` en la misma transacción. Los datos del correo son `{ nombre, token }`, donde `token` es el valor del enlace; JZ-03 arma el enlace.
+- **Sesión:** `PersonalAutenticacionHandler` (`Shapi.Api/Identidad`) lee la sesión, el usuario y la membresía sin el filtro global y pone los claims `OrganizacionId`, el rol y `Ambito`. `ContextoOrganizacionHttp` le da la organización al filtro global de los demás módulos.
+- **Dominio:** constructores y métodos en `Usuario` (bloqueo), `Token`, `Sesion` (vigencia y último uso), `Organizacion`, `Membresia` y `SuscripcionPlataforma`. Las propiedades siguen con `private set`.
+- **Tokens:** `SeguridadTokens` genera 32 bytes en Base64Url y guarda el SHA-256 en hex minúsculas.
+- **Seguridad:** CSRF (`CsrfMiddleware`), límite de 10 por minuto por IP en los endpoints con credenciales, con `X-Forwarded-For` desde el borde, y tiempo de respuesta igual exista o no la cuenta.
+- **Permisos:** `Permisos.*` con valores `Permiso.X` para las 28 políticas de 04 §3, incluidas `EditarPerfil` y las tres del consumidor, que llegan con EM-05. Se registran en `PoliticasAutorizacion.AgregarPoliticasShapi()`.
+- **Contrato:** `contratos/openapi/identidad.yaml`, con los códigos reales.
+- **Pruebas:** `tests/Shapi.Api.Tests/Identidad/` (integración con Testcontainers, un contenedor por clase y una base por prueba, y la matriz de permisos) y `tests/Shapi.Dominio.Tests/Identidad/`.
+
+### Decisiones
+- `423 cuenta_bloqueada`, `403 cuenta_desactivada` (solo con la contraseña correcta) y `429 demasiadas_peticiones`. Se agregaron a `CodigosError` y a 10 §1.
+- `GET /api/auth/sesion` y `POST /api/auth/salir` no llevan el límite por IP. El panel consulta la sesión en cada carga y esos endpoints no sirven para adivinar credenciales. Quedó en 10 §1.
+- Los endpoints todavía hacen las consultas a la base. Llevarlas a casos de uso de `Shapi.Aplicacion` (convenciones §6) necesita una abstracción del acceso a datos que ningún módulo tiene aún, y se decide en la convergencia (JG-08).
+
