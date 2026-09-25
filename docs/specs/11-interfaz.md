@@ -56,7 +56,9 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
 | A0.1 | Inicio de Shapi con planes | `Main.dc.html` | `shapi.localhost/` | RF-19 | ✎ (peticiones, miembros, Escala mensual/anual, texto de las claves) |
-| A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | — | — | ✎ (subdominio de ejemplo) |
+| A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | `shapi.localhost/_ui` | — | ✎ (subdominio de ejemplo) |
+
+> A0.2 lleva el host completo a propósito: la prueba del catálogo (`frontend/apps/panel/src/tests/rutas.test.tsx`) exige que cada ruta que empieza con `/` muestre su ID, y la lámina no lo muestra. La ruta `/_ui` se prueba aparte.
 
 ### A1 · Acceso del proveedor (`a1-acceso-proveedor.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |

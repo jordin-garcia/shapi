@@ -124,6 +124,14 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeDefined();
     expect(await screen.findByText(/^A3-1 ·/)).toBeDefined();
   });
+  it('RNF-12 · /_ui muestra la lámina de estilo sin consultar la sesión (DC-01)', async () => {
+    let solicitudes = 0;
+    server.use(http.get('http://localhost/api/auth/sesion', () => { solicitudes++; return new HttpResponse(null, { status: 401 }); }));
+    await abrir('/_ui');
+    expect(await screen.findByText('Plano azul')).toBeDefined();
+    expect(router.state.location.pathname).toBe('/_ui');
+    expect(solicitudes).toBe(0);
+  });
   it('muestra 404 para una dirección desconocida', async () => {
     await abrir('/pagina-inexistente');
     expect(await screen.findByText('Página no encontrada')).toBeDefined();

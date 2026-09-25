@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { EstadoCargando } from '@shapi/ui';
 // A0
+export const A0Lamina = lazy(() => import('./paginas/_UI'));
 export const A0Inicio = lazy(() => import('./paginas/A0-1-Inicio'));
 // A1
 export const A1Registro = lazy(() => import('./paginas/A1-1-Registro'));
