@@ -30,6 +30,8 @@ export interface paths {
                         "application/json": {
                             nombre?: string;
                             rol?: string;
+                            /** @description Nombre visible de la organización del personal */
+                            nombreOrganizacion?: string;
                             /** Format: uuid */
                             organizacionId?: string;
                         };
@@ -46,6 +48,56 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/salir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoca la sesión del personal (EM-02) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-Requested-With": "shapi";
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sesión revocada */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description La sesión ya no está activa */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Solicitud sin protección CSRF */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

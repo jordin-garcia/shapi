@@ -7,7 +7,7 @@ export interface ErrorApi {
 }
 
 export class ProblemDetailsError extends Error {
-  constructor(public details: ErrorApi) {
+  constructor(public details: ErrorApi, public status?: number) {
     super(details.titulo);
     this.name = 'ProblemDetailsError';
   }
@@ -39,7 +39,7 @@ const problemDetailsMiddleware: Middleware = {
         codigo: typeof problem.codigo === 'string' && problem.codigo ? problem.codigo : 'error',
         titulo: typeof problem.title === 'string' && problem.title ? problem.title : 'Ocurrió un error inesperado',
         errores,
-      });
+      }, response.status);
     }
     return response;
   },

@@ -1,18 +1,13 @@
-import { Outlet, NavLink, useNavigate } from 'react-router';
+import { CerrarSesion } from '../modulos/sesion/CerrarSesion';
+import { Outlet, NavLink } from 'react-router';
 import { useSesion } from '../modulos/sesion/useSesion';
 
 export function LayoutAdmin() {
   const { data } = useSesion();
-  const navigate = useNavigate();
   const isAdmin = data?.rol === 'administrador';
 
-  const cerrarSesion = () => {
-    // Provisorio
-    navigate('/entrar');
-  };
-
   const navItem = ({ isActive }: { isActive: boolean }) => 
-    `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[var(--principal)] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
+    `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[#7FA6FF] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
 
   return (
     <div className="min-h-screen bg-[var(--fondo)] flex flex-col overflow-hidden">
@@ -65,15 +60,9 @@ export function LayoutAdmin() {
               <NavLink to="/admin/perfil" className="text-[14px] font-medium leading-relaxed text-[#E8EDF7] truncate hover:underline">
                 {data?.nombre || 'Usuario'}
               </NavLink>
-              <span className="text-[13px] leading-relaxed text-[#8B98B0]">{data?.rol || 'Rol'}</span>
+              <span className="text-[13px] leading-relaxed text-[#8B98B0]">{data?.rol ? data.rol[0].toUpperCase() + data.rol.slice(1) : 'Rol'}</span>
             </div>
-            <button onClick={cerrarSesion} className="w-9 h-9 shrink-0 flex items-center justify-center border border-[#2A3550] rounded-lg text-[#B9C4D8] hover:text-[#E8EDF7] hover:border-[#7FA6FF]" title="Cerrar sesión">
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <path d="M8 3.5 H5 A1.5 1.5 0 0 0 3.5 5 V15 A1.5 1.5 0 0 0 5 16.5 H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M8.5 10 H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"></path>
-                <path d="M13.5 7 L16.5 10 L13.5 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-              </svg>
-            </button>
+            <CerrarSesion />
           </div>
         </nav>
 

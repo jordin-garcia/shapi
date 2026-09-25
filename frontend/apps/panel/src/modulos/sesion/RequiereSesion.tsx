@@ -1,17 +1,12 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router';
+import { EstadoCargando, EstadoError } from '@shapi/ui';
 import { useSesion } from './useSesion';
 
-export function RequiereSesion({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, error } = useSesion();
-
-  if (isLoading) {
-    return <div className="p-8">Cargando sesión...</div>;
-  }
-
-  if (error || !data) {
-    return <Navigate to="/entrar" replace />;
-  }
-
+export function RequiereSesion({ children }: { children: ReactNode }) {
+  const { data, isPending, error, refetch } = useSesion();
+  if (isPending) return <EstadoCargando />;
+  if (error) return <EstadoError reintentar={() => void refetch()} />;
+  if (!data) return <Navigate to="/entrar" replace />;
   return <>{children}</>;
 }

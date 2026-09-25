@@ -63,3 +63,30 @@ Verificación manual con el entorno levantado:
 - El archivo `rutas.tsx` define todo el árbol de navegación usando Lazy Loading.
 - Se generaron los contratos OpenAPI para `/api/apis` y `/api/auth/sesion`, que luego fueron utilizados para autogenerar los clientes con `openapi-fetch`.
 - Los guardias `RequiereSesion` y `RequiereRol` están configurados y funcionando en el router.
+
+### Correcciones verificadas · 2026-09-25
+
+- Se corrigieron las URLs de sesión y APIs para no duplicar `/api`.
+- El selector permite elegir una API desde la lista, conserva la sección al cambiarla y los enlaces usan el ID de la URL. Sin una API seleccionada no se generan enlaces con IDs ficticios.
+- Los guardias y menús aplican los permisos de propietario, editor, lector, administrador y soporte. El soporte conserva acceso de consulta a organizaciones, según 04 §3.2; su barra sigue la versión reducida B3.
+- Cerrar sesión llama a `POST /api/auth/salir` con CSRF, cancela las consultas y limpia la caché privada. Un fallo conserva la sesión y permite reintentar.
+- Se distinguen una sesión ausente (401) y un error de red/servidor; se reutilizan los estados de carga, error y sin permiso de `@shapi/ui`.
+- El encabezado público, la organización del proveedor, los roles y las fuentes Sora/IBM Plex Sans se ajustaron a los mockups. La generación de tipos ejecuta los contratos por módulo y propaga los errores.
+- Las páginas siguen siendo de relleno, como exige DC-02; su implementación corresponde a las tareas de cada responsable. Los componentes diferidos están en `paginasDiferidas.tsx`, sin cambiar la regla de reemplazar únicamente el archivo de cada página.
+
+Evidencia local (Node 24.14.0):
+
+```text
+pnpm lint                  OK (4 paquetes)
+pnpm typecheck             OK (4 paquetes)
+pnpm test                  4 archivos; 75 pruebas aprobadas
+pnpm build                 OK (panel y portal)
+pnpm generar:api           OK (apis.yaml e identidad.yaml)
+node scripts/tareas.mjs --validar  Plan válido: 65 tareas
+git diff --check           OK
+```
+
+- Fase roja: una ruta protegida no resolvía a su página por la consulta incorrecta de sesión; la prueba pasa tras la corrección.
+- Comparación con Chromium/Playwright y API simulada: proveedor, administrador, soporte y encabezado público; estados cargando, error, sin APIs, sin permiso y 404. Capturas locales en `/tmp/shapi-dc02-capturas/`. Se comprobó el proveedor a 1440 y 1280 px, encabezado de 76 px, barra de 272 px y contenido/grupos de N.1.
+- Revisión independiente según `docs/plan/prompts/revision.md`: **LISTO**, sin hallazgos pendientes tras corregir encabezado y ampliar pruebas.
+- Estas correcciones quedan locales, pendientes de la aprobación del usuario para el commit. No se ha ejecutado CI ni integrado un PR para ellas.

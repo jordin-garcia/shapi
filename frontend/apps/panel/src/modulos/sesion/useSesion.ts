@@ -1,20 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
-import { crearCliente } from '@shapi/api';
+import { crearCliente, ProblemDetailsError } from '@shapi/api';
 import type { paths } from '@shapi/api/identidad';
 
-const cliente = crearCliente<paths>('/api');
+export const clienteSesion = crearCliente<paths>(window.location.origin);
 
 export function useSesion() {
   return useQuery({
     queryKey: ['sesion'],
-    queryFn: async () => {
-      // Provisional: in reality it calls /api/auth/sesion
-      // Wait, there's no backend endpoint yet, so this will fail in test/dev
-      // Let's mock a success if we're not using MSW in dev, but for now we should just make the actual call
-      const { data, error } = await cliente.GET('/api/auth/sesion');
-      if (error) throw error;
-      return data;
+    queryFn: async ({ signal }) => {
+      try {
+        const { data, response } = await clienteSesion.GET('/api/auth/sesion', { signal });
+        if (response.status === 401) return null;
+        if (!response.ok || !data) throw new Error('No se pudo consultar la sesión');
+        return data;
+      } catch (error) {
+        if (error instanceof ProblemDetailsError && error.status === 401) return null;
+        throw error;
+      }
     },
-    retry: false
+    retry: false,
   });
 }

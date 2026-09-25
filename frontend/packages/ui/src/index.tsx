@@ -113,3 +113,24 @@ export function Selector({ options, value, onChange }: { options: {label: string
     </select>
   );
 }
+
+// RNF-12: estados comunes para las páginas y los guardias.
+export function EstadoCargando() {
+  return <div role="status" aria-label="Cargando" className="p-4 space-y-3">
+    <Esqueleto className="h-6 w-1/2" /><Esqueleto className="h-24 w-full" />
+    <span className="sr-only">Cargando...</span>
+  </div>;
+}
+
+export function EstadoError({ mensaje = 'No se pudo cargar la información.', reintentar }: { mensaje?: string; reintentar: () => void }) {
+  return <div role="alert" className="eti-a p-4">
+    <p>{mensaje}</p><button type="button" onClick={reintentar} className="underline">Reintentar</button>
+  </div>;
+}
+
+export function EstadoSinPermiso() {
+  return <div role="alert" className="p-8">
+    <h1 className="text-[32px] font-display mb-2">No tiene permiso para ver esta página</h1>
+    <p>Su rol no le permite acceder a este recurso.</p>
+  </div>;
+}

@@ -42,3 +42,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **EM-02:** el endpoint `GET /api/auth/sesion` que crees debe coincidir con la definición añadida en `identidad.yaml`.
   - **Todos:** ya pueden implementar sus pantallas modificando el archivo generado de su componente en `frontend/apps/panel/src/paginas/`. ¡No toquen `rutas.tsx`!
+
+## 2026-09-25 · DC-02 · Correcciones de revisión
+- Hecho: URLs sin prefijo duplicado; selección y enlaces de API; permisos por ruta y menú; cierre real de sesión desde ambos paneles; estados reutilizables; encabezados y tipografía; generación de contratos corregida. Lint, tipos, 75 pruebas y compilaciones aprobados con Node 24.14.0. Comparación visual en Chromium y revisión independiente sin hallazgos.
+- Decisiones: 401 de sesión redirige a entrar; fallos de red/servidor muestran Reintentar. El selector considera 404/501 una lista vacía mientras DC-04 no exista. Sin selección no hay enlaces a una API ficticia. Se conservaron las páginas de relleno. Correcciones sin commit por instrucción del usuario, pendientes de su aprobación.
+- Pendiente o aviso para otros:
+  - **EM-02:** el frontend consume `GET /api/auth/sesion` y `POST /api/auth/salir` (revocación ya prevista en EM-02). Se añadió al contrato provisional `nombreOrganizacion` opcional para el encabezado; el botón de salida limpia la caché solo después de revocar la sesión o recibir 401. Pruebas con MSW; falta la integración con el backend real de su tarea.
+  - **DC-04:** el selector consume `GET /api/apis`, admite endpoint pendiente (404/501) y distingue errores recuperables de servidor/red.

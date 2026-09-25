@@ -1,18 +1,14 @@
-import { Outlet, NavLink, useNavigate } from 'react-router';
+import { CerrarSesion } from '../modulos/sesion/CerrarSesion';
+import { Outlet, NavLink, useParams } from 'react-router';
 import { useSesion } from '../modulos/sesion/useSesion';
 import { SelectorApi } from '../modulos/apis/SelectorApi';
 
 export function LayoutPanel() {
   const { data } = useSesion();
-  const navigate = useNavigate();
-
-  const cerrarSesion = () => {
-    // Provisorio
-    navigate('/entrar');
-  };
+  const { id } = useParams();
 
   const navItem = ({ isActive }: { isActive: boolean }) => 
-    `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[var(--principal)] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
+    `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[#7FA6FF] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
 
   return (
     <div className="min-h-screen bg-[var(--fondo)] flex flex-col overflow-hidden">
@@ -26,7 +22,7 @@ export function LayoutPanel() {
           </svg>
           <span className="font-display text-[20px] font-medium tracking-[-0.03em] text-[#E8EDF7]">Shapi</span>
         </div>
-        <span className="text-[14px] text-[#8B98B0]">Panel del Proveedor</span>
+        <span className="text-[14px] text-[#8B98B0]">{data?.nombreOrganizacion || 'Panel del proveedor'}</span>
       </header>
 
       <div className="flex-1 flex min-h-0">
@@ -41,24 +37,26 @@ export function LayoutPanel() {
               <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">API</span>
               <SelectorApi />
               <div className="flex flex-col gap-[1px]">
-                <NavLink to={`/panel/apis/current/especificacion`} className={navItem}>Especificación</NavLink>
-                <NavLink to={`/panel/apis/current/rutas`} className={navItem}>Rutas expuestas</NavLink>
-                <NavLink to={`/panel/apis/current/configuracion-rutas`} className={navItem}>Configuración por ruta</NavLink>
-                <NavLink to={`/panel/apis/current/dominios`} className={navItem}>Dominios</NavLink>
-                <NavLink to={`/panel/apis/current/portal`} className={navItem}>Portal</NavLink>
-                <NavLink to={`/panel/apis/current/planes`} className={navItem}>Planes</NavLink>
-                <NavLink to={`/panel/apis/current/claves`} className={navItem}>Claves</NavLink>
-                <NavLink to={`/panel/apis/current/consumo`} className={navItem}>Consumo</NavLink>
-                <NavLink to={`/panel/apis/current/consumidores`} className={navItem}>Consumidores</NavLink>
+                {id ? <>
+                <NavLink to={`/panel/apis/${id}/especificacion`} className={navItem}>Especificación</NavLink>
+                <NavLink to={`/panel/apis/${id}/rutas`} className={navItem}>Rutas expuestas</NavLink>
+                <NavLink to={`/panel/apis/${id}/configuracion-rutas`} className={navItem}>Configuración por ruta</NavLink>
+                <NavLink to={`/panel/apis/${id}/dominios`} className={navItem}>Dominios</NavLink>
+                <NavLink to={`/panel/apis/${id}/portal`} className={navItem}>Portal</NavLink>
+                <NavLink to={`/panel/apis/${id}/planes`} className={navItem}>Planes</NavLink>
+                <NavLink to={`/panel/apis/${id}/claves`} className={navItem}>Claves</NavLink>
+                <NavLink to={`/panel/apis/${id}/consumo`} className={navItem}>Consumo</NavLink>
+                <NavLink to={`/panel/apis/${id}/consumidores`} className={navItem}>Consumidores</NavLink>
+                </> : <span className="px-3 text-sm text-[#8B98B0]">Seleccione una API para ver sus opciones</span>}
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">Organización</span>
               <div className="flex flex-col gap-[1px]">
-                <NavLink to="/panel/miembros" className={navItem}>Miembros y roles</NavLink>
-                <NavLink to="/panel/suscripcion" className={navItem}>Suscripción de plataforma</NavLink>
-                <NavLink to="/panel/pagos" className={navItem}>Historial de pagos</NavLink>
+                {data?.rol === 'propietario' && <NavLink to="/panel/miembros" className={navItem}>Miembros y roles</NavLink>}
+                {data?.rol !== 'editor' && <NavLink to="/panel/suscripcion" className={navItem}>Suscripción de plataforma</NavLink>}
+                {data?.rol !== 'editor' && <NavLink to="/panel/pagos" className={navItem}>Historial de pagos</NavLink>}
                 <NavLink to="/panel/soporte" className={navItem}>Casos de soporte</NavLink>
               </div>
             </div>
@@ -69,15 +67,9 @@ export function LayoutPanel() {
               <NavLink to="/panel/perfil" className="text-[14px] font-medium leading-relaxed text-[#E8EDF7] truncate hover:underline">
                 {data?.nombre || 'Usuario'}
               </NavLink>
-              <span className="text-[13px] leading-relaxed text-[#8B98B0]">{data?.rol || 'Rol'}</span>
+              <span className="text-[13px] leading-relaxed text-[#8B98B0]">{data?.rol ? data.rol[0].toUpperCase() + data.rol.slice(1) : 'Rol'}</span>
             </div>
-            <button onClick={cerrarSesion} className="w-9 h-9 shrink-0 flex items-center justify-center border border-[#2A3550] rounded-lg text-[#B9C4D8] hover:text-[#E8EDF7] hover:border-[#7FA6FF]" title="Cerrar sesión">
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <path d="M8 3.5 H5 A1.5 1.5 0 0 0 3.5 5 V15 A1.5 1.5 0 0 0 5 16.5 H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                <path d="M8.5 10 H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"></path>
-                <path d="M13.5 7 L16.5 10 L13.5 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-              </svg>
-            </button>
+            <CerrarSesion />
           </div>
         </nav>
 
