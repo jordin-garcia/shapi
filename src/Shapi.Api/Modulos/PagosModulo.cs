@@ -5,6 +5,7 @@ public static class PagosModulo
 {
     public static IServiceCollection AgregarModuloPagos(this IServiceCollection services)
     {
+        services.AddScoped<Shapi.Aplicacion.Pagos.IPasarelaPagos, Shapi.Infraestructura.Pagos.PasarelaSimulada>();
         return services;
     }
 
