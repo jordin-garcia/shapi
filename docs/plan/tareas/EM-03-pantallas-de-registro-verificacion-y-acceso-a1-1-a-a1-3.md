@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [EM-02, DC-02]
 requisitos: [RF-01, RF-02, RF-04]
 pantallas: [A1.1, A1.2, A1.3]
