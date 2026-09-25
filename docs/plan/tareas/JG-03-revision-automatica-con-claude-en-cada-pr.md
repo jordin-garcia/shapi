@@ -39,7 +39,7 @@ Dos automatizaciones de GitHub para el equipo:
 
 ### Revisión con Claude
 1. Se ejecuta `anthropics/claude-code-action@v1` en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened`), excepto en borradores, con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
-2. El `prompt` pide aplicar `docs/plan/prompts/revision.md` al PR (el ID sale del título `[XX-00]`) y publicar el resultado como **un comentario** en el PR. `claude_args` permite solo lo necesario: `--max-turns 15 --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"`.
+2. El `prompt` pide aplicar `docs/plan/prompts/revision.md` al PR (el ID sale del título `[XX-00]`) y publicar el resultado como **un comentario** en el PR. `claude_args` permite solo lo necesario, sin límite de turnos (el tope lo pone `timeout-minutes`): `--allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"`.
 3. El workflow también responde a `@claude` en comentarios de issues y PR (modo interactivo, en un *job* aparte) solo para usuarios con permiso de escritura, que es el comportamiento por defecto de la acción.
 4. Un `concurrency` por número de PR cancela la revisión anterior cuando llegan *commits* nuevos.
 5. El *job* **no** se agrega a las verificaciones obligatorias de la protección de `main`.

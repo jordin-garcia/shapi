@@ -1,6 +1,8 @@
 # Revisión con Claude (JG-03). Usa la suscripción de Jordin (secreto CLAUDE_CODE_OAUTH_TOKEN).
 # No es una verificación obligatoria de main: si se agota el cupo, falla sin bloquear la integración.
 # La revisión local en contexto limpio del protocolo (B9) sigue siendo obligatoria.
+# No usa --max-turns: una revisión grande necesita más turnos y el límite la marcaba como fallida
+# aunque ya hubiera publicado su comentario. El tope de cada job es timeout-minutes.
 name: Revisión con Claude
 
 on:
@@ -68,7 +70,6 @@ jobs:
           claude_args: >-
             --model claude-opus-5-5
             --effort high
-            --max-turns 15
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
 
   # Responde a @claude en comentarios de issues y PR. La acción solo acepta a usuarios con permiso de escritura.
@@ -95,4 +96,3 @@ jobs:
           claude_args: >-
             --model claude-opus-5-5
             --effort high
-            --max-turns 15
