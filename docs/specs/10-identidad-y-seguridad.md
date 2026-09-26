@@ -15,6 +15,10 @@
 | Cuentas de plataforma | Las crea el administrador y reciben un enlace `definir_contrasena` que vence a los 7 días ([RF-42](03-requisitos.md#rf-42)) |
 | Limitación de peticiones | La API de control limita a 10 peticiones por minuto por IP (`RateLimiter` de ASP.NET Core) los endpoints de `/api/auth/*` que reciben credenciales o tokens: `registro`, `verificar-correo`, `reenviar-verificacion` y `entrar`. Al pasarse responde `429 demasiadas_peticiones` con `Retry-After`. `GET /api/auth/sesion` y `POST /api/auth/salir` no se limitan, porque no sirven para adivinar credenciales y el panel consulta la sesión en cada carga. La IP del cliente se toma de `X-Forwarded-For` solo si la conexión viene del borde (la máquina o una red privada, como la de Docker) |
 
+Los enlaces enviados por correo usan el dominio base configurado. La verificación lleva a
+`https://{dominio_base}/verificar-correo?token={token}` y la recuperación a
+`https://{dominio_base}/restablecer?token={token}`; el token se codifica como componente de la URL.
+
 ### Enrutamiento después de iniciar sesión
 
 | Rol | Destino |

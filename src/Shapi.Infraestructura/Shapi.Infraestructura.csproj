@@ -15,4 +15,8 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
         <PackageReference Include="StackExchange.Redis" />
     </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="Correo\Plantillas\*.html" />
+        <EmbeddedResource Include="Correo\Plantillas\*.txt" />
+    </ItemGroup>
 </Project>
