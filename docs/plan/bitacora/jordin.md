@@ -131,3 +131,8 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - Un falso positivo solo lo desbloquea Jordin, con `--admin`; por eso `enforce_admins` queda desactivado.
 - Pendiente o aviso para otros:
   - **Todos:** desde este PR, un PR no se integra si la revisión automática con Claude tiene hallazgos de corrección. Esto reemplaza el aviso del 23 de septiembre que decía que no era obligatoria. Corrijan y hagan *push*: la revisión se repite sola. Si falló por algo externo, `gh run rerun <id> --failed`; volver a ejecutarla no repite una revisión que ya terminó. Si creen que es un falso positivo, explíquenlo en el PR y avísenle a Jordin, que es el único que puede integrarlo con `--admin`. La cuota sigue siendo la de Jordin: eviten *pushes* innecesarios.
+
+## 2026-09-26 · JG-03 · Falso positivo del check de revisión
+- Hecho: `revision-claude` bloqueó el #24 aunque su revisión decía `VEREDICTO: LISTO` sin hallazgos. `scripts/veredicto-revision.mjs` confundía el texto libre "Corrección de auditoría…" con la sección `CORRECCIÓN`, y además contaba el propio encabezado como hallazgo. Ahora los encabezados se buscan en MAYÚSCULAS y solo en su línea. Hay una prueba con la estructura real de esa revisión. Ningún PR se integró por este error: la barrera bloqueó de más, nunca de menos.
+- Pendiente o aviso para otros:
+  - **Todos:** si `revision-claude` falla y el comentario de la revisión dice `VEREDICTO: LISTO`, avísenle a Jordin: es un error del check, no de su PR.

@@ -16,11 +16,15 @@ import { fileURLToPath } from "node:url";
 
 const BOT = "github-actions[bot]";
 const MARCA = "🤖 Revisión automática con Claude";
-// Las palabras clave pueden venir con formato Markdown: **CORRECCIÓN**, ### OPCIONAL, > VEREDICTO…
-const PREFIJO = String.raw`^[\s>*#_\-]*`;
-const RE_CORRECCION = new RegExp(PREFIJO + String.raw`CORRECCI[ÓO]N`, "im");
-const RE_OPCIONAL = new RegExp(PREFIJO + String.raw`OPCIONAL`, "im");
-const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`VEREDICTO:\s*\**\s*(LISTO|CORREGIR)`, "im");
+// Las palabras clave pueden venir con formato Markdown: **CORRECCIÓN**, ### OPCIONAL, > VEREDICTO… El prefijo no
+// acepta saltos de línea: si los aceptara, el encabezado empezaría en la línea vacía anterior y la propia línea
+// "CORRECCIÓN (…)" contaría como un hallazgo.
+const PREFIJO = String.raw`^[ \t>*#_\-]*`;
+// Los encabezados de revision.md van en MAYÚSCULAS y seguidos de "(" o ":". Así no se confunden con el texto libre
+// ("Corrección de auditoría…", "Opcionalmente…"), que la revisión puede escribir antes de las secciones.
+const RE_CORRECCION = new RegExp(PREFIJO + String.raw`CORRECCI[ÓO]N\**\s*[(:]`, "m");
+const RE_OPCIONAL = new RegExp(PREFIJO + String.raw`OPCIONAL\**\s*[(:]`, "m");
+const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`VEREDICTO:\s*\**\s*(LISTO|CORREGIR)`, "m");
 
 /** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha, editado}'` (un JSON por línea) en un arreglo. */
 export function leerComentarios(texto) {

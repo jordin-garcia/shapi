@@ -101,6 +101,30 @@ test("los hallazgos con viñetas también cuentan como corrección", () => {
   assert.equal(evaluarVeredicto([comentario(`🤖 Revisión automática con Claude\nCommit revisado: ${SHA}\n\n\`\`\`\n${sinHallazgos}`)], SHA, "EM-03").estado, "aprobada");
 });
 
+test("la palabra «Corrección» en el texto libre no se confunde con la sección de hallazgos (PR #24)", () => {
+  // Estructura real de la revisión del #24: el texto libre empieza con "Corrección de auditoría…" antes de la sección.
+  const cuerpo = [
+    "REVISIÓN JG-01",
+    "Corrección de auditoría (paso 4, H-12 a H-29) hecha por el coordinador.",
+    "",
+    "Puntos revisados:",
+    "- Cada cambio corresponde a un hallazgo.",
+    "- Correcciones de la auditoría: la subsección está.",
+    "",
+    "CORRECCIÓN (obligatorio corregir):",
+    "Ninguno",
+    "",
+    "OPCIONAL (no bloquea):",
+    "1. Un detalle.",
+    "",
+    "VEREDICTO: LISTO",
+  ].join("\n");
+  const comentarioReal = `🤖 Revisión automática con Claude\nCommit revisado: ${SHA}\n\n${cuerpo}`;
+  assert.equal(evaluarVeredicto([comentario(comentarioReal)], SHA, "JG-01").estado, "aprobada");
+  const conHallazgo = comentarioReal.replace("CORRECCIÓN (obligatorio corregir):\nNinguno", "CORRECCIÓN (obligatorio corregir):\n1. [a.md:3] Falta algo.");
+  assert.equal(evaluarVeredicto([comentario(conHallazgo)], SHA, "JG-01").estado, "corregir");
+});
+
 test("las notas posteriores al veredicto no lo cambian", () => {
   const conNotas = revision(SHA, LISTO) + "\n\nNotas de la revisión: la ronda anterior decía\nVEREDICTO: CORREGIR";
   assert.equal(evaluarVeredicto([comentario(conNotas)], SHA, "EM-03").estado, "aprobada");
