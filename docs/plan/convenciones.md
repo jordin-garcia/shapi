@@ -49,7 +49,7 @@ scripts/
 
 ## 2. Qué pertenece a quién
 
-Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes".
+Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes". La excepción es el coordinador (Jordin): puede modificar cualquier archivo de la tabla, incluidos los archivos calientes de §3, cuando audita y corrige el trabajo integrado (`protocolo.md` §E).
 
 | Persona | Backend (`src/*/<Modulo>/`, `tests/*/<Modulo>/`) | Frontend | Otros |
 |---|---|---|---|

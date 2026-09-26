@@ -98,3 +98,10 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
 - La CI también corre con el evento `edited`, para volver a validar cuando se corrige el título. La revisión con Claude (JG-03) se repite solo si cambió el título.
 - Motivo: EM-02 (#10) se integró con el título "EM-02: …", y la revisión automática no revisó criterios ni alcance. Pruebas en `scripts/tareas.test.mjs`.
 
+
+### Correcciones de la auditoría (2026-09-26)
+- Autorización permanente del coordinador para corregir el trabajo de cualquier persona. La auditoría del 25 de septiembre (`docs/plan/auditoria-2026-09-25.md`) encontró incumplimientos de tareas y especificaciones en código ya integrado, que las pruebas, la CI y la revisión automática no detectaron. Jordin audita cada tarea integrada en `main` y corrige lo que encuentra.
+  - `docs/plan/protocolo.md`: sección nueva §E, "Auditoría del coordinador después de cada integración", y referencias a ella en B6, §C y §D.
+  - `AGENTS.md`: la excepción en "Antes de hacer cualquier cosa", el pedido "Audita <ID>", "Preguntar antes" y "Nunca".
+  - `docs/plan/convenciones.md` §2, `docs/plan/README.md` (regla de oro 2 y preguntas frecuentes) y `docs/plan/prompts/revision.md` (alcance y cierre de los PR de corrección).
+- Se integra el plan de correcciones de la auditoría (hallazgos H-01 a H-114, en 17 pasos).
