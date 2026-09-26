@@ -75,11 +75,16 @@ function VerificarEnlace({ token }: { token: string }) {
   const [error, setError] = useState<ErrorFormulario | null>(null);
   // El enlace es de un solo uso: se verifica una sola vez por token, aunque el efecto se ejecute dos veces (StrictMode).
   const verificado = useRef<string | null>(null);
+  // Si la verificación funcionó y lo que falló fue consultar la sesión, "Reintentar" no vuelve a enviar el token.
+  const confirmado = useRef(false);
 
   const verificar = useCallback(async () => {
     setError(null);
     try {
-      await verificarCorreo(token);
+      if (!confirmado.current) {
+        await verificarCorreo(token);
+        confirmado.current = true;
+      }
       await irAlDestino();
     } catch (causa) {
       setError(interpretarError(causa));

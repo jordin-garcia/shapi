@@ -33,6 +33,10 @@ async function abrir(ruta: string) {
 }
 
 const campo = (etiqueta: string) => screen.getByLabelText(etiqueta);
+const ENLACE_REENVIADO = 'Si su correo todavía no está confirmado, le llegará un enlace nuevo en unos minutos.';
+// Así responde la API ante una excepción no controlada (AddProblemDetails + UseExceptionHandler): sin `codigo`.
+const errorDelServidor = () => HttpResponse.json({ type: 'https://tools.ietf.org/html/rfc9110#section-15.6.1', title: 'An error occurred while processing your request.', status: 500 },
+  { status: 500, headers: { 'Content-Type': 'application/problem+json' } });
 const errorBajo = (etiqueta: string) => campo(etiqueta).parentElement!.textContent;
 
 beforeEach(() => {
@@ -132,7 +136,7 @@ describe('RF-02 · A1.2 Verificación de correo', () => {
     expect(screen.getByText('No podrá publicar APIs mientras su correo no esté confirmado.')).toBeDefined();
 
     await userEvent.click(screen.getByRole('button', { name: 'Enviar el enlace otra vez' }));
-    expect(await screen.findByRole('status')).toBeDefined();
+    expect((await screen.findByRole('status')).textContent).toBe(ENLACE_REENVIADO);
     expect(peticiones).toEqual([{ ruta: 'reenviar', csrf: 'shapi', cuerpo: { correo: 'ana.morales@enviosxelaju.com' } }]);
   });
 
@@ -156,7 +160,7 @@ describe('RF-02 · A1.2 Verificación de correo', () => {
     expect(await screen.findByText('El enlace venció o ya se usó.')).toBeDefined();
     await userEvent.type(campo('Correo electrónico'), 'ana.morales@enviosxelaju.com');
     await userEvent.click(screen.getByRole('button', { name: 'Enviar el enlace otra vez' }));
-    expect(await screen.findByRole('status')).toBeDefined();
+    expect((await screen.findByRole('status')).textContent).toBe(ENLACE_REENVIADO);
     expect(peticiones).toEqual([{ ruta: 'reenviar', csrf: 'shapi', cuerpo: { correo: 'ana.morales@enviosxelaju.com' } }]);
     expect(router.state.location.pathname).toBe('/verificar-correo');
   });
@@ -166,6 +170,22 @@ describe('RF-02 · A1.2 Verificación de correo', () => {
     await abrir('/verificar-correo?token=abc');
     expect(await screen.findByText('Cuenta desactivada.')).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Enviar el enlace otra vez' })).toBeNull();
+  });
+
+  it('RF-02 si falla la consulta de la sesión después de verificar, "Reintentar" no reenvía el token usado', async () => {
+    let verificaciones = 0;
+    let consultas = 0;
+    server.use(
+      http.post(`${API}/verificar-correo`, () => { verificaciones++; conSesion = true; return new HttpResponse(null, { status: 200 }); }),
+      http.get(`${API}/sesion`, () => (++consultas === 1 ? errorDelServidor() : HttpResponse.json({
+        usuario: { nombre: 'Ana', correo: 'ana@enviosxelaju.com' }, organizacion: { id: 'org-1', nombre: 'Envíos Xelajú, S.A.' },
+        rol: 'propietario', correoVerificado: true, destino: '/panel/apis',
+      }))),
+    );
+    await abrir('/verificar-correo?token=abc');
+    await userEvent.click(within(await screen.findByRole('alert')).getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/panel/apis'));
+    expect(verificaciones).toBe(1);
   });
 
   it('RF-02 un error del servidor permite reintentar la verificación', async () => {
@@ -203,6 +223,35 @@ describe('RF-04 · A1.3 Inicio de sesión', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(destino));
     expect(peticiones).toEqual([{ ruta: 'entrar', csrf: 'shapi', cuerpo: { correo: 'ana.morales@enviosxelaju.com', contrasena: 'ContraValida123' } }]);
+  });
+
+  it('RF-04 un 500 de la API (ProblemDetails sin codigo) muestra el aviso en español con "Reintentar"', async () => {
+    let intentos = 0;
+    server.use(http.post(`${API}/entrar`, () => {
+      if (++intentos === 1) return errorDelServidor();
+      conSesion = true;
+      return new HttpResponse(null, { status: 200 });
+    }));
+    await abrir('/entrar');
+    await userEvent.type(await screen.findByLabelText('Correo electrónico'), 'ana.morales@enviosxelaju.com');
+    await userEvent.type(campo('Contraseña'), 'ContraValida123');
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('No se pudo completar la solicitud. Revise su conexión e intente de nuevo.');
+    expect(aviso.textContent).not.toContain('An error occurred');
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/panel/apis'));
+  });
+
+  it('RF-04 si la sesión no quedó iniciada después de entrar, lo avisa y permite volver a intentar', async () => {
+    server.use(http.post(`${API}/entrar`, () => new HttpResponse(null, { status: 200 })));
+    await abrir('/entrar');
+    await userEvent.type(await screen.findByLabelText('Correo electrónico'), 'ana.morales@enviosxelaju.com');
+    await userEvent.type(campo('Contraseña'), 'ContraValida123');
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    expect(within(await screen.findByRole('alert')).getByRole('button', { name: 'Reintentar' })).toBeDefined();
+    expect((screen.getByRole('button', { name: 'Entrar' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(router.state.location.pathname).toBe('/entrar');
   });
 
   it.each([

@@ -57,7 +57,7 @@ export default function PaginaA11Registro() {
           <CampoEtiquetado etiqueta="Correo electrónico" type="email" value={datos.correo} onChange={cambiar('correo')} error={errorDe('correo')} autoComplete="email" />
           <CampoEtiquetado etiqueta="Nombre de la organización" value={datos.organizacion} onChange={cambiar('organizacion')} error={errorDe('organizacion')} autoComplete="organization" />
           <CampoEtiquetado etiqueta="Contraseña" type="password" value={datos.contrasena} onChange={cambiar('contrasena')} error={errorDe('contrasena')}
-            autoComplete="new-password" className={datos.contrasena ? 'tracking-[0.18em]' : ''} />
+            autoComplete="new-password" style={datos.contrasena ? { letterSpacing: '0.18em' } : undefined} />
         </div>
 
         <div className="flex flex-col gap-5 mt-8">

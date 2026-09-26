@@ -22,10 +22,12 @@ export interface ErrorFormulario {
 export const MENSAJE_SIN_CONEXION = 'No se pudo completar la solicitud. Revise su conexión e intente de nuevo.';
 
 export function interpretarError(error: unknown): ErrorFormulario {
-  if (error instanceof ProblemDetailsError) {
+  // Los errores de negocio traen un `codigo` del contrato. Un 5xx, aunque venga como ProblemDetails (el manejador de
+  // excepciones de la API responde sin `codigo` y con un título en inglés), es un error del servidor.
+  if (error instanceof ProblemDetailsError && (error.status ?? 0) < 500 && error.details.codigo !== 'error') {
     return { codigo: error.details.codigo, mensaje: error.details.titulo, errores: error.details.errores ?? {} };
   }
-  // Red caída o respuesta del servidor sin ProblemDetails (por ejemplo, un 500 o un 502 del borde).
+  // Red caída, error del servidor o respuesta sin ProblemDetails (por ejemplo, un 502 del borde).
   return { codigo: null, mensaje: MENSAJE_SIN_CONEXION, errores: {} };
 }
 
@@ -59,6 +61,8 @@ export function useIrAlDestino() {
   const navegar = useNavigate();
   return useCallback(async () => {
     const sesion = await cache.fetchQuery({ queryKey: claveSesion, queryFn: consultarSesion, staleTime: 0 });
-    await navegar(sesion?.destino ?? '/entrar', { replace: true });
+    // Sin sesión (por ejemplo, si el navegador no guardó la cookie) se avisa en lugar de volver a la misma página.
+    if (!sesion) throw new Error('La sesión no quedó iniciada');
+    await navegar(sesion.destino, { replace: true });
   }, [cache, navegar]);
 }

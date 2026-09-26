@@ -73,7 +73,7 @@ Lo terminó Jordin (coordinador, protocolo §E4) el 26 de septiembre, a partir d
 - **Fuera de A1, necesario para que las pantallas coincidan con el mockup:**
   - `packages/ui/src/style.css` declara `@source "./"`. Tailwind v4 solo buscaba clases en la app, así que las que usan únicamente los componentes base (`h-11`, `text-white`…) no se generaban y los campos y botones salían sin tamaño ni color en el navegador (hallazgo H-115 de la auditoría, de DC-01);
   - `LayoutPublico` ahora deja que la tarjeta se centre (`main` flexible, sin el relleno de 32 px) y el logotipo tiene el `gap` de 11 px y el `letter-spacing` del mockup.
-- **Pruebas:** 21 en `apps/panel/src/tests/Identidad.test.tsx` (RF-01, RF-02 y RF-04, con MSW y StrictMode), una de regresión en `packages/ui/src/style.test.tsx`, y en `rutas.test.tsx` las pantallas implementadas se reconocen por su título y ninguna de las tres páginas públicas consulta la sesión. Frontend: 124 pruebas.
+- **Pruebas:** 24 en `apps/panel/src/tests/Identidad.test.tsx` (RF-01, RF-02 y RF-04, con MSW y StrictMode), una de regresión en `packages/ui/src/style.test.tsx`, y en `rutas.test.tsx` las pantallas implementadas se reconocen por su título y ninguna de las tres páginas públicas consulta la sesión. Frontend: 127 pruebas.
 - **Decisiones:**
   - Manda 10 §1: el enlace es `/verificar-correo?token=`, no `/verificar?token=`, y se corrigió el texto de la tarea. El archivo de A1.3 es `A1-3-Sesion.tsx`, el que creó DC-02.
   - Los formularios usan `noValidate`, así que los mensajes de validación son los de la API, en español y debajo de cada campo, y no las burbujas del navegador.

@@ -200,10 +200,10 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
   - los errores de validación de la API (`errores` por campo) se muestran debajo de cada campo;
   - `correo_ya_registrado` se muestra debajo del correo;
   - los demás errores con `codigo` (credenciales incorrectas, cuenta bloqueada o desactivada, demasiadas peticiones) se muestran en un aviso de alerta arriba del formulario, con el mensaje de la API;
-  - si la red o el servidor fallan sin ProblemDetails, el aviso ofrece «Reintentar», que vuelve a enviar el formulario.
+  - si falla la red o el servidor (un 5xx, aunque venga como ProblemDetails sin `codigo` del contrato), el aviso dice «No se pudo completar la solicitud. Revise su conexión e intente de nuevo.» y ofrece «Reintentar», que vuelve a enviar el formulario. Si la sesión no quedó iniciada después de entrar, se avisa lo mismo.
 - **A1.2 sin `token`:** es el aviso «Revise su correo» del mockup, con el correo de `?correo=`. «Enviar el enlace otra vez» pide un enlace nuevo y confirma con «Si su correo todavía no está confirmado, le llegará un enlace nuevo en unos minutos.», un mensaje que no revela si la cuenta existe (10 §1).
 - **A1.2 con `?token=`**, el destino del enlace del correo (10 §1):
   - muestra «Confirmando su correo» mientras llama a la API, una sola vez por token;
   - si la verificación funciona, consulta la sesión y lleva al destino según el rol;
   - si el enlace venció o ya se usó (`token_invalido`), muestra «Enlace no válido» y un campo de correo para pedir otro, porque el enlace no trae la dirección;
-  - cualquier otro error muestra «No se pudo confirmar su correo» con el mensaje; si es de red o del servidor, con «Reintentar».
+  - cualquier otro error muestra «No se pudo confirmar su correo» con el mensaje. Si es de red o del servidor, ofrece «Reintentar», y si el correo ya se confirmó y solo falló la consulta de la sesión, el reintento no vuelve a enviar el token.

@@ -41,7 +41,7 @@ export default function PaginaA13Sesion() {
         <div className="flex flex-col gap-5 mt-8">
           <CampoEtiquetado etiqueta="Correo electrónico" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="email" />
           <CampoEtiquetado etiqueta="Contraseña" type="password" value={contrasena} onChange={e => setContrasena(e.target.value)}
-            autoComplete="current-password" className={contrasena ? 'tracking-[0.18em]' : ''} />
+            autoComplete="current-password" style={contrasena ? { letterSpacing: '0.18em' } : undefined} />
           <div className="flex justify-end">
             <Link to="/recuperar" className="text-sm text-principal hover:text-principal-hover no-underline hover:underline">¿Olvidó su contraseña?</Link>
           </div>
