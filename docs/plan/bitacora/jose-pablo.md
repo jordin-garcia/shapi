@@ -23,3 +23,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **JZ-05:** puede registrar Envíos Xelajú en `http://origen-envios:8080` y Agro Precios en `http://origen-agro:8080` dentro de Compose.
   - **JZ-06:** los Dockerfiles de ambos orígenes ya están listos para el ambiente productivo simulado.
+
+## 2026-09-25 · JZ-03 · Envío de correos desde la bandeja de salida
+- Hecho: se implementó el procesamiento cada 5 segundos, envío SMTP con MailKit, remitente configurable, plantillas HTML/texto de verificación y recuperación, escape HTML y cinco intentos con espera progresiva. La integración entrega el correo a Mailpit y lo comprueba con su API.
+- Decisiones: los enlaces canónicos son `/verificar-correo?token=` y `/restablecer?token=` sobre `SHAPI_DOMINIO_BASE`; el quinto fallo conserva el último intervalo calculado de 1 hora aunque el estado ya sea `fallido`; cada correo guarda su resultado antes de procesar el siguiente.
+- Pendiente o aviso para otros:
+  - **EM-03:** `verificacion_correo` recibe `{ nombre, token }` y el enlace enviado apunta a `/verificar-correo?token=`; la pantalla ya puede consumir ese token.
+  - **EM-04:** `recuperacion` recibe `{ nombre, token }` y el enlace enviado apunta a `/restablecer?token=`. Puede incluir `nombrePortal` para usarlo como remitente visible.
+  - **JZ-11:** para agregar plantillas, cree el par `.html`/`.txt` en `Shapi.Infraestructura/Correo/Plantillas`; los marcadores `{{campo}}` se toman de `datos` y se escapan en HTML.

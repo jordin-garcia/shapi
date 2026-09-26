@@ -49,7 +49,7 @@ scripts/
 
 ## 2. Qué pertenece a quién
 
-Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes".
+Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes". La excepción es el coordinador (Jordin): en cualquier PR suyo puede modificar cualquier archivo de esta tabla y de §3, y avisa en su bitácora a la persona dueña (`protocolo.md` §E1). La excepción cubre solo quién edita; las reglas técnicas de §3 (no editar el snapshot ni el lockfile a mano, no editar `Program.cs`, etc.) se siguen aplicando igual.
 
 | Persona | Backend (`src/*/<Modulo>/`, `tests/*/<Modulo>/`) | Frontend | Otros |
 |---|---|---|---|
@@ -61,6 +61,8 @@ Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la t
 Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `docs/specs/` que tienen que ver con su tarea.
 
 ## 3. Archivos calientes y cómo resolver sus conflictos
+
+Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo Jordin", "Cada quien edita los suyos") no aplican al coordinador (§2). Las reglas técnicas sí.
 
 | Archivo | Regla |
 |---|---|
@@ -78,7 +80,7 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
 
 - **Ramas:** `<persona>/<ID>-<descripcion>`, por ejemplo `jose-pablo/JZ-01-infraestructura-local`.
 - ***Commits*** en español, con el formato `tipo(modulo): descripción (ID)`. Los tipos son `feat`, `fix`, `test`, `docs`, `refactor`, `chore` y `ci`.
-- **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla.
+- **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla. La CI rechaza los títulos sin `[<ID>]` o con un ID que no existe.
 - **Integración:** *squash*, con auto-merge cuando pasan las verificaciones obligatorias (`plan`, `backend`, `frontend`). No se exigen aprobaciones humanas. La rama debe estar al día con `main`.
 - `main` siempre tiene que compilar y pasar todas las pruebas.
 
@@ -90,7 +92,7 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
   ```json
   { "type": "about:blank", "title": "El plan no permite más APIs", "status": 422, "codigo": "limite_del_plan", "detalle": { "limite": "apis" } }
   ```
-  Los códigos (`codigo`) son los que aparecen en las especificaciones: `correo_no_verificado`, `limite_del_plan`, `pago_rechazado`, `origen_inaccesible`, etc. Validación de datos → 400, con `errores` por campo. Sin sesión → 401. Sin permiso → 403. Recurso de otra organización o inexistente → 404. Regla de negocio → 422. Conflicto (un duplicado) → 409.
+  Los códigos (`codigo`) son los que aparecen en las especificaciones: `correo_no_verificado`, `limite_del_plan`, `pago_rechazado`, `origen_inaccesible`, etc. Validación de datos → 400 `datos_invalidos`, con `errores` por campo (nombre del campo en camelCase → lista de mensajes). Sin sesión → 401. Sin permiso → 403. Recurso de otra organización o inexistente → 404. Regla de negocio → 422. Conflicto (un duplicado) → 409.
 - **Listas paginadas:** `?pagina=1&tamano=20`, con la respuesta `{ "elementos": [...], "total": 123 }`.
 - **Autorización:** cada endpoint declara su política (`RequireAuthorization("Permiso.X")`) según `docs/specs/04-roles-y-permisos.md`. Los endpoints del portal usan la sesión del ámbito `consumidor` y la organización se resuelve por el host.
 - **CSRF:** todo método distinto de GET exige la cabecera `X-Requested-With: shapi`. El cliente del frontend la agrega siempre.

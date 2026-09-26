@@ -1,167 +1,356 @@
 openapi: 3.1.0
 info:
-  title: Identidad y Seguridad
+  title: API de Control - Identidad
   version: 1.0.0
-  description: API de autenticación y gestión de sesiones para la plataforma Shapi.
+  description: |
+    Registro, verificación de correo e inicio y cierre de sesión del personal (EM-02).
+    La sesión viaja en la cookie `shapi_sesion` (HttpOnly, Secure, SameSite=Lax, Path=/).
+    Todo método distinto de GET exige la cabecera `X-Requested-With: shapi`; si falta, responde 403 `csrf` (10 §1).
+    Los errores siguen ProblemDetails con `codigo` (convenciones §5).
 servers:
-  - url: http://localhost:5000
-    description: Servidor local
+  - url: https://shapi.localhost
+    description: Panel del proveedor detrás del borde (la API escucha en http://localhost:5080)
 
 paths:
   /api/auth/registro:
     post:
-      summary: Registro de proveedor
-      description: Crea un usuario proveedor, su organización y membresía inicial con plan Prueba. Encola el correo de verificación.
+      summary: Registra un proveedor
+      description: |
+        Crea el usuario, la organización proveedora, la membresía de propietario y la suscripción activa al plan Prueba
+        (ciclo de 09 §4), y encola el correo `verificacion_correo` con un enlace que vence a las 24 horas.
+        Límite: 10 peticiones por minuto por IP.
+      operationId: registrarProveedor
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - nombre
-                - correo
-                - organizacion
-                - contrasena
-              properties:
-                nombre:
-                  type: string
-                correo:
-                  type: string
-                  format: email
-                organizacion:
-                  type: string
-                contrasena:
-                  type: string
-                  minLength: 10
+              $ref: '#/components/schemas/PeticionRegistro'
       responses:
         '200':
-          description: Registro exitoso
+          description: Cuenta creada; el correo de verificación quedó en la cola.
         '400':
-          description: Datos inválidos
+          $ref: '#/components/responses/DatosInvalidos'
+        '403':
+          $ref: '#/components/responses/Csrf'
         '409':
-          description: Correo ya registrado
+          description: Ya existe una cuenta con ese correo (`correo_ya_registrado`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
 
   /api/auth/verificar-correo:
     post:
-      summary: Verificación de correo
-      description: Verifica el correo usando el token recibido y establece la sesión si es correcto.
+      summary: Verifica el correo e inicia la sesión
+      description: Marca el correo como verificado y el enlace como usado, y envía la cookie de sesión. Límite de 10 por minuto por IP.
+      operationId: verificarCorreo
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - token
-              properties:
-                token:
-                  type: string
+              $ref: '#/components/schemas/PeticionVerificacion'
       responses:
         '200':
-          description: Correo verificado y sesión iniciada
+          description: Correo verificado y sesión iniciada.
           headers:
             Set-Cookie:
+              $ref: '#/components/headers/CookieSesion'
+        '403':
+          description: Falta la cabecera CSRF (`csrf`) o la cuenta está desactivada (`cuenta_desactivada`).
+          content:
+            application/problem+json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Problema'
         '422':
-          description: Token inválido, expirado o ya usado
+          description: El enlace no existe, venció o ya se usó (`token_invalido`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
 
   /api/auth/reenviar-verificacion:
     post:
-      summary: Reenviar verificación de correo
-      description: Genera y envía un nuevo token de verificación al correo indicado, si existe. Siempre retorna 200 por seguridad.
+      summary: Reenvía el correo de verificación
+      description: |
+        Genera un enlace nuevo si la cuenta existe y su correo no está verificado.
+        Responde igual exista o no la cuenta, para no revelar qué correos están registrados. Límite de 10 por minuto por IP.
+      operationId: reenviarVerificacion
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - correo
-              properties:
-                correo:
-                  type: string
-                  format: email
+              $ref: '#/components/schemas/PeticionReenviar'
       responses:
         '200':
-          description: Operación completada (exista o no el usuario)
+          description: Solicitud recibida.
+        '403':
+          $ref: '#/components/responses/Csrf'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
 
   /api/auth/entrar:
     post:
-      summary: Inicio de sesión
-      description: Verifica las credenciales y establece la cookie de sesión. Bloquea la cuenta temporalmente tras 5 intentos fallidos.
+      summary: Inicia la sesión del personal
+      description: |
+        Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos. El mensaje de credenciales incorrectas es
+        genérico. Límite de 10 por minuto por IP.
+      operationId: entrar
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - correo
-                - contrasena
-              properties:
-                correo:
-                  type: string
-                  format: email
-                contrasena:
-                  type: string
+              $ref: '#/components/schemas/PeticionEntrar'
       responses:
         '200':
-          description: Sesión iniciada
+          description: Sesión iniciada. El destino según el rol se consulta con `GET /api/auth/sesion`.
           headers:
             Set-Cookie:
-              schema:
-                type: string
+              $ref: '#/components/headers/CookieSesion'
         '401':
-          description: Credenciales inválidas o cuenta bloqueada
+          description: El correo o la contraseña no son correctos (`credenciales_invalidas`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '403':
+          description: Falta la cabecera CSRF (`csrf`) o la cuenta está desactivada (`cuenta_desactivada`, solo con la contraseña correcta).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '423':
+          description: La cuenta está bloqueada por intentos fallidos (`cuenta_bloqueada`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
 
   /api/auth/salir:
     post:
-      summary: Cierre de sesión
-      description: Revoca la sesión actual y elimina la cookie.
+      summary: Cierra la sesión
+      description: Revoca la sesión en el servidor y borra la cookie.
+      operationId: salir
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
       responses:
         '200':
-          description: Sesión cerrada
-          headers:
-            Set-Cookie:
-              schema:
-                type: string
+          description: Sesión revocada.
         '401':
-          description: No autenticado
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/Csrf'
 
   /api/auth/sesion:
     get:
-      summary: Obtener sesión actual
-      description: Devuelve los datos de la sesión actual (usuario, organización, rol y destino sugerido).
+      summary: Devuelve la sesión actual
+      description: Usuario, organización, rol, si el correo está verificado y el destino según el rol (10 §1).
+      operationId: obtenerSesion
+      security:
+        - cookieSesion: []
       responses:
         '200':
-          description: Datos de la sesión
+          description: Sesión vigente.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  usuario:
-                    type: object
-                    properties:
-                      nombre:
-                        type: string
-                      correo:
-                        type: string
-                  organizacion:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                        format: uuid
-                      nombre:
-                        type: string
-                  rol:
-                    type: string
-                  correoVerificado:
-                    type: boolean
-                  destino:
-                    type: string
+                $ref: '#/components/schemas/Sesion'
         '401':
-          description: No autenticado
+          $ref: '#/components/responses/SinSesion'
+
+components:
+  securitySchemes:
+    cookieSesion:
+      type: apiKey
+      in: cookie
+      name: shapi_sesion
+
+  parameters:
+    XRequestedWith:
+      name: X-Requested-With
+      in: header
+      required: true
+      description: Protección CSRF (10 §1). El cliente del frontend la agrega siempre.
+      schema:
+        type: string
+        const: shapi
+
+  headers:
+    CookieSesion:
+      description: '`shapi_sesion=<valor>; Path=/; Secure; HttpOnly; SameSite=Lax`. Vence a los 7 días o tras 8 horas de inactividad.'
+      schema:
+        type: string
+
+  responses:
+    DatosInvalidos:
+      description: Datos inválidos (`datos_invalidos`), con los errores por campo.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+          example:
+            type: about:blank
+            title: Revise los datos del formulario.
+            status: 400
+            codigo: datos_invalidos
+            errores:
+              contrasena:
+                - La contraseña debe tener entre 10 y 128 caracteres.
+    Csrf:
+      description: Falta la cabecera `X-Requested-With` o el `Origin` no es el del host (`csrf`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+    SinSesion:
+      description: No hay una sesión vigente. Es un ProblemDetails estándar, sin `codigo`.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              status:
+                type: integer
+    DemasiadasPeticiones:
+      description: Más de 10 peticiones por minuto desde la misma IP (`demasiadas_peticiones`).
+      headers:
+        Retry-After:
+          description: Segundos que hay que esperar.
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+
+  schemas:
+    PeticionRegistro:
+      type: object
+      required: [nombre, correo, organizacion, contrasena]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+        correo:
+          type: string
+          format: email
+          maxLength: 254
+        organizacion:
+          type: string
+          minLength: 2
+          maxLength: 120
+        contrasena:
+          type: string
+          minLength: 10
+          maxLength: 128
+          description: No puede ser igual al correo.
+
+    PeticionVerificacion:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: El valor del enlace de verificación.
+
+    PeticionReenviar:
+      type: object
+      required: [correo]
+      properties:
+        correo:
+          type: string
+          format: email
+
+    PeticionEntrar:
+      type: object
+      required: [correo, contrasena]
+      properties:
+        correo:
+          type: string
+          format: email
+        contrasena:
+          type: string
+
+    Sesion:
+      type: object
+      required: [usuario, organizacion, rol, correoVerificado, destino]
+      properties:
+        usuario:
+          type: object
+          required: [nombre, correo]
+          properties:
+            nombre:
+              type: string
+            correo:
+              type: string
+              format: email
+        organizacion:
+          type: object
+          required: [id, nombre]
+          properties:
+            id:
+              type: string
+              format: uuid
+            nombre:
+              type: string
+        rol:
+          type: string
+          enum: [propietario, editor, lector, administrador, soporte]
+        correoVerificado:
+          type: boolean
+        destino:
+          type: string
+          description: '`/admin/organizaciones` (administrador), `/admin/casos` (soporte) o `/panel/apis` (propietario, editor y lector).'
+          enum: [/panel/apis, /admin/organizaciones, /admin/casos]
+
+    Problema:
+      type: object
+      description: ProblemDetails de la API de control (convenciones §5).
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+          enum:
+            - datos_invalidos
+            - correo_ya_registrado
+            - credenciales_invalidas
+            - cuenta_bloqueada
+            - cuenta_desactivada
+            - token_invalido
+            - csrf
+            - demasiadas_peticiones
+        errores:
+          type: object
+          description: Solo en 400. Mensajes por campo, con el nombre del campo en camelCase.
+          additionalProperties:
+            type: array
+            items:
+              type: string

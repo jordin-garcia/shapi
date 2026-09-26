@@ -2,18 +2,18 @@ namespace Shapi.Dominio.Planes;
 
 public class PlanApi
 {
-    public Guid Id { get; set; }
-    public Guid ApiId { get; set; }
-    public string Nombre { get; set; } = null!;
-    public string Descripcion { get; set; } = null!;
-    public decimal Precio { get; set; }
-    public bool EsGratuito { get; set; }
-    public int VigenciaDias { get; set; }
-    public long CuotaLlamadas { get; set; }
-    public int LimiteMinuto { get; set; }
-    public bool Activo { get; set; }
-    public DateTimeOffset CreadoEn { get; set; }
-    public DateTimeOffset ActualizadoEn { get; set; }
+    public Guid Id { get; private set; }
+    public Guid ApiId { get; private set; }
+    public string Nombre { get; private set; } = null!;
+    public string Descripcion { get; private set; } = null!;
+    public decimal Precio { get; private set; }
+    public bool EsGratuito { get; private set; }
+    public int VigenciaDias { get; private set; }
+    public long CuotaLlamadas { get; private set; }
+    public int LimiteMinuto { get; private set; }
+    public bool Activo { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
-    public PlanApi() { }
+    protected PlanApi() { }
 }

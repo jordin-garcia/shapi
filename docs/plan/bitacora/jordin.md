@@ -68,3 +68,47 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Dominique:** se tocaron `apps/panel/src/rutas.tsx` y `paginasDiferidas.tsx` (una línea en cada uno) para registrar `/_ui`. Actualiza tu rama desde `main` antes de seguir con DC-03.
 
+## 2026-09-25 · EM-02 · Correcciones del registro e inicio de sesión
+- Hecho: se corrigieron los 13 hallazgos obligatorios de la revisión en contexto limpio de EM-02 (PR #10), que se había integrado sin revisión completa. El más grave: la membresía se buscaba con el filtro global activo, así que toda sesión quedaba con el rol `sin_rol` y sin organización, y ninguna política autorizaba a nadie. Además: el límite respondía 503 en vez de 429, faltaban `cuenta_bloqueada`, los errores por campo, el ciclo de 09 §4 y ProblemDetails; un 409 filtraba el detalle de PostgreSQL; había una prueba vacía (`Assert.True(true)`), y las 24 entidades del dominio habían quedado con setters públicos. Pruebas del backend: de 159 a 324.
+- Decisiones:
+  - La corrección la hizo Jordin a pedido del coordinador, para la demostración del Avance 1.
+  - Se revirtieron las entidades ajenas a su versión anterior, y en las de Emilio se agregaron constructores y métodos de dominio.
+  - Ver las decisiones en el Resultado de EM-02: 423/403/429 y sin límite en `sesion` y `salir`.
+- Pendiente o aviso para otros:
+  - **Emilio:** revisa el Resultado de EM-02. Las entidades vuelven a tener `private set`: crea objetos con sus constructores o métodos de fábrica (`new Usuario(...)`, `Token.VerificacionCorreo(...)`, `Sesion.IniciarPersonal(...)`, `SuscripcionPlataforma.IniciarPrueba(...)`) y agrega métodos de dominio en lugar de setters públicos. Los errores se devuelven con `Problemas.Crear(estado, codigo, titulo, errores?)`.
+  - **EM-03 y EM-17:** el contrato real está en `contratos/openapi/identidad.yaml`. Los errores traen `codigo` y, en el 400, `errores` por campo (`nombre`, `correo`, `organizacion`, `contrasena`). El bloqueo es 423 y la cuenta desactivada es 403 `cuenta_desactivada`.
+  - **JZ-03 y EM-03:** los datos de `verificacion_correo` son `{ nombre, token }`. La especificación no fija el formato del enlace. Propuesta: `https://shapi.localhost/verificar-correo?token=<token>` (la ruta de A1.2), y que la pantalla envíe el token a `POST /api/auth/verificar-correo`. Acuérdenlo entre las dos tareas y dejen el formato en 10 §1.
+  - **JZ-06:** la API confía en `X-Forwarded-For` si la conexión viene de la máquina o de una red privada (10 §1). En el ambiente productivo simulado no publiquen el puerto de la API: que solo el borde llegue a ella.
+  - **Todos:** para exigir un permiso, usen `RequireAuthorization(Permisos.X)`. Si prueban endpoints con sesión, usen `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs` como ejemplo (un contenedor por clase y una base por prueba).
+
+## 2026-09-25 · JG-01 · Validar el título de los PR en la CI
+- Hecho: el job `plan` rechaza los PR cuyo título no sea `[<ID>] <título>` con una tarea existente (`node scripts/tareas.mjs --validar-titulo`). La CI se vuelve a ejecutar al editar el PR, y la revisión con Claude también, pero solo si cambió el título. Hay 4 pruebas nuevas en `scripts/tareas.test.mjs`.
+- Decisiones:
+  - La validación va dentro del job `plan`, que ya es obligatorio, para no cambiar la protección de `main`.
+  - Al editar la descripción del PR también se vuelve a ejecutar la CI completa. Es el costo de no tener un job obligatorio aparte.
+- Pendiente o aviso para otros:
+  - **Todos:** el título del PR debe empezar con `[<ID>]`, por ejemplo `[EM-03] Pantallas de registro, verificación y acceso`, o la CI falla en el job `plan`. Si se equivocan, corríjanlo con `gh pr edit --title "..."` y la CI corre sola. Las correcciones de una tarea ya hecha usan el ID de esa tarea.
+
+
+## 2026-09-25 · JZ-03 · Enlaces del portal y reintentos de correo
+- Hecho: corrección posterior de JZ-03 tras revisarla. El motor de plantillas arma los enlaces de verificación y recuperación con `hostPortal` cuando viene en los datos (correos de consumidores), y con el dominio base si no viene (personal). `hostPortal` solo se acepta como `{sub}.{dominio_base}` (una etiqueta ASCII), para que el token no pueda terminar en otro dominio. Los reintentos ahora son 5, con las esperas de 5 s, 30 s, 2 min, 10 min y 1 h, y el correo queda `fallido` al fallar el sexto intento. Pruebas nuevas en `MotorPlantillasCorreoTests` y `CorreoSalienteTests`.
+- Decisiones:
+  - RF-46 dice "se reintentan hasta 5 veces" y el caso de uso lista 5 esperas; el criterio de JZ-03 ("al quinto fallo, `fallido`") dejaba sin usar la espera de 1 h. Mandó la especificación y se corrigió el criterio de la tarea.
+  - El host del enlace lo decide quien encola el correo (`hostPortal`), porque es quien conoce el portal que atendió la petición (`IResolutorPortal`). Quedó en 10 §6 y en el criterio 1 de EM-05.
+  - No se agregó bloqueo de filas (`FOR UPDATE SKIP LOCKED`) en la bandeja de salida: el trabajador corre en una sola instancia (06 §8, `salud:trabajador`).
+- Pendiente o aviso para otros:
+  - **EM-05:** al encolar `verificacion_correo` y `recuperacion` para un consumidor, incluyan `nombrePortal` y `hostPortal` = `{sub}.{dominio_base}` en los datos, armado con el subdominio de la API que resolvió `IResolutorPortal`; no copien la cabecera `Host` ni usen el dominio propio (apunta a la compuerta). Sin `hostPortal` el enlace lleva al panel del personal y el token del consumidor no funciona.
+  - **JZ-11:** 10 §6 dice que ningún correo lleva la marca de Shapi en el cuerpo, pero el criterio 2 de JZ-11 dice que los del personal usan la marca de Shapi. Resuélvanlo antes de implementar (§C).
+  - **José Pablo:** cambié el módulo `Correo` de JZ-03: los correos que quedan `fallido` ahora tienen `intentos = 6` y `proximo_intento_en` vacío, y el motor de plantillas acepta `hostPortal`. Tenlo en cuenta en JZ-11 y JZ-12 (el estado del correo en B3.1).
+
+## 2026-09-26 · JG-01 · Autorización del coordinador y plan de correcciones de la auditoría
+- Hecho: se auditaron las 10 tareas integradas contra su archivo de tarea y las especificaciones. Todo compila y pasa las pruebas, pero hay incumplimientos. El más grave está en EM-01: la secuencia `caso.numero` empieza en 1 y no en 100, y faltan las pruebas de las restricciones. El plan de correcciones está en `docs/plan/auditoria-2026-09-25.md` (114 hallazgos, 17 pasos). El protocolo tiene una sección nueva, §E: el coordinador queda autorizado de forma permanente a corregir directamente el trabajo de cualquier persona.
+- Decisiones:
+  - Cada corrección se integra con el ID de la tarea original: `[<ID>] Correcciones de la auditoría: <tema>`.
+  - Los correos del personal llevan la marca de Shapi y los de los consumidores solo la del portal. Se corrige 10 §6 en el paso 4 del plan.
+  - La revisión con Claude pasará a ser bloqueante (paso 3 del plan).
+- Pendiente o aviso para otros:
+  - **Todos:** desde ahora, Jordin audita cada tarea que se integra en `main` y puede corregir directamente su código, sus pruebas, sus contratos y su documentación, e incluso terminar sus PR abiertos (`protocolo.md` §E). Cuando lo haga, les dejará aquí un aviso en negrita con los archivos que cambió. Actualicen su rama desde `main` antes de seguir trabajando.
+  - **Emilio:** Jordin va a terminar EM-03 (#16) y EM-06 (#14), y a corregir EM-01, EM-02 y EM-17, según el plan de la auditoría. Antes de continuar cada PR tuyo, se coordinará contigo; tus ramas no se modifican (se sigue en una rama nueva, protocolo §E4).
+  - **José Pablo:** se corregirán JZ-01, JZ-02 y JZ-03 (pasos 7 a 9 del plan).
+  - **Dominique:** se corregirán DC-01 y DC-02 (pasos 12 y 13 del plan).

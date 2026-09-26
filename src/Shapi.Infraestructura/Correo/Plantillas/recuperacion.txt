@@ -1,0 +1,6 @@
+Hola, {{nombre}}.
+
+Usted solicitó restablecer su contraseña. Abra el siguiente enlace:
+{{enlace}}
+
+Este enlace vence en 60 minutos. Si usted no solicitó el cambio, puede ignorar este mensaje.

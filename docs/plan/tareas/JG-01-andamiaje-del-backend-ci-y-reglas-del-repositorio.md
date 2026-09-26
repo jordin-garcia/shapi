@@ -92,3 +92,15 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
   - Se agrega `Microsoft.Extensions.Hosting`, que necesita el SDK Worker del trabajador (06 §3).
   - En 07 §4 se precisó la normalización de las llaves (UUID, host y hash en minúsculas; el hash de `cache:`; `{aaaammdd}` en America/Guatemala) y se agregó la fila de `demo:reloj:desplazamiento`.
 - **Configuración de GitHub** (criterio 6): se aplica con `gh` después de integrar este PR.
+
+### Corrección · 2026-09-25
+- El job `plan` valida el título de cada PR con `node scripts/tareas.mjs --validar-titulo`: exige `[<ID>] <título>` con una tarea que exista. El título se pasa en la variable `TITULO_PR` y no se interpola en el comando.
+- La CI también corre con el evento `edited`, para volver a validar cuando se corrige el título. La revisión con Claude (JG-03) se repite solo si cambió el título.
+- Motivo: EM-02 (#10) se integró con el título "EM-02: …", y la revisión automática no revisó criterios ni alcance. Pruebas en `scripts/tareas.test.mjs`.
+
+### Correcciones de la auditoría (2026-09-26)
+- Autorización permanente del coordinador para corregir el trabajo de cualquier persona. La auditoría del 25 de septiembre (`docs/plan/auditoria-2026-09-25.md`) encontró incumplimientos de tareas y especificaciones en código ya integrado, que las pruebas, la CI y la revisión automática no detectaron. Jordin audita cada tarea integrada en `main` y corrige lo que encuentra.
+  - `docs/plan/protocolo.md`: sección nueva §E, "Auditoría del coordinador después de cada integración", con la autorización (E1), cómo se audita (E2), cómo se corrige una tarea integrada (E3), cómo se termina una tarea ajena (E4) y la revisión de sus PR (E5). Hay referencias a ella en la introducción de B ("continúa la auditoría"), B1, B2, B6, B11, §C y §D.
+  - `AGENTS.md`: la excepción en "Antes de hacer cualquier cosa", los pedidos "Audita <ID>" y "continúa la auditoría", "Siempre", "Preguntar antes" y "Nunca".
+  - `docs/plan/convenciones.md` §2 y §3, `.github/pull_request_template.md`, `docs/plan/README.md` (regla de oro 2 y preguntas frecuentes) y `docs/plan/prompts/revision.md` (alcance y cierre de los PR de corrección).
+- Se integra el plan de correcciones de la auditoría (hallazgos H-01 a H-114, en 17 pasos).
