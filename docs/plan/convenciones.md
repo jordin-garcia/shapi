@@ -81,7 +81,7 @@ Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo 
 - **Ramas:** `<persona>/<ID>-<descripcion>`, por ejemplo `jose-pablo/JZ-01-infraestructura-local`.
 - ***Commits*** en español, con el formato `tipo(modulo): descripción (ID)`. Los tipos son `feat`, `fix`, `test`, `docs`, `refactor`, `chore` y `ci`.
 - **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla. La CI rechaza los títulos sin `[<ID>]` o con un ID que no existe.
-- **Integración:** *squash*, con auto-merge cuando pasan las verificaciones obligatorias (`plan`, `backend`, `frontend`). No se exigen aprobaciones humanas. La rama debe estar al día con `main`.
+- **Integración:** *squash*, con auto-merge cuando pasan las verificaciones obligatorias (`plan`, `backend`, `frontend` y `revision-claude`). No se exigen aprobaciones humanas. La rama debe estar al día con `main`. Si `revision-claude` falla por un falso positivo, solo el coordinador integra con `--admin` (`protocolo.md` B11).
 - `main` siempre tiene que compilar y pasar todas las pruebas.
 
 ## 5. Convenciones de la API de control

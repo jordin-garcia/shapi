@@ -1,7 +1,7 @@
 // Pruebas del veredicto de la revisión con Claude (JG-03, check obligatorio). Se ejecutan con: node --test "scripts/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluarVeredicto, leerComentarios } from "./veredicto-revision.mjs";
+import { decidirRevision, evaluarVeredicto, leerComentarios } from "./veredicto-revision.mjs";
 
 const SHA = "2a8538104b56392157a385811d04449a8cdf6df6";
 const OTRO_SHA = "1238c51eb2b8be7c23df68d290fa5315b60d4d3a";
@@ -82,3 +82,38 @@ test("lee los comentarios en JSON por línea, como los entrega gh api --paginate
   assert.equal(comentarios.length, 2);
   assert.equal(evaluarVeredicto(comentarios, SHA).estado, "aprobada");
 });
+
+test("acepta las palabras clave con formato Markdown sin contar los hallazgos opcionales", () => {
+  const markdown = [
+    "## REVISIÓN EM-03", "**CORRECCIÓN (obligatorio corregir):**", "Ninguno", "",
+    "### OPCIONAL (no bloquea):", "1. Un detalle.", "2. Otro.", "", "**VEREDICTO: LISTO**",
+  ].join("\n");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, markdown))], SHA).estado, "aprobada");
+  const conHallazgo = markdown.replace("Ninguno", "1. [a.ts:3] Falta la prueba.").replace("LISTO", "CORREGIR");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, conHallazgo))], SHA).estado, "corregir");
+});
+
+test("las notas posteriores al veredicto no lo cambian", () => {
+  const conNotas = revision(SHA, LISTO) + "\n\nNotas de la revisión: la ronda anterior decía\nVEREDICTO: CORREGIR";
+  assert.equal(evaluarVeredicto([comentario(conNotas)], SHA).estado, "aprobada");
+});
+
+test("no vuelve a revisar un commit que ya tiene una revisión completa de la misma tarea (rerun o reabrir)", () => {
+  assert.equal(decidirRevision([comentario(revision(SHA, CORREGIR))], SHA, "EM-06"), false);
+  assert.equal(decidirRevision([comentario(revision(SHA, LISTO))], SHA, "EM-03"), false);
+});
+
+test("revisa si el commit no tiene una revisión completa", () => {
+  assert.equal(decidirRevision([], SHA, "EM-03"), true);
+  assert.equal(decidirRevision([comentario(revision(OTRO_SHA, LISTO))], SHA, "EM-03"), true);
+  const incompleta = revision(SHA, "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\nNinguno");
+  assert.equal(decidirRevision([comentario(incompleta)], SHA, "EM-03"), true);
+});
+
+test("revisa otra vez el mismo commit solo si cambió la tarea del título", () => {
+  const sinId = revision(SHA, "REVISIÓN (título sin ID)\nCORRECCIÓN (obligatorio corregir):\nNinguno\nVEREDICTO: LISTO");
+  assert.equal(decidirRevision([comentario(sinId)], SHA, "EM-03"), true);
+  assert.equal(decidirRevision([comentario(sinId)], SHA, ""), false);
+  assert.equal(decidirRevision([comentario(revision(SHA, CORREGIR))], SHA, "EM-07"), true);
+});
+

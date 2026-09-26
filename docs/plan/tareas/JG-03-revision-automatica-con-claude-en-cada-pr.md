@@ -34,6 +34,7 @@ Dos automatizaciones de GitHub para el equipo:
 - `scripts/tablero.mjs` (crear)
 - `scripts/tablero.test.mjs` (crear)
 - `.github/workflows/ci.yml` (modificar: el *job* `plan` también ejecuta `node --test "scripts/*.test.mjs"`)
+- Auditoría del 26 de septiembre: `.github/workflows/claude-interactivo.yml`, `scripts/veredicto-revision.mjs` y `scripts/veredicto-revision.test.mjs` (crear)
 
 ## Criterios de aceptación
 
@@ -74,7 +75,7 @@ Dos automatizaciones de GitHub para el equipo:
 11. El workflow es idempotente: si se ejecuta dos veces seguidas sin cambios en `main`, la segunda vez no repite avisos.
 
 ## Pruebas obligatorias
-- **Revisión con Claude:** no lleva pruebas unitarias. La prueba es que el propio PR de esta tarea reciba el comentario de revisión.
+- **Revisión con Claude:** la prueba es que el propio PR de esta tarea reciba el comentario de revisión. Desde la auditoría, la decisión del check (revisar o no, y el veredicto) se prueba en `scripts/veredicto-revision.test.mjs`.
 - **Tablero** (`scripts/tablero.test.mjs`, con `node:test`, sin dependencias nuevas). Cubre estos casos:
   - la primera ejecución no menciona a nadie;
   - una dependencia que pasa a `hecha` genera la mención correcta al dueño;
@@ -141,12 +142,14 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - falla con `CORREGIR`, o si la revisión dice `LISTO` pero enumera correcciones;
   - si no hay revisión de ese commit (cuota, caída o tiempo), falla con un mensaje para reintentarla.
 
-  Las pruebas están en `scripts/veredicto-revision.test.mjs` y el script se comprobó con los comentarios reales de los PR #14, #16 y #22.
+  El veredicto es el primero que aparece después de la sección de corrección, así que las notas posteriores no cuentan. Las palabras clave se reconocen aunque vengan con formato Markdown.
+- **Una revisión completa no se repite.** El paso `tarea` usa `--decidir`: un commit que ya tiene una revisión completa no se revisa otra vez, ni con `gh run rerun`, ni reabriendo el PR, ni marcándolo listo de nuevo, salvo que cambie la tarea del título. Así nadie puede repetir la revisión hasta que salga LISTO, y un falso positivo solo lo desbloquea Jordin.
+- **Pruebas:** 16 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
 - **El formato del comentario queda fijo** en el prompt: la primera línea es la marca, la segunda `Commit revisado: <sha>` y el comentario termina con el veredicto.
 - **El check no se puede saltar con eventos que no revisan.** Un check "omitido" cuenta como aprobado y pisaría el fallo del mismo commit.
   - `@claude` pasó a `.github/workflows/claude-interactivo.yml`.
-  - Editar solo la descripción del PR no se omite: vuelve a leer el veredicto ya publicado. Si todavía no hay ninguno para ese commit, revisa.
-  - `concurrency` cancela la revisión anterior con cada *commit* nuevo; las ediciones del PR esperan a que termine.
+  - Los eventos que no necesitan una revisión nueva no se omiten: vuelven a leer el veredicto ya publicado.
+  - `concurrency` cancela la revisión anterior con cada *commit* nuevo; las ediciones del PR esperan a que termine. El paso del veredicto no corre si el run se canceló.
   - El título se lee en vivo, así que `gh run rerun` usa el título corregido.
 - **Decisiones de Jordin (26 de septiembre):**
   - Si la revisión no se completa, el PR se bloquea hasta reintentarla.

@@ -72,7 +72,7 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 ## Paso 3 · [JG-03] La revisión con Claude pasa a ser bloqueante
 
 - [x] **H-09** `revision-claude.yml`: si la revisión tiene hallazgos en "CORRECCIÓN (obligatorio corregir)", el job termina con error. Si solo hay hallazgos opcionales, pasa.
-- [x] **H-10** Agregar el job `revision-claude` a los checks obligatorios de la protección de `main`.
+- [ ] **H-10** Agregar el job `revision-claude` a los checks obligatorios de la protección de `main`. Se aplica en cuanto se integra el PR del paso 3; la casilla se marca en el PR del paso siguiente.
 - [x] **H-11** Actualizar el criterio 5 de JG-03, `protocolo.md` B11 y la guía, y dejar el aviso en la bitácora para todos.
 - **Decidido por Jordin (26 sep):**
   - Si la revisión no se completa (cuota, caída o tiempo), el check falla y el PR se bloquea hasta reintentarla.
