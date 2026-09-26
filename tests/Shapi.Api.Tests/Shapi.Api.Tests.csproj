@@ -5,6 +5,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Shapi.Api\Shapi.Api.csproj" />
+        <ProjectReference Include="..\..\src\Shapi.Trabajador\Shapi.Trabajador.csproj" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />

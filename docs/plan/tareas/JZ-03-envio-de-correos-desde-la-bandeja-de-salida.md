@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [EM-01]
 requisitos: [RF-46]
 pantallas: []
@@ -52,3 +52,12 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Fuera de alcance
 - Resto de las plantillas (JZ-11)
 - Encolar los correos (ya lo hacen los módulos con `IColaCorreo`)
+
+## Resultado
+
+- El trabajador procesa cada 5 segundos los correos pendientes cuyo próximo intento ya venció, los entrega por SMTP y persiste el resultado después de cada correo.
+- Se implementaron los cinco intervalos de reintento (5 s, 30 s, 2 min, 10 min y 1 h); el quinto fallo deja el correo en estado `fallido`.
+- MailKit lee `SHAPI_SMTP_HOST`, `SHAPI_SMTP_PUERTO`, `SHAPI_SMTP_USUARIO`, `SHAPI_SMTP_CONTRASENA` y `SHAPI_SMTP_TLS`. El remitente usa `no-responder@{dominio_base}` y `nombrePortal` como nombre visible cuando está presente.
+- Las plantillas HTML y texto de verificación y recuperación están incrustadas en `Shapi.Infraestructura`, tratan al usuario de usted, escapan los valores HTML y generan los enlaces definidos en `10-identidad-y-seguridad.md`.
+- Se agregaron pruebas de dominio, renderizado y una integración con PostgreSQL y Mailpit que verifica la entrega mediante `/api/v1/messages`, además del servidor SMTP caído y la programación futura.
+- Archivos principales: `src/Shapi.Trabajador/Correo/`, `src/Shapi.Infraestructura/Correo/` y `tests/Shapi.Api.Tests/Correo/`.
