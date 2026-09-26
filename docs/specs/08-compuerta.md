@@ -167,6 +167,8 @@ La **latencia de la compuerta** es la latencia total menos el tiempo de espera d
   1. un *pipeline* con `api:host:{host}` y `clave:{hash}`;
   2. un *pipeline* con lo que depende de esos valores: `api:{id}`, sus rutas, `org:{id}` y `susc:{id}`;
   3. el script Lua de límites y cuotas.
+
+  Si la ruta usa caché (filtro 7), se suma la consulta de `cache:*`.
 - La compuerta **no guarda en memoria** los datos de claves, suscripciones ni organizaciones. Así una revocación o una suspensión se aplica al instante ([RF-28](03-requisitos.md#rf-28)), a costa de consultar Redis en cada petición ([ADR-22](12-decisiones.md)). Lo único que se guarda en memoria, durante 5 segundos como máximo, es `api:{id}:rutas`, junto con su `version`.
 - Hay una conexión multiplexada a Redis (StackExchange.Redis) y un `HttpClient` de YARP por destino, con *pooling* de conexiones.
 - **Pruebas de aceptación:** RNF-01 y RNF-03 se miden con k6 contra `origen-envios` en el ambiente productivo simulado. Los resultados se documentan en el manual técnico.

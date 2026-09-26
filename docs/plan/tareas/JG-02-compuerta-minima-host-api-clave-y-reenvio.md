@@ -90,4 +90,4 @@ Verificación manual con el entorno levantado:
   - 502, 504 y 413 en formato JSON. Hoy YARP responde 502 o 504 sin cuerpo.
   - `X-Forwarded-*`, `X-Shapi-Secreto` y quitar el resto de las `X-Shapi-*` que mande el cliente.
   - Quitar las cookies del portal.
-  - Leer el contexto en un solo *pipeline* de Redis (08 §8). Hoy son 3 viajes seguidos.
+  - Leer el contexto en un solo *pipeline* de Redis (08 §8). Hoy son 3 viajes seguidos. (Corregido el 26 sep: son dos *pipelines* más el script Lua; ver 08 §8 y el criterio 9 de JG-05.)

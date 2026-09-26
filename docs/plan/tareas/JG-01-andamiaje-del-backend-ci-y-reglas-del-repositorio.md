@@ -110,7 +110,7 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
     - la marca en los correos: los del personal llevan la de Shapi y los de los consumidores solo la del portal (10 §6).
   - **Salud y rutas:**
     - la salud es `/salud` en la API y en la compuerta, y el latido en el trabajador (06 §4 y §8, y JZ-06);
-    - el ejemplo de ruta con parámetro es `/guias/{numero}`, porque el origen y los mockups usan `GET /rastreo?guia=`.
+    - el ejemplo de ruta con parámetro es `/guias/{numero}`, porque el origen usa `GET /rastreo?guia=` (los mockups muestran `GET /rastreo`).
   - **ADR:**
     - ADR-35 pasa a Node 24;
     - "D29" pasa a ADR-29;

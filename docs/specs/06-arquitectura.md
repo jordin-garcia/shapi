@@ -444,7 +444,7 @@ shapi/
 | Borde | Caddy 2 |
 | Pruebas | xUnit, Testcontainers, FluentAssertions, Vitest, Testing Library, Playwright, k6 (carga, para RNF-01 y RNF-03) |
 | Infraestructura | Docker Compose, GitHub Actions, GHCR |
-| Paquetes de apoyo (autorizados por JG-01 y DC-01) | NuGet: `EFCore.NamingConventions`, `Microsoft.Extensions.Identity.Core` (`PasswordHasher`), `Microsoft.Extensions.Hosting`, `Microsoft.AspNetCore.OpenApi`, `Microsoft.OpenApi.YamlReader`, `FluentValidation.DependencyInjectionExtensions`, `NSubstitute`, `Microsoft.AspNetCore.Mvc.Testing`. npm: `openapi-fetch`, `openapi-typescript`, `msw`, `react-markdown`, `rehype-sanitize`, `@fontsource/sora`, `@fontsource/ibm-plex-sans`, `eslint` y sus complementos, `jsdom`, `@testing-library/user-event` |
+| Paquetes de apoyo (autorizados por JG-01 y DC-01) | NuGet: `EFCore.NamingConventions`, `Microsoft.Extensions.Identity.Core` (`PasswordHasher`), `Microsoft.Extensions.Hosting`, `Microsoft.AspNetCore.OpenApi`, `Microsoft.OpenApi.YamlReader`, `FluentValidation.DependencyInjectionExtensions`, `Microsoft.EntityFrameworkCore.Design` (migraciones), `NSubstitute`, `Microsoft.AspNetCore.Mvc.Testing`. npm: `openapi-fetch`, `openapi-typescript`, `msw`, `react-markdown`, `rehype-sanitize`, `@fontsource/sora`, `@fontsource/ibm-plex-sans`, `eslint` y sus complementos, `jsdom`, `@testing-library/user-event` |
 
 ### Justificación de cada tecnología
 

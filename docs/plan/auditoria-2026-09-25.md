@@ -104,7 +104,7 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 - [x] **H-24** EM-17 dice "crear `identidad.yaml`", pero ya existe; debe decir "modificar". Además, EM-17 no aparece en la tabla del Avance 1 de `calendario.md`.
 - [x] **H-25** 07:695 exige que el rol de la aplicación solo tenga INSERT y SELECT sobre `bitacora`, pero ninguna tarea lo pide. Asignado a H-40 (paso 5).
 - [x] **H-26** Avisos sin atender que se pasan a los criterios de sus tareas:
-  - JG-05: quitar las cookies del portal y leer el contexto en un solo *pipeline* (08 §8);
+  - JG-05: quitar las cookies del portal y leer el contexto en un solo *pipeline* (08 §8); resuelto como dos *pipelines* más el script Lua, por decisión de Jordin del 26 sep;
   - JZ-06: el *healthcheck* con host `localhost` y no publicar el puerto de la API.
 - [x] **H-27** JG-04: documentar que la publicación hace `DEL` y luego `HSET` en una transacción. `ContextoApi.ACampos()` omite los campos vacíos, así que sin el `DEL` un secreto borrado seguiría en Redis.
 - [x] **H-28** 06 §9, stack: agregar los paquetes que las tareas ya autorizan.
