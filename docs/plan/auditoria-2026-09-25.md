@@ -71,12 +71,12 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 
 ## Paso 3 · [JG-03] La revisión con Claude pasa a ser bloqueante
 
-- [ ] **H-09** `revision-claude.yml`: si la revisión tiene hallazgos en "CORRECCIÓN (obligatorio corregir)", el job termina con error. Si solo hay hallazgos opcionales, pasa.
-- [ ] **H-10** Agregar el job `revision-claude` a los checks obligatorios de la protección de `main`.
-- [ ] **H-11** Actualizar el criterio 5 de JG-03, `protocolo.md` B11 y la guía, y dejar el aviso en la bitácora para todos.
-- **❓ Decisión pendiente:**
-  - Qué pasa cuando la revisión falla por un motivo externo (cuota agotada o caída del servicio): ¿bloquea o deja pasar con un aviso?
-  - Quién puede saltarse el bloqueo ante un falso positivo, y cómo.
+- [x] **H-09** `revision-claude.yml`: si la revisión tiene hallazgos en "CORRECCIÓN (obligatorio corregir)", el job termina con error. Si solo hay hallazgos opcionales, pasa.
+- [ ] **H-10** Agregar el job `revision-claude` a los checks obligatorios de la protección de `main`. Se aplica en cuanto se integra el PR del paso 3; la casilla se marca en el PR del paso siguiente.
+- [x] **H-11** Actualizar el criterio 5 de JG-03, `protocolo.md` B11 y la guía, y dejar el aviso en la bitácora para todos.
+- **Decidido por Jordin (26 sep):**
+  - Si la revisión no se completa (cuota, caída o tiempo), el check falla y el PR se bloquea hasta reintentarla.
+  - Un falso positivo solo lo desbloquea Jordin, con `gh pr merge <n> --admin --squash`.
 
 ## Paso 4 · [JG-01] Coherencia de las especificaciones y del plan
 
@@ -294,7 +294,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [ ] **H-108** `timeout-minutes` en los jobs. El evento `edited` solo debe volver a ejecutar la CI cuando cambia el título.
 - [ ] **H-109** Fijar por SHA las acciones de terceros que reciben secretos.
 - [ ] **H-110** `.claude/settings.json`: negar también `git push origin HEAD:main` y sus variantes.
-  - **❓ Decisión pendiente:** si se activa `enforce_admins`. Con eso, Jordin tampoco podría saltarse la CI.
+  - **Decidido en el paso 3 (26 sep):** `enforce_admins` queda desactivado, porque Jordin desbloquea los falsos positivos de `revision-claude` con `--admin`.
 - [ ] **H-111** La plantilla de PR debe pedir la evidencia de `dotnet format`, `pnpm build` y `tareas.mjs --validar`. Completar el `README.md` con las carpetas y los comandos de arranque.
 - [ ] **H-112** Ejecutar las pruebas en paralelo es inestable con Docker en Windows (se vio en la auditoría). Se evalúa limitar el paralelismo entre proyectos o documentarlo.
 
