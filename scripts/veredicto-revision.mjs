@@ -22,19 +22,21 @@ const MARCA = "🤖 Revisión automática con Claude";
 const PREFIJO = String.raw`^[ \t>*#_\-]*`;
 // Un encabezado de sección no se puede confundir con el texto libre ("Corrección de auditoría…", "Opcionalmente…"):
 //   - en MAYÚSCULAS (el formato de revision.md), después de la palabra viene "(", ":", un guion o el fin de la línea;
-//   - con mayúscula inicial ("Corrección"), solo "(", ":" o el fin de la línea.
-function encabezado(mayusculas, inicial) {
-  return PREFIJO + String.raw`(?:${mayusculas}\**[ \t]*(?:[(:—–\-]|$)|${inicial}\**[ \t]*(?:[(:]|$))`;
+//   - con mayúscula inicial ("Corrección"), solo "(", ":" o el fin de la línea. "Opcional", solo "(" o el fin de la
+//     línea, para que un hallazgo como "- Opcional: el campo X…" no cierre la sección de corrección.
+function encabezado(mayusculas, inicial, cierreInicial) {
+  return PREFIJO + String.raw`(?:${mayusculas}\**[ \t]*(?:[(:—–\-]|$)|${inicial}\**[ \t]*(?:${cierreInicial}|$))`;
 }
 const PALABRA_CORRECCION = String.raw`(?:CORRECCI[ÓO]N(?:ES)?|Correcci[óo]n(?:es)?)`;
-const RE_CORRECCION = new RegExp(encabezado(String.raw`CORRECCI[ÓO]N(?:ES)?`, String.raw`Correcci[óo]n(?:es)?`), "m");
-const RE_OPCIONAL = new RegExp(encabezado(String.raw`OPCIONAL(?:ES)?`, String.raw`Opcional(?:es)?`), "m");
+const RE_CORRECCION = new RegExp(encabezado(String.raw`CORRECCI[ÓO]N(?:ES)?`, String.raw`Correcci[óo]n(?:es)?`, "[(:]"), "m");
+const RE_CORRECCION_TODAS = new RegExp(RE_CORRECCION.source, "gm");
+const RE_OPCIONAL = new RegExp(encabezado(String.raw`OPCIONAL(?:ES)?`, String.raw`Opcional(?:es)?`, String.raw`\(`), "m");
 // El veredicto también se acepta como "Veredicto:" o "**Veredicto:** LISTO"; LISTO y CORREGIR van en mayúsculas.
 const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`(?:VEREDICTO|Veredicto)\**[ \t]*:[ \t]*\**[ \t]*(LISTO|CORREGIR)`, "m");
 // Se quita de la línea del encabezado su descripción ("(obligatorio corregir):", "— obligatorio corregir"); lo que
 // quede después también es un hallazgo.
 const RE_RESTO_CABECERA = new RegExp(PREFIJO + PALABRA_CORRECCION +
-  String.raw`\**[ \t]*(?:[—–\-][ \t]*)?(?:\([^)]*\)|obligatorio corregir)?[ \t]*:?\**`);
+  String.raw`\**[ \t]*(?:[—–\-][ \t]*)?(?:\([^)]*\)|obligatorio corregir)?[ \t]*[—–\-]?[ \t]*:?\**`);
 const RE_NINGUNO = /^\(?(?:ningun[oa]|no hay(?: hallazgos)?)\.?\)?\.?$/i;
 
 /** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha, editado}'` (un JSON por línea) en un arreglo. */
@@ -43,12 +45,17 @@ export function leerComentarios(texto) {
 }
 
 /**
- * El veredicto es el primero que aparece después de la sección de corrección (las notas posteriores no cuentan).
- * Sin una sección de corrección reconocida no se sabe si hay hallazgos: la revisión cuenta como incompleta.
+ * La sección de corrección es la última que aparece antes del primer veredicto (así, un "Corrección (…)" del texto
+ * libre no la reemplaza), y el veredicto es el primero después de ella (las notas posteriores no cuentan). Sin una
+ * sección de corrección reconocida no se sabe si hay hallazgos: la revisión cuenta como incompleta.
  */
 function analizar(cuerpo) {
-  const inicio = cuerpo.search(RE_CORRECCION);
-  if (inicio < 0) return null;
+  const primero = cuerpo.search(RE_CORRECCION);
+  if (primero < 0) return null;
+  const primerVeredicto = cuerpo.slice(primero).search(RE_VEREDICTO);
+  const hasta = primerVeredicto < 0 ? cuerpo.length : primero + primerVeredicto;
+  let inicio = primero;
+  for (const m of cuerpo.slice(0, hasta).matchAll(RE_CORRECCION_TODAS)) inicio = m.index;
   const resto = cuerpo.slice(inicio);
   const veredicto = resto.match(RE_VEREDICTO);
   if (!veredicto) return null;

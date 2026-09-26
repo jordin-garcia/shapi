@@ -158,6 +158,20 @@ test("la descripción después del guion del encabezado no es un hallazgo", () =
   }
 });
 
+test("un «Corrección (…)» del texto libre no reemplaza a la sección real (se usa la última antes del veredicto)", () => {
+  const limpio = "REVISIÓN JG-01\n- Corrección (protocolo §E3): la tarea ya estaba hecha.\n\nCORRECCIÓN (obligatorio corregir):\nNinguno\nOPCIONAL (no bloquea):\n1. x\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, limpio))], SHA, "JG-01").estado, "aprobada");
+  const conFalsa = "REVISIÓN JG-01\nCorrección: auditoría paso 4.\nNinguno\nOPCIONAL:\nx\n\nCORRECCIÓN (obligatorio corregir):\n1. [a.ts:3] Falta la prueba.\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, conFalsa))], SHA, "JG-01").estado, "corregir");
+});
+
+test("un hallazgo que empieza con «Opcional:» no cierra la sección, y el guion tras el paréntesis se quita", () => {
+  const hallazgo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n- Opcional: el campo X debe ser obligatorio.\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, hallazgo))], SHA, "EM-03").estado, "corregir");
+  const guion = "REVISIÓN EM-03\n## CORRECCIÓN (obligatorio corregir) — Ninguno\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, guion))], SHA, "EM-03").estado, "aprobada");
+});
+
 test("acepta el veredicto con mayúscula inicial y en negrita", () => {
   const cuerpo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\nNinguno\n\n**Veredicto:** LISTO";
   assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada");
