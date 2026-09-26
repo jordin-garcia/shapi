@@ -110,6 +110,19 @@ test("revisa si el commit no tiene una revisión completa", () => {
   assert.equal(decidirRevision([comentario(incompleta)], SHA, "EM-03"), true);
 });
 
+test("una revisión editada después de publicarse no cuenta y no se repite", () => {
+  const editada = { ...comentario(revision(SHA, CORREGIR.replace("VEREDICTO: CORREGIR", "VEREDICTO: LISTO").replace(/1\. \[a\.cs:4\][^\n]*/, "Ninguno"))), editado: true };
+  const r = evaluarVeredicto([editada], SHA);
+  assert.equal(r.estado, "corregir");
+  assert.match(r.mensaje, /se editó/);
+  assert.equal(decidirRevision([editada], SHA, "EM-06"), false);
+});
+
+test("el commit tiene que estar en la línea \"Commit revisado\", no citado en otra parte", () => {
+  const citaOtro = revision(OTRO_SHA, LISTO) + `\n\nNota: el commit anterior era ${SHA}.`;
+  assert.equal(evaluarVeredicto([comentario(citaOtro)], SHA).estado, "sin_revision");
+});
+
 test("revisa otra vez el mismo commit solo si cambió la tarea del título", () => {
   const sinId = revision(SHA, "REVISIÓN (título sin ID)\nCORRECCIÓN (obligatorio corregir):\nNinguno\nVEREDICTO: LISTO");
   assert.equal(decidirRevision([comentario(sinId)], SHA, "EM-03"), true);

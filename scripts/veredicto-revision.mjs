@@ -21,7 +21,7 @@ const RE_CORRECCION = new RegExp(PREFIJO + String.raw`CORRECCI[ÓO]N`, "im");
 const RE_OPCIONAL = new RegExp(PREFIJO + String.raw`OPCIONAL`, "im");
 const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`VEREDICTO:\s*\**\s*(LISTO|CORREGIR)`, "im");
 
-/** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha}'` (un JSON por línea) en un arreglo. */
+/** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha, editado}'` (un JSON por línea) en un arreglo. */
 export function leerComentarios(texto) {
   return texto.split(/\r?\n/).filter((linea) => linea.trim()).map((linea) => JSON.parse(linea));
 }
@@ -44,18 +44,32 @@ function analizar(cuerpo) {
   return { veredicto: veredicto[1].toUpperCase(), correcciones, tarea: cuerpo.match(/REVISI[ÓO]N\s+([A-Z]{2}-\d{2,})/)?.[1] ?? "" };
 }
 
-/** Revisiones completas (con veredicto) del bot para el commit, de la más antigua a la más reciente. */
+/** ¿El comentario es una revisión de este commit? El SHA tiene que estar en la línea "Commit revisado". */
+function esRevisionDe(c, sha) {
+  return c.usuario === BOT && c.body?.trimStart().startsWith(MARCA) &&
+    new RegExp(String.raw`commit revisado:?\s*${sha}\b`, "i").test(c.body);
+}
+
+/**
+ * Revisiones completas (con veredicto) del bot para el commit, de la más antigua a la más reciente. Una revisión
+ * editada después de publicarse queda marcada como alterada: quien tiene permiso de escritura puede editar
+ * comentarios ajenos, y así podría cambiar CORREGIR por LISTO.
+ */
 function revisionesCompletas(comentarios, sha) {
   return comentarios
-    .filter((c) => c.usuario === BOT && c.body?.trimStart().startsWith(MARCA) && c.body.includes(sha))
+    .filter((c) => esRevisionDe(c, sha))
     .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))
-    .map((c) => analizar(c.body))
+    .map((c) => {
+      const analisis = analizar(c.body);
+      return analisis && { ...analisis, alterada: Boolean(c.editado) };
+    })
     .filter(Boolean);
 }
 
 /** ¿Hace falta revisar este commit? Solo si no tiene una revisión completa o si cambió la tarea del título. */
 export function decidirRevision(comentarios, sha, tarea) {
   const ultima = revisionesCompletas(comentarios, sha).at(-1);
+  if (ultima?.alterada) return false;
   return !ultima || ultima.tarea !== (tarea ?? "");
 }
 
@@ -67,6 +81,15 @@ export function evaluarVeredicto(comentarios, sha) {
       mensaje:
         `No hay una revisión completa de Claude para el commit ${sha}: pudo agotarse la cuota, fallar el servicio ` +
         "o pasarse el tiempo. Vuelve a ejecutarla con `gh run rerun <id del run> --failed` o con un commit nuevo.",
+    };
+  }
+  if (ultima.alterada) {
+    return {
+      estado: "corregir",
+      mensaje:
+        `El comentario de la revisión del commit ${sha} se editó después de publicarse, así que su veredicto no ` +
+        "cuenta. Solo el coordinador puede integrar este PR, con `gh pr merge <n> --admin --squash`, o se revisa de " +
+        "nuevo con un commit nuevo.",
     };
   }
   if (ultima.veredicto === "LISTO" && !ultima.correcciones) {

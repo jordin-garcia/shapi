@@ -39,7 +39,7 @@ Dos automatizaciones de GitHub para el equipo:
 ## Criterios de aceptación
 
 ### Revisión con Claude
-1. Se ejecuta `anthropics/claude-code-action@v1` en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened` y `edited` cuando cambia el título), excepto en borradores, con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
+1. Se ejecuta `anthropics/claude-code-action@v1` en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened` y `edited`; una revisión nueva del mismo commit solo se hace si no hay una completa o si cambió la tarea del título), excepto en borradores, con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
 2. El `prompt` pide aplicar `docs/plan/prompts/revision.md` al PR (el ID sale del título `[XX-00]`) y publicar el resultado como **un comentario** en el PR. `claude_args` permite solo lo necesario, sin límite de turnos (el tope lo pone `timeout-minutes`): `--allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"`.
 3. Otro workflow, `claude-interactivo.yml`, responde a `@claude` en comentarios de issues y PR, solo para usuarios con permiso de escritura, que es el comportamiento por defecto de la acción.
 4. Un `concurrency` por número de PR cancela la revisión anterior cuando llegan *commits* nuevos.
@@ -144,7 +144,7 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 
   El veredicto es el primero que aparece después de la sección de corrección, así que las notas posteriores no cuentan. Las palabras clave se reconocen aunque vengan con formato Markdown.
 - **Una revisión completa no se repite.** El paso `tarea` usa `--decidir`: un commit que ya tiene una revisión completa no se revisa otra vez, ni con `gh run rerun`, ni reabriendo el PR, ni marcándolo listo de nuevo, salvo que cambie la tarea del título. Así nadie puede repetir la revisión hasta que salga LISTO, y un falso positivo solo lo desbloquea Jordin.
-- **Pruebas:** 16 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
+- **Pruebas:** 18 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
 - **El formato del comentario queda fijo** en el prompt: la primera línea es la marca, la segunda `Commit revisado: <sha>` y el comentario termina con el veredicto.
 - **El check no se puede saltar con eventos que no revisan.** Un check "omitido" cuenta como aprobado y pisaría el fallo del mismo commit.
   - `@claude` pasó a `.github/workflows/claude-interactivo.yml`.
@@ -154,4 +154,7 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 - **Decisiones de Jordin (26 de septiembre):**
   - Si la revisión no se completa, el PR se bloquea hasta reintentarla.
   - Un falso positivo solo lo desbloquea Jordin, con `gh pr merge <n> --admin --squash`. Por eso `enforce_admins` queda desactivado, lo que resuelve la decisión pendiente de H-110.
-- **Limitación conocida.** Como en todo check con `pull_request`, un PR ejecuta el workflow y el script de su propia rama. Cambiar `.github/workflows/` o `scripts/veredicto-revision.mjs` es tocar archivos de Jordin: la revisión lo marca como problema de alcance y la auditoría del coordinador (protocolo §E) lo revisa.
+- **Una revisión editada no cuenta.** Quien tiene permiso de escritura puede editar comentarios ajenos. Por eso, si el comentario de la revisión se editó después de publicarse (`updated_at` distinto de `created_at`), el check falla, no se revisa otra vez y solo Jordin puede integrar con `--admin`. El commit del comentario se toma solo de la línea `Commit revisado`.
+- **Limitaciones conocidas:**
+  - Como en todo check con `pull_request`, un PR ejecuta el workflow y el script de su propia rama. Cambiar `.github/workflows/` o `scripts/veredicto-revision.mjs` es tocar archivos de Jordin: la revisión lo marca como problema de alcance y la auditoría del coordinador (protocolo §E) lo revisa.
+  - Borrar el comentario de la revisión permite pedir otra revisión del mismo commit. GitHub deja el borrado registrado en el historial del PR, y la auditoría lo revisa.
