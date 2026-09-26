@@ -19,6 +19,7 @@ public class MotorPlantillasCorreoTests
         resultado.Html.Should().NotContain("Ana <López>");
         resultado.Texto.Should().Contain("Ana <López>");
         resultado.Texto.Should().Contain("https://shapi.localhost/verificar-correo?token=a%2Bb%26c");
+        resultado.Texto.Should().Contain("usted");
         resultado.Html.Should().NotContain("{{");
         resultado.Texto.Should().NotContain("{{");
     }
@@ -34,6 +35,7 @@ public class MotorPlantillasCorreoTests
 
         resultado.Html.Should().Contain("https://shapi.localhost/restablecer?token=token-1");
         resultado.Texto.Should().Contain("https://shapi.localhost/restablecer?token=token-1");
+        resultado.Texto.Should().Contain("Usted");
         resultado.NombreRemitente.Should().Be("Envíos Xelajú");
     }
 

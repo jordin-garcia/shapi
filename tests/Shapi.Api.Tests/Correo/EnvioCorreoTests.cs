@@ -135,6 +135,28 @@ public sealed class EnvioCorreoTests(EntornoCorreo entorno) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RF_46_ProximoIntentoFuturo_NoSeProcesaAntesDeTiempo()
+    {
+        await using var db = entorno.CrearDb();
+        var correo = new CorreoSaliente(
+            "recuperacion",
+            "ana@ejemplo.com",
+            """{"nombre":"Ana","token":"token-1"}""",
+            "Recupere su contraseña",
+            _reloj.Ahora.AddMinutes(1));
+        db.Add(correo);
+        await db.SaveChangesAsync();
+        var procesador = CrearProcesador(db, entorno.CrearConfiguracion(1));
+
+        var procesados = await procesador.ProcesarPendientes();
+
+        procesados.Should().Be(0);
+        await db.Entry(correo).ReloadAsync();
+        correo.Estado.Should().Be(EstadoCorreo.Pendiente);
+        correo.Intentos.Should().Be(0);
+    }
+
+    [Fact]
     public void RF_46_Despachador_EjecutaCadaCincoSegundos()
     {
         DespachadorCorreos.Intervalo.Should().Be(TimeSpan.FromSeconds(5));
