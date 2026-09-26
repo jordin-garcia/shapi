@@ -12,7 +12,7 @@ const ENLACE_REENVIADO = 'Si su correo todavía no está confirmado, le llegará
 export default function PaginaA12Verificacion() {
   const [parametros] = useSearchParams();
   const token = parametros.get('token');
-  return token ? <VerificarEnlace token={token} /> : <RevisarCorreo correo={parametros.get('correo') ?? ''} />;
+  return token ? <VerificarEnlace key={token} token={token} /> : <RevisarCorreo correo={parametros.get('correo') ?? ''} />;
 }
 
 function useReenviar() {

@@ -197,7 +197,7 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 ### Comportamiento de las pantallas de acceso (EM-03)
 
 - **A1.1 y A1.3:**
-  - los errores de validación de la API (`errores` por campo) se muestran debajo de cada campo;
+  - en A1.1, los errores de validación de la API (`errores` por campo) se muestran debajo de cada campo;
   - `correo_ya_registrado` se muestra debajo del correo;
   - los demás errores con `codigo` (credenciales incorrectas, cuenta bloqueada o desactivada, demasiadas peticiones) se muestran en un aviso de alerta arriba del formulario, con el mensaje de la API;
   - si falla la red o el servidor (un 5xx, aunque venga como ProblemDetails sin `codigo` del contrato), el aviso dice «No se pudo completar la solicitud. Revise su conexión e intente de nuevo.» y ofrece «Reintentar», que vuelve a enviar el formulario. Si la sesión no quedó iniciada después de entrar, se avisa lo mismo.
