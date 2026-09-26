@@ -22,6 +22,6 @@
 - [ ] Todos los criterios de aceptación tienen una prueba que pasa
 - [ ] El contrato OpenAPI está actualizado (si hay endpoints)
 - [ ] Las especificaciones están actualizadas (si se precisó algún comportamiento)
-- [ ] El archivo de la tarea tiene `estado: hecha` y una sección **Resultado**
-- [ ] Hay una entrada nueva en `docs/plan/bitacora/<persona>.md`
+- [ ] El archivo de la tarea tiene `estado: hecha` y una sección **Resultado**. En una corrección de auditoría (protocolo §E3), la tarea ya estaba hecha y tiene la subsección **Correcciones de la auditoría (AAAA-MM-DD)**
+- [ ] Hay una entrada nueva en `docs/plan/bitacora/<persona>.md`, con un aviso para cada persona dueña de un archivo modificado, si el PR es del coordinador
 - [ ] No hay secretos ni archivos `.env`

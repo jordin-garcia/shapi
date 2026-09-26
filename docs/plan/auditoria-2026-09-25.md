@@ -6,15 +6,15 @@ El 25 de septiembre de 2026 se auditaron las 10 tareas integradas en `main` (JG-
 
 **Cómo se trabaja.**
 - Se avanza un paso a la vez. Al terminar cada paso, el agente informa a Jordin y espera su indicación para seguir con el siguiente.
-- Cada paso es uno o más PR titulados `[<ID de la tarea original>] Correcciones de la auditoría: <tema>`, igual que el PR #17.
-- Cada paso sigue la sección B de `protocolo.md`:
+- Cada paso es uno o más PR titulados `[<ID de la tarea original>] Correcciones de la auditoría: <tema>`, igual que el PR #17. Si un paso toca varias tareas, cada PR lleva el ID de la tarea que corrige. Los pasos que terminan un PR abierto (2 y 14) usan el título normal de la tarea (protocolo §E4).
+- Cada paso sigue `protocolo.md` §E3, o §E4 si termina un PR abierto:
   1. Crea la rama `jordin/<ID>-auditoria-<tema>` desde `main` actualizado.
   2. Escribe primero las pruebas.
   3. Ejecuta todos los comandos de verificación.
   4. Hace la revisión en contexto limpio con el subagente `revisor`.
   5. Abre el PR y lo integra una vez que la CI está en verde.
 - En el mismo PR:
-  - se agrega al archivo de la tarea original una subsección `### Correcciones de la auditoría (25 sep 2026)` dentro de `## Resultado`, que dice qué cambió y por qué;
+  - se agrega al archivo de la tarea original una subsección `### Correcciones de la auditoría (AAAA-MM-DD)`, con la fecha del PR, dentro de `## Resultado`, que dice qué cambió y por qué;
   - se agrega una entrada en `docs/plan/bitacora/jordin.md`, con un aviso en negrita para la persona dueña del código.
 - Las dudas marcadas como **❓ Decisión pendiente** se le preguntan a Jordin al empezar ese paso, antes de escribir código.
 
@@ -39,9 +39,9 @@ Autoriza a Jordin a corregir directamente el trabajo de cualquier integrante.
   - **Autorización permanente:** Jordin, el coordinador, puede modificar el código, las pruebas, los contratos, los archivos de tarea, las bitácoras y la documentación de cualquier persona. No necesita preguntar antes ni crear una tarea nueva.
   - **Motivo:** la auditoría que hace después de cada integración en `main`.
   - **Forma de hacerlo:** un PR `[<ID>] Correcciones de la auditoría: …`, la subsección de correcciones en el `## Resultado` de la tarea y un aviso en negrita a la persona dueña en su bitácora.
-  - Se agrega una sección nueva **§E. Auditoría posterior a la integración** con ese procedimiento.
+  - Se agrega una sección nueva, **§E. Auditoría del coordinador después de cada integración** (E1 a E5), con ese procedimiento.
 - [x] **H-02** `AGENTS.md`, en "Preguntar antes" y en "Nunca": agregar la excepción. Si la persona es `jordin`, puede modificar archivos ajenos e implementar o corregir tareas de otros, según el protocolo §E.
-- [x] **H-03** `docs/plan/convenciones.md` §2 ("Cada persona modifica solo lo suyo") y §3 (archivos calientes): agregar la misma excepción.
+- [x] **H-03** `docs/plan/convenciones.md` §2 ("Cada persona modifica solo lo suyo") y §3 (archivos calientes): agregar la misma excepción, solo para quién edita; las reglas técnicas de §3 se mantienen. También se alinean `docs/plan/prompts/revision.md` (alcance y cierre) y la plantilla del PR.
 - [x] **H-04** `docs/plan/README.md`, regla de oro correspondiente: agregar la misma excepción.
 - [x] Integrar este archivo, `docs/plan/auditoria-2026-09-25.md`.
 

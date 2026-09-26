@@ -40,7 +40,7 @@ Mientras tanto puedes hacer otra cosa. El agente escribe las pruebas y el códig
 
 Solo en estos casos:
 - Necesita una **credencial, una cuenta o un acceso** que no tiene.
-- Encontró una **decisión importante** que la especificación no resuelve: una librería nueva, un cambio en archivos de otro compañero o algo de seguridad. Te dará opciones y una recomendación. Si no estás seguro, pregúntale a Jordin.
+- Encontró una **decisión importante** que la especificación no resuelve: una librería nueva, un cambio en archivos de otro compañero (salvo que seas Jordin, el coordinador) o algo de seguridad. Te dará opciones y una recomendación. Si no estás seguro, pregúntale a Jordin.
 - Algo **falla una y otra vez**: lleva 5 intentos con la CI o 3 enfoques distintos para el mismo error.
 
 Si no puedes responder en ese momento, pídele: "Marca la tarea como bloqueada con este motivo: …". Así el resto del equipo lo ve.

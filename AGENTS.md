@@ -15,13 +15,13 @@ Shapi es una plataforma como servicio para publicar APIs, controlar quién las u
 | `jose-pablo` | José Pablo Zúñiga | PabloZ7-425 | JZ |
 
 3. **Solo implementa tareas de esa persona** y solo las que estén disponibles, es decir, sin dependencias pendientes. Para verlas, ejecuta `node scripts/tareas.mjs --persona <clave>`.
-   **Excepción: el coordinador (`jordin`)** está autorizado de forma permanente a corregir, terminar o modificar el trabajo de cualquier persona (código, pruebas, contratos, tareas, bitácoras, documentación y sus PR abiertos). No necesita preguntar antes. Lo hace según `docs/plan/protocolo.md` §E.
+   **Excepción: el coordinador (`jordin`)** está autorizado de forma permanente a corregir, terminar o modificar el trabajo de cualquier persona (código, pruebas, contratos, tareas, bitácoras, documentación y sus PR abiertos). No necesita preguntar antes. Lo hace según `docs/plan/protocolo.md` §E. La excepción cubre solo quién edita qué: el resto de "Preguntar antes" y "Nunca" sigue vigente, incluido no forzar el *push* sobre la rama de otra persona.
 
 ## Pedidos habituales del usuario
 
 - **"¿Qué me toca?" / "Revisa el plan"**: ejecuta `node scripts/tareas.mjs --persona <clave>`, lee los archivos de las tareas disponibles y resúmelas: qué hace cada una, su prioridad, su avance y de quién depende lo que está en espera. Incluye los avisos que los demás le dejaron en sus bitácoras (`docs/plan/protocolo.md` §A, paso 5). Recomienda la siguiente. **No implementes nada todavía.**
 - **"Implementa <ID>"** o **"continúa"**: sigue la sección B de `docs/plan/protocolo.md` de principio a fin, hasta que el *pull request* quede integrado en `main`, **sin volver a preguntarle al usuario**, salvo en los casos de "Preguntar antes" o si necesitas algo a lo que no puedes acceder.
-- **"Audita <ID>"** o **"corrige los hallazgos de <ID>"** (solo el coordinador): sigue `docs/plan/protocolo.md` §E.
+- **"Audita <ID>"** o **"audita lo integrado"** (solo el coordinador): sigue `docs/plan/protocolo.md` §E2 y detente al presentar los hallazgos. **"Corrige los hallazgos"** o **"continúa"** con un plan de auditoría: §E3, un paso a la vez.
 
 ## Comandos
 
@@ -64,7 +64,7 @@ Algunos todavía no existen: los crean JG-01, DC-01 y JZ-01.
 
 **⚠️ Preguntar antes** (detente y pregúntale al usuario)
 - Agregar una dependencia (NuGet o npm) que no esté en el stack de `docs/specs/06-arquitectura.md` §9.
-- Modificar archivos de otra persona que la tarea no menciona, o cambiar un "archivo caliente" (`docs/plan/convenciones.md` §3) de una forma que no dice la tarea. Si la persona es el coordinador (`jordin`), no hace falta preguntar (protocolo §E).
+- Modificar archivos de otra persona que la tarea no menciona, o cambiar un "archivo caliente" (`docs/plan/convenciones.md` §3) de una forma que no dice la tarea. Si la persona es el coordinador (`jordin`), no hace falta preguntar (protocolo §E1).
 - Contradecir o cambiar una decisión de `docs/specs/12-decisiones.md`.
 - Cualquier cosa que requiera cuentas, credenciales o servicios externos.
 
@@ -72,7 +72,7 @@ Algunos todavía no existen: los crean JG-01, DC-01 y JZ-01.
 - Hacer *push* directo a `main`, `git push --force` sobre ramas ajenas, `--no-verify`, ni desactivar u omitir verificaciones de la CI.
 - Borrar, debilitar o marcar como omitidas pruebas para que la CI pase.
 - Hacer *commit* de secretos, archivos `.env`, contraseñas o tokens. Las credenciales de ejemplo van en `.env.example`.
-- Implementar tareas de otra persona, salvo el coordinador (protocolo §E), o marcar como hecha una tarea sin verificarla.
+- Implementar tareas de otra persona, salvo el coordinador (protocolo §E4), o marcar como hecha una tarea sin verificarla.
 - Inventar requisitos. Si falta algo en la especificación, sigue `docs/plan/protocolo.md` §C.
 
 ## Definición de terminado
