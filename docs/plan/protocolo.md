@@ -34,7 +34,7 @@ Este es el procedimiento **obligatorio** para cualquier agente (Claude Code, Cod
 
 ## B. Implementar una tarea ("implementa <ID>" o "continúa")
 
-Si la persona dice "continúa" o "la siguiente", toma la primera disponible con `node scripts/tareas.mjs --siguiente <clave>`.
+Si la persona dice "continúa" o "la siguiente", toma la primera disponible con `node scripts/tareas.mjs --siguiente <clave>`. Excepción: si el coordinador dice "continúa la auditoría" o "siguiente paso de la auditoría", o si la sesión ya está corrigiendo un plan de auditoría, se sigue §E3.
 
 Desde aquí trabaja **sin pedir confirmación** en cada paso. Solo te detienes en los casos de §C.
 
@@ -48,6 +48,7 @@ Desde aquí trabaja **sin pedir confirmación** en cada paso. Solo te detienes e
 git switch main && git pull --ff-only
 git switch -c <persona>/<ID>-<descripcion-corta>      # ejemplo: emilio/EM-02-registro-proveedor
 ```
+Si el coordinador termina el PR abierto de otra persona (§E4), la rama parte de la rama de ese PR y no de `main`.
 
 ### B3. Entender la tarea
 - Lee el archivo de la tarea **completo**.
@@ -172,11 +173,11 @@ En cualquier PR suyo, sea de auditoría o no, el coordinador puede:
 - terminar o corregir tareas de otros, incluidos sus PR abiertos;
 - borrar archivos que sobran.
 
-No necesita preguntar antes ni crear una tarea nueva para la persona dueña. Esta autorización prevalece sobre las reglas de **propiedad** que digan lo contrario: B1, B6, §C, §D, `AGENTS.md` (paso 3, "Preguntar antes" y "Nunca"), `docs/plan/README.md` y `docs/plan/convenciones.md` §2 y §3.
+No necesita preguntar antes ni crear una tarea nueva para la persona dueña. Esta autorización prevalece sobre las reglas de **propiedad** que digan lo contrario: B1, B2 (solo en §E4), B6, §C, §D, `AGENTS.md` (paso 3, "Siempre" en cuanto a la rama de §E4, "Preguntar antes" y "Nunca"), `docs/plan/README.md` y `docs/plan/convenciones.md` §2 y §3.
 
 La autorización cubre **solo quién puede editar qué**. Todo lo demás sigue vigente, en particular:
 - **Git y CI:** nada de *push* directo a `main`, nada de `--no-verify`, y la CI sigue siendo obligatoria.
-- **Rama de otra persona:** nunca se hace *push* forzado (`--force` ni `--force-with-lease`) sobre la rama de otra persona. Para actualizarla se usa `gh pr update-branch` o un *merge* de `main`, nunca un *rebase*.
+- **Rama de otra persona:** nunca se hace *push* a la rama de otra persona, ni forzado ni normal. Para terminar su trabajo se sigue §E4.
 - **Preguntar antes:** para agregar una dependencia, cambiar un ADR o usar cuentas o credenciales.
 - **Pruebas:** no se debilitan ni se omiten.
 - **Reglas técnicas de convenciones §3:** no editar el snapshot a mano, regenerar el lockfile, no editar `Program.cs`, etc.
@@ -185,7 +186,7 @@ Cada vez que un PR del coordinador toca archivos de otra persona, su entrada en 
 
 ### E2. Cómo se audita ("audita <ID>" o "audita lo integrado")
 
-1. **Qué se audita.** Las tareas integradas desde la última auditoría: `gh pr list --state merged` y `git log main`. Si Jordin nombra una tarea, solo esa.
+1. **Qué se audita.** Las tareas integradas en `main` después de la fecha del `docs/plan/auditoria-*.md` más reciente (`gh pr list --state merged --search "merged:>AAAA-MM-DD"` y `git log main`). Si Jordin nombra una tarea, solo esa.
 2. **Revisión de cada tarea**, preferiblemente con subagentes o sesiones en contexto limpio, una por tarea o área:
    - Leer completos el archivo de la tarea (incluido `## Resultado`), las especificaciones de "Contexto que debes leer" y el código actual. No basta con el diff.
    - Por cada criterio de aceptación y cada prueba obligatoria, comprobar que hay código que lo cumple **y** una prueba que lo verifica de verdad.
@@ -199,6 +200,7 @@ Cada vez que un PR del coordinador toca archivos de otra persona, su entrada en 
    - agrupados en pasos, uno o más por tarea original;
    - con cada duda que decide Jordin marcada **❓ Decisión pendiente**.
 5. **Detenerse.** Presentarle a Jordin el resumen y el plan, y **no corregir nada** hasta que lo indique.
+6. **Integrar el plan.** El plan entra a `main` en el primer PR de E3, junto con su primera corrección. Si Jordin prefiere integrarlo solo, se usa la rama `jordin/JG-01-auditoria-plan-<AAAA-MM-DD>` y el PR `[JG-01] Plan de la auditoría <AAAA-MM-DD>`.
 
 ### E3. Cómo se corrige una tarea ya integrada
 
@@ -215,13 +217,15 @@ El agente de Jordin sigue la sección B con estas diferencias:
 ### E4. Cómo se termina una tarea de otra persona que no está integrada
 
 Por ejemplo, un PR abierto que quedó con la CI en rojo o con hallazgos de la revisión.
-1. **Rama:** antes de tocarla, preguntarle a Jordin si se trabaja sobre la rama del dueño o sobre una rama nueva que parta de ella, y si ya le avisó al dueño, para que no trabajen al mismo tiempo. Sobre la rama del dueño rige la regla de *push* de E1.
-2. **Cierre:** B10 y B11 normales. El título es `[<ID>] <título de la tarea>`, la tarea queda con `estado: hecha` y lleva un `## Resultado` completo, donde se menciona que la terminó el coordinador.
-3. **Bitácora:** la entrada va en `docs/plan/bitacora/jordin.md`, con el aviso de E1.
+1. **Aviso previo:** preguntarle a Jordin si ya le avisó al dueño, para que no siga trabajando en su PR al mismo tiempo.
+2. **Rama nueva:** `jordin/<ID>-<descripcion-corta>`, creada a partir de la rama del PR del dueño (`git fetch origin <rama>` y `git switch -c jordin/<ID>-… origin/<rama>`), para conservar sus *commits*. Nunca se hace *push* a la rama del dueño. Para ponerla al día se hace un *merge* de `main` en la rama nueva.
+3. **PR nuevo:** su autor es el coordinador, y así la revisión aplica E5. Al abrirlo, se cierra el PR original con un comentario que enlaza al nuevo (`gh pr close <n> --comment "Lo continúa #<nuevo> (protocolo §E4)"`), sin borrar la rama del dueño.
+4. **Cierre:** B10 y B11 normales. El título es `[<ID>] <título de la tarea>`, la tarea queda con `estado: hecha` y lleva un `## Resultado` completo, donde se menciona que la terminó el coordinador a partir del trabajo de su dueño.
+5. **Bitácora:** la entrada va en `docs/plan/bitacora/jordin.md`, con el aviso de E1.
 
 ### E5. Revisión en contexto limpio (B9) de los PR del coordinador
 
 Si el autor del PR es el coordinador, el revisor no marca como problema de alcance que se toquen archivos de otra persona. En cambio, revisa estos tres puntos:
-- cada cambio corresponde a un hallazgo, al título del PR o a la tarea;
+- cada cambio corresponde a un hallazgo de la auditoría, al título del PR o a la tarea del PR;
 - no se debilitó ninguna prueba;
 - la bitácora tiene el aviso para cada persona dueña de un archivo modificado.

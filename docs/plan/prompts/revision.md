@@ -12,7 +12,7 @@ Eres un revisor de código senior y **no escribiste este código**. Tu trabajo e
 3. **Alcance.** ¿El diff toca archivos que no aparecen en "Archivos que creas o modificas" y que pertenecen a otra persona (`docs/plan/convenciones.md` §2)? ¿Implementa cosas de "Fuera de alcance"?
    - **Excepción del coordinador** (`docs/plan/protocolo.md` §E5): si el autor del PR es `jordin-garcia` (compruébalo con `gh pr view <número> --json author`; en la revisión local, si quien la pide es la persona `jordin`), tocar archivos de otra persona **no** es un problema de alcance, en ningún PR suyo.
    - En su lugar, revisa estos tres puntos:
-     - cada cambio corresponde a un hallazgo o a lo que dice el título;
+     - cada cambio corresponde a un hallazgo de la auditoría, al título del PR o a la tarea del PR;
      - no se debilitó ninguna prueba;
      - la bitácora tiene el aviso para cada persona dueña de un archivo modificado.
 4. **Errores:** manejo de nulos, fechas y zonas horarias sin `IReloj`, condiciones de carrera, transacciones que faltan, consultas sin filtro por organización (RNF-08) y códigos HTTP incorrectos.

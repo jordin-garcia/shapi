@@ -23,7 +23,7 @@ El 25 de septiembre de 2026 se auditaron las 10 tareas integradas en `main` (JG-
 - **Marca en los correos:**
   - los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi;
   - los de los consumidores llevan solo la marca del portal;
-  - se corrige 10 §85.
+  - se corrige 10 §6 (`10-identidad-y-seguridad.md:85`).
 - **Alcance:** se incluyen lo integrado en `main`, los PR abiertos #16 (EM-03) y #14 (EM-06), y los huecos de requisitos. La reasignación de DC-03 y DC-04 queda fuera.
 - **Automatización:** la revisión con Claude pasa a ser bloqueante.
 
@@ -38,7 +38,7 @@ Autoriza a Jordin a corregir directamente el trabajo de cualquier integrante.
 - [x] **H-01** `docs/plan/protocolo.md` §C: agregar la excepción del coordinador a la fila "No lo arregles en su código". Queda así:
   - **Autorización permanente:** Jordin, el coordinador, puede modificar el código, las pruebas, los contratos, los archivos de tarea, las bitácoras y la documentación de cualquier persona. No necesita preguntar antes ni crear una tarea nueva.
   - **Motivo:** la auditoría que hace después de cada integración en `main`.
-  - **Forma de hacerlo:** un PR `[<ID>] Correcciones de la auditoría: …`, la subsección de correcciones en el `## Resultado` de la tarea y un aviso en negrita a la persona dueña en su bitácora.
+  - **Forma de hacerlo:** un PR `[<ID>] Correcciones de la auditoría: …`, la subsección de correcciones en el `## Resultado` de la tarea y un aviso en negrita para la persona dueña en `docs/plan/bitacora/jordin.md`.
   - Se agrega una sección nueva, **§E. Auditoría del coordinador después de cada integración** (E1 a E5), con ese procedimiento.
 - [x] **H-02** `AGENTS.md`, en "Preguntar antes" y en "Nunca": agregar la excepción. Si la persona es `jordin`, puede modificar archivos ajenos e implementar o corregir tareas de otros, según el protocolo §E.
 - [x] **H-03** `docs/plan/convenciones.md` §2 ("Cada persona modifica solo lo suyo") y §3 (archivos calientes): agregar la misma excepción, solo para quién edita; las reglas técnicas de §3 se mantienen. También se alinean `docs/plan/prompts/revision.md` (alcance y cierre) y la plantilla del PR.
@@ -61,7 +61,8 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 - [ ] **H-07** Quitar los `error as any` (`no-explicit-any`), que hoy ponen en rojo el job `frontend` de la CI.
 - [ ] **H-08** Actualizar `rutas.test.tsx`, que busca el texto de relleno "A1-x ·", para que busque el contenido real de cada pantalla, sin debilitar la prueba.
 - [ ] Comparar las pantallas con los mockups de A1 (textos, orden y estados), actualizar la rama desde `main` y agregar la evidencia de `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
-- **❓ Decisión pendiente:** si se continúa sobre la rama de Emilio (`emilio/EM-03-pantallas-registro-acceso`) o sobre una rama nueva que parta de ella, y si hay que avisarle a Emilio para que no siga trabajando en ella al mismo tiempo.
+- Según §E4 (decisión de Jordin del 26 sep): se trabaja en una rama nueva, `jordin/EM-03-…`, que parte de `emilio/EM-03-pantallas-registro-acceso` y conserva sus *commits*. Se abre un PR nuevo y se cierra el #16 con un comentario que enlaza al nuevo.
+- **❓ Decisión pendiente:** si Jordin ya le avisó a Emilio que no siga trabajando en el #16.
 
 ## Paso 3 · [JG-03] La revisión con Claude pasa a ser bloqueante
 
@@ -74,12 +75,12 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 
 ## Paso 4 · [JG-01] Coherencia de las especificaciones y del plan
 
-- [ ] **H-12** 10 §59, CSP: agregar `'self'` a `font-src`. Las fuentes de `@fontsource` se sirven desde el propio sitio.
+- [ ] **H-12** 10 §5 (`10-identidad-y-seguridad.md:59`), CSP: agregar `'self'` a `font-src`. Las fuentes de `@fontsource` se sirven desde el propio sitio.
 - [ ] **H-13** Ruta de salud:
-  - 06 §4 define `/interno/salud` para la API y 06 §379 define `/salud` para cada proceso;
+  - 06 §4 (`06-arquitectura.md:104`) define `/interno/salud` para la API y 06 §8 (`06-arquitectura.md:379`) define `/salud` para cada proceso;
   - JZ-06:42 espera `https://shapi.localhost/api/salud`, que da 404 a través de Caddy;
   - se unifica la especificación, se corrige JZ-06 y, si hace falta, se agrega `/interno/salud` a la API.
-- [ ] **H-14** 10 §85: los correos del personal llevan la marca de Shapi y los de los consumidores solo la del portal (decisión de Jordin). Hay que alinear JZ-11.
+- [ ] **H-14** 10 §6 (`10-identidad-y-seguridad.md:85`): los correos del personal llevan la marca de Shapi y los de los consumidores solo la del portal (decisión de Jordin). Hay que alinear JZ-11.
 - [ ] **H-15** `12-decisiones.md`: el encabezado dice "D1 a D34", pero existe ADR-35. Además, `03-requisitos.md:125,137` citan "D29" en vez de ADR-29.
 - [ ] **H-16** Versión de Node: `12-decisiones.md:181` dice "Node 22 o posterior", mientras que `instalacion.md`, `manual-tecnico.md`, DC-01 y `package.json` exigen 24.
   - **❓ Decisión pendiente:** cambiar una decisión de `12-decisiones.md` está en "Preguntar antes". Se confirma que manda Node 24.
@@ -94,7 +95,7 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
   - JZ-03:59 y `jose-pablo.md:29` dicen "quinto fallo", pero ahora es el sexto;
   - `11-interfaz.md:195` todavía habla de un contrato provisional de sesión;
   - `emilio.md:17` dice que no migra en Development, y sí migra;
-  - `AGENTS.md:26` todavía dice que algunos comandos no existen.
+  - la línea "Algunos todavía no existen" de `AGENTS.md` (sección Comandos) todavía dice que algunos comandos no existen.
 - [ ] **H-24** EM-17 dice "crear `identidad.yaml`", pero ya existe; debe decir "modificar". Además, EM-17 no aparece en la tabla del Avance 1 de `calendario.md`.
 - [ ] **H-25** 07:695 exige que el rol de la aplicación solo tenga INSERT y SELECT sobre `bitacora`, pero ninguna tarea lo pide. Se asigna en el paso 5.
 - [ ] **H-26** Avisos sin atender que se pasan a los criterios de sus tareas:
@@ -278,7 +279,8 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - `pasarela_no_disponible`.
 - [ ] **H-104** Detectar las tarjetas especiales por el número completo, no por los últimos 4 dígitos.
 - [ ] **H-105** Quitar `generar_pagos.py` y el resto de los hallazgos obligatorios de la revisión automática, y actualizar la rama desde `main`.
-- **❓ Decisión pendiente:** la misma del paso 2, sobre la rama de Emilio.
+- Igual que en el paso 2 (§E4): una rama nueva, `jordin/EM-06-…`, que parte de `emilio/EM-06-pasarela-de-pagos`, un PR nuevo y se cierra el #14 con un comentario que enlaza al nuevo.
+- **❓ Decisión pendiente:** si Jordin ya le avisó a Emilio que no siga trabajando en el #14.
 
 ## Paso 15 · [JG-01] CI y reglas del repositorio
 
@@ -291,7 +293,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [ ] **H-111** La plantilla de PR debe pedir la evidencia de `dotnet format`, `pnpm build` y `tareas.mjs --validar`. Completar el `README.md` con las carpetas y los comandos de arranque.
 - [ ] **H-112** Ejecutar las pruebas en paralelo es inestable con Docker en Windows (se vio en la auditoría). Se evalúa limitar el paralelismo entre proyectos o documentarlo.
 
-## Paso 16 · Huecos de requisitos (tareas nuevas según §C)
+## Paso 16 · [JG-01] Huecos de requisitos (tareas nuevas según §C)
 
 - [ ] **H-113** Crear tareas para RNF-06 (disponibilidad del 99.5 %) y RNF-11 (publicar en menos de 5 minutos). Agregar RNF-13 a los metadatos de JG-02.
 - [ ] **H-114** `calendario.md:102` dice que las tareas P1 cubren los lineamientos obligatorios. Hoy solo los cubren tareas P2:
@@ -304,7 +306,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - a quién se asigna cada tarea nueva;
   - si se suben a P1 las tareas existentes o se corrige la afirmación del calendario.
 
-## Paso 17 · Auditoría final
+## Paso 17 · [JG-01] Auditoría final
 
 - [ ] Ejecutar la verificación completa: build, formato, pruebas, lint, typecheck, build del frontend, `scripts/` y `--validar`.
 - [ ] Volver a auditar todas las tareas hechas contra su archivo de tarea y contra las especificaciones, en contexto limpio.
