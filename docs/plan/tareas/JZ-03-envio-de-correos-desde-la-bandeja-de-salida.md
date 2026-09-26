@@ -64,6 +64,6 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ### Corrección posterior (2026-09-25, Jordin)
 
-- Los enlaces de los correos de un consumidor llevan al host del portal cuando los `datos` traen `hostPortal`; antes siempre llevaban al dominio base, es decir, al panel del personal, donde el token del consumidor no sirve. `hostPortal` se valida como nombre de host.
+- Los enlaces de los correos de un consumidor llevan al host del portal cuando los `datos` traen `hostPortal`; antes siempre llevaban al dominio base, es decir, al panel del personal, donde el token del consumidor no sirve. `hostPortal` debe ser `{sub}.{dominio_base}`, con una sola etiqueta ASCII, para que el token no pueda terminar en otro dominio.
 - El criterio 2 contradecía RF-46 ("se reintentan hasta 5 veces"): con "al quinto fallo, `fallido`" la espera de 1 h nunca se usaba. Ahora hay 5 reintentos con las 5 esperas, y el correo queda `fallido` al fallar el sexto intento, con `proximo_intento_en` vacío.
 - Especificación precisada en `10-identidad-y-seguridad.md` §6.

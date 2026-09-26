@@ -53,10 +53,19 @@ public class MotorPlantillasCorreoTests
         resultado.Html.Should().Contain(enlace);
         resultado.Texto.Should().Contain(enlace);
         resultado.Html.Should().NotContain("https://shapi.localhost/");
+        resultado.NombreRemitente.Should().Be("Envíos Xelajú");
     }
 
     [Theory]
+    [InlineData("evil.com")]
     [InlineData("evil.com/ruta")]
+    [InlineData("shapi.localhost")]
+    [InlineData("envios.shapi.localhost.evil.com")]
+    [InlineData("a.b.shapi.localhost")]
+    [InlineData("evil.com／x.shapi.localhost")]
+    [InlineData("evil.com℀.shapi.localhost")]
+    [InlineData("bücher.shapi.localhost")]
+    [InlineData("a_b.shapi.localhost")]
     [InlineData("envios.shapi.localhost:8443")]
     [InlineData("usuario@envios.shapi.localhost")]
     [InlineData("  ")]
