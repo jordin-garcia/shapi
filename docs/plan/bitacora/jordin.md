@@ -136,14 +136,15 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: paso 4 de `docs/plan/auditoria-2026-09-25.md` (H-12 a H-29). Se corrigieron contradicciones y referencias entre las specs, el plan y los mockups, sin cambiar código. H-10 quedó aplicado: `revision-claude` ya es obligatorio en `main`.
 - Decisiones (de Jordin, 26 sep):
   - ADR-35 pasa a Node 24 o posterior.
-  - La salud es solo `/salud` en cada proceso: se quitó `/interno/salud` de 06 §4.
-  - En los colores de Correcto y Alerta manda la spec: la lámina usa `#146542` y `#8E3315`.
+  - La salud es `/salud` en la API y en la compuerta (se quitó `/interno/salud` de 06 §4). El trabajador no tiene HTTP: su salud es el latido.
+  - Los colores de Correcto y Alerta de los mockups (`#1F8A5B` y `#C2481F`) son correctos: 11 §1 los agrega como tono base y conserva el de etiqueta (`#146542` y `#8E3315`).
+  - El contexto de la compuerta se lee en dos *pipelines* más el script Lua (08 §8).
   - Los correos del personal llevan la marca de Shapi y los de los consumidores la del portal.
 - Pendiente o aviso para otros:
-  - **JZ-06:** nuevos criterios 6 y 7 (el *healthcheck* consulta `/salud` en `localhost` dentro del contenedor y la API no publica su puerto). Ya no se comprueba `/api/salud` a través de Caddy.
+  - **JZ-06:** nuevos criterios 6 y 7: el *healthcheck* de la API y de la compuerta consulta `/salud` en `localhost` dentro del contenedor, el trabajador no lleva *healthcheck* y la API no publica su puerto. Ya no se comprueba `/api/salud` a través de Caddy.
   - **JZ-11:** se resolvió la contradicción de la marca: los correos del personal usan la marca de Shapi y los de los consumidores la del portal (10 §6).
-  - **JG-05:** nuevos criterios 8 y 9 (no reenviar cookies del portal y leer el contexto en un solo *pipeline*).
+  - **JG-05:** nuevos criterios 8 y 9: se quitan `shapi_sesion` y `portal_sesion` hacia el origen, y el contexto se lee en dos *pipelines*. Tiene sus pruebas obligatorias.
   - **EM-17:** `identidad.yaml`, `identidad.ts` y la exportación ya existen. Falta reemplazar el contrato provisional de la sesión.
-  - **Dominique:** en `mockups/A0/Lamina.dc.html` cambiaron las muestras de Correcto y Alerta (`#146542` y `#8E3315`), para que coincidan con 11 §1.
-  - **Emilio:** se agregó una nota en tu bitácora (entrada de EM-01): `Program.cs` sí migra en Development.
-  - **José Pablo:** se agregó una nota en tu bitácora (entrada de JZ-03) sobre el sexto intento.
+  - **Dominique:** 11 §1 tiene ahora dos tonos por color de estado: el base, `#1F8A5B` y `#C2481F`, para iconos, muestras, códigos y texto en tablas, y el de etiqueta, `#146542` y `#8E3315`. Los tokens `--correcto-base` y `--alerta-base` se agregan en el paso 12 (H-86). También cambió el contexto de DC-02: el catálogo de 11 §3 no trae responsables.
+  - **Emilio:** se agregó una nota en tu bitácora (entrada de EM-01): `Program.cs` sí migra en Development. En el criterio 1 de EM-05 se corrigió la cita de sección (10 §1).
+  - **José Pablo:** se agregaron notas en tu bitácora y en el `## Resultado` de JZ-03 sobre el sexto intento, y se corrigió la cita del criterio 3 (10 §1). En `infra/verificar.mjs`, la comprobación de `/interno/*` ahora usa `/interno/tls/autorizar`, porque `/interno/salud` no existe.

@@ -110,7 +110,7 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 - [x] **H-28** 06 §9, stack: agregar los paquetes que las tareas ya autorizan.
   - NuGet: `EFCore.NamingConventions`, `Microsoft.Extensions.Identity.Core`, `NSubstitute` y `Microsoft.Extensions.Hosting`.
   - npm: `openapi-fetch`, `openapi-typescript`, `msw`, `react-markdown`, `rehype-sanitize`, `@fontsource/*`, `eslint` y `jsdom`.
-- [x] **H-29** Colores de la lámina: `mockups/A0/Lamina.dc.html` usa Correcto `#1F8A5B` y Alerta `#C2481F`, mientras que 11 §1 usa `#146542` y `#8E3315`. Según §C manda la especificación, así que se documenta la contradicción en 11 §1 y se corrige el mockup si su formato lo permite.
+- [x] **H-29** Colores de la lámina: `mockups/A0/Lamina.dc.html` y unos 20 mockups usan `#1F8A5B` y `#C2481F`, mientras que 11 §1 solo tenía `#146542` y `#8E3315`. **Decidido por Jordin (26 sep):** los colores de los mockups son correctos; 11 §1 agrega el tono base (`--correcto-base` y `--alerta-base`) y conserva el de etiqueta. Los mockups no cambian.
 
 ## Paso 5 · [EM-01] Esquema de la base de datos
 
@@ -236,6 +236,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [ ] **H-86** Tokens completos según 11 §1:
   - escala de espaciado y escala tipográfica (32, 22, 16, 15, 12 y 11);
   - tema oscuro sin valores inventados;
+  - los tonos base `--correcto-base` (`#1F8A5B`) y `--alerta-base` (`#C2481F`) de 11 §1 (decisión del 26 sep), y `/_ui` con las muestras de la lámina;
   - sin la paleta por defecto de Tailwind (quitar `hover:bg-gray-50`).
 - [ ] **H-87** Medidas de `/_ui` y de los componentes según la lámina:
   - logotipo;

@@ -33,7 +33,7 @@ Implementar en el trabajador el envío de los correos encolados en `correo_salie
 ## Criterios de aceptación
 1. Cada 5 s, el trabajador toma los correos `pendiente` con `proximo_intento_en <= ahora`, arma el correo con la plantilla y los `datos` (reemplazo de `{{campo}}`, con los valores escapados en HTML), lo envía y lo marca `enviado` con `enviado_en`.
 2. Si falla, incrementa `intentos`, guarda `ultimo_error` y calcula el próximo intento (5 s, 30 s, 2 min, 10 min y 1 h). Si falla el quinto reintento (el sexto intento), queda `fallido` (RF-46: "se reintentan hasta 5 veces").
-3. El remitente es `no-responder@{dominio_base}`. Si los `datos` traen `nombrePortal`, ese es el nombre visible del remitente, y si traen `hostPortal`, los enlaces llevan a ese host (correos de un portal, 10 §6).
+3. El remitente es `no-responder@{dominio_base}`. Si los `datos` traen `nombrePortal`, ese es el nombre visible del remitente, y si traen `hostPortal`, los enlaces llevan a ese host (correos de un portal, 10 §1).
 4. Las plantillas `verificacion_correo` y `recuperacion` están en español, tratan al usuario de usted y llevan el enlace con el token.
 5. La configuración viene de `SHAPI_SMTP_HOST`, `_PUERTO`, `_USUARIO`, `_CONTRASENA` y `_TLS`.
 

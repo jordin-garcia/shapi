@@ -109,16 +109,16 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
     - CSP con `'self'` en `font-src`, porque las fuentes de `@fontsource` se sirven desde el propio sitio;
     - la marca en los correos: los del personal llevan la de Shapi y los de los consumidores solo la del portal (10 §6).
   - **Salud y rutas:**
-    - la salud es solo `/salud` en cada proceso (06 §4 y §8, y JZ-06);
+    - la salud es `/salud` en la API y en la compuerta, y el latido en el trabajador (06 §4 y §8, y JZ-06);
     - el ejemplo de ruta con parámetro es `/guias/{numero}`, porque el origen y los mockups usan `GET /rastreo?guia=`.
   - **ADR:**
     - ADR-35 pasa a Node 24;
     - "D29" pasa a ADR-29;
     - la numeración de 12 queda aclarada.
-  - **Colores de la lámina:** las muestras de Correcto y Alerta usan los tonos de 11 §1.
+  - **Colores de estado:** 11 §1 agrega el tono base de Correcto y Alerta (`#1F8A5B` y `#C2481F`), que usan la lámina y los mockups, y conserva el tono de etiqueta.
   - **Documentos y referencias:** los nombres `Caddyfile.dev` y `Caddyfile.prod`, las citas de sección, los contratos de Jordin en convenciones §2, el paquete de apoyo en 06 §9 y los textos desactualizados de JG-01, JZ-03, 11 §4, AGENTS.md y las bitácoras.
   - **Avisos pasados a criterios:**
-    - JG-05: cookies del portal y un solo *pipeline*;
+    - JG-05: cookies de Shapi y dos *pipelines* para el contexto (08 §8);
     - JZ-06: *healthcheck* y el puerto de la API;
     - JG-04: `DEL` y luego `HSET`.
   - **EM-17 y calendario:** EM-17 quedó al día con lo que ya hizo EM-03 y aparece en la tabla del Avance 1.
