@@ -39,6 +39,48 @@ public class MotorPlantillasCorreoTests
         resultado.NombreRemitente.Should().Be("Envíos Xelajú");
     }
 
+    [Theory]
+    [InlineData("verificacion_correo", "https://envios.shapi.localhost/verificar-correo?token=token-1")]
+    [InlineData("recuperacion", "https://envios.shapi.localhost/restablecer?token=token-1")]
+    public void RF_46_CorreoDeUnPortal_LlevaElEnlaceAlHostDelPortal(string plantilla, string enlace)
+    {
+        var motor = CrearMotor();
+
+        var resultado = motor.Renderizar(
+            plantilla,
+            """{"nombre":"Ana","token":"token-1","nombrePortal":"Envíos Xelajú","hostPortal":"Envios.Shapi.Localhost"}""");
+
+        resultado.Html.Should().Contain(enlace);
+        resultado.Texto.Should().Contain(enlace);
+        resultado.Html.Should().NotContain("https://shapi.localhost/");
+        resultado.NombreRemitente.Should().Be("Envíos Xelajú");
+    }
+
+    [Theory]
+    [InlineData("evil.com")]
+    [InlineData("evil.com/ruta")]
+    [InlineData("shapi.localhost")]
+    [InlineData("envios.shapi.localhost.evil.com")]
+    [InlineData("a.b.shapi.localhost")]
+    [InlineData("evil.com／x.shapi.localhost")]
+    [InlineData("evil.com℀.shapi.localhost")]
+    [InlineData("bücher.shapi.localhost")]
+    [InlineData("a_b.shapi.localhost")]
+    [InlineData("envios.shapi.localhost:8443")]
+    [InlineData("usuario@envios.shapi.localhost")]
+    [InlineData("  ")]
+    public void RF_46_HostDelPortalInvalido_RechazaLaPlantilla(string hostPortal)
+    {
+        var motor = CrearMotor();
+
+        var accion = () => motor.Renderizar(
+            "verificacion_correo",
+            $$"""{"nombre":"Ana","token":"token-1","hostPortal":"{{hostPortal}}"}""");
+
+        accion.Should().Throw<InvalidOperationException>()
+            .WithMessage("*hostPortal*");
+    }
+
     [Fact]
     public void RF_46_DatoRequeridoAusente_RechazaLaPlantilla()
     {

@@ -7,7 +7,7 @@ public class CorreoSalienteTests
     private static readonly DateTimeOffset Ahora = new(2026, 9, 25, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void RF_46_RegistrarFallo_ProgramaLosCincoIntentosYTerminaFallido()
+    public void RF_46_RegistrarFallo_ProgramaLosCincoReintentosConSusEsperas()
     {
         var correo = CrearCorreo();
         var esperas = new[]
@@ -28,8 +28,25 @@ public class CorreoSalienteTests
             correo.Intentos.Should().Be(indice + 1);
             correo.UltimoError.Should().Be($"fallo {indice + 1}");
             correo.ProximoIntentoEn.Should().Be(instante + esperas[indice]);
-            correo.Estado.Should().Be(indice == 4 ? EstadoCorreo.Fallido : EstadoCorreo.Pendiente);
+            correo.Estado.Should().Be(EstadoCorreo.Pendiente);
         }
+    }
+
+    [Fact]
+    public void RF_46_RegistrarFallo_AlFallarElQuintoReintentoQuedaFallido()
+    {
+        var correo = CrearCorreo();
+        for (var intento = 1; intento <= 5; intento++)
+        {
+            correo.RegistrarFallo($"fallo {intento}", Ahora);
+        }
+
+        correo.RegistrarFallo("fallo 6", Ahora);
+
+        correo.Estado.Should().Be(EstadoCorreo.Fallido);
+        correo.Intentos.Should().Be(6);
+        correo.UltimoError.Should().Be("fallo 6");
+        correo.ProximoIntentoEn.Should().BeNull();
     }
 
     [Fact]
