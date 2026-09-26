@@ -16,37 +16,64 @@ import { fileURLToPath } from "node:url";
 
 const BOT = "github-actions[bot]";
 const MARCA = "🤖 Revisión automática con Claude";
-// Las palabras clave pueden venir con formato Markdown: **CORRECCIÓN**, ### OPCIONAL, > VEREDICTO…
-const PREFIJO = String.raw`^[\s>*#_\-]*`;
-const RE_CORRECCION = new RegExp(PREFIJO + String.raw`CORRECCI[ÓO]N`, "im");
-const RE_OPCIONAL = new RegExp(PREFIJO + String.raw`OPCIONAL`, "im");
-const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`VEREDICTO:\s*\**\s*(LISTO|CORREGIR)`, "im");
+// Las palabras clave pueden venir con formato Markdown: **CORRECCIÓN**, ### OPCIONAL, > VEREDICTO… El prefijo no
+// acepta saltos de línea: si los aceptara, el encabezado empezaría en la línea vacía anterior y la propia línea
+// "CORRECCIÓN (…)" contaría como un hallazgo.
+const PREFIJO = String.raw`^[ \t>*#_\-]*`;
+// Un encabezado de sección no se puede confundir con el texto libre ("Corrección de auditoría…", "Opcionalmente…"):
+//   - en MAYÚSCULAS (el formato de revision.md), después de la palabra viene "(", ":", un guion o el fin de la línea;
+//   - con mayúscula inicial ("Corrección"), solo "(", ":" o el fin de la línea. "Opcional", solo si ocupa toda la
+//     línea ("**Opcional (no bloquea):**"), para que un hallazgo como "- Opcional: el campo X…" o "- Opcional (según
+//     RF-3) debe ser obligatorio." no cierre la sección de corrección.
+const CIERRE_MAYUSCULAS = String.raw`\**[ \t]*(?:[(:—–\-]|$)`;
+function encabezado(mayusculas, inicial, cierreInicial) {
+  return PREFIJO + String.raw`(?:${mayusculas}${CIERRE_MAYUSCULAS}|${inicial}\**[ \t]*(?:${cierreInicial}|$))`;
+}
+const PALABRA_CORRECCION = String.raw`(?:CORRECCI[ÓO]N(?:ES)?|Correcci[óo]n(?:es)?)`;
+const RE_CORRECCION = new RegExp(encabezado(String.raw`CORRECCI[ÓO]N(?:ES)?`, String.raw`Correcci[óo]n(?:es)?`, "[(:]"), "m");
+const RE_CORRECCION_MAYUSCULAS = new RegExp(PREFIJO + String.raw`CORRECCI[ÓO]N(?:ES)?` + CIERRE_MAYUSCULAS, "m");
+const RE_OPCIONAL = new RegExp(encabezado(String.raw`OPCIONAL(?:ES)?`, String.raw`Opcional(?:es)?`, String.raw`(?:\([^)\n]*\))?[ \t]*:?\**[ \t]*$`), "m");
+// El veredicto también se acepta como "Veredicto:" o "**Veredicto:** LISTO"; LISTO y CORREGIR van en mayúsculas.
+const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`(?:VEREDICTO|Veredicto)\**[ \t]*:[ \t]*\**[ \t]*(LISTO|CORREGIR)`, "m");
+// Se quita de la línea del encabezado su descripción ("(obligatorio corregir):", "— obligatorio corregir"); lo que
+// quede después también es un hallazgo.
+const RE_RESTO_CABECERA = new RegExp(PREFIJO + PALABRA_CORRECCION +
+  String.raw`\**[ \t]*(?:[—–\-][ \t]*)?(?:\([^)]*\)|obligatorio corregir)?[ \t]*[—–\-]?[ \t]*:?\**`);
+const RE_NINGUNO = /^\(?(?:ningun[oa]|no hay(?: hallazgos)?)\.?\)?\.?$/i;
 
 /** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha, editado}'` (un JSON por línea) en un arreglo. */
 export function leerComentarios(texto) {
   return texto.split(/\r?\n/).filter((linea) => linea.trim()).map((linea) => JSON.parse(linea));
 }
 
-/** El veredicto es el primero que aparece después de la sección de corrección (las notas posteriores no cuentan). */
+/**
+ * La sección de corrección es el primer encabezado en MAYÚSCULAS (el formato de revision.md) antes del primer
+ * veredicto; solo si no hay ninguno se usa el primero con mayúscula inicial. Así, un "Corrección (…)" del texto libre
+ * no reemplaza a la sección real, y un segundo encabezado no oculta los hallazgos del primero. El veredicto es el
+ * primero después de la sección (las notas posteriores no cuentan). Sin una sección de corrección reconocida no se
+ * sabe si hay hallazgos: la revisión cuenta como incompleta.
+ */
 function analizar(cuerpo) {
-  const inicio = cuerpo.search(RE_CORRECCION);
-  const desde = inicio >= 0 ? inicio : 0;
-  const resto = cuerpo.slice(desde);
+  const primero = cuerpo.search(RE_CORRECCION);
+  if (primero < 0) return null;
+  const primerVeredicto = cuerpo.slice(primero).search(RE_VEREDICTO);
+  const hasta = primerVeredicto < 0 ? cuerpo.length : primero + primerVeredicto;
+  const mayusculas = cuerpo.slice(0, hasta).search(RE_CORRECCION_MAYUSCULAS);
+  const inicio = mayusculas >= 0 ? mayusculas : primero;
+  const resto = cuerpo.slice(inicio);
   const veredicto = resto.match(RE_VEREDICTO);
   if (!veredicto) return null;
-  let correcciones = false;
-  if (inicio >= 0) {
-    // La sección de corrección llega hasta OPCIONAL o hasta el veredicto, lo que venga primero.
-    const fin = [resto.slice(1).search(RE_OPCIONAL), resto.slice(1).search(RE_VEREDICTO)]
-      .filter((i) => i >= 0).map((i) => i + 1);
-    const lineas = resto.slice(0, fin.length ? Math.min(...fin) : undefined).split(/\r?\n/).slice(1);
-    // Cualquier contenido que no sea "Ninguno" es un hallazgo, venga numerado o con viñetas. Se ignoran las líneas
-    // vacías y las cercas de código.
-    correcciones = lineas.some((l) => {
-      const texto = l.replace(/[*_`>]/g, "").trim();
-      return texto !== "" && !/^ningun[oa]\.?$/i.test(texto);
-    });
-  }
+  // La sección de corrección llega hasta OPCIONAL o hasta el veredicto, lo que venga primero.
+  const fin = [resto.slice(1).search(RE_OPCIONAL), resto.slice(1).search(RE_VEREDICTO)]
+    .filter((i) => i >= 0).map((i) => i + 1);
+  const [cabecera, ...siguientes] = resto.slice(0, fin.length ? Math.min(...fin) : undefined).split(/\r?\n/);
+  const lineas = [cabecera.replace(RE_RESTO_CABECERA, ""), ...siguientes];
+  // Cualquier contenido que no sea "Ninguno" es un hallazgo, venga numerado o con viñetas. Se ignoran las líneas
+  // vacías y las cercas de código.
+  const correcciones = lineas.some((l) => {
+    const texto = l.replace(/[*_`>]/g, "").trim();
+    return texto !== "" && !RE_NINGUNO.test(texto);
+  });
   return { veredicto: veredicto[1].toUpperCase(), correcciones, tarea: cuerpo.match(/REVISI[ÓO]N\s+([A-Z]{2}-\d{2,})/)?.[1] ?? "" };
 }
 

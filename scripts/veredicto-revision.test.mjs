@@ -101,6 +101,102 @@ test("los hallazgos con viñetas también cuentan como corrección", () => {
   assert.equal(evaluarVeredicto([comentario(`🤖 Revisión automática con Claude\nCommit revisado: ${SHA}\n\n\`\`\`\n${sinHallazgos}`)], SHA, "EM-03").estado, "aprobada");
 });
 
+test("la palabra «Corrección» en el texto libre no se confunde con la sección de hallazgos (PR #24)", () => {
+  // Estructura real de la revisión del #24: el texto libre empieza con "Corrección de auditoría…" antes de la sección.
+  const cuerpo = [
+    "REVISIÓN JG-01",
+    "Corrección de auditoría (paso 4, H-12 a H-29) hecha por el coordinador.",
+    "",
+    "Puntos revisados:",
+    "- Cada cambio corresponde a un hallazgo.",
+    "- Correcciones de la auditoría: la subsección está.",
+    "",
+    "CORRECCIÓN (obligatorio corregir):",
+    "Ninguno",
+    "",
+    "OPCIONAL (no bloquea):",
+    "1. Un detalle.",
+    "",
+    "VEREDICTO: LISTO",
+  ].join("\n");
+  const comentarioReal = `🤖 Revisión automática con Claude\nCommit revisado: ${SHA}\n\n${cuerpo}`;
+  assert.equal(evaluarVeredicto([comentario(comentarioReal)], SHA, "JG-01").estado, "aprobada");
+  const conHallazgo = comentarioReal.replace("CORRECCIÓN (obligatorio corregir):\nNinguno", "CORRECCIÓN (obligatorio corregir):\n1. [a.md:3] Falta algo.");
+  assert.equal(evaluarVeredicto([comentario(conHallazgo)], SHA, "JG-01").estado, "corregir");
+});
+
+test("con cualquier forma del encabezado, un LISTO con hallazgos sigue fallando", () => {
+  for (const encabezado of ["## CORRECCIÓN", "**CORRECCIÓN**", "CORRECCIÓN — obligatorio corregir", "CORRECCIONES:", "CORRECCION (obligatorio corregir):"]) {
+    const cuerpo = `REVISIÓN EM-03\n${encabezado}\n1. [a.ts:3] Falta la prueba.\n\nOPCIONAL (no bloquea):\nNinguno\n\nVEREDICTO: LISTO`;
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "corregir", encabezado);
+  }
+  const mismaLinea = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir): 1. [a.ts:3] Falta la prueba.\nOPCIONAL (no bloquea):\nNinguno\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, mismaLinea))], SHA, "EM-03").estado, "corregir");
+});
+
+test("sin una sección de corrección reconocida, nunca se aprueba", () => {
+  const sinSeccion = "REVISIÓN EM-03\nTodo parece bien.\n\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, sinSeccion))], SHA, "EM-03").estado, "sin_revision");
+  assert.equal(decidirRevision([comentario(revision(SHA, sinSeccion))], SHA, "EM-03"), true);
+});
+
+test("encabezados con mayúscula inicial: con hallazgos y LISTO, falla", () => {
+  const cuerpo = "REVISIÓN EM-03\n**Corrección (obligatorio corregir):**\n1. [a.ts:3] Falta la prueba.\n**Opcional (no bloquea):**\nNinguno\n**Veredicto:** LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "corregir");
+  const limpio = cuerpo.replace("1. [a.ts:3] Falta la prueba.", "Ninguno");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, limpio))], SHA, "EM-03").estado, "aprobada");
+});
+
+test("la descripción después del guion del encabezado no es un hallazgo", () => {
+  for (const encabezado of ["CORRECCIÓN — obligatorio corregir", "**CORRECCIÓN** — obligatorio corregir", "CORRECCIÓN - (obligatorio corregir):"]) {
+    const cuerpo = `REVISIÓN EM-03\n${encabezado}\nNinguno\n\nOPCIONAL (no bloquea):\nNinguno\nVEREDICTO: LISTO`;
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada", encabezado);
+  }
+  for (const vacio of ["(ninguno)", "No hay.", "Ninguna."]) {
+    const cuerpo = `REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir): ${vacio}\nVEREDICTO: LISTO`;
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada", vacio);
+  }
+});
+
+test("un «Corrección (…)» del texto libre no reemplaza a la sección real (se usa la última antes del veredicto)", () => {
+  const limpio = "REVISIÓN JG-01\n- Corrección (protocolo §E3): la tarea ya estaba hecha.\n\nCORRECCIÓN (obligatorio corregir):\nNinguno\nOPCIONAL (no bloquea):\n1. x\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, limpio))], SHA, "JG-01").estado, "aprobada");
+  const conFalsa = "REVISIÓN JG-01\nCorrección: auditoría paso 4.\nNinguno\nOPCIONAL:\nx\n\nCORRECCIÓN (obligatorio corregir):\n1. [a.ts:3] Falta la prueba.\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, conFalsa))], SHA, "JG-01").estado, "corregir");
+});
+
+test("un hallazgo que empieza con «Opcional:» no cierra la sección, y el guion tras el paréntesis se quita", () => {
+  const hallazgo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n- Opcional: el campo X debe ser obligatorio.\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, hallazgo))], SHA, "EM-03").estado, "corregir");
+  const guion = "REVISIÓN EM-03\n## CORRECCIÓN (obligatorio corregir) — Ninguno\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, guion))], SHA, "EM-03").estado, "aprobada");
+});
+
+test("un segundo encabezado no oculta los hallazgos del primero (se prefiere el primero en MAYÚSCULAS)", () => {
+  const H = "1. [a:3] Falta X.";
+  for (const cuerpo of [
+    `REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n${H}\n- Corrección (H-12)\nVEREDICTO: LISTO`,
+    `REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n${H}\nCorrección:\nNinguno\nVEREDICTO: LISTO`,
+    `REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n${H}\nCORRECCIÓN (obligatorio corregir):\nNinguno\nVEREDICTO: LISTO`,
+  ]) {
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "corregir", cuerpo);
+  }
+});
+
+test("«**Opcional:**» solo en su línea cierra la sección de corrección", () => {
+  const limpio = "REVISIÓN EM-03\n**Corrección (obligatorio corregir):**\nNinguno\n**Opcional:**\n1. x\n**Veredicto:** LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, limpio))], SHA, "EM-03").estado, "aprobada");
+  const conParentesis = limpio.replace("**Opcional:**", "**Opcional (no bloquea):**");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, conParentesis))], SHA, "EM-03").estado, "aprobada");
+  const hallazgo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n- Opcional (según RF-3) debe ser obligatorio.\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, hallazgo))], SHA, "EM-03").estado, "corregir");
+});
+
+test("acepta el veredicto con mayúscula inicial y en negrita", () => {
+  const cuerpo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\nNinguno\n\n**Veredicto:** LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada");
+});
+
 test("las notas posteriores al veredicto no lo cambian", () => {
   const conNotas = revision(SHA, LISTO) + "\n\nNotas de la revisión: la ronda anterior decía\nVEREDICTO: CORREGIR";
   assert.equal(evaluarVeredicto([comentario(conNotas)], SHA, "EM-03").estado, "aprobada");
