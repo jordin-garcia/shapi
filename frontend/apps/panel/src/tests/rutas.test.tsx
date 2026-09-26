@@ -23,6 +23,12 @@ const rutas = [...catalogo.matchAll(/^\| (A[0-468][\w.]*|A7[\w.]*|B[13][\w.]*) \
     id: id.replace('.', '-'),
   })));
 rutas.push({ ruta: '/', id: 'A0-1' });
+// Las pantallas ya implementadas se reconocen por su título, en lugar del texto de relleno "<ID> ·".
+const implementadas: Record<string, string> = { 'A1-1': 'Crear una cuenta', 'A1-2': 'Revise su correo', 'A1-3': 'Entrar a Shapi' };
+async function esperarPantalla(id: string) {
+  if (implementadas[id]) expect(await screen.findByRole('heading', { name: implementadas[id] })).toBeDefined();
+  else expect(await screen.findByText(new RegExp(`^${id} ·`))).toBeDefined();
+}
 
 async function abrir(ruta: string) {
   await router.navigate(ruta);
@@ -43,7 +49,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
   it.each(rutas)('$ruta muestra $id', async ({ ruta, id }) => {
     rol = ruta.startsWith('/admin') ? 'administrador' : 'propietario';
     await abrir(ruta);
-    expect(await screen.findByText(new RegExp(`^${id} ·`))).toBeDefined();
+    await esperarPantalla(id);
   });
   it.each([
     ['administrador', '/panel/apis'], ['soporte', '/panel/apis'],
@@ -58,16 +64,16 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     await abrir(ruta);
     expect(await screen.findByText('No tiene permiso para ver esta página')).toBeDefined();
   });
-  it('redirige sin sesión a entrar (incluido ProblemDetails 401)', async () => {
+  it('RF-04 redirige sin sesión a entrar (incluido ProblemDetails 401)', async () => {
     server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ status: 401, title: 'Sin sesión' }, { status: 401, headers: { 'Content-Type': 'application/problem+json' } })));
     await abrir('/panel/apis');
     await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
   });
-  it('permite una página pública sin consultar la sesión', async () => {
+  it.each([['/registro', 'A1-1'], ['/verificar-correo', 'A1-2'], ['/entrar', 'A1-3']])('permite la página pública %s sin consultar la sesión', async (ruta, id) => {
     let solicitudes = 0;
     server.use(http.get('http://localhost/api/auth/sesion', () => { solicitudes++; return new HttpResponse(null, { status: 401 }); }));
-    await abrir('/registro');
-    expect(await screen.findByText(/^A1-1 ·/)).toBeDefined();
+    await abrir(ruta);
+    await esperarPantalla(id);
     expect(solicitudes).toBe(0);
   });
   it('muestra error recuperable, sin redirigir, si falla el servidor', async () => {

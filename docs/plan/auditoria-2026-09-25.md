@@ -53,7 +53,7 @@ Autoriza a Jordin a corregir directamente el trabajo de cualquier integrante.
 
 Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 
-- [ ] **H-05** Pruebas con Vitest, Testing Library y MSW de A1.1, A1.2, A1.3 y del destino según el rol, nombradas con RF-01, RF-02 y RF-04. Deben cubrir:
+- [x] **H-05** Pruebas con Vitest, Testing Library y MSW de A1.1, A1.2, A1.3 y del destino según el rol, nombradas con RF-01, RF-02 y RF-04. Deben cubrir:
   - errores por campo;
   - navegación a `/verificar-correo?correo=…`;
   - token válido e inválido;
@@ -61,10 +61,11 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
   - destino por rol: `proveedor` → `/panel/apis`, `administrador` → `/admin/organizaciones`, `soporte` → `/admin/casos`;
   - cuenta bloqueada;
   - enlace a `/recuperar`.
-- [ ] **H-06** `A1-2-Verificacion.tsx`: el `useEffect` llama a `mutate` en cada render. El token es de un solo uso, así que se envía varias veces y la pantalla muestra "Enlace no válido" aunque la verificación funcionó. Debe llamarse una sola vez, también con StrictMode.
-- [ ] **H-07** Quitar los `error as any` (`no-explicit-any`), que hoy ponen en rojo el job `frontend` de la CI.
-- [ ] **H-08** Actualizar `rutas.test.tsx`, que busca el texto de relleno "A1-x ·", para que busque el contenido real de cada pantalla, sin debilitar la prueba.
-- [ ] Comparar las pantallas con los mockups de A1 (textos, orden y estados), actualizar la rama desde `main` y agregar la evidencia de `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
+- [x] **H-06** `A1-2-Verificacion.tsx`: el `useEffect` llama a `mutate` en cada render. El token es de un solo uso, así que se envía varias veces y la pantalla muestra "Enlace no válido" aunque la verificación funcionó. Debe llamarse una sola vez, también con StrictMode.
+- [x] **H-07** Quitar los `error as any` (`no-explicit-any`), que hoy ponen en rojo el job `frontend` de la CI.
+- [x] **H-08** Actualizar `rutas.test.tsx`, que busca el texto de relleno "A1-x ·", para que busque el contenido real de cada pantalla, sin debilitar la prueba.
+- [x] Comparar las pantallas con los mockups de A1 (textos, orden y estados), actualizar la rama desde `main` y agregar la evidencia de `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
+- [x] **H-115** (encontrado en este paso, de DC-01) `packages/ui/src/style.css` no declaraba `@source`. Tailwind v4 solo buscaba clases en la app, así que las que usan únicamente los componentes base (`h-11`, `text-white`…) no se generaban, y en el navegador los campos y botones salían sin tamaño ni color, aunque las pruebas con jsdom pasaban. Se corrigió con una prueba de regresión.
 - Según §E4 (decisión de Jordin del 26 sep): se trabaja en una rama nueva, `jordin/EM-03-…`, que parte de `emilio/EM-03-pantallas-registro-acceso` y conserva sus *commits*. Se abre un PR nuevo y se cierra el #16 con un comentario que enlaza al nuevo.
 - **❓ Decisión pendiente:** si Jordin ya le avisó a Emilio que no siga trabajando en el #16.
 
@@ -226,7 +227,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 11 · [EM-17] Publicar el contrato de identidad en el frontend
 
-- [ ] **H-83** Generar `packages/api/src/generado/identidad.ts` y exportar `"./*"` en `packages/api/package.json`.
+- [ ] **H-83** Generar `packages/api/src/generado/identidad.ts` y exportar `"./*"` en `packages/api/package.json`. (Paso 2: `identidad.ts` ya está generado y se exporta como `./identidad`. Falta el `"./*"`.)
 - [ ] **H-84** Reemplazar el contrato provisional `modulos/sesion/contratoSesion.ts` por los tipos generados, y cerrar EM-17.
 
 ## Paso 12 · [DC-01] Sistema de diseño
@@ -258,7 +259,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [ ] **H-94** Sacar A0.1 (`/`) de `LayoutPublico`, como ya se hizo con `/_ui`.
 - [ ] **H-95** `errorElement`: distinguir un 404 (`isRouteErrorResponse`) de los demás errores y ofrecer "Reintentar".
 - [ ] **H-96** Rutas índice en `/panel`, `/admin` y `/panel/apis/:id`. El 403 entre áreas debe dar una salida (cerrar sesión o ir a su área). Un 404 dentro del panel debe conservar el layout.
-- [ ] **H-97** Medidas de N.1 según el mockup: rellenos de la barra superior y de la lateral, altura de línea, selector con flecha y *hover* del botón de salir. Medidas del encabezado de A1: `gap` de 11 px y `letter-spacing`.
+- [ ] **H-97** (Paso 2: el encabezado de A1 ya tiene el `gap` y el `letter-spacing` del mockup.) Medidas de N.1 según el mockup: rellenos de la barra superior y de la lateral, altura de línea, selector con flecha y *hover* del botón de salir. Medidas del encabezado de A1: `gap` de 11 px y `letter-spacing`.
 - [ ] **H-98** Colores de los layouts con tokens en lugar de hex escritos a mano.
 - [ ] **H-99** Usar `h-screen` para que el pie de la barra lateral quede fijo, y hacer que el HMR de Vite funcione también sin Caddy.
 - [ ] **H-100** Un solo cliente de sesión (hoy `useSesion` y `CerrarSesion` tienen uno cada uno). `SelectorApi` debe reutilizar `Selector`. Agregar `staleTime` a la consulta de sesión.
