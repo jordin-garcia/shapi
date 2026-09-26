@@ -22,15 +22,17 @@ const MARCA = "🤖 Revisión automática con Claude";
 const PREFIJO = String.raw`^[ \t>*#_\-]*`;
 // Un encabezado de sección no se puede confundir con el texto libre ("Corrección de auditoría…", "Opcionalmente…"):
 //   - en MAYÚSCULAS (el formato de revision.md), después de la palabra viene "(", ":", un guion o el fin de la línea;
-//   - con mayúscula inicial ("Corrección"), solo "(", ":" o el fin de la línea. "Opcional", solo "(" o el fin de la
-//     línea, para que un hallazgo como "- Opcional: el campo X…" no cierre la sección de corrección.
+//   - con mayúscula inicial ("Corrección"), solo "(", ":" o el fin de la línea. "Opcional", solo si ocupa toda la
+//     línea ("**Opcional (no bloquea):**"), para que un hallazgo como "- Opcional: el campo X…" o "- Opcional (según
+//     RF-3) debe ser obligatorio." no cierre la sección de corrección.
+const CIERRE_MAYUSCULAS = String.raw`\**[ \t]*(?:[(:—–\-]|$)`;
 function encabezado(mayusculas, inicial, cierreInicial) {
-  return PREFIJO + String.raw`(?:${mayusculas}\**[ \t]*(?:[(:—–\-]|$)|${inicial}\**[ \t]*(?:${cierreInicial}|$))`;
+  return PREFIJO + String.raw`(?:${mayusculas}${CIERRE_MAYUSCULAS}|${inicial}\**[ \t]*(?:${cierreInicial}|$))`;
 }
 const PALABRA_CORRECCION = String.raw`(?:CORRECCI[ÓO]N(?:ES)?|Correcci[óo]n(?:es)?)`;
 const RE_CORRECCION = new RegExp(encabezado(String.raw`CORRECCI[ÓO]N(?:ES)?`, String.raw`Correcci[óo]n(?:es)?`, "[(:]"), "m");
-const RE_CORRECCION_TODAS = new RegExp(RE_CORRECCION.source, "gm");
-const RE_OPCIONAL = new RegExp(encabezado(String.raw`OPCIONAL(?:ES)?`, String.raw`Opcional(?:es)?`, String.raw`\(`), "m");
+const RE_CORRECCION_MAYUSCULAS = new RegExp(PREFIJO + String.raw`CORRECCI[ÓO]N(?:ES)?` + CIERRE_MAYUSCULAS, "m");
+const RE_OPCIONAL = new RegExp(encabezado(String.raw`OPCIONAL(?:ES)?`, String.raw`Opcional(?:es)?`, String.raw`(?:\([^)\n]*\))?[ \t]*:?\**[ \t]*$`), "m");
 // El veredicto también se acepta como "Veredicto:" o "**Veredicto:** LISTO"; LISTO y CORREGIR van en mayúsculas.
 const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`(?:VEREDICTO|Veredicto)\**[ \t]*:[ \t]*\**[ \t]*(LISTO|CORREGIR)`, "m");
 // Se quita de la línea del encabezado su descripción ("(obligatorio corregir):", "— obligatorio corregir"); lo que
@@ -45,17 +47,19 @@ export function leerComentarios(texto) {
 }
 
 /**
- * La sección de corrección es la última que aparece antes del primer veredicto (así, un "Corrección (…)" del texto
- * libre no la reemplaza), y el veredicto es el primero después de ella (las notas posteriores no cuentan). Sin una
- * sección de corrección reconocida no se sabe si hay hallazgos: la revisión cuenta como incompleta.
+ * La sección de corrección es el primer encabezado en MAYÚSCULAS (el formato de revision.md) antes del primer
+ * veredicto; solo si no hay ninguno se usa el primero con mayúscula inicial. Así, un "Corrección (…)" del texto libre
+ * no reemplaza a la sección real, y un segundo encabezado no oculta los hallazgos del primero. El veredicto es el
+ * primero después de la sección (las notas posteriores no cuentan). Sin una sección de corrección reconocida no se
+ * sabe si hay hallazgos: la revisión cuenta como incompleta.
  */
 function analizar(cuerpo) {
   const primero = cuerpo.search(RE_CORRECCION);
   if (primero < 0) return null;
   const primerVeredicto = cuerpo.slice(primero).search(RE_VEREDICTO);
   const hasta = primerVeredicto < 0 ? cuerpo.length : primero + primerVeredicto;
-  let inicio = primero;
-  for (const m of cuerpo.slice(0, hasta).matchAll(RE_CORRECCION_TODAS)) inicio = m.index;
+  const mayusculas = cuerpo.slice(0, hasta).search(RE_CORRECCION_MAYUSCULAS);
+  const inicio = mayusculas >= 0 ? mayusculas : primero;
   const resto = cuerpo.slice(inicio);
   const veredicto = resto.match(RE_VEREDICTO);
   if (!veredicto) return null;
