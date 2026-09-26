@@ -134,6 +134,30 @@ test("con cualquier forma del encabezado, un LISTO con hallazgos sigue fallando"
   assert.equal(evaluarVeredicto([comentario(revision(SHA, mismaLinea))], SHA, "EM-03").estado, "corregir");
 });
 
+test("sin una sección de corrección reconocida, nunca se aprueba", () => {
+  const sinSeccion = "REVISIÓN EM-03\nTodo parece bien.\n\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, sinSeccion))], SHA, "EM-03").estado, "sin_revision");
+  assert.equal(decidirRevision([comentario(revision(SHA, sinSeccion))], SHA, "EM-03"), true);
+});
+
+test("encabezados con mayúscula inicial: con hallazgos y LISTO, falla", () => {
+  const cuerpo = "REVISIÓN EM-03\n**Corrección (obligatorio corregir):**\n1. [a.ts:3] Falta la prueba.\n**Opcional (no bloquea):**\nNinguno\n**Veredicto:** LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "corregir");
+  const limpio = cuerpo.replace("1. [a.ts:3] Falta la prueba.", "Ninguno");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, limpio))], SHA, "EM-03").estado, "aprobada");
+});
+
+test("la descripción después del guion del encabezado no es un hallazgo", () => {
+  for (const encabezado of ["CORRECCIÓN — obligatorio corregir", "**CORRECCIÓN** — obligatorio corregir", "CORRECCIÓN - (obligatorio corregir):"]) {
+    const cuerpo = `REVISIÓN EM-03\n${encabezado}\nNinguno\n\nOPCIONAL (no bloquea):\nNinguno\nVEREDICTO: LISTO`;
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada", encabezado);
+  }
+  for (const vacio of ["(ninguno)", "No hay.", "Ninguna."]) {
+    const cuerpo = `REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir): ${vacio}\nVEREDICTO: LISTO`;
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada", vacio);
+  }
+});
+
 test("acepta el veredicto con mayúscula inicial y en negrita", () => {
   const cuerpo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\nNinguno\n\n**Veredicto:** LISTO";
   assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada");
