@@ -144,7 +144,7 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 
   El veredicto es el primero que aparece después de la sección de corrección, así que las notas posteriores no cuentan. Las palabras clave se reconocen aunque vengan con formato Markdown.
 - **Una revisión completa no se repite.** El paso `tarea` usa `--decidir`: un commit que ya tiene una revisión completa no se revisa otra vez, ni con `gh run rerun`, ni reabriendo el PR, ni marcándolo listo de nuevo, salvo que cambie la tarea del título. El veredicto solo cuenta si la revisión es de la tarea que dice ahora el título: si la revisión nueva no se completa, el check falla.
-- **Pruebas:** 19 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
+- **Pruebas:** 20 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
 - **El formato del comentario queda fijo** en el prompt: la primera línea es la marca, la segunda `Commit revisado: <sha>` y el comentario termina con el veredicto.
 - **El check no se puede saltar con eventos que no revisan.** Un check "omitido" cuenta como aprobado y pisaría el fallo del mismo commit.
   - `@claude` pasó a `.github/workflows/claude-interactivo.yml`.
@@ -159,3 +159,4 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 - **Limitaciones conocidas:**
   - Como en todo check con `pull_request`, un PR ejecuta el workflow y el script de su propia rama. Cambiar `.github/workflows/` o `scripts/veredicto-revision.mjs` es tocar archivos de Jordin: la revisión lo marca como problema de alcance y la auditoría del coordinador (protocolo §E) lo revisa.
   - Hay formas de pedir otra revisión del mismo código: borrar el comentario de la revisión, hacer un *commit* nuevo (aunque sea vacío o con `gh pr update-branch`) o cambiar la tarea del título y volver a ponerla. Todas quedan registradas en el historial del PR, y la auditoría del coordinador lo revisa.
+  - Los comentarios de `@claude` (`claude-interactivo.yml`) salen con el mismo usuario del bot. En modo interactivo la acción edita su comentario de seguimiento, y un comentario editado no cuenta para el check. Aun así, pedirle a `@claude` que publique una revisión falsa queda en el historial y lo revisa la auditoría.

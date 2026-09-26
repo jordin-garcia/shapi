@@ -93,6 +93,14 @@ test("acepta las palabras clave con formato Markdown sin contar los hallazgos op
   assert.equal(evaluarVeredicto([comentario(revision(SHA, conHallazgo))], SHA, "EM-03").estado, "corregir");
 });
 
+test("los hallazgos con viñetas también cuentan como corrección", () => {
+  const conVinetas = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n- [a.ts:3] Falta la prueba.\n\nOPCIONAL (no bloquea):\nNinguno\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, conVinetas))], SHA, "EM-03").estado, "corregir");
+  // "Ninguno" en negrita o con punto, y la cerca de código, no son hallazgos.
+  const sinHallazgos = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\n**Ninguno.**\n```\n\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(`🤖 Revisión automática con Claude\nCommit revisado: ${SHA}\n\n\`\`\`\n${sinHallazgos}`)], SHA, "EM-03").estado, "aprobada");
+});
+
 test("las notas posteriores al veredicto no lo cambian", () => {
   const conNotas = revision(SHA, LISTO) + "\n\nNotas de la revisión: la ronda anterior decía\nVEREDICTO: CORREGIR";
   assert.equal(evaluarVeredicto([comentario(conNotas)], SHA, "EM-03").estado, "aprobada");

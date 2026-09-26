@@ -39,8 +39,13 @@ function analizar(cuerpo) {
     // La sección de corrección llega hasta OPCIONAL o hasta el veredicto, lo que venga primero.
     const fin = [resto.slice(1).search(RE_OPCIONAL), resto.slice(1).search(RE_VEREDICTO)]
       .filter((i) => i >= 0).map((i) => i + 1);
-    const seccion = resto.slice(0, fin.length ? Math.min(...fin) : undefined).split(/\r?\n/).slice(1).join("\n");
-    correcciones = /^\s*\d+\./m.test(seccion);
+    const lineas = resto.slice(0, fin.length ? Math.min(...fin) : undefined).split(/\r?\n/).slice(1);
+    // Cualquier contenido que no sea "Ninguno" es un hallazgo, venga numerado o con viñetas. Se ignoran las líneas
+    // vacías y las cercas de código.
+    correcciones = lineas.some((l) => {
+      const texto = l.replace(/[*_`>]/g, "").trim();
+      return texto !== "" && !/^ningun[oa]\.?$/i.test(texto);
+    });
   }
   return { veredicto: veredicto[1].toUpperCase(), correcciones, tarea: cuerpo.match(/REVISI[ÓO]N\s+([A-Z]{2}-\d{2,})/)?.[1] ?? "" };
 }
