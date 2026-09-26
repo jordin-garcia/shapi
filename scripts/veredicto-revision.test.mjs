@@ -125,6 +125,20 @@ test("la palabra «Corrección» en el texto libre no se confunde con la secció
   assert.equal(evaluarVeredicto([comentario(conHallazgo)], SHA, "JG-01").estado, "corregir");
 });
 
+test("con cualquier forma del encabezado, un LISTO con hallazgos sigue fallando", () => {
+  for (const encabezado of ["## CORRECCIÓN", "**CORRECCIÓN**", "CORRECCIÓN — obligatorio corregir", "CORRECCIONES:", "CORRECCION (obligatorio corregir):"]) {
+    const cuerpo = `REVISIÓN EM-03\n${encabezado}\n1. [a.ts:3] Falta la prueba.\n\nOPCIONAL (no bloquea):\nNinguno\n\nVEREDICTO: LISTO`;
+    assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "corregir", encabezado);
+  }
+  const mismaLinea = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir): 1. [a.ts:3] Falta la prueba.\nOPCIONAL (no bloquea):\nNinguno\nVEREDICTO: LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, mismaLinea))], SHA, "EM-03").estado, "corregir");
+});
+
+test("acepta el veredicto con mayúscula inicial y en negrita", () => {
+  const cuerpo = "REVISIÓN EM-03\nCORRECCIÓN (obligatorio corregir):\nNinguno\n\n**Veredicto:** LISTO";
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, cuerpo))], SHA, "EM-03").estado, "aprobada");
+});
+
 test("las notas posteriores al veredicto no lo cambian", () => {
   const conNotas = revision(SHA, LISTO) + "\n\nNotas de la revisión: la ronda anterior decía\nVEREDICTO: CORREGIR";
   assert.equal(evaluarVeredicto([comentario(conNotas)], SHA, "EM-03").estado, "aprobada");
