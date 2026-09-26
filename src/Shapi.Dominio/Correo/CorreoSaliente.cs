@@ -2,6 +2,7 @@ namespace Shapi.Dominio.Correo;
 
 public class CorreoSaliente
 {
+    /// <summary>Espera antes de cada uno de los 5 reintentos (RF-46). Si falla el quinto, el correo queda fallido.</summary>
     private static readonly TimeSpan[] EsperasReintento =
     [
         TimeSpan.FromSeconds(5),
@@ -58,11 +59,14 @@ public class CorreoSaliente
 
         Intentos++;
         UltimoError = error;
-        ProximoIntentoEn = ahora + EsperasReintento[Math.Min(Intentos - 1, EsperasReintento.Length - 1)];
 
-        if (Intentos >= EsperasReintento.Length)
+        if (Intentos > EsperasReintento.Length)
         {
             Estado = EstadoCorreo.Fallido;
+            ProximoIntentoEn = null;
+            return;
         }
+
+        ProximoIntentoEn = ahora + EsperasReintento[Intentos - 1];
     }
 }

@@ -32,8 +32,8 @@ Implementar en el trabajador el envío de los correos encolados en `correo_salie
 
 ## Criterios de aceptación
 1. Cada 5 s, el trabajador toma los correos `pendiente` con `proximo_intento_en <= ahora`, arma el correo con la plantilla y los `datos` (reemplazo de `{{campo}}`, con los valores escapados en HTML), lo envía y lo marca `enviado` con `enviado_en`.
-2. Si falla, incrementa `intentos`, guarda `ultimo_error` y calcula el próximo intento (5 s, 30 s, 2 min, 10 min y 1 h). Al quinto fallo, queda `fallido`.
-3. El remitente es `no-responder@{dominio_base}`. Si los `datos` traen `nombrePortal`, ese es el nombre visible del remitente (correos de un portal).
+2. Si falla, incrementa `intentos`, guarda `ultimo_error` y calcula el próximo intento (5 s, 30 s, 2 min, 10 min y 1 h). Si falla el quinto reintento (el sexto intento), queda `fallido` (RF-46: "se reintentan hasta 5 veces").
+3. El remitente es `no-responder@{dominio_base}`. Si los `datos` traen `nombrePortal`, ese es el nombre visible del remitente, y si traen `hostPortal`, los enlaces llevan a ese host (correos de un portal, 10 §6).
 4. Las plantillas `verificacion_correo` y `recuperacion` están en español, tratan al usuario de usted y llevan el enlace con el token.
 5. La configuración viene de `SHAPI_SMTP_HOST`, `_PUERTO`, `_USUARIO`, `_CONTRASENA` y `_TLS`.
 
@@ -61,3 +61,9 @@ dotnet format Shapi.slnx --verify-no-changes
 - Las plantillas HTML y texto de verificación y recuperación están incrustadas en `Shapi.Infraestructura`, tratan al usuario de usted, escapan los valores HTML y generan los enlaces definidos en `10-identidad-y-seguridad.md`.
 - Se agregaron pruebas de dominio, renderizado y una integración con PostgreSQL y Mailpit que verifica la entrega mediante `/api/v1/messages`, además del servidor SMTP caído y la programación futura.
 - Archivos principales: `src/Shapi.Trabajador/Correo/`, `src/Shapi.Infraestructura/Correo/` y `tests/Shapi.Api.Tests/Correo/`.
+
+### Corrección posterior (2026-09-25, Jordin)
+
+- Los enlaces de los correos de un consumidor llevan al host del portal cuando los `datos` traen `hostPortal`; antes siempre llevaban al dominio base, es decir, al panel del personal, donde el token del consumidor no sirve. `hostPortal` se valida como nombre de host.
+- El criterio 2 contradecía RF-46 ("se reintentan hasta 5 veces"): con "al quinto fallo, `fallido`" la espera de 1 h nunca se usaba. Ahora hay 5 reintentos con las 5 esperas, y el correo queda `fallido` al fallar el sexto intento, con `proximo_intento_en` vacío.
+- Especificación precisada en `10-identidad-y-seguridad.md` §6.

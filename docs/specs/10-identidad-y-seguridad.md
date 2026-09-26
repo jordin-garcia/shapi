@@ -15,9 +15,7 @@
 | Cuentas de plataforma | Las crea el administrador y reciben un enlace `definir_contrasena` que vence a los 7 días ([RF-42](03-requisitos.md#rf-42)) |
 | Limitación de peticiones | La API de control limita a 10 peticiones por minuto por IP (`RateLimiter` de ASP.NET Core) los endpoints de `/api/auth/*` que reciben credenciales o tokens: `registro`, `verificar-correo`, `reenviar-verificacion` y `entrar`. Al pasarse responde `429 demasiadas_peticiones` con `Retry-After`. `GET /api/auth/sesion` y `POST /api/auth/salir` no se limitan, porque no sirven para adivinar credenciales y el panel consulta la sesión en cada carga. La IP del cliente se toma de `X-Forwarded-For` solo si la conexión viene del borde (la máquina o una red privada, como la de Docker) |
 
-Los enlaces enviados por correo usan el dominio base configurado. La verificación lleva a
-`https://{dominio_base}/verificar-correo?token={token}` y la recuperación a
-`https://{dominio_base}/restablecer?token={token}`; el token se codifica como componente de la URL.
+Los enlaces enviados por correo llevan a la pantalla del ámbito de la cuenta. Para el personal, el host es el dominio base configurado: la verificación lleva a `https://{dominio_base}/verificar-correo?token={token}` (A1.2) y la recuperación a `https://{dominio_base}/restablecer?token={token}` (A1.4b). Para un consumidor, quien encola el correo agrega `hostPortal` a los datos, con el host del portal de la API (`{sub}.shapi.localhost` o su dominio propio), y el enlace usa ese host: `https://{hostPortal}/verificar-correo?token={token}` (A5.8) y `https://{hostPortal}/restablecer?token={token}` (A5.10). `hostPortal` debe ser un nombre de host sin puerto ni ruta; si no lo es, el correo no se arma y cuenta como un intento fallido. El token se codifica como componente de la URL.
 
 ### Enrutamiento después de iniciar sesión
 
@@ -65,7 +63,7 @@ Cuando se registra o se edita una API ([RF-08](03-requisitos.md#rf-08)), y **tam
 
 ## 6. Correos (RF-46)
 
-Se envían desde `no-responder@shapi.localhost`. Los correos de un portal usan como remitente visible el nombre de ese portal. Las plantillas están en `Shapi.Infraestructura/Correo/Plantillas`:
+Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan como remitente visible el nombre de ese portal. Las plantillas están en `Shapi.Infraestructura/Correo/Plantillas`:
 
 | Plantilla | Destinatario | Disparador |
 |---|---|---|
@@ -81,6 +79,8 @@ Se envían desde `no-responder@shapi.localhost`. Los correos de un portal usan c
 | `prueba_por_vencer` | Propietario | 7 días antes de que termine la Prueba |
 | `aviso_cuota_plataforma` | Propietario | Al cruzar el 80 % y el 100 % de la cuota |
 | `respuesta_caso` | La otra parte del caso | Mensaje nuevo en un caso |
+
+**Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`.
 
 Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace. Ningún correo lleva la marca de Shapi en el cuerpo.
 

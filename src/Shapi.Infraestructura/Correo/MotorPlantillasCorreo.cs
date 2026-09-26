@@ -43,8 +43,29 @@ public sealed partial class MotorPlantillasCorreo
             throw new InvalidOperationException($"Falta el dato 'token' para la plantilla '{plantilla}'.");
         }
 
+        var host = HostDelEnlace(datos);
         var ruta = plantilla == "verificacion_correo" ? "verificar-correo" : "restablecer";
-        datos["enlace"] = $"https://{_dominioBase}/{ruta}?token={Uri.EscapeDataString(token)}";
+        datos["enlace"] = $"https://{host}/{ruta}?token={Uri.EscapeDataString(token)}";
+    }
+
+    /// <summary>
+    /// Los correos de un consumidor traen <c>hostPortal</c>: su enlace lleva a las pantallas del portal
+    /// (A5.8 y A5.10). Los del personal llevan al dominio base (A1.2 y A1.4b).
+    /// </summary>
+    private string HostDelEnlace(IDictionary<string, string> datos)
+    {
+        if (!datos.TryGetValue("hostPortal", out var hostPortal))
+        {
+            return _dominioBase;
+        }
+
+        var host = hostPortal.Trim().ToLowerInvariant();
+        if (Uri.CheckHostName(host) != UriHostNameType.Dns)
+        {
+            throw new InvalidOperationException($"El dato 'hostPortal' no es un nombre de host válido: '{hostPortal}'.");
+        }
+
+        return host;
     }
 
     private static Dictionary<string, string> LeerDatos(string datosJson)
