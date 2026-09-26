@@ -120,7 +120,7 @@ gh pr checks --watch
 - **El título es obligatorio en el formato `[<ID>] <título>`**, con el ID de una tarea que existe; por ejemplo, `[EM-03] Pantallas de registro, verificación y acceso`. El job `plan` de la CI rechaza cualquier otro, porque sin el ID la revisión automática no revisa criterios ni alcance. Una corrección posterior de una tarea ya hecha usa el ID de esa tarea. Si el título está mal, edítalo con `gh pr edit --title "[<ID>] <título>"`: la CI y la revisión se vuelven a ejecutar solas.
 - El cuerpo del PR sigue `.github/pull_request_template.md`, con la evidencia de B7 y B8 y el resultado de B9.
 - **Si falla una verificación de la CI:** lee el registro (`gh run view --log-failed`), corrige, haz *commit* y *push*, y vuelve a esperar. Tienes como máximo 5 intentos; después aplica §C.
-- **Si GitHub dice que la rama está desactualizada:** ejecuta `gh pr update-branch`, o haz `git pull --rebase origin main`, resuelve los conflictos según `docs/plan/convenciones.md` §3 y haz `git push --force-with-lease` **sobre tu rama**. Luego espera la CI otra vez. Si la rama es de otra persona (§E4), solo `gh pr update-branch` o un *merge* de `main`, sin *rebase* ni *push* forzado.
+- **Si GitHub dice que la rama está desactualizada:** ejecuta `gh pr update-branch`, o haz `git pull --rebase origin main`, resuelve los conflictos según `docs/plan/convenciones.md` §3 y haz `git push --force-with-lease` **sobre tu rama**. Luego espera la CI otra vez. Si tu rama parte de la de otra persona (§E4), ponla al día con `gh pr update-branch` sobre **tu** PR o con un *merge* de `main` en tu rama, sin *rebase* ni *push* forzado. Nunca hagas *push* a la rama del dueño.
 - El PR se integra solo cuando todas las verificaciones obligatorias pasan (auto-merge). **No hace falta que ningún humano lo apruebe.**
 - **Antes de JG-01** todavía no hay CI ni auto-merge: si `gh pr merge --auto` falla por eso, integra con `gh pr merge --squash --delete-branch` después de tu verificación local.
 
@@ -186,7 +186,7 @@ Cada vez que un PR del coordinador toca archivos de otra persona, su entrada en 
 
 ### E2. Cómo se audita ("audita <ID>" o "audita lo integrado")
 
-1. **Qué se audita.** Las tareas integradas en `main` después de la fecha del `docs/plan/auditoria-*.md` más reciente (`gh pr list --state merged --search "merged:>AAAA-MM-DD"` y `git log main`). Si Jordin nombra una tarea, solo esa.
+1. **Qué se audita.** Las tareas integradas en `main` después de la fecha del `docs/plan/auditoria-*.md` más reciente (`gh pr list --state merged --search "merged:>=AAAA-MM-DD"` y `git log main`, descartando las que ese plan ya auditó). Si Jordin nombra una tarea, solo esa.
 2. **Revisión de cada tarea**, preferiblemente con subagentes o sesiones en contexto limpio, una por tarea o área:
    - Leer completos el archivo de la tarea (incluido `## Resultado`), las especificaciones de "Contexto que debes leer" y el código actual. No basta con el diff.
    - Por cada criterio de aceptación y cada prueba obligatoria, comprobar que hay código que lo cumple **y** una prueba que lo verifica de verdad.

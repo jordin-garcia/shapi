@@ -16,6 +16,10 @@ El 25 de septiembre de 2026 se auditaron las 10 tareas integradas en `main` (JG-
 - En el mismo PR:
   - se agrega al archivo de la tarea original una subsección `### Correcciones de la auditoría (AAAA-MM-DD)`, con la fecha del PR, dentro de `## Resultado`, que dice qué cambió y por qué;
   - se agrega una entrada en `docs/plan/bitacora/jordin.md`, con un aviso en negrita para la persona dueña del código.
+- **Excepción para los pasos 2 y 14 (§E4), que terminan un PR abierto de Emilio:**
+  - la rama parte de la del PR de Emilio, no de `main`;
+  - el cierre es el normal: `estado: hecha` y un `## Resultado` completo, sin subsección de correcciones;
+  - se cierra el PR original con un enlace al nuevo.
 - Las dudas marcadas como **❓ Decisión pendiente** se le preguntan a Jordin al empezar ese paso, antes de escribir código.
 
 **Decisiones ya tomadas por Jordin (25 sep):**

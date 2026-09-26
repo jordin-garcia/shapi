@@ -15,7 +15,7 @@ Shapi es una plataforma como servicio para publicar APIs, controlar quién las u
 | `jose-pablo` | José Pablo Zúñiga | PabloZ7-425 | JZ |
 
 3. **Solo implementa tareas de esa persona** y solo las que estén disponibles, es decir, sin dependencias pendientes. Para verlas, ejecuta `node scripts/tareas.mjs --persona <clave>`.
-   **Excepción: el coordinador (`jordin`)** está autorizado de forma permanente a corregir, terminar o modificar el trabajo de cualquier persona (código, pruebas, contratos, tareas, bitácoras, documentación y sus PR abiertos). No necesita preguntar antes. Lo hace según `docs/plan/protocolo.md` §E. La excepción cubre solo quién edita qué: el resto de "Preguntar antes" y "Nunca" sigue vigente, incluido no forzar el *push* sobre la rama de otra persona.
+   **Excepción: el coordinador (`jordin`)** está autorizado de forma permanente a corregir, terminar o modificar el trabajo de cualquier persona (código, pruebas, contratos, tareas, bitácoras, documentación y sus PR abiertos). No necesita preguntar antes. Lo hace según `docs/plan/protocolo.md` §E. La excepción cubre solo quién edita qué: el resto de "Preguntar antes" y "Nunca" sigue vigente, incluido no hacer *push* a la rama de otra persona, ni forzado ni normal (protocolo §E4).
 
 ## Pedidos habituales del usuario
 
