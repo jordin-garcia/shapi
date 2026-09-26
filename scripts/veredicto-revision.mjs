@@ -3,13 +3,14 @@
 // para el commit:
 //   - "VEREDICTO: LISTO" sin hallazgos de corrección → el check pasa;
 //   - "VEREDICTO: CORREGIR" (o hallazgos de corrección) → falla; solo el coordinador puede integrar con --admin;
-//   - ninguna revisión completa de ese commit (cuota agotada, caída del servicio o tiempo agotado) → falla hasta
-//     reintentarla.
-// Una revisión completa de un commit no se repite (ni con rerun, ni reabriendo el PR): solo se revisa otra vez si
-// cambia la tarea del título. Así nadie puede repetirla hasta que salga LISTO.
+//   - ninguna revisión completa de ese commit y de la tarea del título (cuota agotada, caída del servicio o tiempo
+//     agotado) → falla hasta reintentarla.
+// Una revisión completa de un commit no se repite con rerun, reabriendo el PR ni editándolo: solo se revisa otra vez
+// si cambia la tarea del título. Un commit nuevo (aunque sea vacío) sí produce otra revisión; eso queda en el
+// historial del PR y lo revisa la auditoría del coordinador.
 // Uso en la CI:
 //   node scripts/veredicto-revision.mjs --decidir <comentarios.jsonl> <sha> <id>   → imprime true o false
-//   node scripts/veredicto-revision.mjs <comentarios.jsonl> <sha>                   → veredicto; sale con 0 o 1
+//   node scripts/veredicto-revision.mjs <comentarios.jsonl> <sha> <id>              → veredicto; sale con 0 o 1
 import { readFileSync, appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -73,9 +74,10 @@ export function decidirRevision(comentarios, sha, tarea) {
   return !ultima || ultima.tarea !== (tarea ?? "");
 }
 
-export function evaluarVeredicto(comentarios, sha) {
+export function evaluarVeredicto(comentarios, sha, tarea = "") {
   const ultima = revisionesCompletas(comentarios, sha).at(-1);
-  if (!ultima) {
+  // Una revisión de otra tarea (el título cambió después) no cuenta: la del título actual no se completó.
+  if (!ultima || (!ultima.alterada && ultima.tarea !== tarea)) {
     return {
       estado: "sin_revision",
       mensaje:
@@ -117,7 +119,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(String(decidirRevision(comentarios, sha, tarea)));
     process.exit(0);
   }
-  const resultado = evaluarVeredicto(comentarios, sha);
+  const resultado = evaluarVeredicto(comentarios, sha, tarea);
   console.log(resultado.mensaje);
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Revisión con Claude: ${resultado.estado}\n\n${resultado.mensaje}\n`);

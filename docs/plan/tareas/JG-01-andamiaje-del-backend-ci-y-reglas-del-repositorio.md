@@ -62,7 +62,7 @@ dotnet build Shapi.slnx
 dotnet test Shapi.slnx
 dotnet format Shapi.slnx --verify-no-changes
 node scripts/tareas.mjs --validar
-gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status_checks.contexts'   # debe mostrar plan, backend y frontend
+gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status_checks.contexts'   # debe mostrar plan, backend, frontend y (desde la auditoría del 26 sep) revision-claude
 ```
 
 ## ⚠️ Pasos que requieren a una persona

@@ -6,8 +6,8 @@
 # Solo el coordinador puede integrar un falso positivo, con `gh pr merge <n> --admin --squash` (protocolo B11).
 # El job no se omite por eventos que no piden revisión: un check "omitido" cuenta como aprobado y pisaría el fallo
 # del mismo commit. Por eso @claude vive en claude-interactivo.yml, y los eventos que no necesitan una revisión nueva
-# vuelven a leer el veredicto ya publicado. Un commit con una revisión completa no se revisa otra vez (ni con rerun, ni
-# reabriendo el PR, ni editándolo) salvo que cambie la tarea del título: así nadie puede repetirla hasta que salga LISTO.
+# vuelven a leer el veredicto ya publicado. Un commit con una revisión completa no se revisa otra vez con rerun,
+# reabriendo el PR ni editándolo, salvo que cambie la tarea del título. Un commit nuevo sí produce otra revisión.
 # No usa --max-turns: una revisión grande necesita más turnos. El tope lo ponen los timeout-minutes.
 # La revisión local en contexto limpio del protocolo (B9) sigue siendo obligatoria.
 name: Revisión con Claude
@@ -96,7 +96,9 @@ jobs:
 
       - name: Veredicto de la revisión
         if: ${{ !cancelled() }}
+        env:
+          TAREA: ${{ steps.tarea.outputs.id }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
             --jq '.[] | {usuario: .user.login, body: .body, fecha: .created_at, editado: (.updated_at != .created_at)}' > "$RUNNER_TEMP/comentarios.jsonl"
-          node scripts/veredicto-revision.mjs "$RUNNER_TEMP/comentarios.jsonl" "$SHA"
+          node scripts/veredicto-revision.mjs "$RUNNER_TEMP/comentarios.jsonl" "$SHA" "$TAREA"

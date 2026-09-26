@@ -18,24 +18,24 @@ const CORREGIR = "REVISIÓN EM-06\nCORRECCIÓN (obligatorio corregir):\n1. [a.cs
 const comentario = (body, usuario = BOT, fecha = "2026-09-26T10:00:00Z") => ({ usuario, body, fecha });
 
 test("aprueba cuando la última revisión de ese commit dice LISTO sin correcciones", () => {
-  const r = evaluarVeredicto([comentario(revision(SHA, LISTO))], SHA);
+  const r = evaluarVeredicto([comentario(revision(SHA, LISTO))], SHA, "EM-03");
   assert.equal(r.estado, "aprobada");
 });
 
 test("también reconoce el commit en la línea del título", () => {
-  const r = evaluarVeredicto([comentario(revision(SHA, LISTO, { formato: "titulo" }))], SHA);
+  const r = evaluarVeredicto([comentario(revision(SHA, LISTO, { formato: "titulo" }))], SHA, "EM-03");
   assert.equal(r.estado, "aprobada");
 });
 
 test("falla cuando la revisión pide corregir", () => {
-  const r = evaluarVeredicto([comentario(revision(SHA, CORREGIR))], SHA);
+  const r = evaluarVeredicto([comentario(revision(SHA, CORREGIR))], SHA, "EM-06");
   assert.equal(r.estado, "corregir");
   assert.match(r.mensaje, /--admin/);
 });
 
 test("falla si dice LISTO pero enumera hallazgos de corrección", () => {
   const contradictorio = CORREGIR.replace("VEREDICTO: CORREGIR", "VEREDICTO: LISTO");
-  assert.equal(evaluarVeredicto([comentario(revision(SHA, contradictorio))], SHA).estado, "corregir");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, contradictorio))], SHA, "EM-06").estado, "corregir");
 });
 
 test("usa la revisión más reciente del mismo commit", () => {
@@ -43,8 +43,8 @@ test("usa la revisión más reciente del mismo commit", () => {
     comentario(revision(SHA, CORREGIR), BOT, "2026-09-26T10:00:00Z"),
     comentario(revision(SHA, LISTO), BOT, "2026-09-26T11:00:00Z"),
   ];
-  assert.equal(evaluarVeredicto(comentarios, SHA).estado, "aprobada");
-  assert.equal(evaluarVeredicto([...comentarios].reverse(), SHA).estado, "aprobada");
+  assert.equal(evaluarVeredicto(comentarios, SHA, "EM-03").estado, "aprobada");
+  assert.equal(evaluarVeredicto([...comentarios].reverse(), SHA, "EM-03").estado, "aprobada");
 });
 
 test("no usa la revisión de otro commit: sin revisión del commit actual, bloquea", () => {
@@ -80,7 +80,7 @@ test("lee los comentarios en JSON por línea, como los entrega gh api --paginate
   ].join("\n");
   const comentarios = leerComentarios(texto);
   assert.equal(comentarios.length, 2);
-  assert.equal(evaluarVeredicto(comentarios, SHA).estado, "aprobada");
+  assert.equal(evaluarVeredicto(comentarios, SHA, "EM-03").estado, "aprobada");
 });
 
 test("acepta las palabras clave con formato Markdown sin contar los hallazgos opcionales", () => {
@@ -88,14 +88,14 @@ test("acepta las palabras clave con formato Markdown sin contar los hallazgos op
     "## REVISIÓN EM-03", "**CORRECCIÓN (obligatorio corregir):**", "Ninguno", "",
     "### OPCIONAL (no bloquea):", "1. Un detalle.", "2. Otro.", "", "**VEREDICTO: LISTO**",
   ].join("\n");
-  assert.equal(evaluarVeredicto([comentario(revision(SHA, markdown))], SHA).estado, "aprobada");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, markdown))], SHA, "EM-03").estado, "aprobada");
   const conHallazgo = markdown.replace("Ninguno", "1. [a.ts:3] Falta la prueba.").replace("LISTO", "CORREGIR");
-  assert.equal(evaluarVeredicto([comentario(revision(SHA, conHallazgo))], SHA).estado, "corregir");
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, conHallazgo))], SHA, "EM-03").estado, "corregir");
 });
 
 test("las notas posteriores al veredicto no lo cambian", () => {
   const conNotas = revision(SHA, LISTO) + "\n\nNotas de la revisión: la ronda anterior decía\nVEREDICTO: CORREGIR";
-  assert.equal(evaluarVeredicto([comentario(conNotas)], SHA).estado, "aprobada");
+  assert.equal(evaluarVeredicto([comentario(conNotas)], SHA, "EM-03").estado, "aprobada");
 });
 
 test("no vuelve a revisar un commit que ya tiene una revisión completa de la misma tarea (rerun o reabrir)", () => {
@@ -121,6 +121,15 @@ test("una revisión editada después de publicarse no cuenta y no se repite", ()
 test("el commit tiene que estar en la línea \"Commit revisado\", no citado en otra parte", () => {
   const citaOtro = revision(OTRO_SHA, LISTO) + `\n\nNota: el commit anterior era ${SHA}.`;
   assert.equal(evaluarVeredicto([comentario(citaOtro)], SHA).estado, "sin_revision");
+});
+
+test("una revisión de otra tarea no cuenta: si la del título actual no se completó, bloquea", () => {
+  // La revisión de EM-03 aprobó, pero el título ahora dice EM-04 y su revisión nueva no llegó.
+  assert.equal(evaluarVeredicto([comentario(revision(SHA, LISTO))], SHA, "EM-04").estado, "sin_revision");
+  // La revisión reducida (título sin ID) no cuenta cuando el ID ya se corrigió.
+  const sinId = revision(SHA, "REVISIÓN (título sin ID)\nCORRECCIÓN (obligatorio corregir):\nNinguno\nVEREDICTO: LISTO");
+  assert.equal(evaluarVeredicto([comentario(sinId)], SHA, "EM-03").estado, "sin_revision");
+  assert.equal(evaluarVeredicto([comentario(sinId)], SHA, "").estado, "aprobada");
 });
 
 test("revisa otra vez el mismo commit solo si cambió la tarea del título", () => {

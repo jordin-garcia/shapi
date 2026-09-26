@@ -115,7 +115,7 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - Toma el ID del título `[XX-00]` en un paso aparte, a través de `env`, para evitar inyecciones.
   - Usa `concurrency` por número de PR con cancelación.
   - El *job* `claude-interactivo` responde a `@claude` en comentarios de issues y PR.
-  - Ninguno de los dos es una verificación obligatoria de `main`.
+  - Ninguno de los dos es una verificación obligatoria de `main`. (Lo cambió la auditoría: ver "Correcciones de la auditoría" más abajo.)
 - **Tablero** (`.github/workflows/tablero-plan.yml` y `scripts/tablero.mjs`):
   - Busca o crea el issue fijo "Tablero del plan", con la etiqueta `tablero`.
   - Publica primero el comentario de avisos y después reemplaza el cuerpo. El cuerpo guarda el estado en `<!-- estado-tablero: ... -->`: si algo falla a la mitad, el aviso se repite en lugar de perderse.
@@ -143,8 +143,8 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - si no hay revisión de ese commit (cuota, caída o tiempo), falla con un mensaje para reintentarla.
 
   El veredicto es el primero que aparece después de la sección de corrección, así que las notas posteriores no cuentan. Las palabras clave se reconocen aunque vengan con formato Markdown.
-- **Una revisión completa no se repite.** El paso `tarea` usa `--decidir`: un commit que ya tiene una revisión completa no se revisa otra vez, ni con `gh run rerun`, ni reabriendo el PR, ni marcándolo listo de nuevo, salvo que cambie la tarea del título. Así nadie puede repetir la revisión hasta que salga LISTO, y un falso positivo solo lo desbloquea Jordin.
-- **Pruebas:** 18 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
+- **Una revisión completa no se repite.** El paso `tarea` usa `--decidir`: un commit que ya tiene una revisión completa no se revisa otra vez, ni con `gh run rerun`, ni reabriendo el PR, ni marcándolo listo de nuevo, salvo que cambie la tarea del título. El veredicto solo cuenta si la revisión es de la tarea que dice ahora el título: si la revisión nueva no se completa, el check falla.
+- **Pruebas:** 19 en `scripts/veredicto-revision.test.mjs`. El script se comprobó con los comentarios reales de los PR #14, #16 y #22.
 - **El formato del comentario queda fijo** en el prompt: la primera línea es la marca, la segunda `Commit revisado: <sha>` y el comentario termina con el veredicto.
 - **El check no se puede saltar con eventos que no revisan.** Un check "omitido" cuenta como aprobado y pisaría el fallo del mismo commit.
   - `@claude` pasó a `.github/workflows/claude-interactivo.yml`.
@@ -157,4 +157,4 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 - **Una revisión editada no cuenta.** Quien tiene permiso de escritura puede editar comentarios ajenos. Por eso, si el comentario de la revisión se editó después de publicarse (`updated_at` distinto de `created_at`), el check falla, no se revisa otra vez y solo Jordin puede integrar con `--admin`. El commit del comentario se toma solo de la línea `Commit revisado`.
 - **Limitaciones conocidas:**
   - Como en todo check con `pull_request`, un PR ejecuta el workflow y el script de su propia rama. Cambiar `.github/workflows/` o `scripts/veredicto-revision.mjs` es tocar archivos de Jordin: la revisión lo marca como problema de alcance y la auditoría del coordinador (protocolo §E) lo revisa.
-  - Borrar el comentario de la revisión permite pedir otra revisión del mismo commit. GitHub deja el borrado registrado en el historial del PR, y la auditoría lo revisa.
+  - Hay formas de pedir otra revisión del mismo código: borrar el comentario de la revisión, hacer un *commit* nuevo (aunque sea vacío o con `gh pr update-branch`) o cambiar la tarea del título y volver a ponerla. Todas quedan registradas en el historial del PR, y la auditoría del coordinador lo revisa.
