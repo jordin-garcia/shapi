@@ -218,7 +218,7 @@ El agente de Jordin sigue la sección B con estas diferencias:
 
 Por ejemplo, un PR abierto que quedó con la CI en rojo o con hallazgos de la revisión.
 1. **Aviso previo:** preguntarle a Jordin si ya le avisó al dueño, para que no siga trabajando en su PR al mismo tiempo.
-2. **Rama nueva:** `jordin/<ID>-<descripcion-corta>`, creada a partir de la rama del PR del dueño (`git fetch origin <rama>` y `git switch -c jordin/<ID>-… origin/<rama>`), para conservar sus *commits*. Nunca se hace *push* a la rama del dueño. Para ponerla al día se hace un *merge* de `main` en la rama nueva.
+2. **Rama nueva:** `jordin/<ID>-<descripcion-corta>`, creada a partir de la rama del PR del dueño (`git fetch origin <rama>` y `git switch --no-track -c jordin/<ID>-… origin/<rama>`), para conservar sus *commits*. Nunca se hace *push* a la rama del dueño. Para ponerla al día se hace un *merge* de `main` en la rama nueva.
 3. **PR nuevo:** su autor es el coordinador, y así la revisión aplica E5. Al abrirlo, se cierra el PR original con un comentario que enlaza al nuevo (`gh pr close <n> --comment "Lo continúa #<nuevo> (protocolo §E4)"`), sin borrar la rama del dueño.
 4. **Cierre:** B10 y B11 normales. El título es `[<ID>] <título de la tarea>`, la tarea queda con `estado: hecha` y lleva un `## Resultado` completo, donde se menciona que la terminó el coordinador a partir del trabajo de su dueño.
 5. **Bitácora:** la entrada va en `docs/plan/bitacora/jordin.md`, con el aviso de E1.
