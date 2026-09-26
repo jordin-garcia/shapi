@@ -1,6 +1,6 @@
 # 12 · Registro de decisiones de arquitectura (ADR)
 
-Estas decisiones salieron de la auditoría del 22 de septiembre de 2026, que encontró contradicciones entre la propuesta, el documento de requisitos y diseño y los mockups. El coordinador las aprobó el mismo día. El número de cada ADR coincide con el de la decisión (D1 a D34) de esa revisión.
+Estas decisiones salieron de la auditoría del 22 de septiembre de 2026, que encontró contradicciones entre la propuesta, el documento de requisitos y diseño y los mockups. El coordinador las aprobó el mismo día. El número de cada ADR coincide con el de la decisión (D1 a D34) de esa revisión. ADR-35 se agregó después, con las versiones del stack.
 
 Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **Consecuencias**.
 
@@ -178,4 +178,4 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
   - **Backend:** **.NET 10 (LTS)** en vez de .NET 8, cuyo soporte termina en noviembre de 2026. Sigue siendo ASP.NET Core, así que no cambia nada respecto a lo aprobado.
   - **Frontend:** React 19, TypeScript, Vite y Tailwind 4, en un *workspace* pnpm con dos aplicaciones y un paquete de UI.
   - **Datos:** PostgreSQL 16 (por `NULLS NOT DISTINCT`) y Redis 7.4.
-- **Consecuencias:** cada integrante instala el SDK de .NET 10, Node 22 o posterior, pnpm y Docker Desktop.
+- **Consecuencias:** cada integrante instala el SDK de .NET 10, Node 24 o posterior, pnpm y Docker Desktop. (El 26 de septiembre se cambió de Node 22 a Node 24, que es lo que exigen `frontend/package.json` y la CI.)

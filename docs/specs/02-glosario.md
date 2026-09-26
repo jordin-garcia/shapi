@@ -15,7 +15,7 @@ Este glosario define el significado de cada término en todo el proyecto: especi
 | **Dominio base** | El dominio de la plataforma. Se configura con `SHAPI_DOMINIO_BASE` y en el entorno simulado vale `shapi.localhost`. |
 | **Dominio propio** | Un dominio del proveedor que se conecta a la **API** con un registro CNAME, por ejemplo `api.enviosxelaju.localhost` → `envios.api.shapi.localhost`. |
 | **DNS simulado** | Una tabla interna que reemplaza la consulta DNS real en el entorno simulado ([ADR-10](12-decisiones.md)). |
-| **Ruta** | Un par método + patrón que sale de la especificación, por ejemplo `GET /rastreo/{guia}`. Puede estar *expuesta* u *oculta*. |
+| **Ruta** | Un par método + patrón que sale de la especificación, por ejemplo `GET /rastreo` o, con un parámetro de ruta, `GET /guias/{numero}`. Puede estar *expuesta* u *oculta*. |
 | **Portal** | El sitio de marca blanca de una API. Tiene inicio, documentación, consola de pruebas, planes, registro y cuenta del consumidor. |
 | **Petición** | Una solicitud HTTP que llega a la compuerta. |
 | **Llamada** | La unidad de la **cuota del consumidor**. Cada ruta tiene un *peso en llamadas* (1 o más), y cada petición a esa ruta que llega al origen descuenta ese peso. |

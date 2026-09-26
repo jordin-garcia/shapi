@@ -101,7 +101,8 @@ El dominio base se configura con `SHAPI_DOMINIO_BASE` y vale `shapi.localhost` e
 
 La API de control expone además `/interno/*`, que **solo es accesible desde la red de Docker** porque Caddy no lo publica:
 - `GET /interno/tls/autorizar?domain=…`: el *ask* de *on-demand TLS*. Responde 200 si el dominio es propio y está verificado, y 404 en cualquier otro caso.
-- `GET /interno/salud`.
+
+La salud de cada proceso se consulta en su propio `/salud` (§8), dentro de la red de Docker o en la máquina; Caddy no lo publica.
 
 La **consola de pruebas** llama desde `https://{sub}.shapi.localhost` a `https://{sub}.api.shapi.localhost`, así que la compuerta responde el *preflight* CORS **sin pedir clave**, y solo permite como origen el host del portal de esa API ([08 §6](08-compuerta.md#6-cors)).
 
@@ -426,7 +427,8 @@ shapi/
 │  ├─ envios-xelaju/
 │  └─ agro-precios/
 ├─ infra/
-│  ├─ caddy/Caddyfile
+│  ├─ caddy/Caddyfile.dev       ← desarrollo (JZ-01)
+│  ├─ caddy/Caddyfile.prod      ← ambiente productivo simulado (JZ-06)
 │  ├─ compose.yml
 │  └─ compose.prod.yml
 └─ .github/workflows/
@@ -442,6 +444,7 @@ shapi/
 | Borde | Caddy 2 |
 | Pruebas | xUnit, Testcontainers, FluentAssertions, Vitest, Testing Library, Playwright, k6 (carga, para RNF-01 y RNF-03) |
 | Infraestructura | Docker Compose, GitHub Actions, GHCR |
+| Paquetes de apoyo (autorizados por JG-01 y DC-01) | NuGet: `EFCore.NamingConventions`, `Microsoft.Extensions.Identity.Core` (`PasswordHasher`), `Microsoft.Extensions.Hosting`, `Microsoft.AspNetCore.OpenApi`, `Microsoft.OpenApi.YamlReader`, `FluentValidation.DependencyInjectionExtensions`, `NSubstitute`, `Microsoft.AspNetCore.Mvc.Testing`. npm: `openapi-fetch`, `openapi-typescript`, `msw`, `react-markdown`, `rehype-sanitize`, `@fontsource/sora`, `@fontsource/ibm-plex-sans`, `eslint` y sus complementos, `jsdom`, `@testing-library/user-event` |
 
 ### Justificación de cada tecnología
 

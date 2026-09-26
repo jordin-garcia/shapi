@@ -72,7 +72,7 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 ## Paso 3 · [JG-03] La revisión con Claude pasa a ser bloqueante
 
 - [x] **H-09** `revision-claude.yml`: si la revisión tiene hallazgos en "CORRECCIÓN (obligatorio corregir)", el job termina con error. Si solo hay hallazgos opcionales, pasa.
-- [ ] **H-10** Agregar el job `revision-claude` a los checks obligatorios de la protección de `main`. Se aplica en cuanto se integra el PR del paso 3; la casilla se marca en el PR del paso siguiente.
+- [x] **H-10** Agregar el job `revision-claude` a los checks obligatorios de la protección de `main`. Aplicado el 26 de septiembre, al integrar el #23: `plan`, `backend`, `frontend` y `revision-claude`.
 - [x] **H-11** Actualizar el criterio 5 de JG-03, `protocolo.md` B11 y la guía, y dejar el aviso en la bitácora para todos.
 - **Decidido por Jordin (26 sep):**
   - Si la revisión no se completa (cuota, caída o tiempo), el check falla y el PR se bloquea hasta reintentarla.
@@ -80,37 +80,37 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 
 ## Paso 4 · [JG-01] Coherencia de las especificaciones y del plan
 
-- [ ] **H-12** 10 §5 (`10-identidad-y-seguridad.md:59`), CSP: agregar `'self'` a `font-src`. Las fuentes de `@fontsource` se sirven desde el propio sitio.
-- [ ] **H-13** Ruta de salud:
+- [x] **H-12** 10 §5 (`10-identidad-y-seguridad.md:59`), CSP: agregar `'self'` a `font-src`. Las fuentes de `@fontsource` se sirven desde el propio sitio.
+- [x] **H-13** Ruta de salud:
   - 06 §4 (`06-arquitectura.md:104`) define `/interno/salud` para la API y 06 §8 (`06-arquitectura.md:379`) define `/salud` para cada proceso;
   - JZ-06:42 espera `https://shapi.localhost/api/salud`, que da 404 a través de Caddy;
   - se unifica la especificación, se corrige JZ-06 y, si hace falta, se agrega `/interno/salud` a la API.
-- [ ] **H-14** 10 §6 (`10-identidad-y-seguridad.md:85`): los correos del personal llevan la marca de Shapi y los de los consumidores solo la del portal (decisión de Jordin). Hay que alinear JZ-11.
-- [ ] **H-15** `12-decisiones.md`: el encabezado dice "D1 a D34", pero existe ADR-35. Además, `03-requisitos.md:125,137` citan "D29" en vez de ADR-29.
-- [ ] **H-16** Versión de Node: `12-decisiones.md:181` dice "Node 22 o posterior", mientras que `instalacion.md`, `manual-tecnico.md`, DC-01 y `package.json` exigen 24.
-  - **❓ Decisión pendiente:** cambiar una decisión de `12-decisiones.md` está en "Preguntar antes". Se confirma que manda Node 24.
-- [ ] **H-17** Nombre del Caddyfile: 06:429 y `convenciones.md:73` dicen `infra/caddy/Caddyfile`, pero los archivos reales son `Caddyfile.dev` y `Caddyfile.prod`.
-- [ ] **H-18** Citas equivocadas: EM-05:34 y `jordin.md:97` citan 10 §6 cuando la regla está en 10 §1.
-- [ ] **H-19** `contratos/openapi/README.md` asigna `claves.yaml` y `consumo.yaml` a Jordin, pero `convenciones.md` §2 no. Hay que alinearlos.
-- [ ] **H-20** DC-02:22 dice que el catálogo de 11 §3 trae los responsables, pero no los trae. Se agrega la columna o se corrige la frase.
-- [ ] **H-21** `specs/README.md:26` ("se agrega aquí primero") contradice protocolo §C ("en el mismo PR"). Hay que alinearlos.
-- [ ] **H-22** El ejemplo `/rastreo/{guia}` de 08:9 y del glosario no coincide con el origen de demostración, que usa `GET /rastreo?guia=`.
-- [ ] **H-23** Textos que quedaron atrás:
+- [x] **H-14** 10 §6 (`10-identidad-y-seguridad.md:85`): los correos del personal llevan la marca de Shapi y los de los consumidores solo la del portal (decisión de Jordin). Hay que alinear JZ-11.
+- [x] **H-15** `12-decisiones.md`: el encabezado dice "D1 a D34", pero existe ADR-35. Además, `03-requisitos.md:125,137` citan "D29" en vez de ADR-29.
+- [x] **H-16** Versión de Node: `12-decisiones.md:181` dice "Node 22 o posterior", mientras que `instalacion.md`, `manual-tecnico.md`, DC-01 y `package.json` exigen 24.
+  - **Decidido por Jordin (26 sep):** manda Node 24; se corrigió ADR-35.
+- [x] **H-17** Nombre del Caddyfile: 06:429 y `convenciones.md:73` dicen `infra/caddy/Caddyfile`, pero los archivos reales son `Caddyfile.dev` y `Caddyfile.prod`.
+- [x] **H-18** Citas equivocadas: EM-05:34 y `jordin.md:97` citan 10 §6 cuando la regla está en 10 §1.
+- [x] **H-19** `contratos/openapi/README.md` asigna `claves.yaml` y `consumo.yaml` a Jordin, pero `convenciones.md` §2 no. Hay que alinearlos.
+- [x] **H-20** DC-02:22 dice que el catálogo de 11 §3 trae los responsables, pero no los trae. Se agrega la columna o se corrige la frase.
+- [x] **H-21** `specs/README.md:26` ("se agrega aquí primero") contradice protocolo §C ("en el mismo PR"). Hay que alinearlos.
+- [x] **H-22** El ejemplo `/rastreo/{guia}` de 08:9 y del glosario no coincide con el origen de demostración, que usa `GET /rastreo?guia=`.
+- [x] **H-23** Textos que quedaron atrás:
   - el `## Resultado` de JG-01:86-87 dice que las implementaciones nulas se registran por defecto;
   - JZ-03:59 y `jose-pablo.md:29` dicen "quinto fallo", pero ahora es el sexto;
   - `11-interfaz.md:195` todavía habla de un contrato provisional de sesión;
   - `emilio.md:17` dice que no migra en Development, y sí migra;
   - la línea "Algunos todavía no existen" de `AGENTS.md` (sección Comandos) todavía dice que algunos comandos no existen.
-- [ ] **H-24** EM-17 dice "crear `identidad.yaml`", pero ya existe; debe decir "modificar". Además, EM-17 no aparece en la tabla del Avance 1 de `calendario.md`.
-- [ ] **H-25** 07:695 exige que el rol de la aplicación solo tenga INSERT y SELECT sobre `bitacora`, pero ninguna tarea lo pide. Se asigna en el paso 5.
-- [ ] **H-26** Avisos sin atender que se pasan a los criterios de sus tareas:
+- [x] **H-24** EM-17 dice "crear `identidad.yaml`", pero ya existe; debe decir "modificar". Además, EM-17 no aparece en la tabla del Avance 1 de `calendario.md`.
+- [x] **H-25** 07:695 exige que el rol de la aplicación solo tenga INSERT y SELECT sobre `bitacora`, pero ninguna tarea lo pide. Asignado a H-40 (paso 5).
+- [x] **H-26** Avisos sin atender que se pasan a los criterios de sus tareas:
   - JG-05: quitar las cookies del portal y leer el contexto en un solo *pipeline* (08 §8);
   - JZ-06: el *healthcheck* con host `localhost` y no publicar el puerto de la API.
-- [ ] **H-27** JG-04: documentar que la publicación hace `DEL` y luego `HSET` en una transacción. `ContextoApi.ACampos()` omite los campos vacíos, así que sin el `DEL` un secreto borrado seguiría en Redis.
-- [ ] **H-28** 06 §9, stack: agregar los paquetes que las tareas ya autorizan.
+- [x] **H-27** JG-04: documentar que la publicación hace `DEL` y luego `HSET` en una transacción. `ContextoApi.ACampos()` omite los campos vacíos, así que sin el `DEL` un secreto borrado seguiría en Redis.
+- [x] **H-28** 06 §9, stack: agregar los paquetes que las tareas ya autorizan.
   - NuGet: `EFCore.NamingConventions`, `Microsoft.Extensions.Identity.Core`, `NSubstitute` y `Microsoft.Extensions.Hosting`.
   - npm: `openapi-fetch`, `openapi-typescript`, `msw`, `react-markdown`, `rehype-sanitize`, `@fontsource/*`, `eslint` y `jsdom`.
-- [ ] **H-29** Colores de la lámina: `mockups/A0/Lamina.dc.html` usa Correcto `#1F8A5B` y Alerta `#C2481F`, mientras que 11 §1 usa `#146542` y `#8E3315`. Según §C manda la especificación, así que se documenta la contradicción en 11 §1 y se corrige el mockup si su formato lo permite.
+- [x] **H-29** Colores de la lámina: `mockups/A0/Lamina.dc.html` usa Correcto `#1F8A5B` y Alerta `#C2481F`, mientras que 11 §1 usa `#146542` y `#8E3315`. Según §C manda la especificación, así que se documenta la contradicción en 11 §1 y se corrige el mockup si su formato lo permite.
 
 ## Paso 5 · [EM-01] Esquema de la base de datos
 

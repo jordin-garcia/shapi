@@ -83,7 +83,7 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
 - **Solución:** `Shapi.slnx` con los 7 proyectos de `src/` y los 3 de `tests/`. `Directory.Build.props` fija `net10.0`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors` y `AnalysisLevel=latest`. `Directory.Packages.props` declara todos los paquetes del stack con versión fija, y ningún `.csproj` declara versiones. Cada proyecto ya referencia los paquetes que va a usar, para que las tareas siguientes no tengan que editar los `.csproj`.
 - **API:** `Program.cs` configura ProblemDetails, `GET /salud` y OpenAPI en desarrollo, y llama a `AgregarModulo<X>()` y `MapearModulo<X>()` de los 15 módulos. Las firmas son `IServiceCollection AgregarModulo<X>(this IServiceCollection services)` y `WebApplication MapearModulo<X>(this WebApplication app)`. Cada dueño edita solo su `Modulos/<X>Modulo.cs`. Puertos de desarrollo: API en 5080 y compuerta en 5090.
 - **Comunes** (`Shapi.Aplicacion/Comun`): `Resultado` y `Resultado<T>` (con conversiones implícitas desde el valor y desde `Error`), `Error(Codigo, Mensaje, Detalle?)`, `IReloj.Ahora`, `IColaCorreo.Encolar(plantilla, destinatario, datos)`, `IBitacora.Registrar(EntradaBitacora)`, `IPublicadorCache` (`PublicarApi`, `PublicarClave`, `ExpirarClave`, `EliminarClave`, `PublicarSuscripcion` y `PublicarOrganizacion`), `IContextoOrganizacion.OrganizacionId` y `AccionesBitacora`, con las 31 acciones de 10 §7 y la lista `Todas`.
-- **Infraestructura** (`Shapi.Infraestructura/Comun`): `AgregarServiciosComunes()` registra `RelojSistema` (sobre `TimeProvider`) y las implementaciones nulas `ColaCorreoNula`, `BitacoraNula` y `PublicadorCacheNulo`. Program.cs la llama antes que a los módulos, así que el dueño las reemplaza con solo registrar la suya en su módulo, o con `services.Replace(...)`. Las nulas nunca escriben en el log datos del correo ni hashes de claves.
+- **Infraestructura** (`Shapi.Infraestructura/Comun`): `AgregarServiciosComunes()` registra `RelojSistema` (sobre `TimeProvider`) y las implementaciones nulas `ColaCorreoNula`, `BitacoraNula` y `PublicadorCacheNulo`. (Desde EM-01 registra `ColaCorreoBaseDatos` y `BitacoraBaseDatos` en lugar de las dos primeras; ver el paso 5 de `docs/plan/auditoria-2026-09-25.md`.) Program.cs la llama antes que a los módulos, así que el dueño las reemplaza con solo registrar la suya en su módulo, o con `services.Replace(...)`. Las nulas nunca escriben en el log datos del correo ni hashes de claves.
 - **Contratos:** `CodigosError` tiene los 12 códigos de 08 §4, los de 03, 09 y convenciones §5, y los que definen los criterios de aceptación de las demás tareas del plan. `LlavesRedis` genera todos los formatos de 07 §4, más `demo:reloj:desplazamiento` (09 §9).
 - **Pruebas** (98): humo de `/salud` en la API y la compuerta, humo del Dominio, cada formato de `LlavesRedis`, `Resultado` y los servicios comunes (nulos por defecto, reemplazables). Tres pruebas leen las especificaciones: los códigos de la tabla de 08 §4, las acciones de la tabla de 10 §7 y los 15 módulos llamados desde `Program.cs`. Si la especificación cambia, esas pruebas fallan hasta que el código se actualice.
 - **CI** (`.github/workflows/ci.yml`): jobs `plan`, `backend` y `frontend`, con `concurrency` por PR. El job `frontend` termina con éxito y muestra un mensaje mientras no exista `frontend/package.json`.
@@ -104,3 +104,21 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
   - `AGENTS.md`: la excepción en "Antes de hacer cualquier cosa", los pedidos "Audita <ID>" y "continúa la auditoría", "Siempre", "Preguntar antes" y "Nunca".
   - `docs/plan/convenciones.md` §2 y §3, `.github/pull_request_template.md`, `docs/plan/README.md` (regla de oro 2 y preguntas frecuentes) y `docs/plan/prompts/revision.md` (alcance y cierre de los PR de corrección).
 - Se integra el plan de correcciones de la auditoría (hallazgos H-01 a H-114, en 17 pasos).
+- **Coherencia de las especificaciones y del plan** (paso 4 de la auditoría, H-12 a H-29):
+  - **CSP y correos:**
+    - CSP con `'self'` en `font-src`, porque las fuentes de `@fontsource` se sirven desde el propio sitio;
+    - la marca en los correos: los del personal llevan la de Shapi y los de los consumidores solo la del portal (10 §6).
+  - **Salud y rutas:**
+    - la salud es solo `/salud` en cada proceso (06 §4 y §8, y JZ-06);
+    - el ejemplo de ruta con parámetro es `/guias/{numero}`, porque el origen y los mockups usan `GET /rastreo?guia=`.
+  - **ADR:**
+    - ADR-35 pasa a Node 24;
+    - "D29" pasa a ADR-29;
+    - la numeración de 12 queda aclarada.
+  - **Colores de la lámina:** las muestras de Correcto y Alerta usan los tonos de 11 §1.
+  - **Documentos y referencias:** los nombres `Caddyfile.dev` y `Caddyfile.prod`, las citas de sección, los contratos de Jordin en convenciones §2, el paquete de apoyo en 06 §9 y los textos desactualizados de JG-01, JZ-03, 11 §4, AGENTS.md y las bitácoras.
+  - **Avisos pasados a criterios:**
+    - JG-05: cookies del portal y un solo *pipeline*;
+    - JZ-06: *healthcheck* y el puerto de la API;
+    - JG-04: `DEL` y luego `HSET`.
+  - **EM-17 y calendario:** EM-17 quedó al día con lo que ya hizo EM-03 y aparece en la tabla del Avance 1.

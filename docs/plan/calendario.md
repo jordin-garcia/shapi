@@ -34,6 +34,7 @@
 | JG-02 | Jordin | Compuerta mínima: host → API, clave y reenvío |
 | JZ-03 | José Pablo | Envío de correos a Mailpit |
 | EM-03 | Emilio | Pantallas de registro, verificación y acceso |
+| EM-17 | Emilio | Publicar el contrato OpenAPI de identidad y reemplazar el contrato provisional de la sesión |
 
 **Guion de demostración 1:**
 1. `docker compose -f infra/compose.yml up -d` y los tres procesos .NET en marcha. Se muestra https://shapi.localhost con candado.

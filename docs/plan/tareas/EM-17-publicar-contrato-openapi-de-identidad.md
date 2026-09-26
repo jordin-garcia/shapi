@@ -24,9 +24,9 @@ Publicar el contrato OpenAPI del módulo de identidad implementado en EM-02 para
 - `docs/plan/tareas/EM-02-registro-verificacion-de-correo-e-inicio-de-sesion-del-perso.md`
 
 ## Archivos que creas o modificas
-- `contratos/openapi/identidad.yaml` (crear)
-- `frontend/packages/api/src/generado/identidad.ts` (generar)
-- `frontend/packages/api/package.json` (exportar los tipos de identidad)
+- `contratos/openapi/identidad.yaml` (ya existe desde EM-02: modificar solo si hace falta)
+- `frontend/packages/api/src/generado/identidad.ts` (ya generado en EM-03 con `pnpm generar:api`: regenerar si cambia el contrato)
+- `frontend/packages/api/package.json` (ya exporta `./identidad` desde EM-03; H-83 pide exportar `"./*"`)
 - `frontend/apps/panel/src/modulos/sesion/**` (reemplazar el contrato provisional por el generado)
 
 ## Criterios de aceptación

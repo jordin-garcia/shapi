@@ -31,11 +31,13 @@ Completar los filtros de validación de la compuerta (0, 3, 4 y 5), las cabecera
 ## Criterios de aceptación
 1. Si la organización tiene `estado_efectivo=suspendida` → 403 `api_no_disponible`.
 2. Si la suscripción está `suspendida` o `finalizada` → 403 `suscripcion_inactiva`. El filtro **no compara fechas** (08 §3, filtro 4).
-3. Si el método y la ruta no existen o están ocultos → 403 `ruta_no_permitida`. La coincidencia usa patrones OpenAPI (`/rastreo/{guia}` coincide con `/rastreo/GT123`) con la regla de especificidad de 08 §1. Las rutas se guardan en memoria 5 segundos como máximo, validando la `version`.
+3. Si el método y la ruta no existen o están ocultos → 403 `ruta_no_permitida`. La coincidencia usa patrones OpenAPI (`/guias/{numero}` coincide con `/guias/GT123`) con la regla de especificidad de 08 §1. Las rutas se guardan en memoria 5 segundos como máximo, validando la `version`.
 4. Hacia el origen: se quitan `X-Api-Key` y cualquier `X-Shapi-*` que haya enviado el cliente, y se agregan `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` (si la API lo tiene) y `X-Forwarded-For/Proto/Host`.
 5. Cada conexión pasa por un `ConnectCallback` que usa `ValidadorDireccionOrigen` y rechaza direcciones internas con 502 `origen_inaccesible`. En modo demostración se permite `SHAPI_ORIGENES_PERMITIDOS` (entradas `host:puerto`). No se siguen redirecciones del origen.
 6. Si no se puede conectar al origen → 502 `origen_inaccesible`. Si el origen tarda más de 30 s → 504 `origen_sin_respuesta`. Si el cuerpo pesa más de 10 MB → 413 `cuerpo_demasiado_grande`.
 7. CORS según 08 §6: el *preflight* `OPTIONS` se responde sin clave con 204 y `Access-Control-Allow-Origin` igual al `portal_host` de la API. Otros orígenes no reciben esa cabecera. Las peticiones sin `Origin` pasan normal.
+8. Hacia el origen nunca se envían las cookies del portal (`Cookie` se quita, 08 §5).
+9. El contexto de cada petición (`api:host:*`, `api:{id}`, `clave:{hash}`) se lee de Redis en un solo *pipeline* (08 §8), no en tres viajes.
 
 ## Pruebas obligatorias
 - Unitarias por filtro (casos válidos y de rechazo)

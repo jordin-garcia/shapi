@@ -23,6 +23,8 @@ Escala: título de página 32/1.2 (Sora 400) · título de tarjeta 22/1.3 · cue
 | `--borde` | `#DCE3EE` (campos: `#C9D2E1`, filas: `#EBEFF5`) | `#1B2436` (`#2A3550` en los controles) |
 | `--correcto` | texto `#146542` · fondo `#E4F3EC` · borde `#B6DCC9` | `#3FBF88` |
 | `--alerta` | texto `#8E3315` · fondo `#FBE9E3` · borde `#EDC3B4` | `#F08A5F` |
+
+> La lámina (`mockups/A0/Lamina.dc.html`) mostraba en sus muestras `#1F8A5B` y `#C2481F`. Contradecían esta tabla, y según protocolo §C manda la especificación: el 26 de septiembre se corrigieron en la lámina a `#146542` y `#8E3315`.
 | `--neutro` | texto `#5A6884` · fondo `#F4F6FA` · borde `#DCE3EE` | — |
 
 **Solo hay tres colores de estado**: correcto (activa, pagado, en servicio), alerta (suspendida, rechazado, en gracia, degradado) y neutro (despublicada, pendiente, cerrado).
@@ -192,7 +194,7 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - La API seleccionada se representa en `/panel/apis/:id/...`. Al elegir desde una página sin ID, se abre su especificación; al cambiar de API desde una sección, se conserva esa sección. Sin selección, se indica que debe elegir una API y no se crean enlaces a un ID ficticio.
 - Mientras no exista el listado de DC-04, una respuesta 404 o 501 se presenta como «Sin APIs». Los demás errores muestran el aviso recuperable con «Reintentar».
 - Una sesión ausente (401) redirige a `/entrar`; un error de red o servidor mantiene la dirección y ofrece reintentar. Al cerrar sesión se espera la revocación del servidor antes de salir y limpiar los datos privados del cliente; si falla, se conserva la pantalla con un aviso y reintento.
-- El encabezado del proveedor muestra el nombre de su organización. Mientras el contrato provisional de sesión no lo suministre, muestra «Panel del proveedor».
+- El encabezado del proveedor muestra el nombre de su organización, que `GET /api/auth/sesion` devuelve en `organizacion.nombre`.
 
 ### Comportamiento de las pantallas de acceso (EM-03)
 

@@ -25,7 +25,7 @@ Shapi es una plataforma como servicio para publicar APIs, controlar quién las u
 
 ## Comandos
 
-Algunos todavía no existen: los crean JG-01, DC-01 y JZ-01.
+Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 
 | Qué | Comando |
 |---|---|

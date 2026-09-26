@@ -56,7 +56,7 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Resultado
 
 - El trabajador procesa cada 5 segundos los correos pendientes cuyo próximo intento ya venció, los entrega por SMTP y persiste el resultado después de cada correo.
-- Se implementaron los cinco intervalos de reintento (5 s, 30 s, 2 min, 10 min y 1 h); el quinto fallo deja el correo en estado `fallido`.
+- Se implementaron los cinco intervalos de reintento (5 s, 30 s, 2 min, 10 min y 1 h). (Corregido el 25 de septiembre: el correo queda `fallido` al fallar el sexto intento, ver más abajo.)
 - MailKit lee `SHAPI_SMTP_HOST`, `SHAPI_SMTP_PUERTO`, `SHAPI_SMTP_USUARIO`, `SHAPI_SMTP_CONTRASENA` y `SHAPI_SMTP_TLS`. El remitente usa `no-responder@{dominio_base}` y `nombrePortal` como nombre visible cuando está presente.
 - Las plantillas HTML y texto de verificación y recuperación están incrustadas en `Shapi.Infraestructura`, tratan al usuario de usted, escapan los valores HTML y generan los enlaces definidos en `10-identidad-y-seguridad.md`.
 - Se agregaron pruebas de dominio, renderizado y una integración con PostgreSQL y Mailpit que verifica la entrega mediante `/api/v1/messages`, además del servidor SMTP caído y la programación futura.

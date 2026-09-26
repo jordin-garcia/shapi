@@ -37,9 +37,11 @@ Empaquetar el sistema en imágenes y levantar el ambiente productivo simulado co
 3. La API aplica las migraciones al iniciar (`SHAPI_APLICAR_MIGRACIONES=true`). Las llaves de Data Protection persisten en el volumen `dpkeys`, compartido entre la API y el trabajador.
 4. `publicar-imagenes.yml`, en cada *push* a `main`, construye y publica `ghcr.io/jordin-garcia/shapi-{api,compuerta,trabajador,borde}` con las etiquetas `latest` y el SHA. `compose.prod.yml` usa esas imágenes, y `--build` permite construirlas localmente.
 5. El manual técnico explica cómo levantar, sembrar (`docker compose ... exec trabajador ... sembrar-demo`), ver los registros y apagar.
+6. El *healthcheck* de cada proceso .NET consulta `http://localhost:8080/salud` dentro del contenedor. La compuerta solo responde `/salud` con el host `localhost` (`Program.cs`), para no tapar la ruta `/salud` de las APIs de los proveedores.
+7. El puerto de la API de control no se publica en el host: solo se llega a ella por el borde (`https://shapi.localhost/api/*`). La API confía en `X-Forwarded-For` solo si viene del borde (10 §1).
 
 ## Pruebas obligatorias
-- Levantar desde cero en un equipo y comprobar `https://shapi.localhost`, `/api/salud` y `https://envios.api.shapi.localhost` (404, porque todavía no hay siembra)
+- Levantar desde cero en un equipo y comprobar `https://shapi.localhost`, que todos los contenedores estén *healthy* (su *healthcheck* consulta `http://localhost:8080/salud` dentro del contenedor, 06 §8) y `https://envios.api.shapi.localhost` (404, porque todavía no hay siembra)
 
 ## Verificación
 Todos estos comandos deben pasar, además de los generales del protocolo (B7):

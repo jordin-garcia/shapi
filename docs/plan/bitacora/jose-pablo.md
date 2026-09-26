@@ -26,7 +26,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
 ## 2026-09-25 · JZ-03 · Envío de correos desde la bandeja de salida
 - Hecho: se implementó el procesamiento cada 5 segundos, envío SMTP con MailKit, remitente configurable, plantillas HTML/texto de verificación y recuperación, escape HTML y cinco intentos con espera progresiva. La integración entrega el correo a Mailpit y lo comprueba con su API.
-- Decisiones: los enlaces canónicos son `/verificar-correo?token=` y `/restablecer?token=` sobre `SHAPI_DOMINIO_BASE`; el quinto fallo conserva el último intervalo calculado de 1 hora aunque el estado ya sea `fallido`; cada correo guarda su resultado antes de procesar el siguiente.
+- Decisiones: los enlaces canónicos son `/verificar-correo?token=` y `/restablecer?token=` sobre `SHAPI_DOMINIO_BASE`; el quinto fallo conserva el último intervalo calculado de 1 hora aunque el estado ya sea `fallido` (corregido el 25 de septiembre: queda `fallido` al sexto intento, sin `proximo_intento_en`); cada correo guarda su resultado antes de procesar el siguiente.
 - Pendiente o aviso para otros:
   - **EM-03:** `verificacion_correo` recibe `{ nombre, token }` y el enlace enviado apunta a `/verificar-correo?token=`; la pantalla ya puede consumir ese token.
   - **EM-04:** `recuperacion` recibe `{ nombre, token }` y el enlace enviado apunta a `/restablecer?token=`. Puede incluir `nombrePortal` para usarlo como remitente visible.

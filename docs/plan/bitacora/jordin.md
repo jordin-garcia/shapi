@@ -94,7 +94,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: corrección posterior de JZ-03 tras revisarla. El motor de plantillas arma los enlaces de verificación y recuperación con `hostPortal` cuando viene en los datos (correos de consumidores), y con el dominio base si no viene (personal). `hostPortal` solo se acepta como `{sub}.{dominio_base}` (una etiqueta ASCII), para que el token no pueda terminar en otro dominio. Los reintentos ahora son 5, con las esperas de 5 s, 30 s, 2 min, 10 min y 1 h, y el correo queda `fallido` al fallar el sexto intento. Pruebas nuevas en `MotorPlantillasCorreoTests` y `CorreoSalienteTests`.
 - Decisiones:
   - RF-46 dice "se reintentan hasta 5 veces" y el caso de uso lista 5 esperas; el criterio de JZ-03 ("al quinto fallo, `fallido`") dejaba sin usar la espera de 1 h. Mandó la especificación y se corrigió el criterio de la tarea.
-  - El host del enlace lo decide quien encola el correo (`hostPortal`), porque es quien conoce el portal que atendió la petición (`IResolutorPortal`). Quedó en 10 §6 y en el criterio 1 de EM-05.
+  - El host del enlace lo decide quien encola el correo (`hostPortal`), porque es quien conoce el portal que atendió la petición (`IResolutorPortal`). Quedó en 10 §1 y en el criterio 1 de EM-05.
   - No se agregó bloqueo de filas (`FOR UPDATE SKIP LOCKED`) en la bandeja de salida: el trabajador corre en una sola instancia (06 §8, `salud:trabajador`).
 - Pendiente o aviso para otros:
   - **EM-05:** al encolar `verificacion_correo` y `recuperacion` para un consumidor, incluyan `nombrePortal` y `hostPortal` = `{sub}.{dominio_base}` en los datos, armado con el subdominio de la API que resolvió `IResolutorPortal`; no copien la cabecera `Host` ni usen el dominio propio (apunta a la compuerta). Sin `hostPortal` el enlace lleva al panel del personal y el token del consumidor no funciona.
@@ -131,3 +131,19 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - Un falso positivo solo lo desbloquea Jordin, con `--admin`; por eso `enforce_admins` queda desactivado.
 - Pendiente o aviso para otros:
   - **Todos:** desde este PR, un PR no se integra si la revisión automática con Claude tiene hallazgos de corrección. Esto reemplaza el aviso del 23 de septiembre que decía que no era obligatoria. Corrijan y hagan *push*: la revisión se repite sola. Si falló por algo externo, `gh run rerun <id> --failed`; volver a ejecutarla no repite una revisión que ya terminó. Si creen que es un falso positivo, explíquenlo en el PR y avísenle a Jordin, que es el único que puede integrarlo con `--admin`. La cuota sigue siendo la de Jordin: eviten *pushes* innecesarios.
+
+## 2026-09-26 · JG-01 · Coherencia de las especificaciones y del plan
+- Hecho: paso 4 de `docs/plan/auditoria-2026-09-25.md` (H-12 a H-29). Se corrigieron contradicciones y referencias entre las specs, el plan y los mockups, sin cambiar código. H-10 quedó aplicado: `revision-claude` ya es obligatorio en `main`.
+- Decisiones (de Jordin, 26 sep):
+  - ADR-35 pasa a Node 24 o posterior.
+  - La salud es solo `/salud` en cada proceso: se quitó `/interno/salud` de 06 §4.
+  - En los colores de Correcto y Alerta manda la spec: la lámina usa `#146542` y `#8E3315`.
+  - Los correos del personal llevan la marca de Shapi y los de los consumidores la del portal.
+- Pendiente o aviso para otros:
+  - **JZ-06:** nuevos criterios 6 y 7 (el *healthcheck* consulta `/salud` en `localhost` dentro del contenedor y la API no publica su puerto). Ya no se comprueba `/api/salud` a través de Caddy.
+  - **JZ-11:** se resolvió la contradicción de la marca: los correos del personal usan la marca de Shapi y los de los consumidores la del portal (10 §6).
+  - **JG-05:** nuevos criterios 8 y 9 (no reenviar cookies del portal y leer el contexto en un solo *pipeline*).
+  - **EM-17:** `identidad.yaml`, `identidad.ts` y la exportación ya existen. Falta reemplazar el contrato provisional de la sesión.
+  - **Dominique:** en `mockups/A0/Lamina.dc.html` cambiaron las muestras de Correcto y Alerta (`#146542` y `#8E3315`), para que coincidan con 11 §1.
+  - **Emilio:** se agregó una nota en tu bitácora (entrada de EM-01): `Program.cs` sí migra en Development.
+  - **José Pablo:** se agregó una nota en tu bitácora (entrada de JZ-03) sobre el sexto intento.

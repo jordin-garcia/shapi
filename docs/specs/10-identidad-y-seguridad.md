@@ -56,7 +56,7 @@ Cuando se registra o se edita una API ([RF-08](03-requisitos.md#rf-08)), y **tam
 
 ## 5. Encabezados y protección de los frontends
 
-- La **política de seguridad de contenido** (CSP) del panel y del portal es `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.api.shapi.localhost; frame-ancestors 'none'`.
+- La **política de seguridad de contenido** (CSP) del panel y del portal es `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.api.shapi.localhost; frame-ancestors 'none'`.
 - Los logotipos SVG se sirven con `Content-Type: image/svg+xml`, `Content-Security-Policy: sandbox` y `X-Content-Type-Options: nosniff`. El portal los muestra **solo** con `<img>`, nunca incrustados en el HTML.
 - Todos los textos que escribe el proveedor (nombre, bienvenida y descripciones de la especificación) se muestran escapados. Las descripciones en Markdown de la especificación se convierten a HTML con una lista de etiquetas permitidas.
 - Caddy agrega `Strict-Transport-Security`, `X-Content-Type-Options: nosniff` y `Referrer-Policy: strict-origin-when-cross-origin`.
@@ -82,7 +82,7 @@ Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan co
 
 **Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`.
 
-Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace. Ningún correo lleva la marca de Shapi en el cuerpo.
+Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4).
 
 ## 7. Bitácora
 
