@@ -34,19 +34,21 @@ Este es el procedimiento **obligatorio** para cualquier agente (Claude Code, Cod
 
 ## B. Implementar una tarea ("implementa <ID>" o "continúa")
 
-Si la persona dice "continúa" o "la siguiente", toma la primera disponible con `node scripts/tareas.mjs --siguiente <clave>`.
+Si la persona dice "continúa" o "la siguiente", toma la primera disponible con `node scripts/tareas.mjs --siguiente <clave>`. Excepción: si el coordinador dice "continúa la auditoría" o "siguiente paso de la auditoría", o si la sesión ya está corrigiendo un plan de auditoría, se sigue §E3.
 
 Desde aquí trabaja **sin pedir confirmación** en cada paso. Solo te detienes en los casos de §C.
 
 ### B1. Comprobar que se puede empezar
 - Ejecuta `node scripts/tareas.mjs --ver <ID>`. Si no está disponible, explica por qué y detente.
 - Comprueba que la tarea es de esta persona. Si no lo es, detente.
+- Excepción: el coordinador puede corregir tareas ya hechas o terminar tareas de otras personas (§E3 y §E4).
 
 ### B2. Preparar la rama
 ```
 git switch main && git pull --ff-only
 git switch -c <persona>/<ID>-<descripcion-corta>      # ejemplo: emilio/EM-02-registro-proveedor
 ```
+Si el coordinador termina el PR abierto de otra persona (§E4), la rama parte de la rama de ese PR y no de `main`.
 
 ### B3. Entender la tarea
 - Lee el archivo de la tarea **completo**.
@@ -71,7 +73,7 @@ git switch -c <persona>/<ID>-<descripcion-corta>      # ejemplo: emilio/EM-02-re
 
 ### B6. Implementar
 - Escribe el código mínimo que haga pasar las pruebas, respetando la arquitectura de `docs/specs/06-arquitectura.md` y la tabla de propiedad de `docs/plan/convenciones.md` §2.
-- **Solo toca los archivos que la tarea indica** en "Archivos que creas o modificas", más las pruebas, el contrato, la especificación relacionada y tu bitácora. Si necesitas tocar otro archivo, aplica §C.
+- **Solo toca los archivos que la tarea indica** en "Archivos que creas o modificas", más las pruebas, el contrato, la especificación relacionada y tu bitácora. Si necesitas tocar otro archivo, aplica §C. La excepción es el coordinador, que puede tocar cualquier archivo (§E1).
 - Haz *commits* pequeños y frecuentes, con mensajes en español: `feat(identidad): registro del proveedor (EM-02)`.
 
 ### B7. Verificar
@@ -118,7 +120,7 @@ gh pr checks --watch
 - **El título es obligatorio en el formato `[<ID>] <título>`**, con el ID de una tarea que existe; por ejemplo, `[EM-03] Pantallas de registro, verificación y acceso`. El job `plan` de la CI rechaza cualquier otro, porque sin el ID la revisión automática no revisa criterios ni alcance. Una corrección posterior de una tarea ya hecha usa el ID de esa tarea. Si el título está mal, edítalo con `gh pr edit --title "[<ID>] <título>"`: la CI y la revisión se vuelven a ejecutar solas.
 - El cuerpo del PR sigue `.github/pull_request_template.md`, con la evidencia de B7 y B8 y el resultado de B9.
 - **Si falla una verificación de la CI:** lee el registro (`gh run view --log-failed`), corrige, haz *commit* y *push*, y vuelve a esperar. Tienes como máximo 5 intentos; después aplica §C.
-- **Si GitHub dice que la rama está desactualizada:** ejecuta `gh pr update-branch`, o haz `git pull --rebase origin main`, resuelve los conflictos según `docs/plan/convenciones.md` §3 y haz `git push --force-with-lease` **sobre tu rama**. Luego espera la CI otra vez.
+- **Si GitHub dice que la rama está desactualizada:** ejecuta `gh pr update-branch`, o haz `git pull --rebase origin main`, resuelve los conflictos según `docs/plan/convenciones.md` §3 y haz `git push --force-with-lease` **sobre tu rama**. Luego espera la CI otra vez. Si tu rama parte de la de otra persona (§E4), ponla al día con `gh pr update-branch` sobre **tu** PR o con un *merge* de `main` en tu rama, sin *rebase* ni *push* forzado. Nunca hagas *push* a la rama del dueño.
 - El PR se integra solo cuando todas las verificaciones obligatorias pasan (auto-merge). **No hace falta que ningún humano lo apruebe.**
 - **Antes de JG-01** todavía no hay CI ni auto-merge: si `gh pr merge --auto` falla por eso, integra con `gh pr merge --squash --delete-branch` después de tu verificación local.
 
@@ -136,9 +138,9 @@ gh pr checks --watch
 |---|---|
 | La especificación no dice algo, la decisión es **local y reversible** (un nombre interno, un orden de columnas, un texto de error) y es coherente con el resto | Decide lo más simple, sigue adelante y anótalo en "Decisiones tomadas" del PR. Si afecta el comportamiento visible, agrégalo a la especificación |
 | La especificación **se contradice** o contradice a un mockup | Manda la especificación, en este orden: `docs/specs/12-decisiones.md` > la especificación del tema > `11-interfaz.md` > el mockup. Documenta la contradicción en el PR y corrige el documento de menor rango |
-| La decisión es **de alto impacto**: dependencia nueva, cambio de esquema fuera de la tarea, un cambio a un ADR, seguridad, o modificar archivos de otra persona | **Detente y pregúntale a la persona**, con las opciones y tu recomendación |
+| La decisión es **de alto impacto**: dependencia nueva, cambio de esquema fuera de la tarea, un cambio a un ADR, seguridad, o modificar archivos de otra persona | **Detente y pregúntale a la persona**, con las opciones y tu recomendación. Si la persona es el coordinador (`jordin`), modificar archivos de otra persona **no** requiere preguntar: sigue §E. Lo demás de esta fila sí |
 | Necesitas **información o acceso externo**: credenciales, secretos, cuentas, una decisión que solo el equipo puede tomar | Detente y explica exactamente qué necesitas y por qué. Si la persona no puede darlo ahora, marca la tarea como bloqueada (ver abajo) |
-| Una **dependencia** no funciona como dice su tarea, porque un compañero dejó un error | No lo arregles en su código. Crea una tarea nueva para esa persona (ver abajo), avísale a tu persona y, si puedes avanzar con un mock, sigue |
+| Una **dependencia** no funciona como dice su tarea, porque un compañero dejó un error | No lo arregles en su código. Crea una tarea nueva para esa persona (ver abajo), avísale a tu persona y, si puedes avanzar con un mock, sigue. **Excepción:** si la persona es el coordinador (`jordin`), puede corregirlo directamente en el código de su compañero, siguiendo §E |
 | 5 intentos fallidos con la CI, o sigues atascado en el mismo error después de 3 enfoques distintos | Detente y explícale a la persona el problema, lo que intentaste y las opciones |
 
 **Marcar una tarea como bloqueada.** Cambia `estado: bloqueada` y agrega la línea `bloqueo: <qué falta y quién puede resolverlo>` en los metadatos. Haz un PR que **solo** cambie ese archivo y la bitácora, con el título `[<ID>] Bloqueada: <motivo>`, e intégralo igual que en B11.
@@ -152,8 +154,78 @@ gh pr checks --watch
 
 ## D. Reglas para no pisarse
 
-- Cada persona trabaja **solo** en sus tareas y en los archivos que le pertenecen (`docs/plan/convenciones.md` §2).
+- Cada persona trabaja **solo** en sus tareas y en los archivos que le pertenecen (`docs/plan/convenciones.md` §2). El coordinador es la excepción (§E).
 - Los **archivos calientes** tienen reglas especiales para resolver conflictos (`docs/plan/convenciones.md` §3).
 - Integra seguido: una tarea por PR, y cada PR se integra el mismo día en que se termina.
 - Antes de empezar cualquier tarea, actualiza `main`.
 - Si vas a usar código que dejó una tarea de otra persona, lee su sección `## Resultado`: ahí está lo que hizo y cómo usarlo.
+
+---
+
+## E. Auditoría del coordinador después de cada integración
+
+Las pruebas, la CI y la revisión automática no bastan para detectar todo lo que incumple una tarea o una especificación. Por eso el coordinador, **Jordin García** (persona `jordin`, usuario `jordin-garcia` en GitHub), audita cada tarea que se integra en `main` y corrige lo que encuentra.
+
+### E1. Autorización permanente
+
+En cualquier PR suyo, sea de auditoría o no, el coordinador puede:
+- modificar el código, las pruebas, los contratos, las migraciones, los archivos calientes, los archivos de tarea, las bitácoras y la documentación de **cualquier persona**;
+- terminar o corregir tareas de otros, incluidos sus PR abiertos;
+- borrar archivos que sobran.
+
+No necesita preguntar antes ni crear una tarea nueva para la persona dueña. Esta autorización prevalece sobre las reglas de **propiedad** que digan lo contrario: B1, B2 (solo en §E4), B6, §C, §D, `AGENTS.md` (paso 3, "Siempre" en cuanto a la rama de §E4, "Preguntar antes" y "Nunca"), `docs/plan/README.md` y `docs/plan/convenciones.md` §2 y §3.
+
+La autorización cubre **solo quién puede editar qué**. Todo lo demás sigue vigente, en particular:
+- **Git y CI:** nada de *push* directo a `main`, nada de `--no-verify`, y la CI sigue siendo obligatoria.
+- **Rama de otra persona:** nunca se hace *push* a la rama de otra persona, ni forzado ni normal. Para terminar su trabajo se sigue §E4.
+- **Preguntar antes:** para agregar una dependencia, cambiar un ADR o usar cuentas o credenciales.
+- **Pruebas:** no se debilitan ni se omiten.
+- **Reglas técnicas de convenciones §3:** no editar el snapshot a mano, regenerar el lockfile, no editar `Program.cs`, etc.
+
+Cada vez que un PR del coordinador toca archivos de otra persona, su entrada en `docs/plan/bitacora/jordin.md` lleva un aviso en negrita para esa persona (`**Emilio:**`), con los archivos que cambiaron y la indicación de actualizar su rama desde `main`.
+
+### E2. Cómo se audita ("audita <ID>" o "audita lo integrado")
+
+1. **Qué se audita.** Las tareas integradas en `main` después de la fecha del `docs/plan/auditoria-*.md` más reciente (`gh pr list --state merged --search "merged:>=AAAA-MM-DD"` y `git log main`, descartando las que ese plan ya auditó). Si Jordin nombra una tarea, solo esa.
+2. **Revisión de cada tarea**, preferiblemente con subagentes o sesiones en contexto limpio, una por tarea o área:
+   - Leer completos el archivo de la tarea (incluido `## Resultado`), las especificaciones de "Contexto que debes leer" y el código actual. No basta con el diff.
+   - Por cada criterio de aceptación y cada prueba obligatoria, comprobar que hay código que lo cumple **y** una prueba que lo verifica de verdad.
+   - Contrastar con la especificación: tablas, códigos de error, nombres del glosario, estados, esquema y contratos.
+   - Si la tarea tiene pantallas, contrastar con su mockup.
+   - Revisar la seguridad y los errores del punto 4 y del punto 5 de `docs/plan/prompts/revision.md`.
+   - Revisar el cierre según B10: `## Resultado`, bitácora y contrato.
+3. **Verificación completa.** Ejecutar los comandos de B7. Si una prueba falla, repetirla sola para descartar fallos del entorno, por ejemplo de Docker.
+4. **Registro.** Escribir `docs/plan/auditoria-<AAAA-MM-DD>.md`:
+   - hallazgos numerados `H-01`, `H-02`… con su severidad y `archivo:línea`;
+   - agrupados en pasos, uno o más por tarea original;
+   - con cada duda que decide Jordin marcada **❓ Decisión pendiente**.
+5. **Detenerse.** Presentarle a Jordin el resumen y el plan, y **no corregir nada** hasta que lo indique.
+6. **Integrar el plan.** El plan entra a `main` en el primer PR de E3, junto con su primera corrección. Si Jordin prefiere integrarlo solo, se usa la rama `jordin/JG-01-auditoria-plan-<AAAA-MM-DD>` y el PR `[JG-01] Plan de la auditoría <AAAA-MM-DD>`.
+
+### E3. Cómo se corrige una tarea ya integrada
+
+El agente de Jordin sigue la sección B con estas diferencias:
+1. **B1:** la tarea ya está `hecha` y puede ser de otra persona. No es motivo para detenerse.
+2. **Decisiones pendientes:** al empezar cada paso del plan, se le preguntan a Jordin las **❓ Decisión pendiente** de ese paso, antes de escribir código.
+3. **Rama:** `jordin/<ID>-auditoria-<tema>`, donde `<ID>` es la tarea original.
+4. **Título del PR:** `[<ID>] Correcciones de la auditoría: <tema>`. Cada PR lleva el ID de la tarea original, aunque un paso del plan necesite varios PR.
+5. **Hallazgos:** cada hallazgo corregido lleva una prueba que lo habría detectado, salvo que sea solo de documentación. Su casilla se marca en el plan de la auditoría, en el mismo PR.
+6. **Archivo de la tarea:** dentro de `## Resultado`, se agrega o se completa la subsección `### Correcciones de la auditoría (AAAA-MM-DD)`, con la fecha del PR, qué se corrigió y por qué. El estado de la tarea no cambia.
+7. **Bitácora:** la entrada va en `docs/plan/bitacora/jordin.md`, con el aviso de E1.
+8. **Ritmo:** salvo que Jordin pida otra cosa, se avanza un paso del plan a la vez. Al terminar cada paso se le informa y se espera su indicación.
+
+### E4. Cómo se termina una tarea de otra persona que no está integrada
+
+Por ejemplo, un PR abierto que quedó con la CI en rojo o con hallazgos de la revisión.
+1. **Aviso previo:** preguntarle a Jordin si ya le avisó al dueño, para que no siga trabajando en su PR al mismo tiempo.
+2. **Rama nueva:** `jordin/<ID>-<descripcion-corta>`, creada a partir de la rama del PR del dueño (`git fetch origin <rama>` y `git switch --no-track -c jordin/<ID>-… origin/<rama>`), para conservar sus *commits*. Nunca se hace *push* a la rama del dueño. Para ponerla al día se hace un *merge* de `main` en la rama nueva.
+3. **PR nuevo:** su autor es el coordinador, y así la revisión aplica E5. Al abrirlo, se cierra el PR original con un comentario que enlaza al nuevo (`gh pr close <n> --comment "Lo continúa #<nuevo> (protocolo §E4)"`), sin borrar la rama del dueño.
+4. **Cierre:** B10 y B11 normales. El título es `[<ID>] <título de la tarea>`, la tarea queda con `estado: hecha` y lleva un `## Resultado` completo, donde se menciona que la terminó el coordinador a partir del trabajo de su dueño.
+5. **Bitácora:** la entrada va en `docs/plan/bitacora/jordin.md`, con el aviso de E1.
+
+### E5. Revisión en contexto limpio (B9) de los PR del coordinador
+
+Si el autor del PR es el coordinador, el revisor no marca como problema de alcance que se toquen archivos de otra persona. En cambio, revisa estos tres puntos:
+- cada cambio corresponde a un hallazgo de la auditoría, al título del PR o a la tarea del PR;
+- no se debilitó ninguna prueba;
+- la bitácora tiene el aviso para cada persona dueña de un archivo modificado.

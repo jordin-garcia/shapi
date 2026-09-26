@@ -49,7 +49,7 @@ scripts/
 
 ## 2. Qué pertenece a quién
 
-Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes".
+Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes". La excepción es el coordinador (Jordin): en cualquier PR suyo puede modificar cualquier archivo de esta tabla y de §3, y avisa en su bitácora a la persona dueña (`protocolo.md` §E1). La excepción cubre solo quién edita; las reglas técnicas de §3 (no editar el snapshot ni el lockfile a mano, no editar `Program.cs`, etc.) se siguen aplicando igual.
 
 | Persona | Backend (`src/*/<Modulo>/`, `tests/*/<Modulo>/`) | Frontend | Otros |
 |---|---|---|---|
@@ -61,6 +61,8 @@ Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la t
 Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `docs/specs/` que tienen que ver con su tarea.
 
 ## 3. Archivos calientes y cómo resolver sus conflictos
+
+Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo Jordin", "Cada quien edita los suyos") no aplican al coordinador (§2). Las reglas técnicas sí.
 
 | Archivo | Regla |
 |---|---|
