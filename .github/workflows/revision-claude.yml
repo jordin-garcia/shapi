@@ -1,59 +1,76 @@
 # Revisión con Claude (JG-03). Usa la suscripción de Jordin (secreto CLAUDE_CODE_OAUTH_TOKEN).
-# No es una verificación obligatoria de main: si se agota el cupo, falla sin bloquear la integración.
+# Es una verificación obligatoria de main (auditoría del 25 sep, H-09 y H-10). El job termina con error si:
+#   - la revisión del commit tiene hallazgos de corrección (VEREDICTO: CORREGIR), o
+#   - no llegó a completarse (cuota agotada, caída del servicio o tiempo agotado); se reintenta con
+#     `gh run rerun <id> --failed` o con un commit nuevo.
+# Solo el coordinador puede integrar un falso positivo, con `gh pr merge <n> --admin --squash` (protocolo B11).
+# El job no se omite por eventos que no piden revisión: un check "omitido" cuenta como aprobado y pisaría el fallo
+# del mismo commit. Por eso @claude vive en claude-interactivo.yml, y editar solo la descripción del PR vuelve a leer
+# el veredicto ya publicado en lugar de revisar otra vez.
+# No usa --max-turns: una revisión grande necesita más turnos. El tope lo ponen los timeout-minutes.
 # La revisión local en contexto limpio del protocolo (B9) sigue siendo obligatoria.
-# No usa --max-turns: una revisión grande necesita más turnos y el límite la marcaba como fallida
-# aunque ya hubiera publicado su comentario. El tope de cada job es timeout-minutes.
 name: Revisión con Claude
 
 on:
   pull_request:
-    # edited solo cuenta si cambió el título (ver la condición del job): así, al corregirlo, llega la revisión completa.
+    # edited cuenta como revisión nueva solo si cambió el título: así, al corregirlo, llega la revisión completa.
     types: [opened, synchronize, ready_for_review, reopened, edited]
-  issue_comment:
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
 
 permissions:
   contents: read
 
 jobs:
-  # Revisión automática de cada PR con docs/plan/prompts/revision.md.
   revision:
     name: revision-claude
-    if: >-
-      github.event_name == 'pull_request' && !github.event.pull_request.draft &&
-      github.event.pull_request.state == 'open' &&
-      (github.event.action != 'edited' || github.event.changes.title.from != null)
+    # Un borrador no se puede integrar; al marcarlo listo (ready_for_review) se revisa y se decide el check.
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    # Los commits nuevos cancelan la revisión anterior del mismo PR.
+    timeout-minutes: 25
+    # Un commit nuevo cancela la revisión anterior; editar el PR espera a que termine la que está en curso.
     concurrency:
       group: revision-claude-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
+      cancel-in-progress: ${{ github.event.action != 'edited' }}
     permissions:
       contents: read
       pull-requests: write
+      issues: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+      SHA: ${{ github.event.pull_request.head.sha }}
     steps:
       - uses: actions/checkout@v7
         with:
           # Historia completa para que funcione git diff origin/main...HEAD.
           fetch-depth: 0
 
-      - name: Obtener el ID de la tarea del título
+      - name: Leer la tarea y decidir si hace falta una revisión nueva
         id: tarea
         env:
-          TITULO: ${{ github.event.pull_request.title }}
+          ACCION: ${{ github.event.action }}
+          CAMBIO_TITULO: ${{ github.event.changes.title.from != null }}
+          ABIERTO: ${{ github.event.pull_request.state == 'open' }}
         run: |
-          if [[ "$TITULO" =~ ^\[([A-Z]{2}-[0-9]{2,})\] ]]; then
-            echo "id=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          else
-            echo "id=" >> "$GITHUB_OUTPUT"
-          fi
+          # El título se lee en vivo, para que `gh run rerun` use el título ya corregido.
+          titulo=$(gh pr view "$PR" --json title --jq .title)
+          if [[ "$titulo" =~ ^\[([A-Z]{2}-[0-9]{2,})\] ]]; then id="${BASH_REMATCH[1]}"; else id=""; fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          # Revisiones ya publicadas para este commit.
+          publicadas=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"🤖 Revisión automática con Claude\")) and (.body | contains(\"$SHA\"))) | .id" | wc -l)
+          revisar=true
+          if [[ "$ABIERTO" != "true" ]]; then revisar=false; fi
+          if [[ "$ACCION" == "edited" && "$CAMBIO_TITULO" != "true" && "$publicadas" -gt 0 ]]; then revisar=false; fi
+          echo "revisar=$revisar" >> "$GITHUB_OUTPUT"
+          echo "Tarea: '${id}'. Revisiones publicadas para $SHA: $publicadas. Revisión nueva: $revisar."
 
-      - uses: anthropics/claude-code-action@v1
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Revisar con Claude
+        if: steps.tarea.outputs.revisar == 'true'
+        # Si la acción falla (cuota, caída o tiempo), el paso siguiente no encuentra el veredicto y el check falla
+        # con un mensaje que explica cómo reintentarla.
+        continue-on-error: true
+        timeout-minutes: 20
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
@@ -70,33 +87,18 @@ jobs:
             4. Al terminar, publica el resultado como UN SOLO comentario en el PR, en español, con el formato de
                salida de revision.md. Usa un solo comando: `gh pr comment ${{ github.event.pull_request.number }} --body '<texto>'`
                (sin archivos ni sustitución de comandos; si el texto tiene comillas simples, cámbialas por comillas tipográficas).
-               Empieza el comentario con "🤖 Revisión automática con Claude" y el commit revisado.
+            5. La CI lee tu comentario para decidir el check obligatorio `revision-claude`, así que respeta este formato:
+               - la primera línea es exactamente "🤖 Revisión automática con Claude";
+               - la segunda línea es exactamente "Commit revisado: ${{ github.event.pull_request.head.sha }}";
+               - el comentario termina con la línea "VEREDICTO: LISTO" o "VEREDICTO: CORREGIR", como pide revision.md.
           claude_args: >-
             --model claude-opus-5-5
             --effort high
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
 
-  # Responde a @claude en comentarios de issues y PR. La acción solo acepta a usuarios con permiso de escritura.
-  interactivo:
-    name: claude-interactivo
-    if: >-
-      (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment')
-      && contains(github.event.comment.body, '@claude')
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
-
-      - uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ github.token }}
-          claude_args: >-
-            --model claude-opus-5-5
-            --effort high
+      - name: Veredicto de la revisión
+        if: always()
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | {usuario: .user.login, body: .body, fecha: .created_at}' > "$RUNNER_TEMP/comentarios.jsonl"
+          node scripts/veredicto-revision.mjs "$RUNNER_TEMP/comentarios.jsonl" "$SHA"
