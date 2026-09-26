@@ -21,9 +21,15 @@ Escala: título de página 32/1.2 (Sora 400) · título de tarjeta 22/1.3 · cue
 | `--fondo` | `#F4F6FA` | `#060910` |
 | `--panel` | `#FFFFFF` | `#0C1220` |
 | `--borde` | `#DCE3EE` (campos: `#C9D2E1`, filas: `#EBEFF5`) | `#1B2436` (`#2A3550` en los controles) |
-| `--correcto` | texto `#146542` · fondo `#E4F3EC` · borde `#B6DCC9` | `#3FBF88` |
-| `--alerta` | texto `#8E3315` · fondo `#FBE9E3` · borde `#EDC3B4` | `#F08A5F` |
+| `--correcto` | base `#1F8A5B` · etiqueta: texto `#146542`, fondo `#E4F3EC`, borde `#B6DCC9` | `#3FBF88` |
+| `--alerta` | base `#C2481F` · etiqueta: texto `#8E3315`, fondo `#FBE9E3`, borde `#EDC3B4` | `#F08A5F` |
 | `--neutro` | texto `#5A6884` · fondo `#F4F6FA` · borde `#DCE3EE` | — |
+
+Cada color de estado tiene dos tonos, como en la lámina y los mockups:
+- **Base** (`--correcto-base` y `--alerta-base`): iconos de estado, muestras de la paleta, códigos HTTP (por ejemplo, el "200" de la consola) y texto de estado dentro de una tabla ("Expuesta").
+- **Etiqueta** (`--correcto` y `--alerta`, con su fondo y su borde): el texto sobre fondo de color, en las etiquetas `eti-c` y `eti-a` y en los avisos.
+
+Se precisó el 26 de septiembre: la tabla solo tenía el tono de etiqueta, mientras que la lámina y unos 20 mockups usan también el tono base.
 
 **Solo hay tres colores de estado**: correcto (activa, pagado, en servicio), alerta (suspendida, rechazado, en gracia, degradado) y neutro (despublicada, pendiente, cerrado).
 
@@ -192,7 +198,7 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - La API seleccionada se representa en `/panel/apis/:id/...`. Al elegir desde una página sin ID, se abre su especificación; al cambiar de API desde una sección, se conserva esa sección. Sin selección, se indica que debe elegir una API y no se crean enlaces a un ID ficticio.
 - Mientras no exista el listado de DC-04, una respuesta 404 o 501 se presenta como «Sin APIs». Los demás errores muestran el aviso recuperable con «Reintentar».
 - Una sesión ausente (401) redirige a `/entrar`; un error de red o servidor mantiene la dirección y ofrece reintentar. Al cerrar sesión se espera la revocación del servidor antes de salir y limpiar los datos privados del cliente; si falla, se conserva la pantalla con un aviso y reintento.
-- El encabezado del proveedor muestra el nombre de su organización. Mientras el contrato provisional de sesión no lo suministre, muestra «Panel del proveedor».
+- El encabezado del proveedor muestra el nombre de su organización, que `GET /api/auth/sesion` devuelve en `organizacion.nombre`.
 
 ### Comportamiento de las pantallas de acceso (EM-03)
 

@@ -122,7 +122,7 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 |---|---|---|
 | RF-02, RF-03 | Se amplían a los consumidores; la recuperación cierra las demás sesiones | ADR-04, ADR-06 |
 | RF-04 | Se agregan bloqueo tras intentos fallidos, cierre de sesión y perfil | ADR-06 |
-| RF-05 | Se agrega que el proveedor envía la invitación desde su panel | D29 |
+| RF-05 | Se agrega que el proveedor envía la invitación desde su panel | ADR-29 |
 | RF-06 | Un solo propietario por organización y una sola organización por usuario | ADR-05 |
 | RF-08 | El subdominio lo elige el proveedor; se agregan la protección contra SSRF y la prueba de conexión | ADR-07, ADR-11 |
 | RF-11 | Hosts separados para el portal y la API; certificados emitidos por el borde | ADR-08, ADR-09 |
@@ -134,7 +134,7 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | RF-26, RF-27, RF-28 | Las claves se guardan con hash y se muestran una vez; rota el consumidor; revocan el consumidor y el proveedor; soporte no toca claves | ADR-01, ADR-02 |
 | RF-29, RF-30 | Se agregan el 404 por API despublicada y el 429 por cuota de plataforma | ADR-20 |
 | RF-35 | Se agregan histogramas, bytes y errores por código | ADR-23 |
-| RF-40 | El proveedor abre y conversa en sus casos | D29 |
+| RF-40 | El proveedor abre y conversa en sus casos | ADR-29 |
 | RF-43 a RF-47 | Requisitos nuevos | ADR-16, ADR-19, ADR-24, ADR-27, ADR-11 |
 | RNF-04, RNF-05, RNF-07, RNF-09, RNF-10 | Se precisan | ADR-01, ADR-09, ADR-11, ADR-22, ADR-27 |
 | RNF-15 | Requisito nuevo | ADR-31 |

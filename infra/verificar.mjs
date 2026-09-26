@@ -369,7 +369,7 @@ try {
     "envios.api.shapi.localhost",
     "api.enviosxelaju.localhost",
   ]) {
-    const interno = await solicitar(`https://${host}/interno/salud`);
+    const interno = await solicitar(`https://${host}/interno/tls/autorizar?domain=x.localhost`);
     assert.equal(
       interno.statusCode,
       404,

@@ -53,7 +53,7 @@ Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la t
 
 | Persona | Backend (`src/*/<Modulo>/`, `tests/*/<Modulo>/`) | Frontend | Otros |
 |---|---|---|---|
-| **Jordin** (JG) | `Claves`, `Consumo`, `Cache`, todo `Shapi.Compuerta/`, `Shapi.Contratos/Redis/` | `panel/paginas/A4-3*`, `panel/paginas/B1-1*`, `panel/paginas/B1-2*`, `portal/paginas/B2-1*` | `.github/workflows/`, `Shapi.slnx`, `Directory.*.props`, `docs/specs/` (coordina) |
+| **Jordin** (JG) | `Claves`, `Consumo`, `Cache`, todo `Shapi.Compuerta/`, `Shapi.Contratos/Redis/` | `panel/paginas/A4-3*`, `panel/paginas/B1-1*`, `panel/paginas/B1-2*`, `portal/paginas/B2-1*` | `.github/workflows/`, `Shapi.slnx`, `Directory.*.props`, `docs/specs/` (coordina), `contratos/openapi/{claves,consumo}.yaml` |
 | **Emilio** (EM) | `Identidad`, `Organizaciones`, `Planes`, `Suscripciones`, `Pagos`, `Persistencia/` (esquema y migraciones), `Siembra/Base/` | `panel/paginas/A1-*`, `A2-*`, `A4-1*`, `A4-2*`, `A6-1*`, `A6-3*`, `A8-*`, `B1-3*`, `B1-4*`, `B1-5*` | `contratos/openapi/{identidad,organizaciones,planes,suscripciones,pagos}.yaml` |
 | **Dominique** (DC) | `Apis`, `Portal`, `Shapi.Contratos/Red/` (ValidadorDireccionOrigen) | `packages/ui/`, `packages/api/` (base), estructura de `apps/panel` y `apps/portal` (layouts, `rutas.tsx`), `panel/paginas/A0-*`, `A3-*`, todo `portal/paginas/` salvo `B2-1*` | `contratos/openapi/{apis,portal}.yaml`, `frontend/package.json` y el lockfile |
 | **José Pablo** (JZ) | `Administracion`, `Soporte`, `Bitacora`, `Correo`, `Estado`, `Siembra/Demo/` | `panel/paginas/A6-2*`, `A6-4*`, `A6-5*`, `A7-*`, `B3-*` | `infra/`, `origenes-demo/`, `tests/e2e/`, `tests/carga/`, `docs/manual-*.md`, Dockerfiles, `contratos/openapi/{administracion,soporte,sistema}.yaml` |
@@ -72,7 +72,7 @@ Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo 
 | `frontend/apps/*/src/rutas.tsx` | Lo crea DC-02 con todas las rutas del catálogo, apuntando a páginas de relleno. **Para implementar una pantalla se reemplaza el contenido de su archivo en `paginas/`, no se toca `rutas.tsx`** |
 | `src/Shapi.Api/Program.cs` | No se edita. Cada módulo se registra en su `Modulos/<Modulo>Modulo.cs`, que ya existe desde JG-01 |
 | `Shapi.slnx` | Solo lo modifica JG-01. Los proyectos de demostración los agrega JZ-02 |
-| `infra/caddy/Caddyfile`, `infra/compose*.yml` | Solo José Pablo. Si otra tarea necesita un cambio, la tarea lo indica |
+| `infra/caddy/Caddyfile.*`, `infra/compose*.yml` | Solo José Pablo. Si otra tarea necesita un cambio, la tarea lo indica |
 | `.github/workflows/*` | Solo Jordin, salvo `publicar-imagenes.yml` (JZ-06) y `e2e.yml` (JZ-07), que son de José Pablo |
 | `docs/plan/tareas/*`, `docs/plan/bitacora/*` | Cada quien edita los suyos. Las tareas de convergencia de Jordin pueden crear tareas para otros |
 

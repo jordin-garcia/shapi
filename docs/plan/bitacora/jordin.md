@@ -94,7 +94,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: corrección posterior de JZ-03 tras revisarla. El motor de plantillas arma los enlaces de verificación y recuperación con `hostPortal` cuando viene en los datos (correos de consumidores), y con el dominio base si no viene (personal). `hostPortal` solo se acepta como `{sub}.{dominio_base}` (una etiqueta ASCII), para que el token no pueda terminar en otro dominio. Los reintentos ahora son 5, con las esperas de 5 s, 30 s, 2 min, 10 min y 1 h, y el correo queda `fallido` al fallar el sexto intento. Pruebas nuevas en `MotorPlantillasCorreoTests` y `CorreoSalienteTests`.
 - Decisiones:
   - RF-46 dice "se reintentan hasta 5 veces" y el caso de uso lista 5 esperas; el criterio de JZ-03 ("al quinto fallo, `fallido`") dejaba sin usar la espera de 1 h. Mandó la especificación y se corrigió el criterio de la tarea.
-  - El host del enlace lo decide quien encola el correo (`hostPortal`), porque es quien conoce el portal que atendió la petición (`IResolutorPortal`). Quedó en 10 §6 y en el criterio 1 de EM-05.
+  - El host del enlace lo decide quien encola el correo (`hostPortal`), porque es quien conoce el portal que atendió la petición (`IResolutorPortal`). Quedó en 10 §1 y en el criterio 1 de EM-05.
   - No se agregó bloqueo de filas (`FOR UPDATE SKIP LOCKED`) en la bandeja de salida: el trabajador corre en una sola instancia (06 §8, `salud:trabajador`).
 - Pendiente o aviso para otros:
   - **EM-05:** al encolar `verificacion_correo` y `recuperacion` para un consumidor, incluyan `nombrePortal` y `hostPortal` = `{sub}.{dominio_base}` en los datos, armado con el subdominio de la API que resolvió `IResolutorPortal`; no copien la cabecera `Host` ni usen el dominio propio (apunta a la compuerta). Sin `hostPortal` el enlace lleva al panel del personal y el token del consumidor no funciona.
@@ -136,3 +136,20 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: `revision-claude` bloqueó el #24 aunque su revisión decía `VEREDICTO: LISTO` sin hallazgos. `scripts/veredicto-revision.mjs` confundía el texto libre "Corrección de auditoría…" con la sección `CORRECCIÓN`, y además contaba el propio encabezado como hallazgo. Ahora los encabezados se buscan en MAYÚSCULAS y solo en su línea. Hay una prueba con la estructura real de esa revisión. Ningún PR se integró por este error: la barrera bloqueó de más, nunca de menos.
 - Pendiente o aviso para otros:
   - **Todos:** si `revision-claude` falla y el comentario de la revisión dice `VEREDICTO: LISTO`, avísenle a Jordin: es un error del check, no de su PR.
+
+## 2026-09-26 · JG-01 · Coherencia de las especificaciones y del plan
+- Hecho: paso 4 de `docs/plan/auditoria-2026-09-25.md` (H-12 a H-29). Se corrigieron contradicciones y referencias entre las specs, el plan y los mockups, sin cambiar código. H-10 quedó aplicado: `revision-claude` ya es obligatorio en `main`.
+- Decisiones (de Jordin, 26 sep):
+  - ADR-35 pasa a Node 24 o posterior.
+  - La salud es `/salud` en la API y en la compuerta (se quitó `/interno/salud` de 06 §4). El trabajador no tiene HTTP: su salud es el latido.
+  - Los colores de Correcto y Alerta de los mockups (`#1F8A5B` y `#C2481F`) son correctos: 11 §1 los agrega como tono base y conserva el de etiqueta (`#146542` y `#8E3315`).
+  - El contexto de la compuerta se lee en dos *pipelines* más el script Lua (08 §8).
+  - Los correos del personal llevan la marca de Shapi y los de los consumidores la del portal.
+- Pendiente o aviso para otros:
+  - **JZ-06:** nuevos criterios 6 y 7: el *healthcheck* de la API y de la compuerta consulta `/salud` en `localhost` dentro del contenedor, el trabajador no lleva *healthcheck* y la API no publica su puerto. Ya no se comprueba `/api/salud` a través de Caddy.
+  - **JZ-11:** se resolvió la contradicción de la marca: los correos del personal usan la marca de Shapi y los de los consumidores la del portal (10 §6).
+  - **JG-05:** nuevos criterios 8 y 9: se quitan `shapi_sesion` y `portal_sesion` hacia el origen, y el contexto se lee en dos *pipelines*. Tiene sus pruebas obligatorias.
+  - **EM-17:** `identidad.yaml`, `identidad.ts` y la exportación ya existen. Falta reemplazar el contrato provisional de la sesión.
+  - **Dominique:** 11 §1 tiene ahora dos tonos por color de estado: el base, `#1F8A5B` y `#C2481F`, para iconos, muestras, códigos y texto en tablas, y el de etiqueta, `#146542` y `#8E3315`. Los tokens `--correcto-base` y `--alerta-base` se agregan en el paso 12 (H-86). También cambió el contexto de DC-02: el catálogo de 11 §3 no trae responsables.
+  - **Emilio:** se agregó una nota en tu bitácora (entrada de EM-01): `Program.cs` sí migra en Development. En el criterio 1 de EM-05 se corrigió la cita de sección (10 §1).
+  - **José Pablo:** se agregaron notas en tu bitácora y en el `## Resultado` de JZ-03 sobre el sexto intento, y se corrigió la cita del criterio 3 (10 §1). En `infra/verificar.mjs`, la comprobación de `/interno/*` ahora usa `/interno/tls/autorizar`, porque `/interno/salud` no existe.

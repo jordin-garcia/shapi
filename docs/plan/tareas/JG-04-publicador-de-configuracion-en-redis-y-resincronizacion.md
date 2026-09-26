@@ -33,7 +33,7 @@ Implementar `IPublicadorCache`, que escribe en Redis la vista que lee la compuer
 - `tests/Shapi.Api.Tests/Cache/**` (crear)
 
 ## Criterios de aceptación
-1. `PublicarApi(apiId)` escribe `api:{id}` (organizacion_id, estado, url_origen, secreto descifrado, portal_host, version), `api:{id}:rutas` (JSON con todas las rutas y `version` incrementada) y `api:host:{sub}.api.{dominio_base}`, más el dominio propio si está verificado. Si la API está despublicada, deja `estado=despublicada` y la compuerta responde 404.
+1. `PublicarApi(apiId)` escribe `api:{id}` (organizacion_id, estado, url_origen, secreto descifrado, portal_host, version) con `DEL` y luego `HSET` en una misma transacción, porque `ContextoApi.ACampos()` omite los campos vacíos y un secreto borrado seguiría en Redis; `api:{id}:rutas` (JSON con todas las rutas y `version` incrementada) y `api:host:{sub}.api.{dominio_base}`, más el dominio propio si está verificado. Si la API está despublicada, deja `estado=despublicada` y la compuerta responde 404.
 2. `PublicarClave`, `ExpirarClave(hash, instante)` (EXPIREAT), `EliminarClave`, `PublicarSuscripcion` y `PublicarOrganizacion` escriben los hash de 07 §4. El `estado_efectivo` de la organización es `suspendida` si `estado_admin=suspendida` **o** si su suscripción de plataforma vigente está `suspendida`.
 3. Si Redis falla después del *commit* en PostgreSQL, el publicador reintenta 3 veces con espera y registra el error, sin revertir la operación de negocio.
 4. Al arrancar el trabajador, y luego cada 5 minutos, `ResincronizarCache` reescribe todas las llaves de configuración (APIs publicadas, claves activas y rotadas vigentes, suscripciones no finalizadas, organizaciones) **sin tocar** los contadores (`cuota:*`, `rl:*`, `met:*`, `cache:*`).

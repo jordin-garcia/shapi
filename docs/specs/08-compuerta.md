@@ -6,7 +6,7 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 
 - **Host:** `{sub}.api.shapi.localhost` o un dominio propio verificado.
 - **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso.
-- **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (`/rastreo/{guia}` coincide con `/rastreo/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
+- **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
 - **Cuerpo:** máximo 10 MB. Si es más grande se responde 413 `cuerpo_demasiado_grande`.
 - **Tiempo de espera del origen:** 30 segundos.
 - **Salud:** `GET /salud` solo responde cuando el `Host` es `localhost`, para no tapar una ruta `/salud` de las APIs. Con cualquier otro host, la petición pasa por la tubería.
@@ -163,7 +163,12 @@ La **latencia de la compuerta** es la latencia total menos el tiempo de espera d
 
 ## 8. Rendimiento
 
-- Por cada petición se hacen dos viajes a Redis antes de reenviar (un *pipeline* para el contexto y el script Lua), más uno en segundo plano para la medición.
+- Por cada petición se hacen tres viajes a Redis antes de reenviar, más uno en segundo plano para la medición:
+  1. un *pipeline* con `api:host:{host}` y `clave:{hash}`;
+  2. un *pipeline* con lo que depende de esos valores: `api:{id}`, sus rutas, `org:{id}` y `susc:{id}`;
+  3. el script Lua de límites y cuotas.
+
+  Si la ruta usa caché (filtro 7), se suma la consulta de `cache:*`.
 - La compuerta **no guarda en memoria** los datos de claves, suscripciones ni organizaciones. Así una revocación o una suspensión se aplica al instante ([RF-28](03-requisitos.md#rf-28)), a costa de consultar Redis en cada petición ([ADR-22](12-decisiones.md)). Lo único que se guarda en memoria, durante 5 segundos como máximo, es `api:{id}:rutas`, junto con su `version`.
 - Hay una conexión multiplexada a Redis (StackExchange.Redis) y un `HttpClient` de YARP por destino, con *pooling* de conexiones.
 - **Pruebas de aceptación:** RNF-01 y RNF-03 se miden con k6 contra `origen-envios` en el ambiente productivo simulado. Los resultados se documentan en el manual técnico.

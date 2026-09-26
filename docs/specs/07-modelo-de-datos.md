@@ -514,7 +514,7 @@ Hay un índice único parcial `(organizacion_id) WHERE rol='propietario'` para q
 | id | uuid | PK |
 | api_id | uuid | FK, not null, `ON DELETE CASCADE` |
 | metodo | text | `CHECK IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')` |
-| patron | text | not null, en sintaxis OpenAPI (`/rastreo/{guia}`) |
+| patron | text | not null, en sintaxis OpenAPI (`/rastreo` o, con un parámetro, `/guias/{numero}`) |
 | resumen, descripcion | text | null (salen de la especificación) |
 | definicion | jsonb | not null (los parámetros, el cuerpo y los ejemplos de la operación, para la documentación y la consola) |
 | expuesta | bool | not null, default **false** |

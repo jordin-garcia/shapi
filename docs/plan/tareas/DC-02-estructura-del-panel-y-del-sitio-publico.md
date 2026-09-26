@@ -19,7 +19,7 @@ pantallas: [N.1]
 Crear los layouts del sitio público, del panel del proveedor y de la administración, la barra lateral de cada uno, los guardias por sesión y rol, y el router con **todas** las rutas del catálogo apuntando a páginas de relleno. Así cada persona solo reemplaza el archivo de su pantalla, sin tocar el router.
 
 ## Contexto que debes leer
-- `docs/specs/11-interfaz.md` §3 **completo** (catálogo: IDs, archivos, rutas y responsables) y §4
+- `docs/specs/11-interfaz.md` §3 **completo** (catálogo: IDs, archivos y rutas; el responsable de cada pantalla sale de la tarea que la implementa) y §4
 - `docs/specs/04-roles-y-permisos.md` §3.1 y §3.2 (qué ve cada rol)
 - `docs/specs/10-identidad-y-seguridad.md` §1 (destinos por rol)
 - Mockups: `mockups/Navegacion/Main.dc.html` (barra lateral del proveedor), `mockups/A6/Main.dc.html` y `mockups/B3/Soporte.dc.html` (barras de administración y de soporte), y `mockups/A1/Main.dc.html` (encabezado público)
