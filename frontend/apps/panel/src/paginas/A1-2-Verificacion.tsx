@@ -1,143 +1,129 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router';
-import { useVerificarCorreo, useReenviarVerificacion } from '../modulos/identidad/useIdentidad';
-import { useSesion } from '../modulos/sesion/useSesion';
-import { Boton } from '@shapi/ui';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router';
+import { Boton, EstadoCargando } from '@shapi/ui';
+import { AvisoError, CampoEtiquetado, Encabezado, MarcoAcceso } from '../modulos/identidad/Formularios';
+import { interpretarError, reenviarVerificacion, useIrAlDestino, verificarCorreo, type ErrorFormulario } from '../modulos/identidad/useIdentidad';
 
+// La API responde igual exista o no la cuenta (no revela qué correos están registrados), así que el aviso tampoco.
+const ENLACE_REENVIADO = 'Si su correo todavía no está confirmado, le llegará un enlace nuevo en unos minutos.';
+
+// A1.2 · Verificación de correo (RF-02). Sin token es el aviso "Revise su correo" que se muestra al registrarse;
+// con `?token=` es el destino del enlace del correo (10 §1).
 export default function PaginaA12Verificacion() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const token = searchParams.get('token');
-  const correo = searchParams.get('correo') || '';
+  const [parametros] = useSearchParams();
+  const token = parametros.get('token');
+  return token ? <VerificarEnlace token={token} /> : <RevisarCorreo correo={parametros.get('correo') ?? ''} />;
+}
 
-  const verificar = useVerificarCorreo();
-  const reenviar = useReenviarVerificacion();
-  const { data: sesion } = useSesion();
-
-  const [estado, setEstado] = useState<'pendiente' | 'verificando' | 'exito' | 'error'>(
-    token ? 'verificando' : 'pendiente'
-  );
-  const [mensajeReenvio, setMensajeReenvio] = useState('');
-
-  useEffect(() => {
-    if (token && estado === 'verificando') {
-      verificar.mutate(token, {
-        onSuccess: () => {
-          setEstado('exito');
-        },
-        onError: () => {
-          setEstado('error');
-        },
-      });
+function useReenviar() {
+  const [estado, setEstado] = useState<{ enviando: boolean; enviado: boolean; error: ErrorFormulario | null }>({ enviando: false, enviado: false, error: null });
+  const reenviar = async (correo: string) => {
+    setEstado({ enviando: true, enviado: false, error: null });
+    try {
+      await reenviarVerificacion(correo);
+      setEstado({ enviando: false, enviado: true, error: null });
+    } catch (causa) {
+      setEstado({ enviando: false, enviado: false, error: interpretarError(causa) });
     }
-  }, [token, estado, verificar]);
-
-  // Redirigir al destino sugerido si hay sesión y correo verificado (exito de la mutacion)
-  useEffect(() => {
-    if (estado === 'exito' && sesion) {
-      const temporizador = setTimeout(() => {
-        navigate(sesion.destino || '/panel/apis');
-      }, 1500);
-      return () => clearTimeout(temporizador);
-    }
-  }, [estado, sesion, navigate]);
-
-  const handleReenviar = () => {
-    if (!correo) return;
-    setMensajeReenvio('');
-    reenviar.mutate(correo, {
-      onSuccess: () => setMensajeReenvio('Se ha enviado un nuevo enlace a su correo.'),
-      onError: () => setMensajeReenvio('No se pudo reenviar el enlace. Intente más tarde.')
-    });
   };
+  return { ...estado, reenviar };
+}
 
-  if (estado === 'verificando') {
-    return (
-      <div className="flex-grow flex items-center justify-center py-11 px-20">
-        <div className="w-[520px] bg-white border border-[var(--borde)] rounded-base p-10 text-center">
-          <p className="text-tinta-suave text-lg">Verificando su correo...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (estado === 'exito') {
-    return (
-      <div className="flex-grow flex items-center justify-center py-11 px-20">
-        <div className="w-[520px] bg-white border border-[var(--borde)] rounded-base p-10 text-center">
-          <svg className="mx-auto text-correcto w-12 h-12 mb-4" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.5"></circle>
-            <path d="M8 12.5 L11 15.5 L16 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-          </svg>
-          <h1 className="font-display text-[28px] m-0 mb-2">Correo verificado</h1>
-          <p className="text-tinta-suave">Su correo ha sido confirmado exitosamente. Redirigiendo...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (estado === 'error') {
-    return (
-      <div className="flex-grow flex items-center justify-center py-11 px-20">
-        <div className="w-[520px] bg-white border border-[var(--borde)] rounded-base p-10">
-          <h1 className="font-display text-[28px] m-0 mb-4 text-alerta">Enlace no válido</h1>
-          <p className="text-tinta-suave mb-6">El enlace de verificación es inválido o ha expirado. Por favor, solicite uno nuevo.</p>
-          {correo ? (
-             <div className="flex flex-col gap-3">
-               <Boton onClick={handleReenviar} deshabilitado={reenviar.isPending}>Enviar el enlace otra vez</Boton>
-               {mensajeReenvio && <p className="text-sm text-tinta-suave mt-2">{mensajeReenvio}</p>}
-             </div>
-          ) : (
-            <p className="text-sm text-tinta-suave">Vuelva a iniciar sesión para solicitar otro enlace.</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Estado pendiente (aviso para revisar el correo)
+function RevisarCorreo({ correo }: { correo: string }) {
+  const { enviando, enviado, error, reenviar } = useReenviar();
   return (
-    <div className="flex-grow flex items-center justify-center py-11 px-20">
-      <div className="w-[520px] bg-white border border-[var(--borde)] rounded-base p-10">
-        <div className="flex flex-col gap-6">
-          <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="5" width="20" height="14" rx="3" stroke="#3B6FF0" strokeWidth="1.5"></rect>
-            <path d="M3.5 7.5 L12 13.5 L20.5 7.5" stroke="#3B6FF0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-          </svg>
+    <MarcoAcceso>
+      <div className="flex flex-col gap-6">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="5" width="20" height="14" rx="3" stroke="#3B6FF0" strokeWidth="1.5" />
+          <path d="M3.5 7.5 L12 13.5 L20.5 7.5" stroke="#3B6FF0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-xs tracking-[.16em] uppercase text-tinta-suave font-medium m-0">Verificación de correo</p>
-            <h1 className="font-display text-[32px] leading-[1.2] m-0">Revise su correo</h1>
-          </div>
+        <Encabezado rotulo="Verificación de correo" titulo="Revise su correo" />
 
-          <p className="text-[16px] leading-[1.6] text-tinta-suave m-0">
-            Enviamos un enlace de confirmación a <span className="text-tinta font-medium">{correo || 'su cuenta'}</span>. Abra ese enlace para confirmar su cuenta. Vence en <span className="tabular-nums text-tinta font-medium">24 horas</span>. ¿No le llegó?{' '}
-            <button
-              onClick={handleReenviar}
-              disabled={reenviar.isPending || !correo}
-              className="text-principal hover:text-principal-hover underline bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50"
-            >
+        <p className="text-base leading-[1.6] text-tinta-suave m-0">
+          Enviamos un enlace de confirmación a <span className="text-tinta font-medium">{correo || 'su correo'}</span>. Abra ese enlace para confirmar su cuenta.
+          Vence en <span className="tabular-nums text-tinta font-medium">24 horas</span>.
+          {correo && <> ¿No le llegó?{' '}
+            <button type="button" onClick={() => void reenviar(correo)} disabled={enviando}
+              className="text-principal hover:text-principal-hover hover:underline bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50">
               Enviar el enlace otra vez
-            </button>.
-          </p>
-          {mensajeReenvio && <p className="text-sm text-correcto m-0">{mensajeReenvio}</p>}
+            </button>.</>}
+        </p>
+        {enviado && <p role="status" className="text-sm text-correcto m-0">{ENLACE_REENVIADO}</p>}
+        {error && <AvisoError mensaje={error.mensaje} reintentar={error.codigo === null ? () => void reenviar(correo) : undefined} />}
 
-          <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
-            Su organización ya quedó en el plan <span className="text-tinta font-medium">Prueba</span>: 1 API y 10,000 peticiones, sin costo por 30 días.
-          </p>
+        <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
+          Su organización ya quedó en el plan <span className="text-tinta font-medium">Prueba</span>: 1 API y 10,000 peticiones, sin costo por 30 días.
+        </p>
 
-          <div className="bg-[#FBE9E3] border border-[#EDC3B4] rounded-base py-4 px-[18px] flex gap-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mt-[1px]">
-              <circle cx="12" cy="12" r="9.25" stroke="#8E3315" strokeWidth="1.5"></circle>
-              <path d="M12 7.25 V13" stroke="#8E3315" strokeWidth="1.8" strokeLinecap="round"></path>
-              <path d="M12 16.4 V16.5" stroke="#8E3315" strokeWidth="2" strokeLinecap="round"></path>
-            </svg>
-            <p className="text-sm leading-[1.5] text-[#8E3315] m-0">
-              No podrá publicar APIs mientras su correo no esté confirmado.
-            </p>
-          </div>
+        <div className="bg-alerta-fondo border border-alerta-borde rounded-base py-4 px-[18px] flex gap-3">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-px" aria-hidden="true">
+            <circle cx="12" cy="12" r="9.25" stroke="#8E3315" strokeWidth="1.5" />
+            <path d="M12 7.25 V13" stroke="#8E3315" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M12 16.4 V16.5" stroke="#8E3315" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <p className="text-sm leading-[1.5] text-alerta m-0">No podrá publicar APIs mientras su correo no esté confirmado.</p>
         </div>
       </div>
-    </div>
+    </MarcoAcceso>
+  );
+}
+
+function VerificarEnlace({ token }: { token: string }) {
+  const irAlDestino = useIrAlDestino();
+  const [error, setError] = useState<ErrorFormulario | null>(null);
+  // El enlace es de un solo uso: se verifica una sola vez por token, aunque el efecto se ejecute dos veces (StrictMode).
+  const verificado = useRef<string | null>(null);
+
+  const verificar = useCallback(async () => {
+    setError(null);
+    try {
+      await verificarCorreo(token);
+      await irAlDestino();
+    } catch (causa) {
+      setError(interpretarError(causa));
+    }
+  }, [token, irAlDestino]);
+
+  useEffect(() => {
+    if (verificado.current === token) return;
+    verificado.current = token;
+    void verificar();
+  }, [token, verificar]);
+
+  if (!error) {
+    return <MarcoAcceso><Encabezado rotulo="Verificación de correo" titulo="Confirmando su correo" /><EstadoCargando /></MarcoAcceso>;
+  }
+  if (error.codigo === 'token_invalido') return <EnlaceNoValido mensaje={error.mensaje} />;
+  return (
+    <MarcoAcceso>
+      <Encabezado rotulo="Verificación de correo" titulo="No se pudo confirmar su correo" />
+      <div className="mt-6">
+        <AvisoError mensaje={error.mensaje} reintentar={error.codigo === null ? () => void verificar() : undefined} />
+      </div>
+    </MarcoAcceso>
+  );
+}
+
+// El enlace del correo no trae la dirección, así que para reenviarlo se le pide a la persona.
+function EnlaceNoValido({ mensaje }: { mensaje: string }) {
+  const [correo, setCorreo] = useState('');
+  const { enviando, enviado, error, reenviar } = useReenviar();
+  const enviar = (e: FormEvent) => { e.preventDefault(); void reenviar(correo); };
+
+  return (
+    <MarcoAcceso>
+      <Encabezado rotulo="Verificación de correo" titulo="Enlace no válido">
+        <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">{mensaje}</p>
+        <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">Escriba su correo y le enviaremos un enlace nuevo.</p>
+      </Encabezado>
+      <form onSubmit={enviar} noValidate className="flex flex-col gap-5 mt-8">
+        <CampoEtiquetado etiqueta="Correo electrónico" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="email" />
+        <Boton type="submit" deshabilitado={enviando || !correo} className="w-full">Enviar el enlace otra vez</Boton>
+        {enviado && <p role="status" className="text-sm text-correcto m-0">{ENLACE_REENVIADO}</p>}
+        {error && <AvisoError mensaje={error.mensaje} reintentar={error.codigo === null ? () => void reenviar(correo) : undefined} />}
+      </form>
+    </MarcoAcceso>
   );
 }

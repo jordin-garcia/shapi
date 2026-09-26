@@ -112,3 +112,14 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Emilio:** Jordin va a terminar EM-03 (#16) y EM-06 (#14), y a corregir EM-01, EM-02 y EM-17, según el plan de la auditoría. Antes de continuar cada PR tuyo, se coordinará contigo; tus ramas no se modifican (se sigue en una rama nueva, protocolo §E4).
   - **José Pablo:** se corregirán JZ-01, JZ-02 y JZ-03 (pasos 7 a 9 del plan).
   - **Dominique:** se corregirán DC-01 y DC-02 (pasos 12 y 13 del plan).
+
+## 2026-09-26 · EM-03 · Pantallas de registro, verificación y acceso (A1.1 a A1.3)
+- Hecho: se terminó EM-03 a partir del PR #16 de Emilio (protocolo §E4, paso 2 de `docs/plan/auditoria-2026-09-25.md`). Las tres pantallas coinciden con los mockups y se probaron con el entorno levantado: registro, correo en Mailpit, enlace, panel y entrar. Hay 21 pruebas nuevas con MSW (RF-01, RF-02 y RF-04). Se corrigieron la verificación repetida del `useEffect`, los tipos escritos a mano del contrato, el reenvío sin correo y las etiquetas sin asociar. También se corrigió el `@source` de Tailwind de `packages/ui` (H-115), sin el cual ningún componente base tenía tamaño ni color en el navegador.
+- Decisiones:
+  - Manda 10 §1: el enlace es `/verificar-correo?token=`.
+  - Los estados de A1 sin mockup quedaron en 11 §4.
+  - Los formularios muestran los mensajes de validación de la API debajo de cada campo (`noValidate`).
+- Pendiente o aviso para otros:
+  - **Emilio:** se terminó tu EM-03 en la rama `jordin/EM-03-pantallas-registro-acceso`, que parte de la tuya; tu rama no se modificó. El PR #16 queda cerrado. Se regeneró `packages/api/src/generado/identidad.ts` con `pnpm generar:api`: no lo escribas a mano. Para las pantallas de A1.4 (EM-04), usa `MarcoAcceso`, `Encabezado`, `CampoEtiquetado` y `AvisoError` de `modulos/identidad/Formularios.tsx`.
+  - **Dominique:** se cambiaron `packages/ui/src/style.css` (`@source "./"`; sin eso, las clases que solo usan los componentes base no se generan en las apps), `packages/ui/src/vite-env.d.ts` (nuevo), `apps/panel/src/layouts/LayoutPublico.tsx` (`main` flexible sin `p-8`, logotipo con `gap` de 11 px y `tracking-[-0.03em]`), `apps/panel/src/modulos/sesion/useSesion.ts` (expone `consultarSesion`), `apps/panel/src/tests/rutas.test.tsx` y `frontend/vitest.config.ts` (el proyecto `ui` procesa `style.css`). Actualiza tu rama desde `main`.
+  - **EM-17:** `identidad.ts` ya está generado y exportado como `@shapi/api/identidad`. Falta reemplazar el contrato provisional `modulos/sesion/contratoSesion.ts`.

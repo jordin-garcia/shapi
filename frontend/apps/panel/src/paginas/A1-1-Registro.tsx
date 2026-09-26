@@ -1,114 +1,72 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
-import { Boton, Campo } from '@shapi/ui';
-import { useRegistro } from '../modulos/identidad/useIdentidad';
+import { useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Boton } from '@shapi/ui';
+import { AvisoError, CampoEtiquetado, Encabezado, MarcoAcceso } from '../modulos/identidad/Formularios';
+import { interpretarError, registrar, type DatosRegistro, type ErrorFormulario } from '../modulos/identidad/useIdentidad';
 
+const CAMPOS = ['nombre', 'correo', 'organizacion', 'contrasena'] as const;
+
+// A1.1 · Registro del proveedor (RF-01).
 export default function PaginaA11Registro() {
-  const navigate = useNavigate();
-  const registro = useRegistro();
+  const navegar = useNavigate();
+  const formulario = useRef<HTMLFormElement>(null);
+  const [datos, setDatos] = useState<DatosRegistro>({ nombre: '', correo: '', organizacion: '', contrasena: '' });
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<ErrorFormulario | null>(null);
 
-  const [nombre, setNombre] = useState('');
-  const [correo, setCorreo] = useState('');
-  const [organizacion, setOrganizacion] = useState('');
-  const [contrasena, setContrasena] = useState('');
-  const [errores, setErrores] = useState<Record<string, string[]>>({});
+  const cambiar = (campo: keyof DatosRegistro) => (e: { target: { value: string } }) =>
+    setDatos(actual => ({ ...actual, [campo]: e.target.value }));
 
-  const onSubmit = async (e: React.FormEvent) => {
+  async function enviar(e: FormEvent) {
     e.preventDefault();
-    setErrores({});
+    setEnviando(true);
+    setError(null);
     try {
-      await registro.mutateAsync({
-        nombre,
-        correo,
-        organizacion,
-        contrasena,
-      });
-      navigate(`/verificar-correo?correo=${encodeURIComponent(correo)}`);
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'details' in error) {
-        const err = error as any;
-        if (err.details && err.details.errores) {
-          setErrores(err.details.errores);
-        } else {
-          setErrores({ general: [err.message] });
-        }
-      } else {
-        setErrores({ general: [String(error)] });
-      }
+      await registrar(datos);
+      await navegar(`/verificar-correo?correo=${encodeURIComponent(datos.correo)}`);
+    } catch (causa) {
+      const interpretado = interpretarError(causa);
+      // El correo repetido se muestra debajo del campo de correo, como los errores de validación.
+      if (interpretado.codigo === 'correo_ya_registrado') interpretado.errores = { correo: [interpretado.mensaje] };
+      setError(interpretado);
+    } finally {
+      setEnviando(false);
     }
-  };
+  }
+
+  const errorDe = (campo: (typeof CAMPOS)[number]) => error?.errores[campo]?.[0];
+  const hayErrorPorCampo = CAMPOS.some(campo => errorDe(campo));
 
   return (
-    <div className="flex-grow flex items-center justify-center py-11 px-20">
-      <div className="w-[520px] bg-white border border-[var(--borde)] rounded-base p-10">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs tracking-[.16em] uppercase text-tinta-suave font-medium m-0">Cuenta de proveedor</p>
-          <h1 className="font-display text-[32px] leading-[1.2] m-0 tracking-[-0.02em]">Crear una cuenta</h1>
-          <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
-            Con estos datos se crea su organización en Shapi. Queda en el plan Prueba, sin costo y sin pedirle tarjeta.
-          </p>
+    <MarcoAcceso>
+      <Encabezado rotulo="Cuenta de proveedor" titulo="Crear una cuenta">
+        <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
+          Con estos datos se crea su organización en Shapi. Queda en el plan Prueba, sin costo y sin pedirle tarjeta.
+        </p>
+      </Encabezado>
+
+      {error && !hayErrorPorCampo && (
+        <div className="mt-6">
+          <AvisoError mensaje={error.mensaje} reintentar={error.codigo === null ? () => formulario.current?.requestSubmit() : undefined} />
+        </div>
+      )}
+
+      <form ref={formulario} onSubmit={enviar} noValidate>
+        <div className="flex flex-col gap-5 mt-8">
+          <CampoEtiquetado etiqueta="Nombre" value={datos.nombre} onChange={cambiar('nombre')} error={errorDe('nombre')} autoComplete="name" />
+          <CampoEtiquetado etiqueta="Correo electrónico" type="email" value={datos.correo} onChange={cambiar('correo')} error={errorDe('correo')} autoComplete="email" />
+          <CampoEtiquetado etiqueta="Nombre de la organización" value={datos.organizacion} onChange={cambiar('organizacion')} error={errorDe('organizacion')} autoComplete="organization" />
+          <CampoEtiquetado etiqueta="Contraseña" type="password" value={datos.contrasena} onChange={cambiar('contrasena')} error={errorDe('contrasena')}
+            autoComplete="new-password" className={datos.contrasena ? 'tracking-[0.18em]' : ''} />
         </div>
 
-        {errores.general && (
-          <div className="mt-6 p-4 bg-alerta/10 text-alerta rounded-base text-sm">
-            {errores.general[0]}
-          </div>
-        )}
-
-        <form onSubmit={onSubmit} className="flex flex-col gap-5 mt-8">
-          <div className="flex flex-col gap-[7px]">
-            <span className="text-[13px] font-semibold text-tinta">Nombre</span>
-            <Campo
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              error={errores.nombre?.[0]}
-              autoComplete="name"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-[7px]">
-            <span className="text-[13px] font-semibold text-tinta">Correo electrónico</span>
-            <Campo
-              type="email"
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
-              error={errores.correo?.[0]}
-              autoComplete="email"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-[7px]">
-            <span className="text-[13px] font-semibold text-tinta">Nombre de la organización</span>
-            <Campo
-              value={organizacion}
-              onChange={(e) => setOrganizacion(e.target.value)}
-              error={errores.organizacion?.[0]}
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-[7px]">
-            <span className="text-[13px] font-semibold text-tinta">Contraseña</span>
-            <Campo
-              type="password"
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
-              error={errores.contrasena?.[0]}
-              className={contrasena ? 'tracking-[0.18em]' : ''}
-              autoComplete="new-password"
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-5 mt-3">
-            <Boton type="submit" deshabilitado={registro.isPending} className="w-full">
-              Crear cuenta
-            </Boton>
-            <p className="text-sm text-tinta-suave text-center m-0">
-              ¿Ya tiene una cuenta? <Link to="/entrar" className="text-principal hover:text-principal-hover no-underline hover:underline">Entrar</Link>
-            </p>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex flex-col gap-5 mt-8">
+          <Boton type="submit" deshabilitado={enviando} className="w-full">Crear cuenta</Boton>
+          <p className="text-sm text-tinta-suave text-center m-0">
+            ¿Ya tiene una cuenta? <Link to="/entrar" className="text-principal hover:text-principal-hover no-underline hover:underline">Entrar</Link>
+          </p>
+        </div>
+      </form>
+    </MarcoAcceso>
   );
 }

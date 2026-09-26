@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Tailwind solo detecta clases en la app que compila; los componentes de este paquete se agregan aquí. */
+@source "./";
 @import "@fontsource/sora/300.css";
 @import "@fontsource/sora/400.css";
 @import "@fontsource/sora/500.css";
