@@ -39,7 +39,7 @@ Dos automatizaciones de GitHub para el equipo:
 ## Criterios de aceptación
 
 ### Revisión con Claude
-1. Se ejecuta `anthropics/claude-code-action@v1` en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened` y `edited`; una revisión nueva del mismo commit solo se hace si no hay una completa o si cambió la tarea del título), excepto en borradores, con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
+1. Se ejecuta `anthropics/claude-code-action@v1` en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened` y `edited`; una revisión nueva del mismo commit solo se hace si no hay una completa o si cambió la tarea del título); en los borradores no revisa (el check se decide al marcarlos listos), con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
 2. El `prompt` pide aplicar `docs/plan/prompts/revision.md` al PR (el ID sale del título `[XX-00]`) y publicar el resultado como **un comentario** en el PR. `claude_args` permite solo lo necesario, sin límite de turnos (el tope lo pone `timeout-minutes`): `--allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"`.
 3. Otro workflow, `claude-interactivo.yml`, responde a `@claude` en comentarios de issues y PR, solo para usuarios con permiso de escritura, que es el comportamiento por defecto de la acción.
 4. Un `concurrency` por número de PR cancela la revisión anterior cuando llegan *commits* nuevos.
@@ -148,6 +148,7 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 - **El formato del comentario queda fijo** en el prompt: la primera línea es la marca, la segunda `Commit revisado: <sha>` y el comentario termina con el veredicto.
 - **El check no se puede saltar con eventos que no revisan.** Un check "omitido" cuenta como aprobado y pisaría el fallo del mismo commit.
   - `@claude` pasó a `.github/workflows/claude-interactivo.yml`.
+  - El job no tiene `if`: un job omitido cuenta como aprobado, y `gh run rerun` de un run viejo (por ejemplo, de cuando el PR era borrador) lo repetiría. Borrador, estado y título se leen en vivo con `gh pr view`. En un borrador el check falla con un aviso y se decide al marcarlo listo.
   - Los eventos que no necesitan una revisión nueva no se omiten: vuelven a leer el veredicto ya publicado.
   - `concurrency` cancela la revisión anterior con cada *commit* nuevo; las ediciones del PR esperan a que termine. El paso del veredicto no corre si el run se canceló.
   - El título se lee en vivo, así que `gh run rerun` usa el título corregido.

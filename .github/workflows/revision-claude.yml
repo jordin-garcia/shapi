@@ -23,8 +23,8 @@ permissions:
 jobs:
   revision:
     name: revision-claude
-    # Un borrador no se puede integrar; al marcarlo listo (ready_for_review) se revisa y se decide el check.
-    if: ${{ !github.event.pull_request.draft }}
+    # Sin `if` a nivel de job: un job omitido cuenta como aprobado, y `gh run rerun` de un run viejo (por ejemplo, de
+    # cuando el PR era borrador) lo repetiría. El borrador y el estado del PR se leen en vivo en el paso `tarea`.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     # Un commit nuevo cancela la revisión anterior; editar el PR espera a que termine la que está en curso.
@@ -47,20 +47,19 @@ jobs:
 
       - name: Leer la tarea y decidir si hace falta una revisión nueva
         id: tarea
-        env:
-          ABIERTO: ${{ github.event.pull_request.state == 'open' }}
         run: |
-          # El título se lee en vivo, para que `gh run rerun` use el título ya corregido.
-          titulo=$(gh pr view "$PR" --json title --jq .title)
+          # Título, borrador y estado se leen en vivo, para que `gh run rerun` use los datos actuales del PR.
+          IFS=$'\t' read -r titulo borrador estado < <(gh pr view "$PR" --json title,isDraft,state --jq '[.title, .isDraft, .state] | @tsv')
           if [[ "$titulo" =~ ^\[([A-Z]{2}-[0-9]{2,})\] ]]; then id="${BASH_REMATCH[1]}"; else id=""; fi
           echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "borrador=$borrador" >> "$GITHUB_OUTPUT"
           gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
             --jq '.[] | {usuario: .user.login, body: .body, fecha: .created_at, editado: (.updated_at != .created_at)}' > "$RUNNER_TEMP/comentarios.jsonl"
           # Solo se revisa si este commit no tiene una revisión completa o si cambió la tarea del título.
           revisar=$(node scripts/veredicto-revision.mjs --decidir "$RUNNER_TEMP/comentarios.jsonl" "$SHA" "$id")
-          if [[ "$ABIERTO" != "true" ]]; then revisar=false; fi
+          if [[ "$borrador" == "true" || "$estado" != "OPEN" ]]; then revisar=false; fi
           echo "revisar=$revisar" >> "$GITHUB_OUTPUT"
-          echo "Tarea: '${id}'. Revisión nueva: $revisar."
+          echo "Tarea: '${id}'. Borrador: $borrador. Estado: $estado. Revisión nueva: $revisar."
 
       - name: Revisar con Claude
         if: steps.tarea.outputs.revisar == 'true'
@@ -98,7 +97,12 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           TAREA: ${{ steps.tarea.outputs.id }}
+          BORRADOR: ${{ steps.tarea.outputs.borrador }}
         run: |
+          if [[ "$BORRADOR" == "true" ]]; then
+            echo "El PR es un borrador: se revisa y se decide este check al marcarlo listo (ready_for_review)."
+            exit 1
+          fi
           gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
             --jq '.[] | {usuario: .user.login, body: .body, fecha: .created_at, editado: (.updated_at != .created_at)}' > "$RUNNER_TEMP/comentarios.jsonl"
           node scripts/veredicto-revision.mjs "$RUNNER_TEMP/comentarios.jsonl" "$SHA" "$TAREA"
