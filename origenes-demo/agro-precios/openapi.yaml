@@ -41,6 +41,12 @@ paths:
           description: La fecha no tiene el formato AAAA-MM-DD.
         '404':
           description: No hay precio para ese producto, mercado y fecha.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: No hay precio para ese producto, mercado y fecha.
   /productos:
     get:
       summary: Listar productos
@@ -191,6 +197,12 @@ components:
         type: string
       example: cenma
   schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
     Precio:
       type: object
       required: [producto, mercado, unidad, precio, fecha]

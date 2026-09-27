@@ -50,7 +50,7 @@ app.MapGet("/mercados", () => Results.Ok(new
 
 app.MapGet("/historial", (string producto, string mercado, DateOnly? desde, DateOnly? hasta) =>
 {
-    var fechaDesde = desde ?? new DateOnly(2026, 9, 8);
+    var fechaDesde = desde ?? DatosAgro.PrimeraFecha;
     var fechaHasta = hasta ?? DatosAgro.FechaDelDia;
     if (fechaDesde > fechaHasta)
     {
@@ -93,7 +93,9 @@ namespace OrigenesDemo.AgroPrecios
     {
         public static readonly DateOnly FechaDelDia = new(2026, 9, 10);
 
-        private static readonly DateOnly[] Fechas = [new(2026, 9, 8), new(2026, 9, 9), FechaDelDia];
+        public static readonly DateOnly PrimeraFecha = new(2026, 9, 8);
+
+        private static readonly DateOnly[] Fechas = [PrimeraFecha, new(2026, 9, 9), FechaDelDia];
 
         private static readonly string[] Meses =
             ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];

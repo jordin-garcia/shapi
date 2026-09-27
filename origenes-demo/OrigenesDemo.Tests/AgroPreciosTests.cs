@@ -186,5 +186,10 @@ public sealed class AgroPreciosTests(WebApplicationFactory<AgroPreciosAplicacion
         var respuesta = await cliente.GetAsync(ruta);
 
         respuesta.StatusCode.Should().Be(esperado);
+        if (esperado == HttpStatusCode.NotFound)
+        {
+            var error = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+            error.GetProperty("error").GetString().Should().Be("No hay precio para ese producto, mercado y fecha.");
+        }
     }
 }

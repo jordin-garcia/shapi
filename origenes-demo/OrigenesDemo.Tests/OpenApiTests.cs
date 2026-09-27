@@ -160,7 +160,7 @@ public sealed class OpenApiTests(
             using var respuesta = await cliente.SendAsync(peticion);
             var cuerpo = await respuesta.Content.ReadAsStringAsync();
 
-            respuesta.IsSuccessStatusCode.Should().BeTrue($"{metodo} {ruta} con los ejemplos respondió {respuesta.StatusCode}");
+            respuesta.StatusCode.Should().Be(System.Net.HttpStatusCode.OK, $"{metodo} {ruta} con los ejemplos debe responder 200");
             var esperado = operacion.Responses!["200"].Content!["application/json"].Example!;
             JsonNode.DeepEquals(JsonNode.Parse(cuerpo), esperado).Should().BeTrue(
                 $"la respuesta de {metodo} {ruta} debe ser igual a su ejemplo.\nReal: {cuerpo}\nEjemplo: {esperado.ToJsonString()}");
