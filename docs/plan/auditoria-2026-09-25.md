@@ -164,7 +164,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [x] **H-50** Incrementar el contador de intentos fallidos de forma atómica, con `ExecuteUpdate` o un token de concurrencia `xmin`. Incluye una prueba de intentos en paralelo.
 - [x] **H-51** Mismo tiempo de respuesta cuando la cuenta existe y cuando no (10 §1). Se evita el `SaveChanges` extra en la ruta de la contraseña incorrecta.
 - [x] **H-52** `X-Forwarded-For`: confiar solo en la red del borde (Caddy), no en cualquier red privada.
-  - **Decidido por Jordin (26 sep):** variable `SHAPI_REDES_BORDE`; por defecto solo la máquina. JZ-06 fija la red de producción.
+  - **Decidido por Jordin (26 sep):** variable `SHAPI_REDES_BORDE`. Por defecto incluye la máquina y la red `shapi`, que ahora tiene la subred fija `172.30.0.0/24` en `infra/compose.yml` para que funcione en Linux sin configurar nada.
 - [x] **H-53** Límite de reenvíos de verificación por cuenta, además del límite por IP.
   - **Decidido por Jordin (26 sep):** 3 reenvíos por hora; al pasarse responde el mismo 200 sin enviar.
 - [x] **H-54** CSRF: validar el esquema y el puerto del `Origin`, no solo el host.

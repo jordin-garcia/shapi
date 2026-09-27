@@ -102,3 +102,8 @@ volumes:
 networks:
   default:
     name: shapi
+    # Subred fija: la API confía en X-Forwarded-For y X-Forwarded-Proto solo si vienen de aquí o de la máquina
+    # (SHAPI_REDES_BORDE, 10 §1). En Linux, Caddy llega a la API desde esta red.
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

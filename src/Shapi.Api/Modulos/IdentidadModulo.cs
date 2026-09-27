@@ -20,8 +20,11 @@ public static class IdentidadModulo
     /// <summary>Redes desde las que llega el borde (Caddy), en CIDR y separadas por comas (10 §1).</summary>
     public const string VariableRedesBorde = "SHAPI_REDES_BORDE";
 
-    /// <summary>Sin <see cref="VariableRedesBorde"/> solo se confía en la máquina: así llega Caddy con Docker Desktop.</summary>
-    public const string RedesBordePorDefecto = "127.0.0.0/8,::1/128";
+    /// <summary>
+    /// Sin <see cref="VariableRedesBorde"/> se confía en la máquina, desde donde llega Caddy con Docker Desktop, y en la
+    /// subred fija de la red <c>shapi</c> de <c>infra/compose.yml</c>, desde donde llega en Linux.
+    /// </summary>
+    public const string RedesBordePorDefecto = "127.0.0.0/8,::1/128,172.30.0.0/24";
 
     public static IServiceCollection AgregarModuloIdentidad(this IServiceCollection services)
     {
@@ -34,8 +37,10 @@ public static class IdentidadModulo
         services.AddAuthentication(PersonalAutenticacionOpciones.Esquema)
             .AddScheme<PersonalAutenticacionOpciones, PersonalAutenticacionHandler>(PersonalAutenticacionOpciones.Esquema, null);
 
-        // Detrás del borde, la IP del cliente llega en X-Forwarded-For. Solo se confía en ella si la conexión viene de
-        // las redes del borde (SHAPI_REDES_BORDE). Caddy reemplaza la X-Forwarded-For que mande el cliente.
+        // Detrás del borde, la IP del cliente llega en X-Forwarded-For y el esquema en X-Forwarded-Proto. Solo se confía
+        // en ellas si la conexión viene de las redes del borde (SHAPI_REDES_BORDE). Caddy reemplaza las que mande el
+        // cliente. El esquema también cuenta para el CSRF, que compara el Origin con la petición.
+        // Un CIDR mal escrito detiene el arranque (ValidateOnStart) en vez de romper cada petición.
         services.AddOptions<ForwardedHeadersOptions>().Configure<IConfiguration>((opciones, configuracion) =>
         {
             opciones.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -47,7 +52,7 @@ public static class IdentidadModulo
             {
                 opciones.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(red));
             }
-        });
+        }).ValidateOnStart();
 
         // Convenciones §5: un cuerpo que no se puede leer (JSON mal formado) es un 400 datos_invalidos, con código.
         // Sin ThrowOnBadRequest, que en Development lo convertiría en una excepción (500), responde igual en todo entorno.
@@ -60,7 +65,7 @@ public static class IdentidadModulo
                 anterior?.Invoke(contexto);
                 if (contexto.ProblemDetails.Status == StatusCodes.Status400BadRequest && !contexto.ProblemDetails.Extensions.ContainsKey("codigo"))
                 {
-                    contexto.ProblemDetails.Title = "La petición no es válida. Revise que el cuerpo sea un JSON correcto.";
+                    contexto.ProblemDetails.Title = "La petición no es válida. Revise los datos enviados.";
                     contexto.ProblemDetails.Extensions["codigo"] = CodigosError.DatosInvalidos;
                 }
             };

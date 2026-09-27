@@ -739,6 +739,33 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         await AfirmarProblema(await _cliente.SendAsync(peticion), HttpStatusCode.Forbidden, "csrf");
     }
 
+    [Theory]
+    [InlineData("127.0.0.1")] // Caddy con Docker Desktop
+    [InlineData("172.30.0.7")] // Caddy en la red shapi, en Linux
+    public async Task RF_04_Csrf_DetrasDelBorde_ElOriginHttpsDelNavegadorPasa(string ipBorde)
+    {
+        var contexto = await EntrarDesdeElBorde(_fabrica, "203.0.113.10", ipBorde, "shapi.localhost", "https", "https://shapi.localhost");
+
+        // Pasa el CSRF y llega a la comprobación de credenciales.
+        Assert.Equal(StatusCodes.Status401Unauthorized, contexto.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_Csrf_DesdeOtraRedPrivada_NoSeConfiaEnXForwardedProto()
+    {
+        var contexto = await EntrarDesdeElBorde(_fabrica, "203.0.113.10", "172.18.0.5", "shapi.localhost", "https", "https://shapi.localhost");
+
+        Assert.Equal(StatusCodes.Status403Forbidden, contexto.Response.StatusCode);
+    }
+
+    [Fact]
+    public void RF_04_RedesDelBorde_CidrMalEscrito_DetieneElArranque()
+    {
+        using var fabrica = Variante(("SHAPI_REDES_BORDE", "172.30.0.0/99"));
+
+        Assert.ThrowsAny<Exception>(() => fabrica.CreateClient());
+    }
+
     // ---------- Convenciones §5 · JSON mal formado ----------
 
     [Theory]
@@ -815,16 +842,27 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         }
     }
 
-    private static Task<HttpContext> EntrarDesdeElBorde(WebApplicationFactory<Program> fabrica, string ipCliente) =>
+    /// <summary>Un POST a <c>entrar</c> como lo manda Caddy: por http, desde <paramref name="ipBorde"/>, con las cabeceras X-Forwarded-*.</summary>
+    private static Task<HttpContext> EntrarDesdeElBorde(
+        WebApplicationFactory<Program> fabrica, string ipCliente, string ipBorde = "172.18.0.5", string host = "localhost",
+        string? esquemaOriginal = null, string? origen = null) =>
         fabrica.Server.SendAsync(contexto =>
         {
-            contexto.Connection.RemoteIpAddress = IPAddress.Parse("172.18.0.5"); // el borde, en la red de Docker
+            contexto.Connection.RemoteIpAddress = IPAddress.Parse(ipBorde);
             contexto.Request.Method = HttpMethods.Post;
             contexto.Request.Scheme = "http";
-            contexto.Request.Host = new HostString("localhost");
+            contexto.Request.Host = new HostString(host);
             contexto.Request.Path = "/api/auth/entrar";
             contexto.Request.Headers["X-Requested-With"] = "shapi";
             contexto.Request.Headers["X-Forwarded-For"] = ipCliente;
+            if (esquemaOriginal is not null)
+            {
+                contexto.Request.Headers["X-Forwarded-Proto"] = esquemaOriginal;
+            }
+            if (origen is not null)
+            {
+                contexto.Request.Headers.Origin = origen;
+            }
             var cuerpo = Encoding.UTF8.GetBytes("{\"correo\":\"nadie@enviosxelaju.com\",\"contrasena\":\"Incorrecta123\"}");
             contexto.Request.ContentType = "application/json";
             contexto.Request.ContentLength = cuerpo.Length;

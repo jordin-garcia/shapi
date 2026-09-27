@@ -193,14 +193,15 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - El correo se valida con más cuidado y se hace el *rehash*.
   - El JSON mal formado responde 400 `datos_invalidos`.
   - Los endpoints se movieron a `Identidad/Endpoints.cs`.
-  - Hay 22 casos de prueba nuevos en `AutenticacionTests`.
+  - Hay 26 casos de prueba nuevos en `AutenticacionTests`.
 - Decisiones (de Jordin, 26 sep):
   - H-49: se editó `Program.cs` (`AllowAnonymous` en `/salud` y `/openapi`), como excepción puntual de convenciones §3.
-  - H-52: `SHAPI_REDES_BORDE`, que por defecto solo incluye la máquina; con Docker Desktop, Caddy llega desde `127.0.0.1` (medido en esta PC).
+  - H-52: `SHAPI_REDES_BORDE`. Por defecto incluye la máquina, desde donde llega Caddy con Docker Desktop (`127.0.0.1`, medido en esta PC), y la red `shapi`, que ahora tiene la subred fija `172.30.0.0/24` en `infra/compose.yml`, desde donde llega en Linux. Así funciona sin configurar nada en Windows, en Linux y en la CI. De ahí también se toma `X-Forwarded-Proto`, que el CSRF usa para comparar el `Origin`. Se probó de punta a punta por Caddy: el `Origin` del navegador pasa y uno ajeno recibe 403.
   - H-53: 3 reenvíos por hora.
   - H-55: `salir` es público.
 - Pendiente o aviso para otros:
-  - **Todos:** actualicen su rama desde `main`. Desde este PR, **un endpoint sin `RequireAuthorization(...)` ni `AllowAnonymous()` exige una sesión** (04 §4, regla 6). Si su endpoint debe ser público, como el portal sin sesión o `/interno/tls/autorizar`, declárenlo con `AllowAnonymous()` y agréguenlo a la lista de la prueba `Autorizacion_EndpointsAnonimos_SonSoloLosPublicos`. En desarrollo no hace falta configurar `SHAPI_REDES_BORDE`.
+  - **Todos:** actualicen su rama desde `main`. Desde este PR, **un endpoint sin `RequireAuthorization(...)` ni `AllowAnonymous()` exige una sesión** (04 §4, regla 6). Si su endpoint debe ser público según 04 §4 (regla 6), como el portal sin sesión o `/interno/tls/autorizar`, declárenlo con `AllowAnonymous()` y agréguenlo a la lista de la prueba `Autorizacion_EndpointsAnonimos_SonSoloLosPublicos`.
+  - **Todos:** la red `shapi` ahora tiene una subred fija. Una sola vez, recreen el entorno con `docker compose -f infra/compose.yml down` y `docker compose -f infra/compose.yml up -d` (los volúmenes se conservan). Si no, Compose avisa que la red no coincide. No hace falta configurar `SHAPI_REDES_BORDE`.
   - **Emilio:** se modificaron tus archivos de identidad:
     - `src/Shapi.Api/Identidad/` (el nuevo `Endpoints.cs`, `CsrfMiddleware.cs` y `PoliticasAutorizacion.cs`), `src/Shapi.Api/Modulos/IdentidadModulo.cs` (ahora solo registra servicios y el *pipeline*) y `src/Shapi.Aplicacion/Identidad/RegistroProveedor.cs` (`PatronCorreo`);
     - `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs` y `contratos/openapi/identidad.yaml`;
@@ -208,4 +209,4 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
     Para EM-04 y EM-05, agrega tus endpoints en `Identidad/Endpoints.cs`, no en el módulo. Los intentos fallidos se cuentan con `ExecuteUpdate`; usa el mismo patrón para el consumidor.
   - **Dominique:** se regeneró `packages/api/src/generado/identidad.ts` con `pnpm generar:api`. `PeticionEntrar`, `PeticionReenviar` y `PeticionVerificacion` ya no tienen campos obligatorios. El *typecheck* y las pruebas del frontend pasan.
-  - **José Pablo:** se agregó `SHAPI_REDES_BORDE` a `.env.example`, y el criterio 7 de JZ-06 pide fijarla en `compose.prod.yml` con la subred de la red del compose.
+  - **José Pablo:** se modificó `infra/compose.yml`: la red `shapi` tiene la subred fija `172.30.0.0/24`, y `infra/verificar.mjs` sigue pasando. También se agregó `SHAPI_REDES_BORDE` a `.env.example`. El criterio 7 de JZ-06 explica que la API ya acepta esa subred, y que solo si `compose.prod.yml` usa otra red hay que pasarla en `SHAPI_REDES_BORDE`. Para JZ-07: en Linux, la CI no necesita configurar nada.
