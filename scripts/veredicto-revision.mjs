@@ -40,6 +40,10 @@ const RE_VEREDICTO = new RegExp(PREFIJO + String.raw`(?:VEREDICTO|Veredicto)\**[
 const RE_RESTO_CABECERA = new RegExp(PREFIJO + PALABRA_CORRECCION +
   String.raw`\**[ \t]*(?:[—–\-][ \t]*)?(?:\([^)]*\)|obligatorio corregir)?[ \t]*[—–\-]?[ \t]*:?\**`);
 const RE_NINGUNO = /^\(?(?:ningun[oa]|no hay(?: hallazgos)?)\.?\)?\.?$/i;
+// Otra sección que la revisión agrega por su cuenta ("Comprobado:", "### Lo que comprobé"): un título de Markdown, o
+// una línea corta que no es un elemento de lista y termina en ":". Solo se usa después de un "Ninguno" (PR #30).
+const RE_TITULO_MARKDOWN = /^[ \t>]*#{1,6}[ \t]+\S/;
+const RE_OTRA_SECCION = /^(?!\d+[.)][ \t]|[-+•][ \t])\S[^:\n]{0,60}:$/u;
 
 /** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha, editado}'` (un JSON por línea) en un arreglo. */
 export function leerComentarios(texto) {
@@ -70,10 +74,17 @@ function analizar(cuerpo) {
   const lineas = [cabecera.replace(RE_RESTO_CABECERA, ""), ...siguientes];
   // Cualquier contenido que no sea "Ninguno" es un hallazgo, venga numerado o con viñetas. Se ignoran las líneas
   // vacías y las cercas de código.
-  const correcciones = lineas.some((l) => {
-    const texto = l.replace(/[*_`>]/g, "").trim();
-    return texto !== "" && !RE_NINGUNO.test(texto);
-  });
+  const limpias = lineas.map((l) => l.replace(/[*_`>]/g, "").trim());
+  // Si la sección empieza con "Ninguno", una sección que la revisión agregue después (lo que comprobó) no son
+  // hallazgos. Con cualquier otro comienzo todo cuenta, para que un hallazgo nunca quede oculto bajo un título.
+  const primera = limpias.findIndex((t) => t !== "");
+  let relevantes = limpias;
+  if (primera >= 0 && RE_NINGUNO.test(limpias[primera])) {
+    const otraSeccion = lineas.findIndex((l, i) =>
+      i > primera && (RE_TITULO_MARKDOWN.test(l) || RE_OTRA_SECCION.test(limpias[i])));
+    if (otraSeccion >= 0) relevantes = limpias.slice(0, otraSeccion);
+  }
+  const correcciones = relevantes.some((texto) => texto !== "" && !RE_NINGUNO.test(texto));
   return { veredicto: veredicto[1].toUpperCase(), correcciones, tarea: cuerpo.match(/REVISI[ÓO]N\s+([A-Z]{2}-\d{2,})/)?.[1] ?? "" };
 }
 

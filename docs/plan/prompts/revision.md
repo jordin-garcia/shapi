@@ -35,4 +35,5 @@ VEREDICTO: LISTO | CORREGIR
 
 Reglas:
 - En **CORRECCIÓN** solo va lo que afecta los requisitos, la corrección, la seguridad o las pruebas. Si no hay nada, escribe "Ninguno" y el veredicto es LISTO.
+- No agregues secciones entre CORRECCIÓN y OPCIONAL. Si quieres dejar lo que comprobaste, ponlo antes de CORRECCIÓN: el check `revision-claude` cuenta como hallazgo todo lo que hay en la sección de corrección.
 - No inventes problemas para llenar la lista. No pidas abstracciones, patrones ni pruebas de casos imposibles: eso es sobreingeniería.

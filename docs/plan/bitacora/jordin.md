@@ -275,3 +275,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
     Actualiza tu rama desde `main`. **JZ-05:** si la siembra usa estos OpenAPI para las rutas, ahora son 5 en Envíos y 4 en Agro; ya no aparece `/salud`.
   - **Dominique:** en DC-05 se corrigió la ruta del archivo de ejemplo de Envíos (`origenes-demo/envios-xelaju/cotizacion-envios.yaml`). Al cargarlo deben salir las 5 rutas de A3.3. **DC-05, DC-07 y DC-10:** la documentación y la consola ya no mostrarán `X-Shapi-Secreto`, porque el OpenAPI no lo declara.
+
+## 2026-09-27 · JG-03 · Correcciones de la auditoría: secciones extra en la revisión con Claude
+- Hecho: H-118. En el #30, `revision-claude` falló aunque la revisión decía `CORRECCIÓN: Ninguno` y `VEREDICTO: LISTO`, porque la revisión agregó una sección "Comprobado:" antes de OPCIONAL. Ahora, si la sección de corrección empieza con "Ninguno", una sección posterior no cuenta como hallazgo; con cualquier otro comienzo todo sigue contando. `revision.md` pide poner lo comprobado antes de CORRECCIÓN.
+- Decisiones (de Jordin, 27 sep): el #30 se integró con `--admin` y el arreglo va en este PR aparte.
+- Pendiente o aviso para otros:
+  - **Todos:** si `revision-claude` falla y la revisión dice "Ninguno" y LISTO, avísenle a Jordin (protocolo B11). No hagan *commits* vacíos para pedir otra revisión.
