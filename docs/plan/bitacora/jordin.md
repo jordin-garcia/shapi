@@ -201,7 +201,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - H-55: `salir` es público.
 - Pendiente o aviso para otros:
   - **Todos:** actualicen su rama desde `main`. Desde este PR, **un endpoint sin `RequireAuthorization(...)` ni `AllowAnonymous()` exige una sesión** (04 §4, regla 6). Si su endpoint debe ser público según 04 §4 (regla 6), como el portal sin sesión o `/interno/tls/autorizar`, declárenlo con `AllowAnonymous()` y agréguenlo a la lista de la prueba `Autorizacion_EndpointsAnonimos_SonSoloLosPublicos`.
-  - **Todos:** la red `shapi` ahora tiene una subred fija. Una sola vez, recreen el entorno con `docker compose -f infra/compose.yml down` y `docker compose -f infra/compose.yml up -d` (los volúmenes se conservan). Si no, Compose avisa que la red no coincide. No hace falta configurar `SHAPI_REDES_BORDE`.
+  - **Todos:** la red `shapi` ahora tiene una subred fija. Una sola vez, recreen el entorno con `docker compose -f infra/compose.yml down` y `docker compose -f infra/compose.yml up -d` (los volúmenes se conservan). Si no, Compose avisa que la red no coincide. No hace falta configurar `SHAPI_REDES_BORDE`. Si `up` falla porque otra red de Docker ya usa `172.30.0.0/24`, avísenle a Jordin.
   - **Emilio:** se modificaron tus archivos de identidad:
     - `src/Shapi.Api/Identidad/` (el nuevo `Endpoints.cs`, `CsrfMiddleware.cs` y `PoliticasAutorizacion.cs`), `src/Shapi.Api/Modulos/IdentidadModulo.cs` (ahora solo registra servicios y el *pipeline*) y `src/Shapi.Aplicacion/Identidad/RegistroProveedor.cs` (`PatronCorreo`);
     - `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs` y `contratos/openapi/identidad.yaml`;
