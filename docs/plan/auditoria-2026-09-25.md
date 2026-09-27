@@ -215,10 +215,16 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 9 · [JZ-02] Orígenes de demostración
 
-- [ ] **H-74** Quitar `/salud` y el parámetro `X-Shapi-Secreto` de `cotizacion-envios.yaml` y de `agro-precios/openapi.yaml`, para que coincidan con A3.3 y A5.1.
-- [ ] **H-75** Corregir "Secreto de origen invalido" a "inválido".
-- [ ] **H-76** Hacer que `/precios` de Agro sea coherente con `/historial` para fechas distintas del 10 de septiembre.
-- [ ] **H-77** Pruebas que comparen los ejemplos del OpenAPI con las respuestas reales, que revisen los cuerpos de `/tarifas`, `/rastreo` y `/cobertura`, y que prueben "sin `SECRETO_ORIGEN` acepta todo".
+- [x] **H-74** Quitar `/salud` y el parámetro `X-Shapi-Secreto` de `cotizacion-envios.yaml` y de `agro-precios/openapi.yaml`, para que coincidan con A3.3 y A5.1.
+  - **Decidido por Jordin (27 sep):** también se quitan las respuestas 401 que solo documentaban el secreto de origen. Se alinearon además los textos que muestran A5.1 e InicioAgro.
+- [x] **H-75** Corregir "Secreto de origen invalido" a "inválido".
+- [x] **H-76** Hacer que `/precios` de Agro sea coherente con `/historial` para fechas distintas del 10 de septiembre.
+  - **Decidido por Jordin (27 sep):** `/precios` y `/historial` leen la misma tabla. Una fecha sin precio responde 404, una mal escrita 400, y la fecha sale siempre como "8 sep 2026".
+- [x] **H-77** Pruebas que comparen los ejemplos del OpenAPI con las respuestas reales, que revisen los cuerpos de `/tarifas`, `/rastreo` y `/cobertura`, y que prueben "sin `SECRETO_ORIGEN` acepta todo".
+- [x] **H-116** (encontrado en este paso) `/productos` y `/mercados` de Agro listaban tomate, banano, La Terminal y La Democracia, pero solo frijol negro en CENMA tenía precio; lo demás respondía 404. El mockup describe `/productos` como "Lista los productos que tienen precio publicado".
+  - **Decidido por Jordin (27 sep):** se agregan precios de demostración para los 3 productos en los 3 mercados y las 3 fechas. Frijol negro en CENMA conserva Q 505, Q 508 y Q 510.
+- [x] **H-117** (encontrado en este paso) `POST /cotizaciones` de Envíos respondía siempre Q 38.50 (o Q 57.75 urgente), sin importar el peso.
+  - **Decidido por Jordin (27 sep):** la tarifa es `precio_base + precio_por_kg × peso_kg`, con la misma tabla de `/tarifas`. El ejemplo del mockup no cambia: 2.5 kg normal da Q 38.50.
 
 ## Paso 10 · [JG-02] Compuerta mínima
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -13,7 +14,7 @@ app.Use(async (context, siguiente) =>
         && !EsSecretoValido(context.Request.Headers["X-Shapi-Secreto"].ToString(), secretoEsperado))
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        await context.Response.WriteAsJsonAsync(new { error = "Secreto de origen invalido." });
+        await context.Response.WriteAsJsonAsync(new { error = "Secreto de origen inválido." });
         return;
     }
 
@@ -29,8 +30,14 @@ app.MapPost("/cotizaciones", (CotizacionSolicitud solicitud) =>
         return Results.BadRequest(new { error = "Origen, destino y peso_kg son obligatorios." });
     }
 
+    // La tarifa sale de la misma tabla que /tarifas: precio_base + precio_por_kg × peso_kg.
     var urgente = string.Equals(solicitud.TipoServicio, "urgente", StringComparison.OrdinalIgnoreCase);
-    var tarifa = urgente ? "Q 57.75" : "Q 38.50";
+    var servicio = urgente ? Tarifas.Urgente : Tarifas.Normal;
+    var monto = Math.Round(
+        servicio.PrecioBase + (servicio.PrecioPorKg * solicitud.PesoKg),
+        2,
+        MidpointRounding.AwayFromZero);
+    var tarifa = $"Q {monto.ToString("#,##0.00", CultureInfo.InvariantCulture)}";
     var entrega = urgente ? "1 día hábil" : "2 días hábiles";
 
     return Results.Ok(new
@@ -66,11 +73,12 @@ app.MapPost("/guias", (GuiaSolicitud solicitud) =>
 app.MapGet("/tarifas", () => Results.Ok(new
 {
     moneda = "GTQ",
-    tarifas = new[]
+    tarifas = new[] { Tarifas.Normal, Tarifas.Urgente }.Select(servicio => new
     {
-        new { tipo_servicio = "normal", precio_base = 18.00m, precio_por_kg = 8.20m },
-        new { tipo_servicio = "urgente", precio_base = 27.00m, precio_por_kg = 12.30m },
-    },
+        tipo_servicio = servicio.TipoServicio,
+        precio_base = servicio.PrecioBase,
+        precio_por_kg = servicio.PrecioPorKg,
+    }),
 }));
 
 app.MapGet("/rastreo", (string guia) => Results.Ok(new
@@ -114,8 +122,18 @@ static bool EsSecretoValido(string recibido, string esperado)
 
 namespace OrigenesDemo.EnviosXelaju
 {
-    /// <summary>Punto de entrada usado por las pruebas de integracion.</summary>
+    /// <summary>Punto de entrada usado por las pruebas de integración.</summary>
     public sealed class EnviosXelajuAplicacion;
+
+    internal sealed record Tarifa(string TipoServicio, decimal PrecioBase, decimal PrecioPorKg);
+
+    /// <summary>Tarifas de la demostración. Con 2.5 kg, la normal da los Q 38.50 de los mockups.</summary>
+    internal static class Tarifas
+    {
+        public static Tarifa Normal { get; } = new("normal", 18.00m, 8.20m);
+
+        public static Tarifa Urgente { get; } = new("urgente", 27.00m, 12.30m);
+    }
 
     public sealed record CotizacionSolicitud(
         string Origen,

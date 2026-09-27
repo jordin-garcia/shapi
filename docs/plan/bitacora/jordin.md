@@ -253,3 +253,25 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
     Además, se creó `.dockerignore` en la raíz. Actualiza tu rama desde `main`.
   - **JZ-06:** se precisó el criterio 1 y los comandos llevan `--env-file .env`. Como `compose.yml` publica en `127.0.0.1` los puertos de desarrollo, `compose.prod.yml` debe quitarlos con `ports: !reset []`, porque Compose suma las listas de puertos. El 80 y el 443 del borde siguen en `127.0.0.1`: `infra/verificar.mjs` lo comprueba. Para la API y la compuerta, el *healthcheck* puede seguir el patrón de los orígenes (`curl` en la imagen).
+
+## 2026-09-27 · JZ-02 · Correcciones de la auditoría: orígenes de demostración
+- Hecho: paso 9 de `docs/plan/auditoria-2026-09-25.md` (H-74 a H-77, más H-116 y H-117, encontrados en este paso).
+  - Los OpenAPI de los orígenes quedan como A3.3 y A5.1: sin `/salud`, sin `X-Shapi-Secreto` ni sus 401, y con los textos del mockup.
+  - "Secreto de origen inválido." lleva tilde.
+  - `/precios` y `/historial` de Agro leen la misma tabla, y todo el catálogo tiene precio.
+  - La cotización de Envíos se calcula con el peso.
+  - Hay 29 casos de prueba nuevos, entre ellos uno que compara cada ejemplo del OpenAPI con la respuesta real.
+- Decisiones (de Jordin, 27 sep):
+  - H-74: también se quitan las 401 del secreto.
+  - H-76: una fecha sin precio responde 404, una mal escrita 400, y la fecha sale como "8 sep 2026".
+  - H-116: precios de demostración para los 3 productos en los 3 mercados.
+  - H-117: tarifa = `precio_base + precio_por_kg × peso_kg`.
+- Pendiente o aviso para otros:
+  - **José Pablo:** se modificaron tus archivos:
+    - `origenes-demo/envios-xelaju/Program.cs` y `cotizacion-envios.yaml`;
+    - `origenes-demo/agro-precios/Program.cs` y `openapi.yaml`;
+    - las pruebas `OpenApiTests`, `EnviosXelajuTests` y `AgroPreciosTests`;
+    - el `## Resultado` de JZ-02.
+
+    Actualiza tu rama desde `main`. **JZ-05:** si la siembra usa estos OpenAPI para las rutas, ahora son 5 en Envíos y 4 en Agro; ya no aparece `/salud`.
+  - **Dominique:** en DC-05 se corrigió la ruta del archivo de ejemplo de Envíos (`origenes-demo/envios-xelaju/cotizacion-envios.yaml`). Al cargarlo deben salir las 5 rutas de A3.3. **DC-05, DC-07 y DC-10:** la documentación y la consola ya no mostrarán `X-Shapi-Secreto`, porque el OpenAPI no lo declara.
