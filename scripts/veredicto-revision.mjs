@@ -44,7 +44,8 @@ const RE_NINGUNO = /^\(?(?:ningun[oa]|no hay(?: hallazgos)?)\.?\)?\.?$/i;
 // una línea corta que no es un elemento de lista y termina en ":". Solo se usa después de un "Ninguno" (PR #30), y
 // nunca si menciona la corrección: un segundo encabezado de corrección no oculta sus hallazgos.
 const RE_TITULO_MARKDOWN = /^[ \t>]*#{1,6}[ \t]+\S/;
-const RE_ELEMENTO_LISTA = /^[ \t>]*(?:[-+*•][ \t]|\d+[.)][ \t]|[a-zA-Z][.)][ \t])/;
+// Se revisa sobre la línea original, admitiendo negritas delante ("**- Nota:**"): "* " sigue siendo una viñeta.
+const RE_ELEMENTO_LISTA = /^[ \t>]*(?:\*\*|__)?[ \t]*(?:[-+*•][ \t]|\d+[.)][ \t]|[a-zA-Z][.)][ \t])/;
 const RE_LINEA_CON_DOS_PUNTOS = /^\S[^:\n]{0,60}:$/u;
 const RE_MENCIONA_CORRECCION = /correcci[óo]n/i;
 const RE_SEPARADOR = /^-{3,}$/;

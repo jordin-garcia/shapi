@@ -290,6 +290,7 @@ test("una sección posterior no oculta hallazgos: solo se ignora si la correcci�
     ["Ninguno", "", "Corrección adicional:", "1. [a.cs:3] Falta la prueba."],
     // Una viñeta o una enumeración con letra que termina en ":" es un hallazgo, no un título.
     ["Ninguno", "* Nota:", "1. [a.cs:3] Falta la prueba."],
+    ["Ninguno", "**- Nota:**", "1. [a.cs:3] Falta la prueba."],
     ["Ninguno", "a) Falta la prueba de RF-28:", "- en a.cs:3."],
   ];
   for (const correccion of casos) {
