@@ -22,13 +22,14 @@ public class Sesion
     public DateTimeOffset? RevocadaEn { get; private set; }
     public IPAddress? Ip { get; private set; }
     public string? AgenteUsuario { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected Sesion() { }
 
     /// <summary>Sesión del personal. Solo se guarda el hash del valor de la cookie.</summary>
     public static Sesion IniciarPersonal(string hashIdentificador, Guid usuarioId, string host, IPAddress? ip, string? agenteUsuario, DateTimeOffset ahora) => new()
     {
-        Id = Guid.NewGuid(),
+        Id = Guid.CreateVersion7(),
         Ambito = AmbitoSesion.Personal,
         UsuarioId = usuarioId,
         HashIdentificador = hashIdentificador,

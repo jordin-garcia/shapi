@@ -37,26 +37,26 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_pago_suscripcion",
+        builder.ToTable(t => t.HasCheckConstraint("ck_pago_suscripcion",
             "num_nonnulls(suscripcion_plataforma_id, suscripcion_api_id) = 1"));
 
         builder.Property(x => x.Concepto)
             .IsRequired()
             .HasConversion(Conversores.ConceptoPago);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_pago_concepto",
+        builder.ToTable(t => t.HasCheckConstraint("ck_pago_concepto",
             "concepto IN ('contratacion','renovacion','cambio_plan','reactivacion')"));
 
         builder.Property(x => x.Descripcion).IsRequired();
 
         builder.Property(x => x.Monto).HasColumnType("numeric(12,2)");
-        builder.ToTable(t => t.HasCheckConstraint("CK_pago_monto", "monto > 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_pago_monto", "monto > 0"));
 
         builder.Property(x => x.Estado)
             .IsRequired()
             .HasConversion(Conversores.EstadoPago);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_pago_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_pago_estado",
             "estado IN ('autorizado','rechazado','revertido')"));
 
         builder.HasIndex(x => new { x.SuscripcionPlataformaId, x.CreadoEn }).IsDescending(false, true);

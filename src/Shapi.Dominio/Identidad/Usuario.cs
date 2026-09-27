@@ -16,12 +16,14 @@ public class Usuario
     public EstadoCuenta Estado { get; private set; }
     public int IntentosFallidos { get; private set; }
     public DateTimeOffset? BloqueadoHasta { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected Usuario() { }
 
     public Usuario(string nombre, string correo)
     {
-        Id = Guid.NewGuid();
+        Id = Guid.CreateVersion7();
         Nombre = nombre.Trim();
         Correo = NormalizarCorreo(correo);
         Estado = EstadoCuenta.Activo;

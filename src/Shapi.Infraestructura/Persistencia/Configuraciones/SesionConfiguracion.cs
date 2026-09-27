@@ -27,10 +27,10 @@ public class SesionConfiguracion : IEntityTypeConfiguration<Sesion>
             .IsRequired()
             .HasConversion(Conversores.AmbitoSesion);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_sesion_ambito",
+        builder.ToTable(t => t.HasCheckConstraint("ck_sesion_ambito",
             "ambito IN ('personal','consumidor')"));
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_sesion_actor",
+        builder.ToTable(t => t.HasCheckConstraint("ck_sesion_actor",
             "num_nonnulls(usuario_id, consumidor_id) = 1"));
 
         builder.Property(x => x.HashIdentificador).IsRequired().HasMaxLength(64).IsFixedLength();
@@ -41,5 +41,6 @@ public class SesionConfiguracion : IEntityTypeConfiguration<Sesion>
         builder.Property(x => x.CreadaEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.UltimoUsoEn).IsRequired();
         builder.Property(x => x.ExpiraEn).IsRequired();
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

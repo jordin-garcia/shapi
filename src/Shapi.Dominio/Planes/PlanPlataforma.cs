@@ -12,7 +12,7 @@ public class PlanPlataforma
     public long CuotaPeticiones { get; private set; }
     public bool DominioPropio { get; private set; }
     public bool EsPrueba { get; private set; }
-    public bool Activo { get; private set; }
+    public bool Activo { get; private set; } = true;
     public int Orden { get; private set; }
     public DateTimeOffset CreadoEn { get; private set; }
     public DateTimeOffset ActualizadoEn { get; private set; }

@@ -22,14 +22,15 @@ public class PlanApiConfiguracion : IEntityTypeConfiguration<PlanApi>
 
         builder.Property(x => x.Descripcion).IsRequired();
         builder.Property(x => x.Precio).HasColumnType("numeric(12,2)");
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_api_precio", "precio >= 0"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_api_gratuito", "NOT es_gratuito OR precio = 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_precio", "precio >= 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_gratuito", "NOT es_gratuito OR precio = 0"));
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_api_vigencia", "vigencia_dias BETWEEN 1 AND 366"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_api_cuota", "cuota_llamadas > 0"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_api_limite", "limite_minuto > 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_vigencia", "vigencia_dias BETWEEN 1 AND 366"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_cuota", "cuota_llamadas > 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_limite", "limite_minuto > 0"));
 
-        builder.Property(x => x.Activo).HasDefaultValue(true);
+        // ValueGeneratedNever: sin él, EF toma false como "sin valor" y la base guardaría el DEFAULT true
+        builder.Property(x => x.Activo).HasDefaultValue(true).ValueGeneratedNever();
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();

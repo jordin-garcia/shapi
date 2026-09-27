@@ -405,8 +405,8 @@ También hay tablas auxiliares que no aparecen en el diagrama: `correo_saliente`
 - Las llaves primarias son `uuid` (UUID v7, generado en la aplicación), salvo en las tablas de alto volumen (`bigint identity`).
 - Todas las fechas son `timestamptz` en UTC.
 - El dinero es `numeric(12,2)`.
-- Los enumerados son `text` con una restricción `CHECK`.
-- Toda tabla tiene `creado_en timestamptz not null default now()`. Las tablas que se modifican tienen además `actualizado_en`.
+- Los enumerados son `text` con una restricción `CHECK`. Las restricciones también van en `snake_case`: `ck_<tabla>_<regla>`.
+- Toda tabla tiene `creado_en timestamptz not null default now()`. Las tablas que se modifican tienen además `actualizado_en`. En `sesion`, `bitacora` y `lote_consolidado`, las columnas `creada_en`, `fecha` y `procesado_en` hacen de `creado_en`. `medio_pago` y `caso_mensaje` no se modifican y solo tienen `creado_en`. La aplicación llena las dos columnas con la hora de `IReloj`, para que el modo demostración ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostracion)) también las adelante. Las actualizaciones que no pasan por el seguimiento de cambios de EF (`ExecuteUpdate` o SQL directo, como el UPSERT de `consumo_diario`) ponen `actualizado_en` a mano.
 - Los correos se guardan en minúsculas, normalizados en la aplicación, y son únicos con un índice sobre `lower(correo)`.
 - Las migraciones se hacen con EF Core, un proyecto por migración, en `Shapi.Infraestructura`.
 
@@ -692,7 +692,7 @@ UNIQUE **`NULLS NOT DISTINCT`** `(fecha, api_id, ruta_id, suscripcion_id, entorn
 | detalle | jsonb | null |
 | ip | inet | null |
 
-El rol de base de datos de la aplicación **solo tiene INSERT y SELECT** sobre `bitacora`. Además, un disparador rechaza cualquier UPDATE o DELETE.
+La bitácora solo admite inserciones: dos disparadores rechazan cualquier UPDATE, DELETE o TRUNCATE sobre `bitacora`, con el mensaje "La bitácora solo admite inserciones: no se permite <operación>.". La aplicación y las migraciones usan el mismo rol de base de datos (decisión de Jordin del 26 sep, auditoría H-40). Por eso los disparadores protegen contra errores de la aplicación, pero no contra alguien con acceso de dueño a la base.
 
 **`correo_saliente`**: `id uuid PK`, `destinatario text`, `asunto text`, `plantilla text`, `datos jsonb`, `estado CHECK IN ('pendiente','enviado','fallido')`, `intentos int`, `proximo_intento_en timestamptz`, `ultimo_error text`, `enviado_en timestamptz`.
 

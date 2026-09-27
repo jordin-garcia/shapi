@@ -1,4 +1,3 @@
-#pragma warning disable CS0618
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -14,7 +13,7 @@ public class SaludTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncL
 
     public SaludTests(WebApplicationFactory<Program> fabrica)
     {
-        _dbContainer = new PostgreSqlBuilder().WithImage("postgres:16-alpine").Build();
+        _dbContainer = new PostgreSqlBuilder("postgres:16-alpine").Build();
         _fabrica = fabrica;
     }
 

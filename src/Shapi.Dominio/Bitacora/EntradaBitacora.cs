@@ -19,9 +19,10 @@ public class EntradaBitacora
     public IPAddress? Ip { get; private set; }
 
 
-    public EntradaBitacora(ActorTipo actorTipo, Guid? actorId, string actorNombre, Guid? organizacionId, string accion, string? objetivoTipo, Guid? objetivoId, string descripcion, string? detalle, IPAddress? ip)
+    /// <param name="fecha">La hora de <c>IReloj</c> (convenciones §6), para que el modo demostración la pueda adelantar.</param>
+    public EntradaBitacora(DateTimeOffset fecha, ActorTipo actorTipo, Guid? actorId, string actorNombre, Guid? organizacionId, string accion, string? objetivoTipo, Guid? objetivoId, string descripcion, string? detalle, IPAddress? ip)
     {
-        Fecha = DateTimeOffset.UtcNow;
+        Fecha = fecha;
         ActorTipo = actorTipo;
         ActorId = actorId;
         ActorNombre = actorNombre;

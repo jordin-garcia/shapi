@@ -15,8 +15,10 @@ public class RegistroDnsSimuladoConfiguracion : IEntityTypeConfiguration<Registr
         builder.HasIndex(x => x.Nombre).IsUnique();
 
         builder.Property(x => x.Tipo).IsRequired();
-        builder.ToTable(t => t.HasCheckConstraint("CK_registro_dns_tipo", "tipo IN ('CNAME')"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_registro_dns_simulado_tipo", "tipo IN ('CNAME')"));
 
         builder.Property(x => x.Valor).IsRequired();
+        builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

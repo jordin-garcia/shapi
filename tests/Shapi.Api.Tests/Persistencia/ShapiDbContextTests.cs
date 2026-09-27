@@ -1,155 +1,238 @@
-#pragma warning disable CS0618
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
+using Shapi.Dominio.Apis;
 using Shapi.Dominio.Bitacora;
+using Shapi.Dominio.Claves;
+using Shapi.Dominio.Consumo;
 using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Organizaciones;
+using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
-using Shapi.Infraestructura.Persistencia;
-using Shapi.Infraestructura.Siembra.Base;
-using Testcontainers.PostgreSql;
-using Xunit;
+using Shapi.Dominio.Soporte;
+using Shapi.Dominio.Suscripciones;
 
 namespace Shapi.Api.Tests.Persistencia;
 
-public class ShapiDbContextTests : IAsyncLifetime
+/// <summary>Comportamiento del modelo de EF: filtro por organización, valores por defecto, fechas de auditoría e identificadores.</summary>
+[Collection(nameof(PostgresPersistencia))]
+public sealed class ShapiDbContextTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    // ---------- RNF-08 · Filtro global por organización (10 §2) ----------
 
-    private ShapiDbContext? _db;
-    private ContextoPrueba _contextoOrganizacion = new();
+    private sealed record Grafo(
+        Guid Usuario, Guid Membresia, Guid Consumidor, Guid Api, Guid Ruta, Guid DominioPropio, Guid PlanApi,
+        Guid SuscripcionApi, Guid Clave, Guid SuscripcionPlataforma, Guid MedioPagoOrganizacion, Guid MedioPagoConsumidor,
+        Guid PagoPlataforma, Guid PagoApi, long ConsumoDiario, Guid Caso, Guid CasoMensaje, long Bitacora);
 
-    public async Task InitializeAsync()
+    /// <summary>Una fila de cada tabla que pertenece a la organización, directamente o a través de su padre.</summary>
+    private async Task<Grafo> CrearGrafo(Guid organizacion, Guid planPlataforma)
     {
-        await _dbContainer.StartAsync();
-
-        var options = new DbContextOptionsBuilder<ShapiDbContext>()
-            .UseNpgsql(_dbContainer.GetConnectionString())
-            .Options;
-
-        _db = new ShapiDbContext(options, _contextoOrganizacion);
-        await _db.Database.MigrateAsync();
+        var usuario = await NuevoUsuario();
+        var membresia = await NuevaMembresia(usuario, organizacion, "propietario");
+        var consumidor = await NuevoConsumidor(organizacion);
+        var api = await NuevaApi(organizacion);
+        var ruta = await NuevaRuta(api);
+        var dominio = await Escalar<Guid>($"""
+            INSERT INTO dominio_propio (id, api_id, dominio, destino_cname, estado)
+            VALUES (gen_random_uuid(), '{api}', gen_random_uuid() || '.ejemplo.com', 'envios.api.shapi.localhost', 'pendiente')
+            RETURNING id
+            """);
+        var planApi = await NuevoPlanApi(api);
+        var suscripcionApi = await NuevaSuscripcionApi(consumidor, api, planApi);
+        var clave = await NuevaClave(suscripcionApi);
+        var suscripcionPlataforma = await NuevaSuscripcionPlataforma(organizacion, planPlataforma);
+        var medioOrganizacion = await NuevoMedioPago(organizacion, null);
+        var medioConsumidor = await NuevoMedioPago(null, consumidor);
+        var pagoPlataforma = await NuevoPago(suscripcionPlataforma, null);
+        var pagoApi = await NuevoPago(null, suscripcionApi);
+        var consumo = await NuevoConsumoDiario(api, ruta, suscripcionApi);
+        var caso = await NuevoCaso(organizacion, usuario);
+        var mensaje = await NuevoCasoMensaje(caso, usuario);
+        var bitacora = await NuevaEntradaBitacora(organizacion);
+        return new Grafo(usuario, membresia, consumidor, api, ruta, dominio, planApi, suscripcionApi, clave,
+            suscripcionPlataforma, medioOrganizacion, medioConsumidor, pagoPlataforma, pagoApi, consumo, caso, mensaje, bitacora);
     }
 
-    public async Task DisposeAsync()
+    [Fact]
+    public async Task RNF_08_FiltroGlobal_ConContextoDeUnaOrganizacion_SoloDevuelveSusFilas()
     {
-        if (_db != null)
+        var plan = await NuevoPlanPlataforma();
+        var organizacionA = await NuevaOrganizacion();
+        var a = await CrearGrafo(organizacionA, plan);
+        await CrearGrafo(await NuevaOrganizacion(), plan);
+        await NuevaEntradaBitacora(null); // acción del sistema sin organización: solo la ve la administración
+
+        Contexto.OrganizacionId = organizacionA;
+        await using var db = CrearDb();
+
+        Assert.Equal([a.Usuario], await db.Set<Usuario>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Membresia], await db.Set<Membresia>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Consumidor], await db.Set<Consumidor>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Api], await db.Set<Shapi.Dominio.Apis.Api>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Ruta], await db.Set<Ruta>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.DominioPropio], await db.Set<DominioPropio>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.PlanApi], await db.Set<PlanApi>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.SuscripcionApi], await db.Set<SuscripcionApi>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Clave], await db.Set<Clave>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.SuscripcionPlataforma], await db.Set<SuscripcionPlataforma>().Select(x => x.Id).ToListAsync());
+        Assert.Equal(
+            new HashSet<Guid> { a.MedioPagoOrganizacion, a.MedioPagoConsumidor },
+            (await db.Set<MedioPago>().Select(x => x.Id).ToListAsync()).ToHashSet());
+        Assert.Equal(
+            new HashSet<Guid> { a.PagoPlataforma, a.PagoApi },
+            (await db.Set<Pago>().Select(x => x.Id).ToListAsync()).ToHashSet());
+        Assert.Equal([a.ConsumoDiario], await db.Set<ConsumoDiario>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Caso], await db.Set<Caso>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.CasoMensaje], await db.Set<CasoMensaje>().Select(x => x.Id).ToListAsync());
+        Assert.Equal([a.Bitacora], await db.Set<EntradaBitacora>().Select(x => x.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task RNF_08_FiltroGlobal_SinContexto_NoDevuelveNada()
+    {
+        await CrearGrafo(await NuevaOrganizacion(), await NuevoPlanPlataforma());
+
+        Contexto.OrganizacionId = null;
+        await using var db = CrearDb();
+
+        Assert.Empty(await db.Set<Shapi.Dominio.Apis.Api>().ToListAsync());
+        Assert.Empty(await db.Set<Ruta>().ToListAsync());
+        Assert.Empty(await db.Set<Pago>().ToListAsync());
+        Assert.Empty(await db.Set<Usuario>().ToListAsync());
+        Assert.Single(await db.Set<Usuario>().IgnoreQueryFilters().ToListAsync());
+    }
+
+    [Fact]
+    public async Task RNF_08_FiltroGlobal_CubreTodaTablaQueNoSeaGlobal()
+    {
+        await using var db = CrearDb();
+
+        var sinFiltro = db.Model.GetEntityTypes()
+            .Where(tipo => tipo.GetDeclaredQueryFilters().Count == 0)
+            .Select(tipo => tipo.GetTableName())
+            .Order()
+            .ToList();
+
+        // Tablas globales o que se usan antes de conocer la organización (sesiones y enlaces).
+        Assert.Equal(
+            ["correo_saliente", "lote_consolidado", "organizacion", "plan_plataforma", "registro_dns_simulado", "sesion", "token"],
+            sinFiltro);
+    }
+
+    // ---------- 07 §3.3 · activo con DEFAULT true ----------
+
+    [Fact]
+    public async Task RF_17_PlanPlataforma_GuardadoInactivo_QuedaInactivo()
+    {
+        await using (var db = CrearDb())
         {
-            await _db.DisposeAsync();
+            db.Add(Crear<PlanPlataforma>(new
+            {
+                Nombre = "Heredado",
+                Descripcion = "Un plan que ya no se vende",
+                Precio = 99m,
+                VigenciaDias = 30,
+                CuotaPeticiones = 1000L,
+                Orden = 9,
+                Activo = false,
+            }));
+            await db.SaveChangesAsync();
         }
 
-        await _dbContainer.DisposeAsync();
+        await using var lectura = CrearDb();
+        Assert.False((await lectura.Set<PlanPlataforma>().SingleAsync()).Activo);
     }
 
     [Fact]
-    public async Task Bitacora_EsInmutable_RechazaUpdateYDelete()
+    public async Task RF_18_PlanApi_GuardadoInactivo_QuedaInactivo()
     {
-        var entrada = (EntradaBitacora)Activator.CreateInstance(typeof(EntradaBitacora), true)!;
-        typeof(EntradaBitacora).GetProperty("ActorTipo")!.SetValue(entrada, ActorTipo.Sistema);
-        typeof(EntradaBitacora).GetProperty("ActorNombre")!.SetValue(entrada, "Sistema");
-        typeof(EntradaBitacora).GetProperty("Accion")!.SetValue(entrada, "Prueba");
-        typeof(EntradaBitacora).GetProperty("Descripcion")!.SetValue(entrada, "Prueba trigger");
-        typeof(EntradaBitacora).GetProperty("OrganizacionId")!.SetValue(entrada, null);
+        var organizacion = await NuevaOrganizacion();
+        var api = await NuevaApi(organizacion);
+        await using (var db = CrearDb())
+        {
+            db.Add(Crear<PlanApi>(new
+            {
+                ApiId = api,
+                Nombre = "Básico",
+                Descripcion = "Un plan que ya no se vende",
+                Precio = 0m,
+                EsGratuito = true,
+                VigenciaDias = 30,
+                CuotaLlamadas = 1000L,
+                LimiteMinuto = 60,
+                Activo = false,
+            }));
+            await db.SaveChangesAsync();
+        }
 
-        _db!.Set<EntradaBitacora>().Add(entrada);
-        await _db.SaveChangesAsync();
-
-        var entradaGuardada = await _db.Set<EntradaBitacora>().FirstAsync();
-        typeof(EntradaBitacora).GetProperty("Descripcion")!.SetValue(entradaGuardada, "Modificado");
-
-        var exUpdate = await Assert.ThrowsAsync<DbUpdateException>(() => _db.SaveChangesAsync());
-        Assert.Contains("This table is append-only", exUpdate.InnerException!.Message);
-
-        // Clear tracker para el delete
-        _db.ChangeTracker.Clear();
-
-        var entradaParaBorrar = await _db.Set<EntradaBitacora>().FirstAsync();
-        _db.Set<EntradaBitacora>().Remove(entradaParaBorrar);
-
-        var exDelete = await Assert.ThrowsAsync<DbUpdateException>(() => _db.SaveChangesAsync());
-        Assert.Contains("This table is append-only", exDelete.InnerException!.Message);
+        Contexto.OrganizacionId = organizacion;
+        await using var lectura = CrearDb();
+        Assert.False((await lectura.Set<PlanApi>().SingleAsync()).Activo);
     }
+
+    // ---------- 07 §3 · creado_en y actualizado_en con la hora de IReloj ----------
 
     [Fact]
-    public async Task FiltroGlobal_FiltraPorOrganizacion()
+    public async Task Interceptor_InsertarYModificar_UsaLaHoraDelReloj()
     {
-        var org1Id = Guid.NewGuid();
-        var org2Id = Guid.NewGuid();
+        var alta = Reloj.Ahora;
+        var usuario = new Usuario("Ana", "ana@ejemplo.com");
+        await using (var db = CrearDb())
+        {
+            db.Add(usuario);
+            await db.SaveChangesAsync();
+        }
 
-        var org1 = (Shapi.Dominio.Organizaciones.Organizacion)Activator.CreateInstance(typeof(Shapi.Dominio.Organizaciones.Organizacion), true)!;
-        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Nombre")!.SetValue(org1, "Org 1");
-        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Tipo")!.SetValue(org1, Shapi.Dominio.Organizaciones.TipoOrganizacion.Plataforma);
+        await using (var lectura = CrearDb())
+        {
+            var guardado = await lectura.Set<Usuario>().IgnoreQueryFilters().SingleAsync();
+            Assert.Equal(alta, guardado.CreadoEn);
+            Assert.Equal(alta, guardado.ActualizadoEn);
+        }
 
-        var org2 = (Shapi.Dominio.Organizaciones.Organizacion)Activator.CreateInstance(typeof(Shapi.Dominio.Organizaciones.Organizacion), true)!;
-        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Nombre")!.SetValue(org2, "Org 2");
-        typeof(Shapi.Dominio.Organizaciones.Organizacion).GetProperty("Tipo")!.SetValue(org2, Shapi.Dominio.Organizaciones.TipoOrganizacion.Proveedor);
+        Reloj.Ahora = alta.AddHours(3);
+        await using (var db = CrearDb())
+        {
+            var guardado = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync();
+            guardado.RegistrarIntentoFallido(Reloj.Ahora);
+            await db.SaveChangesAsync();
+        }
 
-        _db!.Set<Shapi.Dominio.Organizaciones.Organizacion>().AddRange(org1, org2);
-        await _db.SaveChangesAsync();
-
-        var api1 = CrearApi("Api 1", org1.Id);
-        var api2 = CrearApi("Api 2", org2.Id);
-
-        _db!.Set<Shapi.Dominio.Apis.Api>().AddRange(api1, api2);
-        await _db.SaveChangesAsync();
-
-        // Sin contexto, debería devolver CERO filas (fail-closed)
-        _contextoOrganizacion.OrganizacionId = null;
-        var conteoNulo = await _db.Set<Shapi.Dominio.Apis.Api>().CountAsync();
-        Assert.Equal(0, conteoNulo);
-
-        // Con contexto, solo ve org1
-        _contextoOrganizacion.OrganizacionId = org1.Id;
-        var conteoOrg1 = await _db.Set<Shapi.Dominio.Apis.Api>().CountAsync();
-        Assert.Equal(1, conteoOrg1);
-        var itemOrg1 = await _db.Set<Shapi.Dominio.Apis.Api>().FirstAsync();
-        Assert.Equal(org1.Id, itemOrg1.OrganizacionId);
+        await using var final = CrearDb();
+        var modificado = await final.Set<Usuario>().IgnoreQueryFilters().SingleAsync();
+        Assert.Equal(alta, modificado.CreadoEn);
+        Assert.Equal(alta.AddHours(3), modificado.ActualizadoEn);
     }
+
+    // ---------- 07 §3 · UUID v7 ----------
 
     [Fact]
-    public async Task SiembraBase_EsIdempotente_Y_VerificaDatos()
+    public async Task Identificadores_GeneradosPorEf_SonUuidV7()
     {
-        var reloj = new Shapi.Infraestructura.Comun.RelojSistema(TimeProvider.System);
-        var hasher = new PasswordHasher<Usuario>();
+        var plan = Crear<PlanPlataforma>(new
+        {
+            Nombre = "Lanzamiento",
+            Descripcion = "Empezar a cobrar",
+            Precio = 199m,
+            VigenciaDias = 30,
+            CuotaPeticiones = 250000L,
+            Orden = 2,
+            Activo = true,
+        });
+        await using var db = CrearDb();
+        db.Add(plan);
+        await db.SaveChangesAsync();
 
-        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
-        var countPlanes = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
-        var countUsuarios = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
-
-        Assert.Equal(5, countPlanes);
-
-        var admin = await _db!.Set<Usuario>().IgnoreQueryFilters().FirstAsync(u => u.Correo == "admin@shapi.test");
-        Assert.NotEqual("Contra123", admin.HashContrasena);
-        Assert.Equal(PasswordVerificationResult.Success, hasher.VerifyHashedPassword(admin, admin.HashContrasena!, "Contra123"));
-
-        var orgPlataforma = await _db!.Set<Shapi.Dominio.Organizaciones.Organizacion>().IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Tipo == Shapi.Dominio.Organizaciones.TipoOrganizacion.Plataforma);
-        Assert.NotNull(orgPlataforma);
-
-        // Ejecutar de nuevo
-        await SiembraBase.EjecutarAsync(_db!, "admin@shapi.test", "Admin", "Contra123", reloj, hasher, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
-
-        var countPlanes2 = await _db!.Set<PlanPlataforma>().IgnoreQueryFilters().CountAsync();
-        var countUsuarios2 = await _db!.Set<Usuario>().IgnoreQueryFilters().CountAsync();
-
-        Assert.Equal(countPlanes, countPlanes2);
-        Assert.Equal(countUsuarios, countUsuarios2);
+        Assert.Equal(7, plan.Id.Version);
     }
 
-    private Shapi.Dominio.Apis.Api CrearApi(string nombre, Guid orgId)
+    /// <summary>Crea una entidad sin constructor público y asigna sus propiedades por nombre.</summary>
+    private static T Crear<T>(object valores) where T : class
     {
-        var e = (Shapi.Dominio.Apis.Api)Activator.CreateInstance(typeof(Shapi.Dominio.Apis.Api), true)!;
-        typeof(Shapi.Dominio.Apis.Api).GetProperty("Nombre")!.SetValue(e, nombre);
-        typeof(Shapi.Dominio.Apis.Api).GetProperty("OrganizacionId")!.SetValue(e, orgId);
-        typeof(Shapi.Dominio.Apis.Api).GetProperty("Subdominio")!.SetValue(e, Guid.NewGuid().ToString("N")[..20]);
-        typeof(Shapi.Dominio.Apis.Api).GetProperty("UrlOrigen")!.SetValue(e, "https://ejemplo.com");
-        typeof(Shapi.Dominio.Apis.Api).GetProperty("SecretoOrigenCifrado")!.SetValue(e, "secreto");
-        return e;
+        var entidad = (T)Activator.CreateInstance(typeof(T), nonPublic: true)!;
+        foreach (var valor in valores.GetType().GetProperties())
+        {
+            typeof(T).GetProperty(valor.Name)!.SetValue(entidad, valor.GetValue(valores));
+        }
+        return entidad;
     }
-}
-
-public class ContextoPrueba : Shapi.Aplicacion.Comun.IContextoOrganizacion
-{
-    public Guid? OrganizacionId { get; set; }
 }

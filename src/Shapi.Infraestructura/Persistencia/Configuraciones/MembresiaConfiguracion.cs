@@ -28,12 +28,14 @@ public class MembresiaConfiguracion : IEntityTypeConfiguration<Membresia>
             .IsRequired()
             .HasConversion(Conversores.Rol);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_membresia_rol",
+        builder.ToTable(t => t.HasCheckConstraint("ck_membresia_rol",
             "rol IN ('administrador','soporte','propietario','editor','lector')"));
 
         // RNF-08: Un solo propietario por organización
         builder.HasIndex(x => x.OrganizacionId)
             .IsUnique()
             .HasFilter("rol = 'propietario'");
+        builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

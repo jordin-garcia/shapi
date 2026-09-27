@@ -24,6 +24,11 @@ public class SuscripcionPlataformaConfiguracion : IEntityTypeConfiguration<Suscr
             .HasForeignKey(x => x.PlanId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<PlanPlataforma>()
+            .WithMany()
+            .HasForeignKey(x => x.PlanSiguienteId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Shapi.Dominio.Pagos.MedioPago>()
             .WithMany()
             .HasForeignKey(x => x.MedioPagoId)
@@ -34,9 +39,9 @@ public class SuscripcionPlataformaConfiguracion : IEntityTypeConfiguration<Suscr
             .IsRequired()
             .HasConversion(Conversores.EstadoSuscripcion);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_suscripcion_plataforma_estado",
             "estado IN ('activa','en_gracia','suspendida','finalizada')"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_plat_fechas", "fin > inicio"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_suscripcion_plataforma_fechas", "fin > inicio"));
 
         // RNF-08: Una sola suscripción vigente por organización
         builder.HasIndex(x => x.OrganizacionId)

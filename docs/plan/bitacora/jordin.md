@@ -153,3 +153,31 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Dominique:** 11 §1 tiene ahora dos tonos por color de estado: el base, `#1F8A5B` y `#C2481F`, para iconos, muestras, códigos y texto en tablas, y el de etiqueta, `#146542` y `#8E3315`. Los tokens `--correcto-base` y `--alerta-base` se agregan en el paso 12 (H-86). También cambió el contexto de DC-02: el catálogo de 11 §3 no trae responsables.
   - **Emilio:** se agregó una nota en tu bitácora (entrada de EM-01): `Program.cs` sí migra en Development. En el criterio 1 de EM-05 se corrigió la cita de sección (10 §1).
   - **José Pablo:** se agregaron notas en tu bitácora y en el `## Resultado` de JZ-03 sobre el sexto intento, y se corrigió la cita del criterio 3 (10 §1). En `infra/verificar.mjs`, la comprobación de `/interno/*` ahora usa `/interno/tls/autorizar`, porque `/interno/salud` no existe.
+
+## 2026-09-26 · EM-01 · Correcciones de la auditoría: esquema de la base de datos
+- Hecho: paso 5 de `docs/plan/auditoria-2026-09-25.md` (H-30 a H-48). La migración nueva `AjustesDelEsquemaAuditoria` hace esto:
+  - `caso.numero` empieza en 100;
+  - agrega la FK de `plan_siguiente_id`;
+  - renombra las columnas `rechazos_*` y `origen_*`;
+  - agrega los CHECK que faltaban, los DEFAULT de los estados y las columnas `creado_en` y `actualizado_en`;
+  - pasa a minúsculas los nombres de las restricciones (`ck_*`);
+  - hace que los disparadores de la bitácora, ya en español, rechacen también TRUNCATE.
+
+  El filtro por organización cubre ahora todas las tablas que pertenecen a una organización. `actualizado_en` se actualiza con `IReloj`. Los identificadores son UUID v7. Hay 50 casos de prueba en `tests/Shapi.Api.Tests/Persistencia/` y `tests/Shapi.Dominio.Tests/IdentificadoresTests.cs`. Se borraron los scripts de Python de la raíz, el paquete InMemory, `ColaCorreoNula` y `BitacoraNula`.
+- Decisiones (de Jordin, 26 sep):
+  - H-40: un solo rol de base de datos; la bitácora se protege solo con disparadores (07 §3.6).
+  - H-38: el filtro cubre también las tablas que pertenecen a una organización a través de su padre (10 §2).
+  - H-37: `creado_en` y `actualizado_en` según el uso real de cada tabla (07 §3).
+  - H-43: se borran las implementaciones nulas de la cola de correo y de la bitácora.
+- Pendiente o aviso para otros:
+  - **Todos:** actualicen su rama desde `main`. La API aplica la migración nueva al arrancar en *Development*. Ahora el filtro por organización también esconde `usuario`, `ruta`, `dominio_propio`, `plan_api`, `suscripcion_api`, `clave`, `pago`, `medio_pago`, `consumo_diario`, `caso_mensaje` y `bitacora`, y sin organización en el contexto no devuelven nada. Donde todavía no se conoce la organización (registro, inicio de sesión, portal antes de resolver el host) o se trabaja entre organizaciones (administración, trabajador, compuerta), usen `IgnoreQueryFilters()` de forma explícita. `actualizado_en` lo llena un interceptor al guardar con EF; si usan `ExecuteUpdate` o SQL directo, pónganlo ustedes con la hora de `IReloj` (07 §3).
+  - **Emilio:** se modificaron tu esquema y tus entidades:
+    - `Persistencia/` (todas las configuraciones, `ShapiDbContext.cs`, el *snapshot*, la migración nueva e `InterceptorFechasAuditoria.cs`);
+    - `Dominio/Identidad/{Usuario,Consumidor,Token,Sesion}.cs`, `Dominio/Organizaciones/{Organizacion,Membresia}.cs` y `Dominio/Suscripciones/SuscripcionPlataforma.cs`;
+    - `Dominio/Planes/{PlanApi,PlanPlataforma}.cs` (`Activo` empieza en `true`);
+    - `Api/Modulos/IdentidadModulo.cs` (al marcar el token usado también pone `ActualizadoEn`) y la prueba `RF_02_VerificarCorreo_MarcaElCorreoYElTokenEIniciaSesion` de `AutenticacionTests.cs`, que ahora comprueba `creado_en` y `actualizado_en`;
+    - `tests/Shapi.Api.Tests/Persistencia/`, el `## Resultado` de EM-01 y tu bitácora (el nombre del disparador, la migración en *Development* y el formato de los avisos).
+
+    Los constructores usan `Guid.CreateVersion7()`, y `PlanApi.Activo` y `PlanPlataforma.Activo` ya guardan `false`. Si necesitas cambiar el esquema en tu rama, borra tu migración, toma el *snapshot* de `main` y vuelve a generarla (convenciones §3).
+  - **José Pablo:** se modificaron `Dominio/Bitacora/EntradaBitacora.cs` (su constructor recibe la fecha primero), `Infraestructura/Bitacora/BitacoraBaseDatos.cs` (usa `IReloj`) y `Dominio/Correo/CorreoSaliente.cs` (UUID v7, `creado_en` y `actualizado_en`). Para la siembra de JZ-05: los casos toman su número de la secuencia, así que CAS-100 a CAS-104 salen solos si se insertan en orden y sin `numero`. Además, la bitácora rechaza UPDATE, DELETE y TRUNCATE: para limpiarla en las pruebas, crea una base nueva.
+  - **Dominique:** se modificó `Dominio/Apis/RegistroDnsSimulado.cs` (`creado_en` y `actualizado_en`). La columna `api.portal_logo` rechaza más de 512 KB y `ruta` rechaza la caché en métodos distintos de GET.

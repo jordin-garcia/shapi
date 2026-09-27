@@ -164,6 +164,8 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     {
         await Registrar("ana@enviosxelaju.com");
         var token = await TokenDelUltimoCorreo("ana@enviosxelaju.com");
+        var registro = _reloj.Ahora;
+        _reloj.Avanzar(TimeSpan.FromMinutes(5));
 
         var respuesta = await Enviar(HttpMethod.Post, "/api/auth/verificar-correo", new { token });
 
@@ -175,7 +177,14 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         using var _ = scope;
         var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == "ana@enviosxelaju.com");
         Assert.Equal(_reloj.Ahora, usuario.CorreoVerificadoEn);
-        Assert.Equal(_reloj.Ahora, (await db.Set<Token>().SingleAsync(t => t.UsuarioId == usuario.Id)).UsadoEn);
+        var tokenUsado = await db.Set<Token>().SingleAsync(t => t.UsuarioId == usuario.Id);
+        Assert.Equal(_reloj.Ahora, tokenUsado.UsadoEn);
+
+        // 07 §3: creado_en y actualizado_en con la hora de IReloj, también al marcar el token con ExecuteUpdate.
+        Assert.Equal(registro, usuario.CreadoEn);
+        Assert.Equal(_reloj.Ahora, usuario.ActualizadoEn);
+        Assert.Equal(registro, tokenUsado.CreadoEn);
+        Assert.Equal(_reloj.Ahora, tokenUsado.ActualizadoEn);
     }
 
     [Fact]

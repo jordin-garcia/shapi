@@ -182,7 +182,7 @@ public static class IdentidadModulo
         // Se marca usado con una actualización condicional para que dos peticiones simultáneas no lo usen dos veces.
         var marcados = await db.Set<Token>().IgnoreQueryFilters()
             .Where(t => t.Id == token.Id && t.UsadoEn == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsadoEn, ahora), cancelacion);
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsadoEn, ahora).SetProperty(t => t.ActualizadoEn, ahora), cancelacion);
         if (marcados == 0)
         {
             return TokenInvalido();

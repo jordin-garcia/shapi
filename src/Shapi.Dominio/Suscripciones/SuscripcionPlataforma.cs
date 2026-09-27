@@ -20,7 +20,7 @@ public class SuscripcionPlataforma : Suscripcion, IPerteneceAOrganizacion
         var inicio = InicioDeCiclo(ahora);
         return new SuscripcionPlataforma
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             OrganizacionId = organizacionId,
             PlanId = planPrueba.Id,
             Estado = EstadoSuscripcion.Activa,

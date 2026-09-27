@@ -22,6 +22,8 @@ public class CorreoSaliente
     public DateTimeOffset? ProximoIntentoEn { get; private set; }
     public string? UltimoError { get; private set; }
     public DateTimeOffset? EnviadoEn { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
 
     public CorreoSaliente(
@@ -31,7 +33,7 @@ public class CorreoSaliente
         string asunto,
         DateTimeOffset proximoIntentoEn)
     {
-        Id = Guid.NewGuid();
+        Id = Guid.CreateVersion7();
         Estado = EstadoCorreo.Pendiente;
         Plantilla = plantilla;
         Destinatario = destinatario;
