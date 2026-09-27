@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { ProblemDetailsError, crearCliente } from '@shapi/api';
+import { ErrorApi, crearCliente } from '@shapi/api';
 import { EstadoError } from '@shapi/ui';
 import type { paths } from '@shapi/api/identidad';
 
@@ -17,7 +17,7 @@ export function CerrarSesion() {
         });
         if (!response.ok && response.status !== 401) throw new Error('No se pudo cerrar la sesión');
       } catch (error) {
-        if (!(error instanceof ProblemDetailsError && error.status === 401)) throw error;
+        if (!(error instanceof ErrorApi && error.estado === 401)) throw error;
       }
     },
     onSuccess: async () => {

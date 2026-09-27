@@ -10,7 +10,6 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "generar:api": "node generar.mjs"
   },
   "peerDependencies": {

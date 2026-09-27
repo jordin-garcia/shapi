@@ -84,7 +84,8 @@ describe('RF-01 · A1.1 Registro del proveedor', () => {
     expect(peticiones).toEqual([{ ruta: 'registro', csrf: 'shapi', cuerpo: {
       nombre: 'Ana Lucía Morales', correo: 'ana.morales@enviosxelaju.com', organizacion: 'Envíos Xelajú, S.A.', contrasena: 'ContraValida123',
     } }]);
-  });
+  // Escribe unos 80 caracteres tecla por tecla: con todos los proyectos de Vitest en paralelo pasa de los 5 s por omisión.
+  }, 15_000);
 
   it('RF-01 muestra cada error de validación debajo de su campo', async () => {
     server.use(http.post(`${API}/registro`, () => problema(400, 'datos_invalidos', 'Revise los datos del formulario.', {

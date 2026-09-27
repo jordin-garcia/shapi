@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { crearCliente, ProblemDetailsError } from '@shapi/api';
+import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/identidad';
 
 export const clienteSesion = crearCliente<paths>(window.location.origin);
@@ -34,7 +34,7 @@ export async function consultarSesion({ signal }: { signal?: AbortSignal } = {})
       destino: data.destino,
     };
   } catch (error) {
-    if (error instanceof ProblemDetailsError && error.status === 401) return null;
+    if (error instanceof ErrorApi && error.estado === 401) return null;
     throw error;
   }
 }

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { crearCliente, ProblemDetailsError } from '@shapi/api';
+import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/identidad';
 import { claveSesion, consultarSesion } from '../sesion/useSesion';
 
@@ -24,8 +24,8 @@ export const MENSAJE_SIN_CONEXION = 'No se pudo completar la solicitud. Revise s
 export function interpretarError(error: unknown): ErrorFormulario {
   // Los errores de negocio traen un `codigo` del contrato. Un 5xx, aunque venga como ProblemDetails (el manejador de
   // excepciones de la API responde sin `codigo` y con un título en inglés), es un error del servidor.
-  if (error instanceof ProblemDetailsError && (error.status ?? 0) < 500 && error.details.codigo !== 'error') {
-    return { codigo: error.details.codigo, mensaje: error.details.titulo, errores: error.details.errores ?? {} };
+  if (error instanceof ErrorApi && error.estado < 500 && error.codigo !== 'error') {
+    return { codigo: error.codigo, mensaje: error.titulo, errores: error.errores ?? {} };
   }
   // Red caída, error del servidor o respuesta sin ProblemDetails (por ejemplo, un 502 del borde).
   return { codigo: null, mensaje: MENSAJE_SIN_CONEXION, errores: {} };

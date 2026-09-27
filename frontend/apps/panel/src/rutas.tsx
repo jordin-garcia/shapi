@@ -7,22 +7,22 @@ import { RequiereSesion } from './modulos/sesion/RequiereSesion';
 import { RequiereRol } from './modulos/sesion/RequiereRol';
 import Error404 from './paginas/Error-404';
 
-import { Suspensify, A0Lamina, A0Inicio, A1Registro, A1Verificacion, A1Sesion, A1Recuperacion, A1NuevaContrasena, A2PlanesPlataforma, A2Contratacion, A2CambioPlan, A3Apis, A3Registro, A3Especificacion, A3Rutas, A3ConfigRutas, A3Dominio, A3Portal, A4PlanesApi, A4Miembros, A4Claves, A6PlanesPlataforma, A6Organizaciones, A6Pagos, A6Casos, A6Caso, A6Cuentas, A7Casos, A7Caso, A8Perfil, A8Invitacion, B1Consumo, B1Consumidores, B1Pagos, B1Suscripcion, B1InvitarConsumidores, B3Estado, B3Bitacora } from './paginasDiferidas';
+import { CargaDiferida, A0Lamina, A0Inicio, A1Registro, A1Verificacion, A1Sesion, A1Recuperacion, A1NuevaContrasena, A2PlanesPlataforma, A2Contratacion, A2CambioPlan, A3Apis, A3Registro, A3Especificacion, A3Rutas, A3ConfigRutas, A3Dominio, A3Portal, A4PlanesApi, A4Miembros, A4Claves, A6PlanesPlataforma, A6Organizaciones, A6Pagos, A6Casos, A6Caso, A6Cuentas, A7Casos, A7Caso, A8Perfil, A8Invitacion, B1Consumo, B1Consumidores, B1Pagos, B1Suscripcion, B1InvitarConsumidores, B3Estado, B3Bitacora } from './paginasDiferidas';
 
 export const router = createBrowserRouter([
-  { path: '/_ui', element: <Suspensify><A0Lamina /></Suspensify>, errorElement: <Error404 /> },
+  { path: '/_ui', element: <CargaDiferida><A0Lamina /></CargaDiferida>, errorElement: <Error404 /> },
   {
     path: '/',
     element: <LayoutPublico />,
     errorElement: <Error404 />,
     children: [
-      { index: true, element: <Suspensify><A0Inicio /></Suspensify> },
-      { path: 'registro', element: <Suspensify><A1Registro /></Suspensify> },
-      { path: 'verificar-correo', element: <Suspensify><A1Verificacion /></Suspensify> },
-      { path: 'entrar', element: <Suspensify><A1Sesion /></Suspensify> },
-      { path: 'recuperar', element: <Suspensify><A1Recuperacion /></Suspensify> },
-      { path: 'restablecer', element: <Suspensify><A1NuevaContrasena /></Suspensify> },
-      { path: 'invitacion', element: <Suspensify><A8Invitacion /></Suspensify> }
+      { index: true, element: <CargaDiferida><A0Inicio /></CargaDiferida> },
+      { path: 'registro', element: <CargaDiferida><A1Registro /></CargaDiferida> },
+      { path: 'verificar-correo', element: <CargaDiferida><A1Verificacion /></CargaDiferida> },
+      { path: 'entrar', element: <CargaDiferida><A1Sesion /></CargaDiferida> },
+      { path: 'recuperar', element: <CargaDiferida><A1Recuperacion /></CargaDiferida> },
+      { path: 'restablecer', element: <CargaDiferida><A1NuevaContrasena /></CargaDiferida> },
+      { path: 'invitacion', element: <CargaDiferida><A8Invitacion /></CargaDiferida> }
     ]
   },
   {
@@ -40,41 +40,41 @@ export const router = createBrowserRouter([
         path: 'suscripcion',
         element: <Outlet />,
         children: [
-          { index: true, element: <Suspensify><RequiereRol roles={['propietario', 'lector']}><B1Suscripcion /></RequiereRol></Suspensify> },
-          { path: 'planes', element: <Suspensify><RequiereRol roles={['propietario']}><A2PlanesPlataforma /></RequiereRol></Suspensify> },
-          { path: 'contratar/:plan', element: <Suspensify><RequiereRol roles={['propietario']}><A2Contratacion /></RequiereRol></Suspensify> },
-          { path: 'cambiar/:plan', element: <Suspensify><RequiereRol roles={['propietario']}><A2CambioPlan /></RequiereRol></Suspensify> }
+          { index: true, element: <CargaDiferida><RequiereRol roles={['propietario', 'lector']}><B1Suscripcion /></RequiereRol></CargaDiferida> },
+          { path: 'planes', element: <CargaDiferida><RequiereRol roles={['propietario']}><A2PlanesPlataforma /></RequiereRol></CargaDiferida> },
+          { path: 'contratar/:plan', element: <CargaDiferida><RequiereRol roles={['propietario']}><A2Contratacion /></RequiereRol></CargaDiferida> },
+          { path: 'cambiar/:plan', element: <CargaDiferida><RequiereRol roles={['propietario']}><A2CambioPlan /></RequiereRol></CargaDiferida> }
         ]
       },
       {
         path: 'apis',
         element: <Outlet />,
         children: [
-          { index: true, element: <Suspensify><A3Apis /></Suspensify> },
-          { path: 'nueva', element: <Suspensify><RequiereRol roles={['propietario', 'editor']}><A3Registro /></RequiereRol></Suspensify> },
+          { index: true, element: <CargaDiferida><A3Apis /></CargaDiferida> },
+          { path: 'nueva', element: <CargaDiferida><RequiereRol roles={['propietario', 'editor']}><A3Registro /></RequiereRol></CargaDiferida> },
           {
             path: ':id',
             element: <Outlet />,
             children: [
-              { path: 'especificacion', element: <Suspensify><A3Especificacion /></Suspensify> },
-              { path: 'rutas', element: <Suspensify><A3Rutas /></Suspensify> },
-              { path: 'configuracion-rutas', element: <Suspensify><A3ConfigRutas /></Suspensify> },
-              { path: 'dominios', element: <Suspensify><A3Dominio /></Suspensify> },
-              { path: 'portal', element: <Suspensify><A3Portal /></Suspensify> },
-              { path: 'planes', element: <Suspensify><A4PlanesApi /></Suspensify> },
-              { path: 'claves', element: <Suspensify><A4Claves /></Suspensify> },
-              { path: 'consumo', element: <Suspensify><B1Consumo /></Suspensify> },
-              { path: 'consumidores', element: <Suspensify><B1Consumidores /></Suspensify> },
-              { path: 'consumidores/invitar', element: <Suspensify><RequiereRol roles={['propietario', 'editor']}><B1InvitarConsumidores /></RequiereRol></Suspensify> }
+              { path: 'especificacion', element: <CargaDiferida><A3Especificacion /></CargaDiferida> },
+              { path: 'rutas', element: <CargaDiferida><A3Rutas /></CargaDiferida> },
+              { path: 'configuracion-rutas', element: <CargaDiferida><A3ConfigRutas /></CargaDiferida> },
+              { path: 'dominios', element: <CargaDiferida><A3Dominio /></CargaDiferida> },
+              { path: 'portal', element: <CargaDiferida><A3Portal /></CargaDiferida> },
+              { path: 'planes', element: <CargaDiferida><A4PlanesApi /></CargaDiferida> },
+              { path: 'claves', element: <CargaDiferida><A4Claves /></CargaDiferida> },
+              { path: 'consumo', element: <CargaDiferida><B1Consumo /></CargaDiferida> },
+              { path: 'consumidores', element: <CargaDiferida><B1Consumidores /></CargaDiferida> },
+              { path: 'consumidores/invitar', element: <CargaDiferida><RequiereRol roles={['propietario', 'editor']}><B1InvitarConsumidores /></RequiereRol></CargaDiferida> }
             ]
           }
         ]
       },
-      { path: 'miembros', element: <Suspensify><RequiereRol roles={['propietario']}><A4Miembros /></RequiereRol></Suspensify> },
-      { path: 'pagos', element: <Suspensify><RequiereRol roles={['propietario', 'lector']}><B1Pagos /></RequiereRol></Suspensify> },
-      { path: 'soporte', element: <Suspensify><A7Casos /></Suspensify> },
-      { path: 'soporte/:numero', element: <Suspensify><A7Caso /></Suspensify> },
-      { path: 'perfil', element: <Suspensify><A8Perfil /></Suspensify> }
+      { path: 'miembros', element: <CargaDiferida><RequiereRol roles={['propietario']}><A4Miembros /></RequiereRol></CargaDiferida> },
+      { path: 'pagos', element: <CargaDiferida><RequiereRol roles={['propietario', 'lector']}><B1Pagos /></RequiereRol></CargaDiferida> },
+      { path: 'soporte', element: <CargaDiferida><A7Casos /></CargaDiferida> },
+      { path: 'soporte/:numero', element: <CargaDiferida><A7Caso /></CargaDiferida> },
+      { path: 'perfil', element: <CargaDiferida><A8Perfil /></CargaDiferida> }
     ]
   },
   {
@@ -88,15 +88,15 @@ export const router = createBrowserRouter([
     ),
     errorElement: <Error404 />,
     children: [
-      { path: 'planes', element: <Suspensify><RequiereRol roles={['administrador']}><A6PlanesPlataforma /></RequiereRol></Suspensify> },
-      { path: 'organizaciones', element: <Suspensify><A6Organizaciones /></Suspensify> },
-      { path: 'pagos', element: <Suspensify><RequiereRol roles={['administrador']}><A6Pagos /></RequiereRol></Suspensify> },
-      { path: 'casos', element: <Suspensify><A6Casos /></Suspensify> },
-      { path: 'casos/:numero', element: <Suspensify><A6Caso /></Suspensify> },
-      { path: 'cuentas', element: <Suspensify><RequiereRol roles={['administrador']}><A6Cuentas /></RequiereRol></Suspensify> },
-      { path: 'estado', element: <Suspensify><B3Estado /></Suspensify> },
-      { path: 'bitacora', element: <Suspensify><B3Bitacora /></Suspensify> },
-      { path: 'perfil', element: <Suspensify><A8Perfil /></Suspensify> }
+      { path: 'planes', element: <CargaDiferida><RequiereRol roles={['administrador']}><A6PlanesPlataforma /></RequiereRol></CargaDiferida> },
+      { path: 'organizaciones', element: <CargaDiferida><A6Organizaciones /></CargaDiferida> },
+      { path: 'pagos', element: <CargaDiferida><RequiereRol roles={['administrador']}><A6Pagos /></RequiereRol></CargaDiferida> },
+      { path: 'casos', element: <CargaDiferida><A6Casos /></CargaDiferida> },
+      { path: 'casos/:numero', element: <CargaDiferida><A6Caso /></CargaDiferida> },
+      { path: 'cuentas', element: <CargaDiferida><RequiereRol roles={['administrador']}><A6Cuentas /></RequiereRol></CargaDiferida> },
+      { path: 'estado', element: <CargaDiferida><B3Estado /></CargaDiferida> },
+      { path: 'bitacora', element: <CargaDiferida><B3Bitacora /></CargaDiferida> },
+      { path: 'perfil', element: <CargaDiferida><A8Perfil /></CargaDiferida> }
     ]
   }
 ]);

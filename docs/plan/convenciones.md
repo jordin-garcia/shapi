@@ -113,9 +113,10 @@ Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo 
 - React 19 con TypeScript estricto, Vite, React Router, TanStack Query para los datos y Tailwind 4 con los tokens de `packages/ui`.
 - **Una pantalla por archivo** en `paginas/`, nombrada con su ID del catálogo. Los estados que no tienen mockup propio (cargando, error, sin permiso) se hacen con los componentes base de `packages/ui`.
 - Los datos se piden con el cliente de `packages/api`, que usa los tipos generados desde los contratos. Nunca se escribe `fetch` suelto.
+  - Un error con ProblemDetails llega como `ErrorApi`, con `codigo`, `titulo`, `estado` (el código HTTP) y `errores` por campo: `if (error instanceof ErrorApi && error.codigo === 'limite_del_plan')`.
   - Los tipos de cada módulo se importan como `@shapi/api/<modulo>`, por ejemplo `import type { paths } from '@shapi/api/identidad'`. Un contrato nuevo queda exportado al correr `pnpm generar:api`, sin editar `package.json`.
 - Toda la interfaz está en español y trata al usuario de *usted*. Los textos se copian del mockup.
-- **Pruebas:** Vitest y Testing Library por pantalla. Cada prueba verifica los textos y los datos clave del mockup y usa MSW para simular la API.
+- **Pruebas:** Vitest y Testing Library por pantalla. Cada prueba verifica los textos y los datos clave del mockup y usa MSW para simular la API. Una petición que la prueba no simula es un error (`onUnhandledRequest: 'error'`). Hay una sola configuración, `frontend/vitest.config.ts`, y las pruebas se corren con `pnpm test` desde `frontend/`.
 
 ## 8. Pruebas
 

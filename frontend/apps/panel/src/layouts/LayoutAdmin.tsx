@@ -4,9 +4,9 @@ import { useSesion } from '../modulos/sesion/useSesion';
 
 export function LayoutAdmin() {
   const { data } = useSesion();
-  const isAdmin = data?.rol === 'administrador';
+  const esAdministrador = data?.rol === 'administrador';
 
-  const navItem = ({ isActive }: { isActive: boolean }) =>
+  const claseEnlace = ({ isActive }: { isActive: boolean }) =>
     `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[#7FA6FF] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
 
   return (
@@ -27,13 +27,13 @@ export function LayoutAdmin() {
       <div className="flex-1 flex min-h-0">
         <nav className="w-[272px] shrink-0 bg-[#060910] border-r border-[#131B2B] p-6 pb-5 flex flex-col justify-between">
           <div className="flex flex-col gap-5">
-            {isAdmin && (
+            {esAdministrador && (
               <div className="flex flex-col gap-2">
                 <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">Plataforma</span>
                 <div className="flex flex-col gap-[1px]">
-                  <NavLink to="/admin/planes" className={navItem}>Planes de plataforma</NavLink>
-                  <NavLink to="/admin/organizaciones" className={navItem}>Organizaciones</NavLink>
-                  <NavLink to="/admin/pagos" className={navItem}>Pagos</NavLink>
+                  <NavLink to="/admin/planes" className={claseEnlace}>Planes de plataforma</NavLink>
+                  <NavLink to="/admin/organizaciones" className={claseEnlace}>Organizaciones</NavLink>
+                  <NavLink to="/admin/pagos" className={claseEnlace}>Pagos</NavLink>
                 </div>
               </div>
             )}
@@ -41,16 +41,16 @@ export function LayoutAdmin() {
             <div className="flex flex-col gap-2">
               <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">Soporte</span>
               <div className="flex flex-col gap-[1px]">
-                <NavLink to="/admin/casos" className={navItem}>Casos</NavLink>
+                <NavLink to="/admin/casos" className={claseEnlace}>Casos</NavLink>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">Sistema</span>
               <div className="flex flex-col gap-[1px]">
-                <NavLink to="/admin/estado" className={navItem}>Estado de los componentes</NavLink>
-                <NavLink to="/admin/bitacora" className={navItem}>Bitácora de acciones</NavLink>
-                {isAdmin && <NavLink to="/admin/cuentas" className={navItem}>Cuentas de plataforma</NavLink>}
+                <NavLink to="/admin/estado" className={claseEnlace}>Estado de los componentes</NavLink>
+                <NavLink to="/admin/bitacora" className={claseEnlace}>Bitácora de acciones</NavLink>
+                {esAdministrador && <NavLink to="/admin/cuentas" className={claseEnlace}>Cuentas de plataforma</NavLink>}
               </div>
             </div>
           </div>
