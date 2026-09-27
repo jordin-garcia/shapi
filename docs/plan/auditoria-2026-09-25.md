@@ -203,12 +203,15 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 8 · [JZ-01] Infraestructura local
 
-- [ ] **H-68** Que Compose lea el `.env` de la raíz (con `--env-file .env` en los comandos o de otra forma) y actualizar el manual y `instalacion.md`.
-- [ ] **H-69** Hacer configurable el puerto de PostgreSQL con `${SHAPI_POSTGRES_PUERTO:-5432}` y agregar `SHAPI_SECRETO_ORIGEN_ENVIOS` y `SHAPI_SECRETO_ORIGEN_AGRO` a `.env.example`.
-- [ ] **H-70** Fijar la versión de Mailpit (`v1.27`, igual que en las pruebas) en lugar de `latest`.
-- [ ] **H-71** Publicar los puertos solo en `127.0.0.1`.
-- [ ] **H-72** Agregar *healthchecks* a `origen-envios` y `origen-agro` e incluirlos en `infra/verificar.mjs`.
-- [ ] **H-73** Agregar un `.dockerignore` en la raíz y `.shapi/` al `.gitignore`.
+- [x] **H-68** Que Compose lea el `.env` de la raíz (con `--env-file .env` en los comandos o de otra forma) y actualizar el manual y `instalacion.md`.
+  - **Decidido por Jordin (27 sep):** `--env-file .env` en todos los comandos. Se descartó `include` con `env_file`, porque el `compose.prod.yml` de JZ-06 no vería el `.env` y el proyecto dejaría de llamarse `shapi`.
+- [x] **H-69** Hacer configurable el puerto de PostgreSQL con `${SHAPI_POSTGRES_PUERTO:-5432}` y agregar `SHAPI_SECRETO_ORIGEN_ENVIOS` y `SHAPI_SECRETO_ORIGEN_AGRO` a `.env.example`.
+- [x] **H-70** Fijar la versión de Mailpit (`v1.27`, igual que en las pruebas) en lugar de `latest`.
+- [x] **H-71** Publicar los puertos solo en `127.0.0.1`.
+  - **Decidido por Jordin (27 sep):** todos, incluidos el 80 y el 443 de Caddy, porque `*.shapi.localhost` solo resuelve a la propia máquina.
+- [x] **H-72** Agregar *healthchecks* a `origen-envios` y `origen-agro` e incluirlos en `infra/verificar.mjs`.
+  - **Decidido por Jordin (27 sep):** se instala `curl` en la imagen de los orígenes. El *healthcheck* manda `X-Shapi-Secreto`, porque `/salud` lo exige cuando hay secreto.
+- [x] **H-73** Agregar un `.dockerignore` en la raíz y `.shapi/` al `.gitignore`.
 
 ## Paso 9 · [JZ-02] Orígenes de demostración
 

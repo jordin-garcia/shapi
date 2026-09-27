@@ -30,7 +30,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 | Qué | Comando |
 |---|---|
 | Tareas | `node scripts/tareas.mjs --persona <clave>` · `--ver <ID>` · `--validar` |
-| Infraestructura local | `docker compose -f infra/compose.yml up -d` · `docker compose -f infra/compose.yml down` |
+| Infraestructura local | `docker compose --env-file .env -f infra/compose.yml up -d` · `docker compose --env-file .env -f infra/compose.yml down` |
 | Backend: compilar | `dotnet build Shapi.slnx` |
 | Backend: pruebas | `dotnet test Shapi.slnx` (usa Docker por Testcontainers) |
 | Backend: formato | `dotnet format Shapi.slnx --verify-no-changes` (para corregir: sin `--verify-no-changes`) |

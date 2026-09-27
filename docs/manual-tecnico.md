@@ -20,17 +20,26 @@ En Linux o macOS, use `cp .env.example .env`. Los valores incluidos son solo par
 desarrollo local. No confirme el archivo `.env` ni use estas credenciales en otro
 ambiente.
 
+Todos los comandos de Compose pasan `--env-file .env`. Sin esa opción, Compose
+busca el `.env` en `infra/`, la carpeta de `compose.yml`, e ignora el de la raíz.
+Si falta el `.env`, Compose se detiene con `couldn't find env file`.
+
+Si otro PostgreSQL ya ocupa el puerto 5432 del equipo, cambie
+`SHAPI_POSTGRES_PUERTO` (por ejemplo, a `5433`) y ponga el mismo número en
+`Port=` de `SHAPI_POSTGRES_CADENA`.
+
 ### Levantar y verificar la infraestructura
 
 Desde la raíz del repositorio, ejecute:
 
 ```bash
-docker compose -f infra/compose.yml up -d
+docker compose --env-file .env -f infra/compose.yml up -d
 node infra/verificar.mjs
 ```
 
-El primer comando inicia PostgreSQL, Redis, Mailpit y Caddy. El segundo valida la
-configuración, la salud de los cuatro contenedores, HTTPS, las cabeceras de
+El primer comando inicia PostgreSQL, Redis, Mailpit, Caddy y los dos orígenes de
+demostración. El segundo valida la configuración, la salud de los seis
+contenedores, que solo publiquen puertos en `127.0.0.1`, HTTPS, las cabeceras de
 seguridad y la bandeja de correo. Ejecute la verificación antes de iniciar .NET o
 Vite: el verificador ocupa temporalmente los puertos 5080, 5090, 5173 y 5174 y
 fallará con `EADDRINUSE` si alguno ya está en uso.
@@ -68,7 +77,7 @@ levantar el entorno por primera vez, importe la raíz una sola vez.
 En Windows PowerShell:
 
 ```powershell
-docker compose -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt .\caddy-root.crt
+docker compose --env-file .env -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt .\caddy-root.crt
 Import-Certificate -FilePath .\caddy-root.crt -CertStoreLocation Cert:\CurrentUser\Root
 Remove-Item .\caddy-root.crt
 ```
@@ -79,7 +88,7 @@ Chrome y Edge usan el almacén de certificados de Windows. En Firefox, active
 En Linux:
 
 ```bash
-docker compose -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+docker compose --env-file .env -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
 sudo cp caddy-root.crt /usr/local/share/ca-certificates/caddy-shapi.crt
 sudo update-ca-certificates
 sudo apt install -y libnss3-tools
@@ -101,26 +110,31 @@ abre Mailpit con un certificado confiable.
 | Compuerta | `http://localhost:5090` | `https://{sub}.api.shapi.localhost` |
 | Panel | `http://localhost:5173` | `https://shapi.localhost` |
 | Portal | `http://localhost:5174` | `https://{sub}.shapi.localhost` |
-| PostgreSQL | `localhost:5432` | — |
+| PostgreSQL | `localhost:5432` (o `SHAPI_POSTGRES_PUERTO`) | — |
 | Redis | `localhost:6379` | — |
 | Mailpit SMTP | `localhost:1025` | — |
 | Mailpit web | `http://localhost:8025` | `https://correo.shapi.localhost` |
 | Origen Envíos | `http://localhost:5101` | Mediante la compuerta |
 | Origen Agro | `http://localhost:5102` | Mediante la compuerta |
 
+Todos los puertos de la tabla que publica Compose se abren solo en `127.0.0.1`:
+el entorno no queda expuesto a la red local. Los dominios `*.shapi.localhost`
+resuelven siempre a la propia máquina, así que desde otro equipo no se usarían
+de todos modos.
+
 ### Apagar o reiniciar
 
 Detenga los contenedores sin perder los datos:
 
 ```bash
-docker compose -f infra/compose.yml down
+docker compose --env-file .env -f infra/compose.yml down
 ```
 
-Para reiniciar, ejecute `down` y luego `docker compose -f infra/compose.yml up -d`.
+Para reiniciar, ejecute `down` y luego `docker compose --env-file .env -f infra/compose.yml up -d`.
 Si necesita borrar también PostgreSQL, Redis y los certificados locales, ejecute:
 
 ```bash
-docker compose -f infra/compose.yml down -v
+docker compose --env-file .env -f infra/compose.yml down -v
 ```
 
 Después de `down -v` deberá volver a importar la raíz de Caddy.

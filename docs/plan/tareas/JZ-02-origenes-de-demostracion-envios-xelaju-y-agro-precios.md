@@ -46,7 +46,7 @@ Todos estos comandos deben pasar, además de los generales del protocolo (B7):
 dotnet build Shapi.slnx
 dotnet test Shapi.slnx
 dotnet format Shapi.slnx --verify-no-changes
-docker compose -f infra/compose.yml up -d --build origen-envios origen-agro
+docker compose --env-file .env -f infra/compose.yml up -d --build origen-envios origen-agro
 curl http://localhost:5101/salud
 ```
 

@@ -1,0 +1,28 @@
+# Contexto de construcción de las imágenes, que es la raíz del repositorio (infra/compose.yml).
+# Deja fuera los artefactos locales, los secretos y lo que no se compila.
+
+# Git y herramientas locales
+.git/
+.github/
+.claude/
+.gemini/
+.playwright-mcp/
+.vs/
+.idea/
+
+# Compilaciones y dependencias
+**/bin/
+**/obj/
+**/TestResults/
+**/node_modules/
+**/dist/
+**/coverage/
+
+# Secretos y datos locales (.shapi/ guarda las llaves de Data Protection, SHAPI_DPKEYS_DIR)
+.env
+.env.*
+!.env.example
+.shapi/
+
+# Mockups
+mockups/

@@ -51,7 +51,7 @@ dotnet format Shapi.slnx --verify-no-changes
 ```
 
 Verificación manual con el entorno levantado:
-- Con JZ-01 y JZ-02 terminadas: `docker compose -f infra/compose.yml up -d`, `dotnet run --project src/Shapi.Compuerta -- sembrar-demo` y `dotnet run --project src/Shapi.Compuerta`
+- Con JZ-01 y JZ-02 terminadas: `docker compose --env-file .env -f infra/compose.yml up -d`, `dotnet run --project src/Shapi.Compuerta -- sembrar-demo` y `dotnet run --project src/Shapi.Compuerta`
 - `curl -X POST -H "X-Api-Key: shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e" -H "Content-Type: application/json" -d '{"origen":"0901","destino":"0301","peso_kg":2.5}' https://envios.api.shapi.localhost/cotizaciones` → 200 del origen
 - La misma petición con una clave inválida → 401 JSON. Si JZ-01 todavía no está, prueba contra `http://localhost:5090` con la cabecera `Host: envios.api.shapi.localhost`
 
