@@ -253,28 +253,31 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 12 · [DC-01] Sistema de diseño
 
-- [ ] **H-85** Quitar `@fontsource/instrument-sans`, que no se usa.
-- [ ] **H-86** Tokens completos según 11 §1:
+- [x] **H-85** Quitar `@fontsource/instrument-sans`, que no se usa.
+- [x] **H-86** Tokens completos según 11 §1:
   - escala de espaciado y escala tipográfica (32, 22, 16, 15, 12 y 11);
   - tema oscuro sin valores inventados;
   - los tonos base `--correcto-base` (`#1F8A5B`) y `--alerta-base` (`#C2481F`) de 11 §1 (decisión del 26 sep), y `/_ui` con las muestras de la lámina;
   - sin la paleta por defecto de Tailwind (quitar `hover:bg-gray-50`).
-- [ ] **H-87** Medidas de `/_ui` y de los componentes según la lámina:
+  - **Decidido por Jordin (27 sep):** el tema oscuro solo redefine los valores de la columna oscura de 11 §1, y los demás tokens heredan el claro. Si el paso 13 (H-98) necesita más colores oscuros, se toman de los mockups y se agregan a 11 §1.
+- [x] **H-87** Medidas de `/_ui` y de los componentes según la lámina:
   - logotipo;
   - tabla: peso, borde y relleno;
   - campo: 48 px de alto, 15 px de texto, anillo de foco y texto guía;
   - botón: texto de 15 px;
   - tarjeta: relleno de 20 px;
   - descripciones de las muestras de color.
-- [ ] **H-88** Accesibilidad:
+- [x] **H-88** Accesibilidad:
   - `Campo`: `aria-invalid`, `aria-describedby` y etiqueta propia;
   - `DialogoConfirmacion`: textos y contenido configurables, foco atrapado, cierre con Escape y `aria-labelledby`;
   - `Selector`: `aria-label` e `id`.
-- [ ] **H-89** `EstadoError` y `Aviso` no deben heredar `nowrap`, `uppercase` ni `text-xs`. "Reintentar" debe ser un `Boton` (11 §4).
-- [ ] **H-90** `generar:api` no debe fallar si la carpeta de contratos no existe.
-- [ ] **H-91** MSW con `onUnhandledRequest: 'error'`. Los patrones de Vitest también deben incluir `*.test.ts`. Quitar la configuración duplicada de Vitest.
-- [ ] **H-92** Pruebas de `EstadoCargando`, `EstadoError` y `EstadoSinPermiso`, y de la paleta y los estados en `/_ui`.
-- [ ] **H-93** Identificadores y comentarios en español según el glosario: `isAdmin`, `navItem`, `headers`, `rows`, `options`, `open`, `onClose`, `onConfirm`, `Suspensify`, `ProblemDetailsError` y los comentarios de `style.css`. El portal no debe mostrar "Portal Base".
+  - **Decidido por Jordin (27 sep):** solo se corrige `packages/ui`. `CampoEtiquetado` y `AvisoError` de A1 (EM-03) se quedan; unificarlos le toca a DC-16.
+- [x] **H-89** `EstadoError` y `Aviso` no deben heredar `nowrap`, `uppercase` ni `text-xs`. "Reintentar" debe ser un `Boton` (11 §4).
+- [x] **H-90** `generar:api` no debe fallar si la carpeta de contratos no existe.
+- [x] **H-91** MSW con `onUnhandledRequest: 'error'`. Los patrones de Vitest también deben incluir `*.test.ts`. Quitar la configuración duplicada de Vitest.
+- [x] **H-92** Pruebas de `EstadoCargando`, `EstadoError` y `EstadoSinPermiso`, y de la paleta y los estados en `/_ui`.
+- [x] **H-93** Identificadores y comentarios en español según el glosario: `isAdmin`, `navItem`, `headers`, `rows`, `options`, `open`, `onClose`, `onConfirm`, `Suspensify`, `ProblemDetailsError` y los comentarios de `style.css`. El portal no debe mostrar "Portal Base".
+  - **Decidido por Jordin (27 sep):** `ProblemDetailsError` pasa a ser la clase `ErrorApi`, con `codigo`, `titulo`, `estado` y `errores` como propiedades directas. El portal muestra "El portal todavía no está disponible." hasta DC-03.
 
 ## Paso 13 · [DC-02] Estructura del panel y del sitio público
 

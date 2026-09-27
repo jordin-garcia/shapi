@@ -137,10 +137,11 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     let solicitudes = 0;
     server.use(http.get('http://localhost/api/auth/sesion', () => { solicitudes++; return new HttpResponse(null, { status: 401 }); }));
     await abrir('/_ui');
-    expect(await screen.findByText('Plano azul')).toBeDefined();
+    // La lámina se carga diferida y es la página más pesada: con carga, tarda más que el segundo por omisión.
+    expect(await screen.findByText('Plano azul', {}, { timeout: 5000 })).toBeDefined();
     expect(router.state.location.pathname).toBe('/_ui');
     expect(solicitudes).toBe(0);
-  });
+  }, 10_000);
   it('muestra 404 para una dirección desconocida', async () => {
     await abrir('/pagina-inexistente');
     expect(await screen.findByText('Página no encontrada')).toBeDefined();

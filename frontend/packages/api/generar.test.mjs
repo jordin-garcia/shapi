@@ -21,6 +21,10 @@ describe('RNF-12 · generación por módulo', () => {
   it('admite la carpeta de contratos vacía', async () => {
     await expect(generarContratos(await entorno())).resolves.toEqual([]);
   });
+  it('RNF-12 · H-90 admite que la carpeta de contratos no exista', async () => {
+    const rutas = await entorno();
+    await expect(generarContratos({ contratos: join(rutas.contratos, 'no-existe'), salida: rutas.salida })).resolves.toEqual([]);
+  });
   it('genera cada YAML e ignora README.md', async () => {
     const rutas = await entorno();
     await writeFile(join(rutas.contratos, 'apis.yaml'), contrato('apis'));

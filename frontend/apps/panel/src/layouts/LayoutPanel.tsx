@@ -7,7 +7,7 @@ export function LayoutPanel() {
   const { data } = useSesion();
   const { id } = useParams();
 
-  const navItem = ({ isActive }: { isActive: boolean }) =>
+  const claseEnlace = ({ isActive }: { isActive: boolean }) =>
     `block text-[14px] leading-relaxed px-3 py-[7px] rounded-lg transition-colors ${isActive ? 'bg-[#0E1830] text-[#7FA6FF] font-medium' : 'text-[#B9C4D8] hover:text-[#E8EDF7]'}`;
 
   return (
@@ -30,7 +30,7 @@ export function LayoutPanel() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">Publicación</span>
-              <NavLink to="/panel/apis" end className={navItem}>APIs</NavLink>
+              <NavLink to="/panel/apis" end className={claseEnlace}>APIs</NavLink>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -38,15 +38,15 @@ export function LayoutPanel() {
               <SelectorApi />
               <div className="flex flex-col gap-[1px]">
                 {id ? <>
-                <NavLink to={`/panel/apis/${id}/especificacion`} className={navItem}>Especificación</NavLink>
-                <NavLink to={`/panel/apis/${id}/rutas`} className={navItem}>Rutas expuestas</NavLink>
-                <NavLink to={`/panel/apis/${id}/configuracion-rutas`} className={navItem}>Configuración por ruta</NavLink>
-                <NavLink to={`/panel/apis/${id}/dominios`} className={navItem}>Dominios</NavLink>
-                <NavLink to={`/panel/apis/${id}/portal`} className={navItem}>Portal</NavLink>
-                <NavLink to={`/panel/apis/${id}/planes`} className={navItem}>Planes</NavLink>
-                <NavLink to={`/panel/apis/${id}/claves`} className={navItem}>Claves</NavLink>
-                <NavLink to={`/panel/apis/${id}/consumo`} className={navItem}>Consumo</NavLink>
-                <NavLink to={`/panel/apis/${id}/consumidores`} className={navItem}>Consumidores</NavLink>
+                <NavLink to={`/panel/apis/${id}/especificacion`} className={claseEnlace}>Especificación</NavLink>
+                <NavLink to={`/panel/apis/${id}/rutas`} className={claseEnlace}>Rutas expuestas</NavLink>
+                <NavLink to={`/panel/apis/${id}/configuracion-rutas`} className={claseEnlace}>Configuración por ruta</NavLink>
+                <NavLink to={`/panel/apis/${id}/dominios`} className={claseEnlace}>Dominios</NavLink>
+                <NavLink to={`/panel/apis/${id}/portal`} className={claseEnlace}>Portal</NavLink>
+                <NavLink to={`/panel/apis/${id}/planes`} className={claseEnlace}>Planes</NavLink>
+                <NavLink to={`/panel/apis/${id}/claves`} className={claseEnlace}>Claves</NavLink>
+                <NavLink to={`/panel/apis/${id}/consumo`} className={claseEnlace}>Consumo</NavLink>
+                <NavLink to={`/panel/apis/${id}/consumidores`} className={claseEnlace}>Consumidores</NavLink>
                 </> : <span className="px-3 text-sm text-[#8B98B0]">Seleccione una API para ver sus opciones</span>}
               </div>
             </div>
@@ -54,10 +54,10 @@ export function LayoutPanel() {
             <div className="flex flex-col gap-2">
               <span className="text-[11px] tracking-[.14em] uppercase text-[#7F8DA8] font-semibold px-3 leading-snug">Organización</span>
               <div className="flex flex-col gap-[1px]">
-                {data?.rol === 'propietario' && <NavLink to="/panel/miembros" className={navItem}>Miembros y roles</NavLink>}
-                {data?.rol !== 'editor' && <NavLink to="/panel/suscripcion" className={navItem}>Suscripción de plataforma</NavLink>}
-                {data?.rol !== 'editor' && <NavLink to="/panel/pagos" className={navItem}>Historial de pagos</NavLink>}
-                <NavLink to="/panel/soporte" className={navItem}>Casos de soporte</NavLink>
+                {data?.rol === 'propietario' && <NavLink to="/panel/miembros" className={claseEnlace}>Miembros y roles</NavLink>}
+                {data?.rol !== 'editor' && <NavLink to="/panel/suscripcion" className={claseEnlace}>Suscripción de plataforma</NavLink>}
+                {data?.rol !== 'editor' && <NavLink to="/panel/pagos" className={claseEnlace}>Historial de pagos</NavLink>}
+                <NavLink to="/panel/soporte" className={claseEnlace}>Casos de soporte</NavLink>
               </div>
             </div>
           </div>

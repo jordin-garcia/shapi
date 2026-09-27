@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { crearCliente, ProblemDetailsError } from '@shapi/api';
+import { crearCliente, ErrorApi } from '@shapi/api';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import { EstadoCargando, EstadoError } from '@shapi/ui';
 import type { paths } from '@shapi/api/apis';
@@ -19,7 +19,7 @@ export function SelectorApi() {
         if (!response.ok || !data) throw new Error('No se pudieron cargar las APIs');
         return data;
       } catch (error) {
-        if (error instanceof ProblemDetailsError && [404, 501].includes(error.status ?? 0)) return { elementos: [] };
+        if (error instanceof ErrorApi && [404, 501].includes(error.estado)) return { elementos: [] };
         throw error;
       }
     },

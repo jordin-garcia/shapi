@@ -315,3 +315,34 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Emilio:** se cerró tu tarea EM-17 (archivo y `## Resultado`). Si cambias `identidad.yaml`, corre `pnpm generar:api` en el mismo PR: el *typecheck* del panel detecta si la sesión deja de coincidir.
   - **Todos:** para los tipos de un módulo, usen `import type { paths } from '@shapi/api/<modulo>'` (convenciones §7). Un contrato nuevo no requiere tocar `package.json`.
 
+
+## 2026-09-27 · DC-01 · Correcciones de la auditoría: sistema de diseño
+- Hecho: paso 12 de `docs/plan/auditoria-2026-09-25.md` (H-85 a H-93).
+  - Los tokens son los de 11 §1, con los tonos base de estado y las escalas tipográfica y de espaciado. El tema oscuro no tiene valores inventados y ya no está la paleta por defecto de Tailwind.
+  - `.dark` ahora sí cambia los colores: antes no hacía nada, porque Tailwind resolvía los `--color-*` en `:root`. Los colores van en `@theme inline`.
+  - El campo, el botón, la tarjeta, la tabla y `/_ui` tienen las medidas de la lámina.
+  - `Campo`, `DialogoConfirmacion` y `Selector` son accesibles. `Aviso` y `EstadoError` ya no heredan el formato de las etiquetas, y "Reintentar" es un `Boton`.
+  - `generar:api` funciona sin la carpeta de contratos. MSW falla ante una petición sin simular, y queda una sola configuración de Vitest.
+  - Los identificadores están en español: `ErrorApi`, `encabezados` y `filas`, `opciones`, `abierto`/`cerrar`/`confirmar`, `CargaDiferida`, `esAdministrador` y `claseEnlace`.
+  - Se quitó `@fontsource/instrument-sans`.
+  - Hay 28 casos de prueba más (el frontend pasó de 134 a 162).
+- Decisiones (de Jordin, 27 sep):
+  - H-86: el tema oscuro solo tiene los valores de 11 §1; los demás tokens heredan el claro.
+  - H-93: `ErrorApi` es una clase con las propiedades directas, y el portal muestra un texto neutro hasta DC-03.
+  - H-88 y H-89: solo cambia `packages/ui`. Los envoltorios de A1 se quedan hasta DC-16.
+- Pendiente o aviso para otros:
+  - **Dominique:** se modificaron tus archivos:
+    - `packages/ui/src/` (`style.css`, `index.tsx` y sus pruebas), `packages/api/` (`index.ts`, `generar.mjs` y sus pruebas) y los `package.json` de los paquetes y las apps (sin el script `test`);
+    - `frontend/package.json`, el lockfile, `vitest.config.ts` y `test/servidor.ts`; se borró `apps/panel/vitest.config.ts`;
+    - `layouts/LayoutAdmin.tsx`, `layouts/LayoutPanel.tsx`, `rutas.tsx`, `paginasDiferidas.tsx`, `modulos/apis/SelectorApi.tsx`, `modulos/sesion/` y `paginas/_UI.tsx` con su prueba;
+    - `apps/portal/src/main.tsx`; se agregaron `App.tsx` y su prueba.
+    - `tests/rutas.test.tsx`: la prueba de `/_ui` tiene 10 s de límite y espera hasta 5 s a la lámina, que se carga diferida y con todos los proyectos en paralelo tardaba más de 1 s.
+
+    **DC-02, DC-03 y DC-15:** todo lo que va bajo `.dark` ya toma los colores oscuros de 11 §1.
+
+    Actualiza tu rama desde `main`. **DC-03:** reemplaza `apps/portal/src/App.tsx` por la estructura del portal. **DC-04 y siguientes:** usa `Tabla` con `encabezados` y `filas`, `Selector` con `opciones` (`etiqueta` y `valor`), `DialogoConfirmacion` con `abierto`, `cerrar` y `confirmar`, y `Campo` con `etiqueta`.
+  - **Emilio:** en `modulos/identidad/useIdentidad.ts` (EM-03), `ProblemDetailsError` pasó a ser `ErrorApi`: `error.details.codigo` ahora es `error.codigo`, y `error.status` ahora es `error.estado`. Actualiza desde `main` cualquier rama que tengas abierta. También cambió igual en `modulos/sesion/useSesion.ts` y `CerrarSesion.tsx`, que tocaste en EM-03 y EM-17. En `tests/Identidad.test.tsx`, "RF-01 registra con CSRF…" tiene 15 s de límite: escribe unos 80 caracteres y con carga pasaba de los 5 s. Las aserciones no cambiaron.
+  - **Todos:**
+    - Los errores de la API llegan como `ErrorApi` (convenciones §7).
+    - Una petición que la prueba no simula con MSW ahora falla la prueba.
+    - Los colores van con los tokens (`text-correcto-base`, `bg-panel`…); `gray-*`, `red-*` y el resto de la paleta de Tailwind ya no existen.

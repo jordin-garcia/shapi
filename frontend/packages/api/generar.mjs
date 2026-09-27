@@ -7,7 +7,12 @@ export async function generarContratos({
   contratos = fileURLToPath(new URL('../../../contratos/openapi/', import.meta.url)),
   salida = fileURLToPath(new URL('./src/generado/', import.meta.url)),
 } = {}) {
-  const archivos = (await readdir(contratos, { withFileTypes: true }))
+  // Si la carpeta de contratos no existe todavía, no hay nada que generar.
+  const entradas = await readdir(contratos, { withFileTypes: true }).catch(error => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
+  const archivos = entradas
     .filter(archivo => archivo.isFile() && archivo.name.endsWith('.yaml'))
     .map(archivo => archivo.name).sort();
   const generados = [];
