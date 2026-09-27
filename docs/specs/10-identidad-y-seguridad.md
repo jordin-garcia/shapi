@@ -43,7 +43,7 @@ Los enlaces enviados por correo llevan a la pantalla del ámbito de la cuenta. P
 |---|---|---|
 | Contraseña | PBKDF2 (Identity v3) | Nunca |
 | Clave de API | SHA-256 en hex + prefijo + últimos 4 | Completa **una sola vez**. Después, `shp_prod_••••7c2e` |
-| Token de correo y sesión | SHA-256 | Nunca (solo viaja en el enlace o en la cookie) |
+| Token de correo y sesión | SHA-256. El token de un correo va además en claro en `correo_saliente.datos` solo mientras el correo está `pendiente`, y se borra al quedar `enviado` o `fallido` | Nunca (solo viaja en el enlace o en la cookie) |
 | Secreto de origen | Cifrado con **ASP.NET Data Protection**. El anillo de llaves persiste en el volumen `dpkeys`, compartido por la API y el trabajador. En Redis va en claro, porque Redis solo es accesible desde la red interna | Completo **una sola vez**, al generarlo o regenerarlo |
 | Tarjeta | Solo el token de la pasarela, la marca, los últimos 4, el titular y el vencimiento | La marca y los últimos 4 |
 | Credenciales de infraestructura | Variables de entorno en `.env`, que no se versiona. En el repositorio va un `.env.example` | — |
@@ -84,7 +84,13 @@ Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan co
 | `aviso_cuota_plataforma` | Propietario | Al cruzar el 80 % y el 100 % de la cuota |
 | `respuesta_caso` | La otra parte del caso | Mensaje nuevo en un caso |
 
-**Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`.
+**Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`. Un error al armar el correo, por ejemplo un `hostPortal` inválido, también cuenta como intento fallido.
+
+**Varios trabajadores:** cada correo se toma en su propia transacción con `SELECT … FOR UPDATE SKIP LOCKED`, así que dos trabajadores nunca envían el mismo correo. En cuanto el servidor SMTP acepta el mensaje, el correo se guarda como `enviado`, aunque falle el cierre de la sesión (`QUIT`) o el trabajador se esté deteniendo.
+
+**Enlaces de un portal:** si los `datos` traen `hostPortal`, debe ser `{sub}.{dominio_base}`, con una sola etiqueta ASCII que no sea un subdominio reservado ([06 §4](06-arquitectura.md#4-hosts-y-enrutamiento-en-el-borde)).
+
+**Cifrado:** con `SHAPI_SMTP_TLS=true`, el cifrado es obligatorio: SMTPS implícito si `SHAPI_SMTP_PUERTO` es 465, y STARTTLS en cualquier otro puerto. Si el servidor no ofrece STARTTLS, el envío falla y nunca sale en texto plano. Con `false` no se cifra, como en Mailpit.
 
 Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4).
 

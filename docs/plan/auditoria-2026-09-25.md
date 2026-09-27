@@ -186,13 +186,16 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 7 · [JZ-03] Envío de correos
 
-- [ ] **H-61** Tomar los correos pendientes con `FOR UPDATE SKIP LOCKED` para que dos trabajadores no envíen el mismo correo. Incluye una prueba con dos procesadores.
-- [ ] **H-62** Quitar el `token` de `correo_saliente.datos` cuando el correo pasa a `enviado` o `fallido` (10 §3 y §8).
-- [ ] **H-63** Marcar el correo `enviado` en cuanto `SendAsync` termina. Ignorar los errores del `QUIT` y guardar con `CancellationToken.None`, para no reenviar.
-- [ ] **H-64** Usar `SecureSocketOptions.Auto` para aceptar SMTPS implícito.
-- [ ] **H-65** `hostPortal` debe rechazar los subdominios reservados de 06 §4.
-- [ ] **H-66** Agregar un índice por `(estado, proximo_intento_en)` y la columna `creado_en` en `correo_saliente`. Se coordina con H-37.
-- [ ] **H-67** Pruebas faltantes:
+- [x] **H-61** Tomar los correos pendientes con `FOR UPDATE SKIP LOCKED` para que dos trabajadores no envíen el mismo correo. Incluye una prueba con dos procesadores.
+  - **Decidido por Jordin (26 sep):** una transacción por correo. El bloqueo dura solo el envío (el tiempo de espera de SMTP es de 5 s). Si el proceso muere después de enviar y antes de confirmar, el correo se reenvía: la entrega es "al menos una vez".
+- [x] **H-62** Quitar el `token` de `correo_saliente.datos` cuando el correo pasa a `enviado` o `fallido` (10 §3 y §8).
+- [x] **H-63** Marcar el correo `enviado` en cuanto `SendAsync` termina. Ignorar los errores del `QUIT` y guardar con `CancellationToken.None`, para no reenviar.
+- [x] **H-64** Usar `SecureSocketOptions.Auto` para aceptar SMTPS implícito.
+  - **Decidido por Jordin (26 sep):** no se usa `Auto`, porque con `SHAPI_SMTP_TLS=true` enviaría en claro si el servidor no ofrece STARTTLS. El cifrado es obligatorio: SMTPS implícito (`SslOnConnect`) en el puerto 465 y STARTTLS en los demás. Así se precisó en 10 §6.
+- [x] **H-65** `hostPortal` debe rechazar los subdominios reservados de 06 §4.
+  - **Decidido por Jordin (26 sep):** la lista va en `Shapi.Dominio/Apis/SubdominiosReservados.cs`, como única definición, para que DC-04 la reutilice.
+- [x] **H-66** Agregar un índice por `(estado, proximo_intento_en)` y la columna `creado_en` en `correo_saliente`. Se coordina con H-37. (`creado_en` ya se agregó en el paso 5 con H-37; aquí se agregó el índice.)
+- [x] **H-67** Pruebas faltantes:
   - los 6 intentos hasta `fallido` en el procesador;
   - un `hostPortal` inválido cuenta como intento;
   - el cuerpo entregado (enlace, HTML escapado y parte de texto);

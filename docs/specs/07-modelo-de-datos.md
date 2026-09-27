@@ -694,7 +694,7 @@ UNIQUE **`NULLS NOT DISTINCT`** `(fecha, api_id, ruta_id, suscripcion_id, entorn
 
 La bitácora solo admite inserciones: dos disparadores rechazan cualquier UPDATE, DELETE o TRUNCATE sobre `bitacora`, con el mensaje "La bitácora solo admite inserciones: no se permite <operación>.". La aplicación y las migraciones usan el mismo rol de base de datos (decisión de Jordin del 26 sep, auditoría H-40). Por eso los disparadores protegen contra errores de la aplicación, pero no contra alguien con acceso de dueño a la base.
 
-**`correo_saliente`**: `id uuid PK`, `destinatario text`, `asunto text`, `plantilla text`, `datos jsonb`, `estado CHECK IN ('pendiente','enviado','fallido')`, `intentos int`, `proximo_intento_en timestamptz`, `ultimo_error text`, `enviado_en timestamptz`.
+**`correo_saliente`**: `id uuid PK`, `destinatario text`, `asunto text`, `plantilla text`, `datos jsonb`, `estado CHECK IN ('pendiente','enviado','fallido')`, `intentos int`, `proximo_intento_en timestamptz`, `ultimo_error text`, `enviado_en timestamptz`, `creado_en`, `actualizado_en`. Índice: `(estado, proximo_intento_en)`, para la búsqueda de pendientes que el trabajador hace cada 5 segundos. Mientras el correo está `pendiente`, `datos` puede llevar el `token` en claro, porque hace falta para armar el enlace. Al pasar a `enviado` o `fallido`, el `token` se borra de `datos` ([10 §3](10-identidad-y-seguridad.md#3-secretos-y-datos-sensibles)).
 
 ## 4. Estructura de las llaves en Redis
 
