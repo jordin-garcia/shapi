@@ -165,3 +165,18 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - el prefijo de los encabezados aceptaba saltos de línea, así que la propia línea "CORRECCIÓN (…)" contaba como un hallazgo.
 
   Ahora los encabezados se buscan en MAYÚSCULAS (con "(", ":", un guion o el fin de línea después) y el prefijo solo acepta espacios y marcas de Markdown. Un hallazgo en la misma línea del encabezado también cuenta, y el veredicto se acepta como `VEREDICTO:` o `Veredicto:`. También se aceptan los encabezados con mayúscula inicial ("Corrección (…):"), y sin una sección de corrección reconocida la revisión cuenta como incompleta: nunca se aprueba y se puede reintentar. La sección que cuenta es el primer encabezado en MAYÚSCULAS antes del veredicto (o, si no hay ninguno, el primero con mayúscula inicial): un "Corrección (…)" en el texto libre no la reemplaza y un segundo encabezado no oculta hallazgos. "Opcional" con mayúscula inicial solo cierra la sección si ocupa toda la línea. Hay una prueba con la estructura real de esa revisión, y se volvieron a comprobar los comentarios de #14, #16, #22, #23 y #24.
+
+### Correcciones de la auditoría (2026-09-27)
+- **Falso positivo en el #30 (H-118).** La revisión decía `CORRECCIÓN: Ninguno` y `VEREDICTO: LISTO`, pero agregó una sección "Comprobado:" con viñetas entre CORRECCIÓN y OPCIONAL. `veredicto-revision.mjs` toma como sección de corrección todo lo que hay hasta OPCIONAL, así que contó esas viñetas como hallazgos. Jordin integró el #30 con `--admin`.
+- **La regla nueva es conservadora.**
+  - Si la sección de corrección empieza con "Ninguno", termina en la siguiente sección que agregue la revisión: un título de Markdown (`### Lo que comprobé`) o una línea corta que no es un elemento de lista y termina en ":".
+  - Con cualquier otro comienzo, todo sigue contando como hallazgo, así que un hallazgo nunca queda oculto bajo un título.
+  - Un "Ninguno" seguido de un hallazgo numerado también falla.
+  - Una línea que menciona la corrección ("### CORRECCIÓN…", "Corrección adicional:") nunca cierra la sección, así que un segundo encabezado de corrección no oculta sus hallazgos.
+  - Las viñetas (`-`, `*`, `+`) y las enumeraciones (`1.`, `a)`) que terminan en ":" siguen siendo hallazgos, no títulos.
+  - Una línea separadora (`---`) no cuenta como hallazgo.
+- **`revision.md`** pide no agregar secciones entre CORRECCIÓN y OPCIONAL, y poner lo comprobado antes de CORRECCIÓN.
+- **Pruebas:** 2 nuevas en `scripts/veredicto-revision.test.mjs`.
+  - Una usa la estructura real del #30, con variantes del título.
+  - La otra comprueba que una sección posterior no oculta hallazgos: ni un hallazgo antes del título, ni un segundo encabezado de corrección, ni una viñeta o una enumeración con letra que termine en ":".
+- **Comprobación con datos reales:** se recalculó el veredicto de todas las revisiones reales de los PR #16 a #30 con el script anterior y con el nuevo. Solo cambia el #30.

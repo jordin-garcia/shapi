@@ -77,6 +77,8 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 - **Decidido por Jordin (26 sep):**
   - Si la revisión no se completa (cuota, caída o tiempo), el check falla y el PR se bloquea hasta reintentarla.
   - Un falso positivo solo lo desbloquea Jordin, con `gh pr merge <n> --admin --squash`.
+- [x] **H-118** (encontrado el 27 sep, en el paso 9) Falso positivo en el #30. La revisión decía `CORRECCIÓN: Ninguno` y `VEREDICTO: LISTO`, pero agregó una sección "Comprobado:" antes de OPCIONAL, y `veredicto-revision.mjs` contó esas líneas como hallazgos. Jordin integró el #30 con `--admin`.
+  - **Decidido por Jordin (27 sep):** corregirlo en un PR aparte. Si la sección de corrección empieza con "Ninguno", una sección posterior deja de contar. Con cualquier otro comienzo todo sigue contando. `revision.md` pide poner lo comprobado antes de CORRECCIÓN.
 
 ## Paso 4 · [JG-01] Coherencia de las especificaciones y del plan
 

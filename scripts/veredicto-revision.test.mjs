@@ -243,3 +243,58 @@ test("revisa otra vez el mismo commit solo si cambió la tarea del título", () 
   assert.equal(decidirRevision([comentario(revision(SHA, CORREGIR))], SHA, "EM-07"), true);
 });
 
+test("«Ninguno» seguido de una sección de lo comprobado no cuenta como hallazgo (PR #30)", () => {
+  // Estructura real de la revisión del #30: después de "Ninguno" vino "Comprobado:" con viñetas, antes de OPCIONAL.
+  const cuerpo = [
+    "REVISIÓN JZ-02",
+    "CORRECCIÓN (obligatorio corregir):",
+    "Ninguno",
+    "",
+    "Comprobado:",
+    "- Criterios de aceptación: CA1 a CA4 tienen pruebas nuevas o reforzadas.",
+    "- Alcance: el autor es jordin-garcia (protocolo §E5).",
+    "",
+    "OPCIONAL (no bloquea):",
+    "1. [origenes-demo/envios-xelaju/Program.cs:37] Un peso_kg enorme desborda decimal.",
+    "",
+    "VEREDICTO: LISTO",
+  ].join("\n");
+  const comentarioReal = `🤖 Revisión automática con Claude\nCommit revisado: ${SHA}\n\n${cuerpo}`;
+  assert.equal(evaluarVeredicto([comentario(comentarioReal)], SHA, "JZ-02").estado, "aprobada");
+  for (const titulo of ["### Lo que comprobé", "**Lo que comprobé y está bien:**", "Comprobaciones hechas, sin problemas:", "---\nComprobado:"]) {
+    const variante = comentarioReal.replace("Comprobado:", titulo);
+    assert.equal(evaluarVeredicto([comentario(variante)], SHA, "JZ-02").estado, "aprobada", titulo);
+  }
+});
+
+test("una sección posterior no oculta hallazgos: solo se ignora si la corrección empieza con «Ninguno»", () => {
+  const base = (correccion) => [
+    "REVISIÓN JZ-02",
+    "CORRECCIÓN (obligatorio corregir):",
+    ...correccion,
+    "",
+    "Comprobado:",
+    "- Todo lo demás está bien.",
+    "",
+    "OPCIONAL (no bloquea):",
+    "Ninguno",
+    "",
+    "VEREDICTO: LISTO",
+  ].join("\n");
+  const casos = [
+    ["1. [a.cs:3] Falta la prueba."],
+    ["El endpoint tiene estos problemas:", "- no valida el cuerpo."],
+    ["Ninguno", "1. [a.cs:3] Pero falta la prueba."],
+    // Un segundo encabezado de corrección después del "Ninguno" no es "lo comprobado": sus hallazgos cuentan.
+    ["Ninguno", "", "### CORRECCIÓN (obligatorio corregir):", "1. [a.cs:3] Falta la prueba."],
+    ["Ninguno", "", "Corrección adicional:", "1. [a.cs:3] Falta la prueba."],
+    // Una viñeta o una enumeración con letra que termina en ":" es un hallazgo, no un título.
+    ["Ninguno", "* Nota:", "1. [a.cs:3] Falta la prueba."],
+    ["Ninguno", "**- Nota:**", "1. [a.cs:3] Falta la prueba."],
+    ["Ninguno", "a) Falta la prueba de RF-28:", "- en a.cs:3."],
+  ];
+  for (const correccion of casos) {
+    const r = evaluarVeredicto([comentario(revision(SHA, base(correccion)))], SHA, "JZ-02");
+    assert.equal(r.estado, "corregir", correccion.join(" / "));
+  }
+});
