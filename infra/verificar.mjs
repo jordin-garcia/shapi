@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import http from "node:http";
 import https from "node:https";
@@ -287,10 +287,18 @@ exigirTexto(
   "docs/manual-tecnico.md",
 );
 
-for (const [contenido, contexto] of [
+// Los documentos con comandos para copiar (H-68). Las bitácoras no se revisan: son historial.
+const rutaTareas = join(raiz, "docs", "plan", "tareas");
+const documentosConComandos = [
   [manual, "docs/manual-tecnico.md"],
   [instalacion, "docs/plan/instalacion.md"],
-]) {
+  [leer(join(raiz, "AGENTS.md")), "AGENTS.md"],
+  [leer(join(raiz, "docs", "plan", "calendario.md")), "docs/plan/calendario.md"],
+  ...readdirSync(rutaTareas)
+    .filter((archivo) => archivo.endsWith(".md"))
+    .map((archivo) => [leer(join(rutaTareas, archivo)), `docs/plan/tareas/${archivo}`]),
+];
+for (const [contenido, contexto] of documentosConComandos) {
   assert.ok(
     !contenido.includes("docker compose -f infra/compose.yml"),
     `${contexto} debe pasar --env-file .env a todos los comandos de Compose`,

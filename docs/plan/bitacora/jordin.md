@@ -240,7 +240,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - Hay `.dockerignore` en la raíz y `.shapi/` en el `.gitignore`.
   - `infra/verificar.mjs` comprueba todo lo anterior.
 - Decisiones (de Jordin, 27 sep):
-  - H-68: `--env-file .env` en los comandos, no `include`.
+  - H-68: `--env-file .env` en los comandos, no `include`. También se actualizaron los comandos de JG-02 (Jordin). `infra/verificar.mjs` revisa que ningún documento de comandos (manual, instalación, `AGENTS.md`, calendario y tareas) omita `--env-file`.
   - H-71: también el 80 y el 443 de Caddy van en `127.0.0.1`.
   - H-72: `curl` en la imagen de los orígenes.
 - Pendiente o aviso para otros:
@@ -248,7 +248,8 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **José Pablo:** se modificaron tus archivos:
     - `infra/compose.yml` e `infra/verificar.mjs`;
     - los `Dockerfile` de `origenes-demo/envios-xelaju` y `origenes-demo/agro-precios` (instalan `curl` para el *healthcheck*);
-    - `.env.example`, `docs/manual-tecnico.md` y el `## Resultado` de JZ-01.
+    - `origenes-demo/OrigenesDemo.Tests/InfraestructuraTests.cs` (JZ-02 CA5 ahora exige los puertos en `127.0.0.1`);
+    - `.env.example`, `docs/manual-tecnico.md`, el `## Resultado` de JZ-01 y los comandos de las tareas JZ-01 y JZ-02, que ahora llevan `--env-file .env`.
 
     Además, se creó `.dockerignore` en la raíz. Actualiza tu rama desde `main`.
-  - **JZ-06:** se precisó el criterio 1 y los comandos llevan `--env-file .env`. Como `compose.yml` publica en `127.0.0.1` los puertos de desarrollo, `compose.prod.yml` debe quitarlos con `ports: !reset []`, porque Compose suma las listas de puertos. Para la API y la compuerta, el *healthcheck* puede seguir el patrón de los orígenes (`curl` en la imagen).
+  - **JZ-06:** se precisó el criterio 1 y los comandos llevan `--env-file .env`. Como `compose.yml` publica en `127.0.0.1` los puertos de desarrollo, `compose.prod.yml` debe quitarlos con `ports: !reset []`, porque Compose suma las listas de puertos. El 80 y el 443 del borde siguen en `127.0.0.1`: `infra/verificar.mjs` lo comprueba. Para la API y la compuerta, el *healthcheck* puede seguir el patrón de los orígenes (`curl` en la imagen).

@@ -23,9 +23,9 @@ coverage/
 
 # Entorno
 .env
-.shapi/
 .env.*
 !.env.example
+.shapi/
 
 # Borradores de Word abiertos
 ~$*.docx

@@ -31,7 +31,7 @@ Levantar con un solo comando PostgreSQL, Redis, Mailpit y el borde Caddy, con HT
 - `docs/manual-tecnico.md` (crear con la sección "Entorno de desarrollo")
 
 ## Criterios de aceptación
-1. `docker compose -f infra/compose.yml up -d` deja todos los servicios *healthy* en Windows y en Linux.
+1. `docker compose --env-file .env -f infra/compose.yml up -d` deja todos los servicios *healthy* en Windows y en Linux.
 2. El Caddyfile de desarrollo usa `local_certs` y enruta según 06 §4: `shapi.localhost` → `/api/*` a `host.docker.internal:5080` y el resto a `:5173` (Vite, con websocket); `*.shapi.localhost` → `/api/portal/*` a `:5080` (conservando el `Host`) y el resto a `:5174`; `*.api.shapi.localhost` → `:5090`; `correo.shapi.localhost` → `mailpit:8025`. Además tiene un sitio comodín `https://` con `tls { on_demand }` hacia `:5090`, y en las opciones globales `on_demand_tls { ask http://host.docker.internal:5080/interno/tls/autorizar }`.
 3. HTTP redirige a HTTPS, y se agregan `Strict-Transport-Security`, `X-Content-Type-Options: nosniff` y `Referrer-Policy: strict-origin-when-cross-origin`. Caddy no publica `/interno/*`.
 4. Después de importar la raíz de Caddy con los pasos de `docs/plan/instalacion.md` §5.1, https://correo.shapi.localhost abre Mailpit con candado. Si algún comando de §5.1 no sirve, corrígelo en ese archivo.
@@ -44,7 +44,7 @@ Levantar con un solo comando PostgreSQL, Redis, Mailpit y el borde Caddy, con HT
 ## Verificación
 Todos estos comandos deben pasar, además de los generales del protocolo (B7):
 ```
-docker compose -f infra/compose.yml up -d
+docker compose --env-file .env -f infra/compose.yml up -d
 node infra/verificar.mjs
 node scripts/tareas.mjs --validar
 ```
@@ -84,4 +84,5 @@ Paso 8 de `docs/plan/auditoria-2026-09-25.md` (H-68 a H-73):
   - con un `.env` de prueba, que el puerto de PostgreSQL sale de `SHAPI_POSTGRES_PUERTO`;
   - que todo puerto se publica en `127.0.0.1`, en la configuración y en los contenedores en marcha;
   - que todos los servicios tienen *healthcheck* y los seis están *healthy*;
-  - las variables nuevas de `.env.example`, el `--env-file` en la documentación, el `.dockerignore` y el `.gitignore`.
+  - las variables nuevas de `.env.example`, el `--env-file` en los documentos con comandos (manual, instalación, `AGENTS.md`, calendario y tareas), el `.dockerignore` y el `.gitignore`.
+- La prueba de JZ-02 `InfraestructuraTests` exige ahora los puertos de los orígenes en `127.0.0.1`.
