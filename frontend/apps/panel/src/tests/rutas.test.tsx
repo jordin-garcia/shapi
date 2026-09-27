@@ -6,11 +6,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse, delay } from 'msw';
 import catalogo from '../../../../../docs/specs/11-interfaz.md?raw';
 import { router } from '../rutas';
+import type { components } from '@shapi/api/identidad';
 import { server } from '../../../../test/servidor';
 
-let rol = 'propietario';
+type Sesion = components['schemas']['Sesion'];
+
+let rol: Sesion['rol'] = 'propietario';
 let cliente: QueryClient;
-const respuestaSesion = () => ({
+const respuestaSesion = (): Sesion => ({
   usuario: { nombre: 'Ana', correo: 'ana@enviosxelaju.com' },
   organizacion: { id: 'org-1', nombre: 'Envíos Xelajú, S.A.' },
   rol,
@@ -51,7 +54,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     await abrir(ruta);
     await esperarPantalla(id);
   });
-  it.each([
+  it.each<[Sesion['rol'], string]>([
     ['administrador', '/panel/apis'], ['soporte', '/panel/apis'],
     ['propietario', '/admin/casos'], ['editor', '/admin/casos'], ['lector', '/admin/casos'],
     ['soporte', '/admin/planes'], ['soporte', '/admin/pagos'], ['soporte', '/admin/cuentas'],
@@ -142,7 +145,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     await abrir('/pagina-inexistente');
     expect(await screen.findByText('Página no encontrada')).toBeDefined();
   });
-  it.each(['editor', 'lector'])('oculta opciones no permitidas al %s', async perfil => {
+  it.each<Sesion['rol']>(['editor', 'lector'])('oculta opciones no permitidas al %s', async perfil => {
     rol = perfil;
     await abrir('/panel/apis');
     await screen.findByText(/^A3-1 ·/);

@@ -2,11 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../test/servidor';
 import { crearCliente, ProblemDetailsError } from './index';
-
-type ContratoSesion = {
-  '/api/auth/sesion': { get: { responses: { 200: { content: { 'application/json': unknown } } } } };
-  '/api/auth/salir': { post: { parameters: { header: { 'X-Requested-With': 'shapi' } }; responses: { 200: { content?: never } } } };
-};
+import type { paths as ContratoSesion } from './generado/identidad';
 
 type Contrato = { '/prueba': { post: { responses: { 200: { content: { 'application/json': { listo: boolean } } } } } } };
 const cliente = crearCliente<Contrato>('http://localhost');

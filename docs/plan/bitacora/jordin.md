@@ -297,3 +297,21 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **JG-05:** `ReenvioOrigen` ya pone 504 cuando vence el tiempo total, y YARP pone 502 si no conecta; falta traducirlos a JSON (08 §4). Los tiempos están en `TiemposOrigen`. La tubería ya atrapa `RedisConnectionException` y `RedisTimeoutException` de los filtros y responde 503: los filtros nuevos no tienen que hacerlo.
   - **Todos:** `CodigosError` tiene dos códigos nuevos de la compuerta: `ClaveEnUrl` y `ServicioNoDisponible`.
+
+## 2026-09-27 · EM-17 · Correcciones de la auditoría: contrato de identidad en el frontend
+- Hecho: paso 11 de `docs/plan/auditoria-2026-09-25.md` (H-83 y H-84). EM-17 queda `hecha`.
+  - `@shapi/api` exporta `"./*"`: cada contrato generado se importa como `@shapi/api/<modulo>` sin editar `package.json`.
+  - Se borró el contrato provisional `contratoSesion.ts`. La sesión y el cierre de sesión usan los tipos generados de `@shapi/api/identidad`.
+  - `identidad.yaml` ya coincidía con el backend de EM-02, así que no cambió.
+  - Hay 7 casos de prueba nuevos, y los mocks de sesión tienen el tipo del esquema `Sesion` generado.
+- Decisiones: ninguna nueva. Se conserva la tolerancia a un 401 al salir, para no cambiar el comportamiento de DC-02.
+- Pendiente o aviso para otros:
+  - **Dominique:** se modificaron tus archivos:
+    - `frontend/packages/api/package.json` (exportaciones), `packages/api/src/index.test.ts` y `packages/api/generar.test.mjs`;
+    - `apps/panel/src/modulos/sesion/useSesion.ts` y `CerrarSesion.tsx`, y se borró `contratoSesion.ts`;
+    - `apps/panel/src/tests/rutas.test.tsx`: la respuesta de sesión simulada y los `it.each` de roles tienen el tipo del esquema.
+
+    Actualiza tu rama desde `main`. Si tienes código que importa `./contratoSesion`, cámbialo por `@shapi/api/identidad`. `SesionActual.destino` ahora es la unión de las tres rutas del contrato.
+  - **Emilio:** se cerró tu tarea EM-17 (archivo y `## Resultado`). Si cambias `identidad.yaml`, corre `pnpm generar:api` en el mismo PR: el *typecheck* del panel detecta si la sesión deja de coincidir.
+  - **Todos:** para los tipos de un módulo, usen `import type { paths } from '@shapi/api/<modulo>'` (convenciones §7). Un contrato nuevo no requiere tocar `package.json`.
+

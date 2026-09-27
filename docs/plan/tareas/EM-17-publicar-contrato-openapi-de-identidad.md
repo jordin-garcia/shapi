@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 1
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [EM-02]
 requisitos: [RF-04]
 pantallas: []
@@ -48,4 +48,17 @@ node scripts/tareas.mjs --validar
 - Cambiar el comportamiento del backend de EM-02.
 
 ## Notas
-- DC-02 usa temporalmente `frontend/apps/panel/src/modulos/sesion/contratoSesion.ts` porque el contrato de Identidad pertenece a Emilio.
+- DC-02 usaba temporalmente `frontend/apps/panel/src/modulos/sesion/contratoSesion.ts` porque el contrato de Identidad pertenece a Emilio. Se eliminó al cerrar esta tarea (paso 11 de la auditoría).
+
+## Resultado
+
+La terminó el coordinador (Jordin) el 2026-09-27, en el paso 11 de `docs/plan/auditoria-2026-09-25.md` (H-83 y H-84), a partir de lo que ya habían dejado EM-02 y EM-03.
+
+- **Contrato (criterios 1 y 2).** No hizo falta cambiar `contratos/openapi/identidad.yaml`: ya describía lo que hace el backend de EM-02. `POST /api/auth/salir` responde 200 aunque no haya sesión, o 403 `csrf`. `GET /api/auth/sesion` responde 200 con el esquema `Sesion` (`usuario`, `organizacion`, `rol`, `correoVerificado` y `destino`) o 401 sin `codigo`. `pnpm generar:api` no cambia `identidad.ts`.
+- **Exportación (H-83).** `packages/api/package.json` exporta `"./*": "./src/generado/*.ts"`, en lugar de una entrada por módulo (`./apis` y `./identidad`). Cada contrato generado se importa como `@shapi/api/<modulo>`, sin editar `package.json`. Se precisó en `convenciones.md` §7.
+- **Sin contrato provisional (H-84, criterio 3).** Se borró `apps/panel/src/modulos/sesion/contratoSesion.ts`. `useSesion.ts` y `CerrarSesion.tsx` usan `paths` y `components['schemas']['Sesion']` de `@shapi/api/identidad`. `SesionActual.rol` y `SesionActual.destino` toman sus tipos del esquema, así que `destino` ahora es una de las tres rutas del contrato y no cualquier texto. Las guardias y el cierre de sesión de DC-02 no cambiaron: se conserva la tolerancia a un 401 al salir, aunque el contrato no lo declara.
+- **Pruebas:**
+  - `apps/panel/src/tests/Sesion.test.tsx`: sesión activa, sin sesión (401 del contrato), error del servidor, cierre de sesión (CSRF, `/entrar` y caché borrada) y que no quede un contrato provisional. Las respuestas simuladas tienen el tipo del esquema generado: si el contrato cambia, el *typecheck* falla.
+  - `rutas.test.tsx` (guardias de DC-02) y `packages/api/src/index.test.ts` usan los tipos generados en lugar de copias escritas a mano.
+  - `packages/api/generar.test.mjs`: el comodín `./*` existe y cada YAML de `contratos/openapi/` se resuelve como `@shapi/api/<modulo>`.
+- Archivos principales: `frontend/packages/api/package.json`, `frontend/apps/panel/src/modulos/sesion/` y `frontend/apps/panel/src/tests/Sesion.test.tsx`.
