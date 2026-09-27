@@ -230,11 +230,13 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 10 · [JG-02] Compuerta mínima
 
-- [ ] **H-78** Rechazar la clave enviada en la query string con 401, sin reenviarla (08 §1). Silenciar el registro de la URL de destino de YARP.
-- [ ] **H-79** Si Redis no está disponible, responder JSON y no la página de excepciones en HTML.
-  - **❓ Decisión pendiente:** es un hueco de la especificación. Hay que definir el código y el `codigo` de error; se propone 503 `servicio_no_disponible`.
-- [ ] **H-80** Tiempo de espera total de 30 s, no solo de inactividad, y precisar el `ConnectTimeout` en 08 §1.
-- [ ] **H-81** Pruebas faltantes:
+- [x] **H-78** Rechazar la clave enviada en la query string con 401, sin reenviarla (08 §1). Silenciar el registro de la URL de destino de YARP.
+  - **Decidido por Jordin (27 sep):** se rechaza cualquier nombre o valor de la query con el formato de clave de 08 §2, con 401 `clave_en_url`, aunque también venga `X-Api-Key`. Los demás parámetros se reenvían.
+- [x] **H-79** Si Redis no está disponible, responder JSON y no la página de excepciones en HTML.
+  - **Decidido por Jordin (27 sep):** 503 `servicio_no_disponible` con `Retry-After: 5`. Se agregó a 08 §4.
+- [x] **H-80** Tiempo de espera total de 30 s, no solo de inactividad, y precisar el `ConnectTimeout` en 08 §1.
+  - **Decidido por Jordin (27 sep):** la conexión tiene 10 s, antes eran 15 s.
+- [x] **H-81** Pruebas faltantes:
   - varias `X-Api-Key`;
   - un 4xx o 5xx del origen se devuelve tal cual;
   - datos incompletos en Redis;
@@ -242,7 +244,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - la configuración real del invocador de YARP.
 
   Además, nombrar las pruebas con su requisito.
-- [ ] **H-82** En el `## Resultado` de JG-02, dejar escrito que RF-31 quedó parcial: `X-Shapi-Secreto` y la limpieza de `X-Shapi-*` y `X-Forwarded-*` se completan en JG-05.
+- [x] **H-82** En el `## Resultado` de JG-02, dejar escrito que RF-31 quedó parcial: `X-Shapi-Secreto` y la limpieza de `X-Shapi-*` y `X-Forwarded-*` se completan en JG-05.
 
 ## Paso 11 · [EM-17] Publicar el contrato de identidad en el frontend
 

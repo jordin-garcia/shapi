@@ -51,6 +51,24 @@ public class SembradoDemoTests(EntornoCompuerta entorno) : IClassFixture<Entorno
         entorno.Origen.Ultima!.Cabeceras["X-Shapi-Entorno"].Should().Be("produccion");
     }
 
+    [Theory]
+    [InlineData("true", 0)]
+    [InlineData("false", 1)]
+    public async Task SembrarDemo_DesdeProgram_EjecutaElComandoSinLevantarLaCompuerta(string modoDemo, int codigoEsperado)
+    {
+        // Criterio 7 (auditoría H-81): `dotnet run --project src/Shapi.Compuerta -- sembrar-demo` pasa por Program.cs.
+        // La configuración llega por la línea de comandos, como con dotnet run.
+        await entorno.Redis.GetDatabase().KeyDeleteAsync(LlavesRedis.ApiPorHost(HostEnvios));
+        var puntoDeEntrada = typeof(Program).Assembly.EntryPoint!;
+        string[] argumentos = [SembradoDemo.Comando, $"--SHAPI_REDIS={entorno.CadenaRedis}", $"--SHAPI_MODO_DEMO={modoDemo}"];
+
+        // El punto de entrada que genera el compilador es el Main síncrono, que devuelve int.
+        var codigo = await Task.Run(() => (int)puntoDeEntrada.Invoke(null, [argumentos])!);
+
+        codigo.Should().Be(codigoEsperado);
+        (await entorno.Redis.GetDatabase().KeyExistsAsync(LlavesRedis.ApiPorHost(HostEnvios))).Should().Be(codigoEsperado == 0);
+    }
+
     private IConfiguration Configuracion(string? modoDemo) =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
