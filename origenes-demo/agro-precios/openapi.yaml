@@ -12,15 +12,14 @@ paths:
   /precios:
     get:
       summary: Consultar el precio del día
-      description: Devuelve el precio de un producto en un mercado y fecha determinados.
+      description: Devuelve el precio del día de un producto en un mercado.
       parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
         - $ref: '#/components/parameters/Producto'
         - $ref: '#/components/parameters/Mercado'
         - name: fecha
           in: query
           required: false
-          description: Fecha del precio; si se omite se devuelve el precio del día.
+          description: Fecha del precio. Si se omite, se devuelve el precio del día
           schema:
             type: string
             format: date
@@ -38,16 +37,14 @@ paths:
                 unidad: quintal
                 precio: Q 510.00
                 fecha: 10 sep 2026
-        '401':
-          description: El secreto de origen no coincide.
+        '400':
+          description: La fecha no tiene el formato AAAA-MM-DD.
         '404':
-          description: No existe un precio para el producto y mercado solicitados.
+          description: No hay precio para ese producto, mercado y fecha.
   /productos:
     get:
       summary: Listar productos
       description: Lista los productos que tienen precio publicado.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
       responses:
         '200':
           description: Catálogo de productos.
@@ -67,14 +64,18 @@ paths:
                     nombre: Frijol negro
                     categoria: granos
                     unidad: quintal
-        '401':
-          description: El secreto de origen no coincide.
+                  - clave: tomate
+                    nombre: Tomate
+                    categoria: hortalizas
+                    unidad: caja
+                  - clave: banano
+                    nombre: Banano
+                    categoria: frutas
+                    unidad: ciento
   /mercados:
     get:
       summary: Listar mercados
       description: Lista los mercados mayoristas donde se registran precios.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
       responses:
         '200':
           description: Catálogo de mercados.
@@ -93,14 +94,17 @@ paths:
                   - clave: cenma
                     nombre: CENMA
                     municipio: Villa Nueva
-        '401':
-          description: El secreto de origen no coincide.
+                  - clave: terminal
+                    nombre: La Terminal
+                    municipio: Ciudad de Guatemala
+                  - clave: quetzaltenango
+                    nombre: La Democracia
+                    municipio: Quetzaltenango
   /historial:
     get:
       summary: Consultar historial
       description: Devuelve los precios de un producto en un rango de fechas.
       parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
         - $ref: '#/components/parameters/Producto'
         - $ref: '#/components/parameters/Mercado'
         - name: desde
@@ -157,47 +161,24 @@ paths:
                 desde: '2026-09-08'
                 hasta: '2026-09-10'
                 precios:
+                  - fecha: '2026-09-08'
+                    precio: Q 505.00
+                    moneda: GTQ
+                  - fecha: '2026-09-09'
+                    precio: Q 508.00
+                    moneda: GTQ
                   - fecha: '2026-09-10'
                     precio: Q 510.00
                     moneda: GTQ
-        '401':
-          description: El secreto de origen no coincide.
-  /salud:
-    get:
-      summary: Consultar salud
-      description: Confirma que el origen de Agro Precios está disponible.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
-      responses:
-        '200':
-          description: El origen está saludable.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [estado]
-                properties:
-                  estado:
-                    type: string
-              example:
-                estado: saludable
-        '401':
-          description: El secreto de origen no coincide.
+        '400':
+          description: Una fecha no tiene el formato AAAA-MM-DD, o desde es posterior a hasta.
 components:
   parameters:
-    SecretoOrigen:
-      name: X-Shapi-Secreto
-      in: header
-      required: false
-      description: Secreto compartido; solo es obligatorio cuando SECRETO_ORIGEN está configurado.
-      schema:
-        type: string
-      example: secreto-compartido
     Producto:
       name: producto
       in: query
       required: true
-      description: Clave del producto.
+      description: Clave del producto
       schema:
         type: string
       example: frijol_negro
@@ -205,7 +186,7 @@ components:
       name: mercado
       in: query
       required: true
-      description: Clave del mercado mayorista.
+      description: Clave del mercado mayorista
       schema:
         type: string
       example: cenma

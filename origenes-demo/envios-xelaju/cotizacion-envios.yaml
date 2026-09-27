@@ -13,8 +13,6 @@ paths:
     post:
       summary: Cotizar un envío
       description: Calcula el costo de un envío según origen, destino, peso y tipo de servicio.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
       requestBody:
         required: true
         content:
@@ -40,14 +38,10 @@ paths:
                 entrega_estimada: 2 días hábiles
         '400':
           description: Datos de cotización incompletos o inválidos.
-        '401':
-          description: El secreto de origen no coincide.
   /guias:
     post:
       summary: Crear una guía
       description: Crea una guía para recoger y entregar un paquete cotizado.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
       requestBody:
         required: true
         content:
@@ -87,14 +81,10 @@ paths:
                 destinatario: Mercadito Antigua
         '400':
           description: Datos de la guía incompletos o inválidos.
-        '401':
-          description: El secreto de origen no coincide.
   /tarifas:
     get:
       summary: Listar tarifas
       description: Devuelve las tarifas base para los servicios normal y urgente.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
       responses:
         '200':
           description: Tarifas vigentes.
@@ -126,14 +116,14 @@ paths:
                   - tipo_servicio: normal
                     precio_base: 18.00
                     precio_por_kg: 8.20
-        '401':
-          description: El secreto de origen no coincide.
+                  - tipo_servicio: urgente
+                    precio_base: 27.00
+                    precio_por_kg: 12.30
   /rastreo:
     get:
       summary: Rastrear una guía
       description: Devuelve el estado actual y los eventos de una guía.
       parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
         - name: guia
           in: query
           required: true
@@ -174,14 +164,14 @@ paths:
                   - fecha: '2026-09-10T08:30:00-06:00'
                     descripcion: Guía creada
                     ubicacion: Quetzaltenango
-        '401':
-          description: El secreto de origen no coincide.
+                  - fecha: '2026-09-10T15:45:00-06:00'
+                    descripcion: Paquete en tránsito
+                    ubicacion: Chimaltenango
   /cobertura:
     get:
       summary: Consultar cobertura
       description: Indica si un municipio tiene cobertura y el tiempo estimado de entrega.
       parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
         - name: municipio
           in: query
           required: true
@@ -211,39 +201,7 @@ paths:
                 nombre: Antigua Guatemala
                 cubierto: true
                 dias_habiles: 2
-        '401':
-          description: El secreto de origen no coincide.
-  /salud:
-    get:
-      summary: Consultar salud
-      description: Confirma que el origen de Envíos Xelajú está disponible.
-      parameters:
-        - $ref: '#/components/parameters/SecretoOrigen'
-      responses:
-        '200':
-          description: El origen está saludable.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [estado]
-                properties:
-                  estado:
-                    type: string
-              example:
-                estado: saludable
-        '401':
-          description: El secreto de origen no coincide.
 components:
-  parameters:
-    SecretoOrigen:
-      name: X-Shapi-Secreto
-      in: header
-      required: false
-      description: Secreto compartido; solo es obligatorio cuando SECRETO_ORIGEN está configurado.
-      schema:
-        type: string
-      example: secreto-compartido
   schemas:
     CotizacionSolicitud:
       type: object
@@ -251,20 +209,20 @@ components:
       properties:
         origen:
           type: string
-          description: Código del municipio de origen.
+          description: Código del municipio de origen
         destino:
           type: string
-          description: Código del municipio de destino.
+          description: Código del municipio de destino
         peso_kg:
           type: number
           format: decimal
           minimum: 0.01
-          description: Peso del paquete en kilogramos.
+          description: Peso del paquete en kilogramos
         tipo_servicio:
           type: string
           enum: [normal, urgente]
           default: normal
-          description: Tipo de servicio; si se omite se usa normal.
+          description: Normal o urgente. Si se omite, se cotiza como normal
     CotizacionRespuesta:
       type: object
       required: [origen, destino, tarifa, entrega_estimada]

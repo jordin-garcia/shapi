@@ -59,3 +59,29 @@ curl http://localhost:5101/salud
 - Ambos orígenes admiten un secreto opcional mediante `SECRETO_ORIGEN` y `X-Shapi-Secreto`, exponen `/salud` y se ejecutan desde `infra/compose.yml` en los puertos 5101 y 5102.
 - Se agregaron `cotizacion-envios.yaml` y `openapi.yaml`, validados como OpenAPI 3.0.3 con Microsoft.OpenApi, además de pruebas de integración para rutas, parámetros, ejemplos, seguridad y rangos de fechas.
 - Se decidió mantener datos deterministas con fecha de demostración del 10 de septiembre de 2026 para que las respuestas coincidan con los mockups.
+
+### Correcciones de la auditoría (2026-09-27)
+
+Paso 9 de `docs/plan/auditoria-2026-09-25.md` (H-74 a H-77, H-116 y H-117):
+- **OpenAPI igual a A3.3 y A5.1 (H-74).** `cotizacion-envios.yaml` y `agro-precios/openapi.yaml` ya no documentan `/salud`, el parámetro `X-Shapi-Secreto` ni las respuestas 401 del secreto.
+  - Al cargar `cotizacion-envios.yaml` en A3.3 salen las 5 rutas del mockup.
+  - El consumidor no ve en A5.1 un secreto que nunca envía: lo agrega la compuerta.
+  - Los textos que muestran A5.1 e InicioAgro se copiaron tal cual: la descripción de `/precios` y los parámetros de `/cotizaciones` y de `/precios`.
+  - El origen sigue respondiendo `/salud` para el *healthcheck*.
+- **Tilde (H-75).** El error del secreto dice "Secreto de origen inválido.".
+- **`/precios` coherente con `/historial` (H-76).**
+  - Los dos leen la misma tabla, del 8 al 10 de septiembre.
+  - Antes, `/precios` con otra fecha devolvía siempre Q 510.00 y la fecha sin formato.
+  - Ahora devuelve el precio de ese día, con la fecha como "8 sep 2026".
+  - Una fecha sin precio responde 404 y una fecha mal escrita, 400.
+- **Precio para todo el catálogo (H-116).** `/productos` y `/mercados` listan 3 productos y 3 mercados, pero solo frijol negro en CENMA tenía precio. Ahora las 9 combinaciones tienen precio los 3 días, como promete la descripción "Lista los productos que tienen precio publicado". Frijol negro en CENMA conserva los valores de los mockups.
+- **Cotización según el peso (H-117).** `POST /cotizaciones` respondía Q 38.50 con cualquier peso. Ahora calcula `precio_base + precio_por_kg × peso_kg` con la tabla de `/tarifas`, y el ejemplo del mockup se mantiene: 2.5 kg normal da Q 38.50.
+- **Pruebas (H-77):**
+  - cada ejemplo del OpenAPI se compara con la respuesta real (los ejemplos de `/tarifas`, `/rastreo`, `/productos`, `/mercados` y `/historial` ahora están completos);
+  - los cuerpos de `/tarifas`, `/rastreo` y `/cobertura`;
+  - sin `SECRETO_ORIGEN`, o vacío, se acepta todo;
+  - el mensaje del 401;
+  - la cotización con distintos pesos;
+  - la coherencia de `/precios` con `/historial` para todo el catálogo;
+  - los 404 y 400 de `/precios`.
+- Se corrigió en DC-05 la ruta de los archivos de ejemplo: el de Envíos es `cotizacion-envios.yaml`.
