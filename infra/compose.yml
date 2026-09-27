@@ -1,5 +1,9 @@
 name: shapi
 
+# Se levanta desde la raíz con: docker compose --env-file .env -f infra/compose.yml up -d
+# Sin --env-file, Compose buscaría el .env en infra/ e ignoraría el de la raíz.
+# Todos los puertos se publican solo en 127.0.0.1: el entorno de desarrollo no se expone a la red.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,7 +12,7 @@ services:
       POSTGRES_PASSWORD: ${SHAPI_POSTGRES_CONTRASENA:-shapi_desarrollo}
       POSTGRES_DB: ${SHAPI_POSTGRES_BASE_DATOS:-shapi}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${SHAPI_POSTGRES_PUERTO:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +30,7 @@ services:
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -37,10 +41,10 @@ services:
       start_period: 5s
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.27
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]
       interval: 5s
@@ -56,8 +60,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
     volumes:
       - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
       - caddydata:/data
@@ -81,18 +85,32 @@ services:
       context: ..
       dockerfile: origenes-demo/envios-xelaju/Dockerfile
     ports:
-      - "5101:8080"
+      - "127.0.0.1:5101:8080"
     environment:
       SECRETO_ORIGEN: ${SHAPI_SECRETO_ORIGEN_ENVIOS:-}
+    healthcheck:
+      # /salud exige X-Shapi-Secreto cuando SECRETO_ORIGEN está configurado.
+      test: ["CMD-SHELL", "curl -fsS -H \"X-Shapi-Secreto: $${SECRETO_ORIGEN}\" http://localhost:8080/salud || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   origen-agro:
     build:
       context: ..
       dockerfile: origenes-demo/agro-precios/Dockerfile
     ports:
-      - "5102:8080"
+      - "127.0.0.1:5102:8080"
     environment:
       SECRETO_ORIGEN: ${SHAPI_SECRETO_ORIGEN_AGRO:-}
+    healthcheck:
+      # /salud exige X-Shapi-Secreto cuando SECRETO_ORIGEN está configurado.
+      test: ["CMD-SHELL", "curl -fsS -H \"X-Shapi-Secreto: $${SECRETO_ORIGEN}\" http://localhost:8080/salud || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   pgdata:

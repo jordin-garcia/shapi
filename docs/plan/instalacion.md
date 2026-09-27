@@ -55,7 +55,7 @@ Todo debe aparecer con ✅. Si algo falla, el mismo script dice qué instalar.
 
 ```bash
 cp .env.example .env                                  # PowerShell: Copy-Item .env.example .env
-docker compose -f infra/compose.yml up -d             # PostgreSQL, Redis, Mailpit, Caddy y los orígenes de demostración
+docker compose --env-file .env -f infra/compose.yml up -d   # PostgreSQL, Redis, Mailpit, Caddy y los orígenes de demostración
 dotnet run --project src/Shapi.Api                    # terminal 1: API de control (aplica migraciones al iniciar en desarrollo)
 dotnet run --project src/Shapi.Compuerta              # terminal 2: compuerta
 dotnet run --project src/Shapi.Trabajador             # terminal 3: trabajador
@@ -63,13 +63,15 @@ cd frontend && pnpm install && pnpm dev               # terminal 4: panel y port
 ```
 Luego abre https://shapi.localhost. El correo simulado se ve en https://correo.shapi.localhost.
 
+Compose necesita `--env-file .env` para leer el `.env` de la raíz; sin esa opción lo busca en `infra/`. Si otro PostgreSQL ya usa el puerto 5432, cambia `SHAPI_POSTGRES_PUERTO` en tu `.env` (por ejemplo, a `5433`) y pon el mismo número en `Port=` de `SHAPI_POSTGRES_CADENA`.
+
 ### 5.1 Confiar en el certificado local (una sola vez, después de JZ-01)
 
 Caddy firma los certificados con su propia autoridad. Para que el navegador no muestre advertencias:
 
 **Windows (PowerShell):**
 ```powershell
-docker compose -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt .\caddy-root.crt
+docker compose --env-file .env -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt .\caddy-root.crt
 Import-Certificate -FilePath .\caddy-root.crt -CertStoreLocation Cert:\CurrentUser\Root
 Remove-Item .\caddy-root.crt
 ```
@@ -77,7 +79,7 @@ Chrome y Edge lo toman de inmediato. En Firefox, activa `security.enterprise_roo
 
 **Linux:**
 ```bash
-docker compose -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+docker compose --env-file .env -f infra/compose.yml cp borde:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
 sudo cp caddy-root.crt /usr/local/share/ca-certificates/caddy-shapi.crt && sudo update-ca-certificates
 sudo apt install -y libnss3-tools && certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n caddy-shapi -i caddy-root.crt   # Chrome y Chromium
 rm caddy-root.crt

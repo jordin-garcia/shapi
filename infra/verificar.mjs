@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import http from "node:http";
 import https from "node:https";
 import { dirname, join } from "node:path";
@@ -10,7 +11,16 @@ const raiz = join(dirname(fileURLToPath(import.meta.url)), "..");
 const rutaCompose = join(raiz, "infra", "compose.yml");
 const rutaCaddyfile = join(raiz, "infra", "caddy", "Caddyfile.dev");
 const rutaEntorno = join(raiz, ".env.example");
+const rutaEntornoLocal = join(raiz, ".env");
+const rutaDockerignore = join(raiz, ".dockerignore");
+const rutaGitignore = join(raiz, ".gitignore");
 const rutaManual = join(raiz, "docs", "manual-tecnico.md");
+const rutaInstalacion = join(raiz, "docs", "plan", "instalacion.md");
+
+// Compose lee el .env de la carpeta del archivo (infra/), no el de la raíz: se pasa con --env-file (H-68).
+const argumentosCompose = existsSync(rutaEntornoLocal)
+  ? ["compose", "--env-file", rutaEntornoLocal, "-f", rutaCompose]
+  : ["compose", "-f", rutaCompose];
 
 function leer(ruta) {
   return readFileSync(ruta, "utf8");
@@ -25,10 +35,11 @@ function exigirTexto(contenido, textos, contexto) {
   }
 }
 
-function ejecutarDocker(argumentos) {
+function ejecutarDocker(argumentos, entorno = process.env) {
   try {
     return execFileSync("docker", argumentos, {
       cwd: raiz,
+      env: entorno,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -69,7 +80,7 @@ async function esperarServiciosSanos(nombres) {
 
   while (Date.now() < limite) {
     servicios = interpretarServicios(
-      ejecutarDocker(["compose", "-f", rutaCompose, "ps", "--format", "json"]),
+      ejecutarDocker([...argumentosCompose, "ps", "--format", "json"]),
     );
 
     const todosSanos = nombres.every((nombre) => {
@@ -182,6 +193,7 @@ const compose = leer(rutaCompose);
 const caddyfile = leer(rutaCaddyfile);
 const entorno = leer(rutaEntorno);
 const manual = leer(rutaManual);
+const instalacion = leer(rutaInstalacion);
 
 exigirTexto(
   compose,
@@ -190,7 +202,8 @@ exigirTexto(
     "redis:7.4-alpine",
     "--appendonly",
     "--appendfsync",
-    "axllent/mailpit",
+    "axllent/mailpit:v1.27",
+    "${SHAPI_POSTGRES_PUERTO:-5432}",
     "caddy:2",
     "host.docker.internal:host-gateway",
     "pgdata:",
@@ -199,6 +212,7 @@ exigirTexto(
   ],
   "infra/compose.yml",
 );
+assert.ok(!compose.includes(":latest"), "infra/compose.yml no debe usar imágenes :latest");
 
 exigirTexto(
   caddyfile,
@@ -252,6 +266,9 @@ exigirTexto(
     "SHAPI_APLICAR_MIGRACIONES=false",
     "SHAPI_URL_ORIGEN_ENVIOS=http://localhost:5101",
     "SHAPI_URL_ORIGEN_AGRO=http://localhost:5102",
+    "SHAPI_POSTGRES_PUERTO=5432",
+    "SHAPI_SECRETO_ORIGEN_ENVIOS=",
+    "SHAPI_SECRETO_ORIGEN_AGRO=",
   ],
   ".env.example",
 );
@@ -261,8 +278,8 @@ exigirTexto(
   [
     "# Manual técnico",
     "## Entorno de desarrollo",
-    "docker compose -f infra/compose.yml up -d",
-    "docker compose -f infra/compose.yml down -v",
+    "docker compose --env-file .env -f infra/compose.yml up -d",
+    "docker compose --env-file .env -f infra/compose.yml down -v",
     "Import-Certificate",
     "update-ca-certificates",
     "https://correo.shapi.localhost",
@@ -270,10 +287,69 @@ exigirTexto(
   "docs/manual-tecnico.md",
 );
 
+for (const [contenido, contexto] of [
+  [manual, "docs/manual-tecnico.md"],
+  [instalacion, "docs/plan/instalacion.md"],
+]) {
+  assert.ok(
+    !contenido.includes("docker compose -f infra/compose.yml"),
+    `${contexto} debe pasar --env-file .env a todos los comandos de Compose`,
+  );
+}
+
+assert.ok(existsSync(rutaDockerignore), "Falta .dockerignore en la raíz");
+exigirTexto(
+  leer(rutaDockerignore),
+  ["**/bin/", "**/obj/", "**/node_modules/", ".git/", ".env", ".shapi/"],
+  ".dockerignore",
+);
+exigirTexto(leer(rutaGitignore), [".shapi/"], ".gitignore");
+
+// Configuración resuelta por Compose, con un .env de prueba: el puerto de PostgreSQL es configurable (H-69),
+// todos los puertos se publican solo en 127.0.0.1 (H-71) y todos los servicios tienen healthcheck (H-72).
+const carpetaTemporal = mkdtempSync(join(tmpdir(), "shapi-verificar-"));
+try {
+  const entornoPrueba = join(carpetaTemporal, ".env");
+  writeFileSync(entornoPrueba, "SHAPI_POSTGRES_PUERTO=5999\n");
+  // Una variable de la terminal le gana al archivo: se quita para que valga la del .env de prueba.
+  const { SHAPI_POSTGRES_PUERTO: _, ...entornoSinPuerto } = process.env;
+  const configuracion = JSON.parse(
+    ejecutarDocker([
+      "compose",
+      "--env-file",
+      entornoPrueba,
+      "-f",
+      rutaCompose,
+      "config",
+      "--format",
+      "json",
+    ], entornoSinPuerto),
+  );
+
+  const puertoPostgres = configuracion.services.postgres.ports?.[0];
+  assert.equal(
+    String(puertoPostgres?.published),
+    "5999",
+    "El puerto de PostgreSQL debe salir de SHAPI_POSTGRES_PUERTO",
+  );
+
+  for (const [nombre, servicio] of Object.entries(configuracion.services)) {
+    for (const puerto of servicio.ports ?? []) {
+      assert.equal(
+        puerto.host_ip,
+        "127.0.0.1",
+        `${nombre} publica ${puerto.published} fuera de 127.0.0.1`,
+      );
+    }
+
+    assert.ok(servicio.healthcheck?.test, `${nombre} no tiene healthcheck`);
+  }
+} finally {
+  rmSync(carpetaTemporal, { recursive: true, force: true });
+}
+
 ejecutarDocker([
-  "compose",
-  "-f",
-  rutaCompose,
+  ...argumentosCompose,
   "exec",
   "-T",
   "borde",
@@ -285,7 +361,14 @@ ejecutarDocker([
   "caddyfile",
 ]);
 
-const nombresServicios = ["postgres", "redis", "mailpit", "borde"];
+const nombresServicios = [
+  "postgres",
+  "redis",
+  "mailpit",
+  "borde",
+  "origen-envios",
+  "origen-agro",
+];
 const servicios = await esperarServiciosSanos(nombresServicios);
 
 for (const nombre of nombresServicios) {
@@ -293,6 +376,14 @@ for (const nombre of nombresServicios) {
   assert.ok(servicio, `No se encontró el servicio ${nombre}`);
   assert.equal(servicio.State, "running", `${nombre} no está en ejecución`);
   assert.equal(servicio.Health, "healthy", `${nombre} no está sano`);
+  for (const publicado of servicio.Publishers ?? []) {
+    if (!publicado.PublishedPort) continue;
+    assert.equal(
+      publicado.URL,
+      "127.0.0.1",
+      `${nombre} publica el puerto ${publicado.PublishedPort} en ${publicado.URL}`,
+    );
+  }
 }
 
 const servidores = [];
@@ -381,7 +472,7 @@ try {
 }
 
 console.log("✓ Configuración declarativa completa");
-console.log("✓ PostgreSQL, Redis, Mailpit y borde están sanos");
+console.log("✓ PostgreSQL, Redis, Mailpit, borde y los orígenes están sanos y solo publican en 127.0.0.1");
 console.log("✓ Caddy enruta cada host, conserva Host y admite WebSocket");
 console.log("✓ Caddy usa HTTPS, agrega cabeceras y no publica /interno/*");
 console.log("✓ https://correo.shapi.localhost responde correctamente");

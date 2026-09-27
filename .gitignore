@@ -23,6 +23,7 @@ coverage/
 
 # Entorno
 .env
+.shapi/
 .env.*
 !.env.example
 

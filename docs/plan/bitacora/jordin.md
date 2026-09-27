@@ -229,3 +229,26 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Emilio:** se modificaron `Persistencia/Configuraciones/CorreoSalienteConfiguracion.cs` (índice) y el snapshot, y se agregó la migración `IndiceCorreoSalientePendientes`. Si tienes una migración en curso, actualiza tu rama desde `main` y vuelve a generarla (convenciones §3).
   - **Dominique:** se creó `src/Shapi.Dominio/Apis/SubdominiosReservados.cs`, con su prueba en `tests/Shapi.Dominio.Tests/Apis/`.
   - **DC-04:** para validar que el subdominio no está reservado (RF-08), usa `SubdominiosReservados.Contiene(subdominio)`; no crees otra lista.
+
+## 2026-09-27 · JZ-01 · Correcciones de la auditoría: infraestructura local
+- Hecho: paso 8 de `docs/plan/auditoria-2026-09-25.md` (H-68 a H-73).
+  - Los comandos de Compose pasan `--env-file .env`.
+  - El puerto de PostgreSQL se configura con `SHAPI_POSTGRES_PUERTO`.
+  - Mailpit queda fijo en `v1.27`.
+  - Todos los puertos se publican en `127.0.0.1`.
+  - Los orígenes tienen *healthcheck*.
+  - Hay `.dockerignore` en la raíz y `.shapi/` en el `.gitignore`.
+  - `infra/verificar.mjs` comprueba todo lo anterior.
+- Decisiones (de Jordin, 27 sep):
+  - H-68: `--env-file .env` en los comandos, no `include`.
+  - H-71: también el 80 y el 443 de Caddy van en `127.0.0.1`.
+  - H-72: `curl` en la imagen de los orígenes.
+- Pendiente o aviso para otros:
+  - **Todos:** desde ahora, el entorno se levanta con `docker compose --env-file .env -f infra/compose.yml up -d` (y lo mismo para `down` y `cp`). Sin `--env-file`, Compose ignora el `.env` de la raíz. Agreguen a su `.env` las variables nuevas de `.env.example`: `SHAPI_POSTGRES_PUERTO`, `SHAPI_SECRETO_ORIGEN_ENVIOS` y `SHAPI_SECRETO_ORIGEN_AGRO`. Si otro PostgreSQL ocupa el 5432, cambien `SHAPI_POSTGRES_PUERTO` y el `Port=` de `SHAPI_POSTGRES_CADENA`. Recreen el entorno una vez con `up -d --build` (los volúmenes se conservan). Los puertos solo responden en `127.0.0.1`.
+  - **José Pablo:** se modificaron tus archivos:
+    - `infra/compose.yml` e `infra/verificar.mjs`;
+    - los `Dockerfile` de `origenes-demo/envios-xelaju` y `origenes-demo/agro-precios` (instalan `curl` para el *healthcheck*);
+    - `.env.example`, `docs/manual-tecnico.md` y el `## Resultado` de JZ-01.
+
+    Además, se creó `.dockerignore` en la raíz. Actualiza tu rama desde `main`.
+  - **JZ-06:** se precisó el criterio 1 y los comandos llevan `--env-file .env`. Como `compose.yml` publica en `127.0.0.1` los puertos de desarrollo, `compose.prod.yml` debe quitarlos con `ports: !reset []`, porque Compose suma las listas de puertos. Para la API y la compuerta, el *healthcheck* puede seguir el patrón de los orígenes (`curl` en la imagen).

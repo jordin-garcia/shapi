@@ -69,3 +69,19 @@ node scripts/tareas.mjs --validar
 - Las cabeceras de seguridad se aplican de forma diferida para sobrescribir valores del origen y mantener exactamente la política especificada.
 - El sitio HTTP comodín redirige también los dominios propios desconocidos hacia HTTPS.
 - Los procesos .NET y Vite permanecen en el equipo, mientras Compose administra únicamente la infraestructura de desarrollo.
+
+### Correcciones de la auditoría (2026-09-27)
+
+Paso 8 de `docs/plan/auditoria-2026-09-25.md` (H-68 a H-73):
+- **El `.env` de la raíz (H-68).** Con `-f infra/compose.yml`, Compose buscaba el `.env` en `infra/` y no leía el de la raíz, así que se ignoraban las credenciales y los secretos configurados. Ahora todos los comandos pasan `--env-file .env`: `AGENTS.md`, el manual técnico, `instalacion.md`, el calendario y JZ-06. `infra/verificar.mjs` también lo pasa si existe el `.env`. Se descartó `include` con `env_file`, porque el `compose.prod.yml` de JZ-06 no vería el `.env` y el proyecto dejaría de llamarse `shapi`.
+- **Puerto de PostgreSQL (H-69).** Se configura con `SHAPI_POSTGRES_PUERTO`, que vale 5432 por defecto, para los equipos que ya tienen un PostgreSQL nativo. `.env.example` suma esa variable, `SHAPI_SECRETO_ORIGEN_ENVIOS` y `SHAPI_SECRETO_ORIGEN_AGRO`.
+- **Mailpit `v1.27` (H-70),** la misma versión que en las pruebas, en lugar de `latest`.
+- **Solo `127.0.0.1` (H-71).** Todos los puertos, incluidos el 80 y el 443 de Caddy, se publican solo en `127.0.0.1`. Se comprobó que el navegador y `curl` llegan a `https://correo.shapi.localhost` por IPv4.
+- **Salud de los orígenes (H-72).** `origen-envios` y `origen-agro` tienen *healthcheck* con `curl`, que se instaló en su imagen, contra `/salud`. Mandan `X-Shapi-Secreto`, porque `/salud` lo exige cuando hay secreto; se comprobó con y sin secreto.
+- **`.dockerignore` y `.shapi/` (H-73).** Se agregó `.dockerignore` en la raíz, que es el contexto de construcción: deja fuera `.git`, `bin`, `obj`, `node_modules`, el `.env`, `.shapi/` y los mockups. `.shapi/`, donde `SHAPI_DPKEYS_DIR` guarda las llaves de Data Protection, se agregó al `.gitignore`.
+- **`infra/verificar.mjs`** comprueba ahora:
+  - la versión fija de Mailpit y que no haya imágenes `:latest`;
+  - con un `.env` de prueba, que el puerto de PostgreSQL sale de `SHAPI_POSTGRES_PUERTO`;
+  - que todo puerto se publica en `127.0.0.1`, en la configuración y en los contenedores en marcha;
+  - que todos los servicios tienen *healthcheck* y los seis están *healthy*;
+  - las variables nuevas de `.env.example`, el `--env-file` en la documentación, el `.dockerignore` y el `.gitignore`.
