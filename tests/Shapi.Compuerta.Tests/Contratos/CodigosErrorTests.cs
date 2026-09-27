@@ -22,7 +22,8 @@ public partial class CodigosErrorTests
         var seccion = especificacion[inicio..fin];
         var codigosDeLaTabla = FilaDeError().Matches(seccion).Select(m => m.Groups["codigo"].Value).ToArray();
 
-        codigosDeLaTabla.Should().HaveCount(12);
+        codigosDeLaTabla.Should().HaveCount(14);
+        codigosDeLaTabla.Should().Contain(["clave_en_url", "servicio_no_disponible"]);
         Codigos.Should().Contain(codigosDeLaTabla);
     }
 

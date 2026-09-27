@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Reenvio;
 
@@ -9,7 +10,7 @@ namespace Shapi.Compuerta.Tests.Tuberia;
 public class TuberiaCompuertaTests
 {
     [Fact]
-    public async Task Procesar_UnFiltroRechaza_DetieneLaCadenaYNoReenvia()
+    public async Task RNF_13_Procesar_UnFiltroRechaza_DetieneLaCadenaYNoReenvia()
     {
         var registro = new List<string>();
         var reenvio = new ReenvioRegistrado(registro);
@@ -19,7 +20,8 @@ public class TuberiaCompuertaTests
                 new FiltroDePrueba("segundo", registro, ResultadoFiltro.Rechazar(403, "prueba_rechazo", "Rechazado.")),
                 new FiltroDePrueba("tercero", registro, ResultadoFiltro.Continuar),
             ],
-            reenvio);
+            reenvio,
+            NullLogger<TuberiaCompuerta>.Instance);
         var http = NuevoContexto();
 
         await tuberia.ProcesarAsync(http);
@@ -32,7 +34,7 @@ public class TuberiaCompuertaTests
     }
 
     [Fact]
-    public async Task Procesar_TodosContinuan_EvaluaEnOrdenYReenvia()
+    public async Task RNF_13_Procesar_TodosContinuan_EvaluaEnOrdenYReenvia()
     {
         var registro = new List<string>();
         var tuberia = new TuberiaCompuerta(
@@ -40,7 +42,8 @@ public class TuberiaCompuertaTests
                 new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar),
                 new FiltroDePrueba("segundo", registro, ResultadoFiltro.Continuar),
             ],
-            new ReenvioRegistrado(registro));
+            new ReenvioRegistrado(registro),
+            NullLogger<TuberiaCompuerta>.Instance);
 
         await tuberia.ProcesarAsync(NuevoContexto());
 
@@ -48,11 +51,12 @@ public class TuberiaCompuertaTests
     }
 
     [Fact]
-    public async Task Procesar_RechazoConCabeceras_LasAgregaALaRespuesta()
+    public async Task RNF_13_Procesar_RechazoConCabeceras_LasAgregaALaRespuesta()
     {
         var rechazo = ResultadoFiltro.Rechazar(401, "clave_ausente", "Falta la clave.",
             new Dictionary<string, string> { ["WWW-Authenticate"] = "ApiKey header=\"X-Api-Key\"" });
-        var tuberia = new TuberiaCompuerta([new FiltroDePrueba("unico", [], rechazo)], new ReenvioRegistrado([]));
+        var tuberia = new TuberiaCompuerta(
+            [new FiltroDePrueba("unico", [], rechazo)], new ReenvioRegistrado([]), NullLogger<TuberiaCompuerta>.Instance);
         var http = NuevoContexto();
 
         await tuberia.ProcesarAsync(http);
@@ -63,7 +67,7 @@ public class TuberiaCompuertaTests
     }
 
     [Fact]
-    public void Orden_DefinidoEnUnSoloLugar_ApiLuegoClave()
+    public void RNF_13_Orden_DefinidoEnUnSoloLugar_ApiLuegoClave()
     {
         // 08 §3: filtros 1 y 2. Agregar una regla es agregar una clase y una línea (RNF-13).
         TuberiaCompuerta.Orden.Should().Equal(typeof(FiltroApi), typeof(FiltroClave));

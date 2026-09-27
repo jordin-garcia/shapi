@@ -1,5 +1,7 @@
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Reenvio;
+using Shapi.Contratos;
+using StackExchange.Redis;
 
 namespace Shapi.Compuerta;
 
@@ -7,8 +9,17 @@ namespace Shapi.Compuerta;
 /// La tubería de la compuerta (08 §3): evalúa los filtros en orden y, si todos dejan pasar la petición,
 /// la reenvía al origen. El primer rechazo detiene la cadena y se responde con el error JSON.
 /// </summary>
-public sealed class TuberiaCompuerta(IEnumerable<IFiltroCompuerta> filtros, IReenvioOrigen reenvio)
+public sealed class TuberiaCompuerta(
+    IEnumerable<IFiltroCompuerta> filtros,
+    IReenvioOrigen reenvio,
+    ILogger<TuberiaCompuerta> registro)
 {
+    /// <summary>08 §4: sin Redis no se puede validar nada; el cliente puede reintentar en unos segundos.</summary>
+    private static readonly ResultadoFiltro RedisNoDisponible = ResultadoFiltro.Rechazar(
+        StatusCodes.Status503ServiceUnavailable, CodigosError.ServicioNoDisponible,
+        "Shapi no puede atender su petición en este momento. Intente de nuevo en unos segundos.",
+        new Dictionary<string, string> { ["Retry-After"] = "5" });
+
     private readonly IFiltroCompuerta[] _filtros = [.. filtros];
 
     /// <summary>
@@ -25,7 +36,18 @@ public sealed class TuberiaCompuerta(IEnumerable<IFiltroCompuerta> filtros, IRee
         var contexto = new ContextoPeticion(http);
         foreach (var filtro in _filtros)
         {
-            var resultado = await filtro.EvaluarAsync(contexto);
+            ResultadoFiltro resultado;
+            try
+            {
+                resultado = await filtro.EvaluarAsync(contexto);
+            }
+            catch (Exception excepcion) when (excepcion is RedisException or RedisTimeoutException)
+            {
+                // El mensaje de StackExchange.Redis no incluye la clave: solo la llave de Redis, que lleva su hash.
+                registro.LogError(excepcion, "Redis no está disponible: la compuerta responde 503");
+                resultado = RedisNoDisponible;
+            }
+
             if (!resultado.Continua)
             {
                 await RespuestaError.EscribirAsync(http, resultado);

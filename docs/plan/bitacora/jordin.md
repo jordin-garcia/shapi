@@ -281,3 +281,19 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones (de Jordin, 27 sep): el #30 se integró con `--admin` y el arreglo va en este PR aparte.
 - Pendiente o aviso para otros:
   - **Todos:** si `revision-claude` falla y la revisión dice "Ninguno" y LISTO, avísenle a Jordin (protocolo B11). No hagan *commits* vacíos para pedir otra revisión.
+
+## 2026-09-27 · JG-02 · Correcciones de la auditoría: compuerta mínima
+- Hecho: paso 10 de `docs/plan/auditoria-2026-09-25.md` (H-78 a H-82).
+  - Una clave en la query string responde 401 `clave_en_url` y no se reenvía.
+  - YARP ya no registra la URL de destino.
+  - Si Redis no está disponible, la compuerta responde 503 `servicio_no_disponible` en JSON.
+  - El tiempo con el origen es de 30 s en total, y la conexión de 10 s.
+  - Hay 25 casos de prueba nuevos, y las pruebas llevan el nombre de su requisito.
+  - Se probó con el entorno real, por Caddy: clave válida 200, inválida 401, en la URL 401 y con Redis detenido 503.
+- Decisiones (de Jordin, 27 sep):
+  - H-78: se detecta por el formato de clave, con 401 `clave_en_url`.
+  - H-79: 503 `servicio_no_disponible` con `Retry-After: 5`.
+  - H-80: conexión de 10 s.
+- Pendiente o aviso para otros:
+  - **JG-05:** `ReenvioOrigen` ya pone 504 cuando vence el tiempo total, y YARP pone 502 si no conecta; falta traducirlos a JSON (08 §4). Los tiempos están en `TiemposOrigen`. La tubería ya atrapa las excepciones de Redis de los filtros y responde 503: los filtros nuevos no tienen que hacerlo.
+  - **Todos:** `CodigosError` tiene dos códigos nuevos de la compuerta: `ClaveEnUrl` y `ServicioNoDisponible`.

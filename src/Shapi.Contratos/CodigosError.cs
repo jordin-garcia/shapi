@@ -9,6 +9,7 @@ public static class CodigosError
     // Compuerta: contrato de errores (08 §4)
     public const string ApiNoEncontrada = "api_no_encontrada";
     public const string ClaveAusente = "clave_ausente";
+    public const string ClaveEnUrl = "clave_en_url";
     public const string ClaveInvalida = "clave_invalida";
     public const string ApiNoDisponible = "api_no_disponible";
     public const string SuscripcionInactiva = "suscripcion_inactiva";
@@ -19,6 +20,7 @@ public static class CodigosError
     public const string CuotaPlataformaAgotada = "cuota_plataforma_agotada";
     public const string OrigenInaccesible = "origen_inaccesible";
     public const string OrigenSinRespuesta = "origen_sin_respuesta";
+    public const string ServicioNoDisponible = "servicio_no_disponible";
 
     // Identidad y organizaciones (03 RF-02 y RF-06)
     public const string CorreoNoVerificado = "correo_no_verificado";

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Shapi.Compuerta.Tests.Soporte;
 using Shapi.Contratos.Redis;
 
@@ -15,7 +16,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     private const string HashClaveDemo = "47d162d7ace0b83b8235011dc58124d30b62dd0fde19b1f38b99ca7d3195a971";
 
     [Fact]
-    public async Task Reenviar_ClaveValida_ConservaMetodoRutaQueryYCuerpoYDevuelveLaRespuestaDelOrigen()
+    public async Task RF_31_Reenviar_ClaveValida_ConservaMetodoRutaQueryYCuerpoYDevuelveLaRespuestaDelOrigen()
     {
         // RF-31 (criterio 1)
         var (host, _, clave) = await SembrarApiYClaveAsync();
@@ -44,7 +45,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     [InlineData("PUT")]
     [InlineData("PATCH")]
     [InlineData("DELETE")]
-    public async Task Reenviar_OtrosMetodos_ConservaMetodoRutaYQuery(string metodo)
+    public async Task RF_31_Reenviar_OtrosMetodos_ConservaMetodoRutaYQuery(string metodo)
     {
         // RF-31 (criterio 1)
         var (host, _, clave) = await SembrarApiYClaveAsync();
@@ -61,7 +62,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ResolverApi_HostInexistente_Responde404ApiNoEncontrada()
+    public async Task RF_29_ResolverApi_HostInexistente_Responde404ApiNoEncontrada()
     {
         // RF-29 (criterio 2)
         using var cliente = entorno.Cliente($"{Guid.NewGuid():N}.api.shapi.localhost");
@@ -76,7 +77,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     [Theory]
     [InlineData("despublicada")]
     [InlineData("borrador")]
-    public async Task ResolverApi_ApiNoPublicada_Responde404ApiNoEncontrada(string estado)
+    public async Task RF_29_ResolverApi_ApiNoPublicada_Responde404ApiNoEncontrada(string estado)
     {
         // RF-29 y RF-14 (criterio 2)
         var host = NuevoHost();
@@ -95,7 +96,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ResolverApi_HostConMayusculas_EncuentraLaApi()
+    public async Task RF_29_ResolverApi_HostConMayusculas_EncuentraLaApi()
     {
         // 07 §4: el host de la llave va en minúsculas.
         var (host, _, clave) = await SembrarApiYClaveAsync();
@@ -110,7 +111,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ResolverApi_RutaSaludEnElHostDeUnaApi_PasaPorLaTuberia()
+    public async Task RF_29_ResolverApi_RutaSaludEnElHostDeUnaApi_PasaPorLaTuberia()
     {
         // La ruta /salud de la compuerta no debe tapar una ruta /salud del proveedor.
         using var cliente = entorno.Cliente(NuevoHost());
@@ -121,7 +122,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ValidarClave_SinCabecera_Responde401ClaveAusente()
+    public async Task RF_29_ValidarClave_SinCabecera_Responde401ClaveAusente()
     {
         // RF-29 (criterio 3)
         var (host, _, _) = await SembrarApiYClaveAsync();
@@ -136,7 +137,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ValidarClave_CabeceraVacia_Responde401ClaveAusente()
+    public async Task RF_29_ValidarClave_CabeceraVacia_Responde401ClaveAusente()
     {
         // RF-29 (criterio 3)
         var (host, _, _) = await SembrarApiYClaveAsync();
@@ -151,7 +152,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ValidarClave_ClaveQueNoEstaEnRedis_Responde401ClaveInvalida()
+    public async Task RF_29_ValidarClave_ClaveQueNoEstaEnRedis_Responde401ClaveInvalida()
     {
         // RF-29 (criterio 3)
         var (host, _, _) = await SembrarApiYClaveAsync();
@@ -168,7 +169,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ValidarClave_ClaveDeOtraApi_Responde401ClaveInvalida()
+    public async Task RF_29_ValidarClave_ClaveDeOtraApi_Responde401ClaveInvalida()
     {
         // RF-29 (criterio 3): no se aceptan claves de otra API.
         var (host, _, _) = await SembrarApiYClaveAsync();
@@ -186,7 +187,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ValidarClave_GuardadaPorSha256HexMinusculas_SeAcepta()
+    public async Task RF_29_ValidarClave_GuardadaPorSha256HexMinusculas_SeAcepta()
     {
         // Criterio 4: la llave usa el SHA-256 en hex minúsculas de la clave completa en UTF-8.
         var host = NuevoHost();
@@ -202,7 +203,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task ValidarClave_PeticionesConClave_NuncaSeRegistraEnClaro()
+    public async Task RF_29_ValidarClave_PeticionesConClave_NuncaSeRegistraEnClaro()
     {
         // Criterio 4 y 10 §7: la clave nunca aparece en los registros.
         var (host, _, clave) = await SembrarApiYClaveAsync();
@@ -224,7 +225,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     [Theory]
     [InlineData(ContextoClave.TipoProduccion, "produccion")]
     [InlineData(ContextoClave.TipoPruebas, "pruebas")]
-    public async Task Reenviar_ClaveValida_ElOrigenNoRecibeLaClaveYRecibeConsumidorYEntorno(string tipo, string entornoEsperado)
+    public async Task RF_31_Reenviar_ClaveValida_ElOrigenNoRecibeLaClaveYRecibeConsumidorYEntorno(string tipo, string entornoEsperado)
     {
         // RF-31 y RF-45 (criterio 5)
         var host = NuevoHost();
@@ -246,7 +247,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task Reenviar_ClaveValida_ElOrigenRecibeSuPropioHost()
+    public async Task RF_31_Reenviar_ClaveValida_ElOrigenRecibeSuPropioHost()
     {
         // 08 §3, paso 8: el destino es url_origen; el host de la API no se reenvía como Host.
         var (host, _, clave) = await SembrarApiYClaveAsync();
@@ -262,7 +263,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Fact]
-    public async Task Reenviar_ClienteEnviaCabecerasShapiFalsas_ElOrigenRecibeLasDeLaCompuerta()
+    public async Task RF_31_Reenviar_ClienteEnviaCabecerasShapiFalsas_ElOrigenRecibeLasDeLaCompuerta()
     {
         // RF-31 (criterio 5): el consumidor no puede hacerse pasar por otro ni cambiar el entorno.
         var host = NuevoHost();
@@ -280,6 +281,165 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
         var cabeceras = entorno.Origen.Ultima!.Cabeceras;
         cabeceras["X-Shapi-Consumidor"].Should().Be(contextoClave.ConsumidorId.ToString());
         cabeceras["X-Shapi-Entorno"].Should().Be("pruebas");
+    }
+
+    [Theory]
+    [InlineData("api_key", true)]
+    [InlineData("cualquier_nombre", true)]
+    [InlineData("api_key", false)]
+    [InlineData(null, false)]
+    public async Task RF_29_ValidarClave_ClaveEnLaQuery_Responde401ClaveEnUrlYNoReenvia(string? nombre, bool tambienEnCabecera)
+    {
+        // 08 §1 (auditoría H-78): una clave en la URL queda en los registros de acceso, así que se rechaza aunque
+        // también venga una X-Api-Key válida. nombre = null: la clave es el propio nombre del parámetro.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        using var cliente = entorno.Cliente(host);
+        var query = nombre is null ? clave : $"{nombre}={clave}";
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, $"/cotizaciones?moneda=GTQ&{query}");
+        if (tambienEnCabecera)
+        {
+            peticion.Headers.Add("X-Api-Key", clave);
+        }
+
+        entorno.Origen.Olvidar();
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.Unauthorized, "clave_en_url");
+        VerificarWwwAuthenticate(respuesta);
+        entorno.Origen.Ultima.Should().BeNull("la petición con la clave en la URL no se reenvía");
+    }
+
+    [Fact]
+    public async Task RF_31_Reenviar_QueryConParametrosQueNoSonClaves_SeReenvia()
+    {
+        // 08 §1: solo un valor con el formato de clave de 08 §2 se rechaza; los parámetros del proveedor, no.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones?key=abc123&api_key=shp_otra_cosa");
+        peticion.Headers.Add("X-Api-Key", clave);
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
+        entorno.Origen.Ultima!.Query.Should().Be("?key=abc123&api_key=shp_otra_cosa");
+    }
+
+    [Fact]
+    public async Task RF_31_Reenviar_NoRegistraLaUrlDeDestino()
+    {
+        // 08 §1 (auditoría H-78): YARP registra la URL de destino con su query; la compuerta lo silencia.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        using var cliente = entorno.Cliente(host);
+        var valor = $"dato-privado-{Guid.NewGuid():N}";
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, $"/cotizaciones?token={valor}");
+        peticion.Headers.Add("X-Api-Key", clave);
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
+        entorno.Registros.Lineas.Should().NotContain(linea =>
+            linea.StartsWith("Yarp.", StringComparison.Ordinal) && linea.Contains(valor, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task RF_29_ValidarClave_VariasCabecerasXApiKey_Responde401ClaveInvalida()
+    {
+        // Auditoría H-81: con dos X-Api-Key no se sabe cuál usar, aunque una sea válida.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
+        peticion.Headers.Add("X-Api-Key", [clave, NuevaClave()]);
+        entorno.Origen.Olvidar();
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.Unauthorized, "clave_invalida");
+        entorno.Origen.Ultima.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(404, "{\"mensaje\":\"Guía no encontrada\"}")]
+    [InlineData(422, "{\"error\":\"peso_kg inválido\"}")]
+    [InlineData(500, "Error interno del origen")]
+    [InlineData(503, "")]
+    public async Task RF_31_Reenviar_ErrorDelOrigen_SeDevuelveTalCual(int estado, string cuerpo)
+    {
+        // 08 §4 (auditoría H-81): las respuestas del origen, incluidos sus errores, se devuelven tal cual.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/rastreo?guia=GX-1");
+        peticion.Headers.Add("X-Api-Key", clave);
+        entorno.Origen.Olvidar();
+        entorno.Origen.Responder = async http =>
+        {
+            http.Response.StatusCode = estado;
+            http.Response.Headers["X-Origen"] = "error";
+            http.Response.ContentType = "text/plain; charset=utf-8";
+            await http.Response.WriteAsync(cuerpo);
+        };
+
+        try
+        {
+            var respuesta = await cliente.SendAsync(peticion);
+
+            ((int)respuesta.StatusCode).Should().Be(estado);
+            respuesta.Headers.GetValues("X-Origen").Should().Equal("error");
+            respuesta.Content.Headers.ContentType!.ToString().Should().Be("text/plain; charset=utf-8");
+            (await respuesta.Content.ReadAsStringAsync()).Should().Be(cuerpo);
+        }
+        finally
+        {
+            entorno.Origen.Olvidar();
+        }
+    }
+
+    [Fact]
+    public async Task RF_29_ResolverApi_HostSinDatosDeLaApi_Responde404ApiNoEncontrada()
+    {
+        // Auditoría H-81: api:host:{host} existe, pero falta el hash api:{id} (datos incompletos en Redis).
+        var host = NuevoHost();
+        await entorno.Redis.GetDatabase().StringSetAsync(LlavesRedis.ApiPorHost(host), Guid.NewGuid().ToString());
+        using var cliente = entorno.Cliente(host);
+
+        var respuesta = await cliente.GetAsync("/cotizaciones");
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.NotFound, "api_no_encontrada");
+    }
+
+    [Theory]
+    [InlineData("url_origen")]
+    [InlineData("estado")]
+    [InlineData("organizacion_id")]
+    [InlineData("version")]
+    public async Task RF_29_ResolverApi_ApiConDatosIncompletos_Responde404ApiNoEncontrada(string campoFaltante)
+    {
+        // Auditoría H-81: sin un campo obligatorio de api:{id}, la API no se puede usar.
+        var host = NuevoHost();
+        var api = await entorno.SembrarApiAsync(host);
+        await entorno.Redis.GetDatabase().HashDeleteAsync(LlavesRedis.Api(api.ApiId), campoFaltante);
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
+        peticion.Headers.Add("X-Api-Key", NuevaClave());
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.NotFound, "api_no_encontrada");
+    }
+
+    [Fact]
+    public async Task RF_29_ValidarClave_ClaveConDatosIncompletos_Responde401ClaveInvalida()
+    {
+        // Auditoría H-81: un hash clave:{hash} sin api_id no autoriza nada.
+        var (host, _, clave) = await SembrarApiYClaveAsync();
+        await entorno.Redis.GetDatabase().HashDeleteAsync(LlavesRedis.Clave(ContextoClave.CalcularHash(clave)), "api_id");
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
+        peticion.Headers.Add("X-Api-Key", clave);
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.Unauthorized, "clave_invalida");
     }
 
     private async Task<(string Host, ContextoApi Api, string Clave)> SembrarApiYClaveAsync()
