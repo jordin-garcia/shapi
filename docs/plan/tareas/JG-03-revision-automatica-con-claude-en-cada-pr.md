@@ -172,8 +172,11 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - Si la sección de corrección empieza con "Ninguno", termina en la siguiente sección que agregue la revisión: un título de Markdown (`### Lo que comprobé`) o una línea corta que no es un elemento de lista y termina en ":".
   - Con cualquier otro comienzo, todo sigue contando como hallazgo, así que un hallazgo nunca queda oculto bajo un título.
   - Un "Ninguno" seguido de un hallazgo numerado también falla.
+  - Una línea que menciona la corrección ("### CORRECCIÓN…", "Corrección adicional:") nunca cierra la sección, así que un segundo encabezado de corrección no oculta sus hallazgos.
+  - Las viñetas (`-`, `*`, `+`) y las enumeraciones (`1.`, `a)`) que terminan en ":" siguen siendo hallazgos, no títulos.
+  - Una línea separadora (`---`) no cuenta como hallazgo.
 - **`revision.md`** pide no agregar secciones entre CORRECCIÓN y OPCIONAL, y poner lo comprobado antes de CORRECCIÓN.
 - **Pruebas:** 2 nuevas en `scripts/veredicto-revision.test.mjs`.
   - Una usa la estructura real del #30, con variantes del título.
-  - La otra comprueba que una sección posterior no oculta hallazgos.
+  - La otra comprueba que una sección posterior no oculta hallazgos: ni un hallazgo antes del título, ni un segundo encabezado de corrección, ni una viñeta o una enumeración con letra que termine en ":".
 - **Comprobación con datos reales:** se recalculó el veredicto de todas las revisiones reales de los PR #16 a #30 con el script anterior y con el nuevo. Solo cambia el #30.

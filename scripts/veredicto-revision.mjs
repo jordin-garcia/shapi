@@ -41,9 +41,18 @@ const RE_RESTO_CABECERA = new RegExp(PREFIJO + PALABRA_CORRECCION +
   String.raw`\**[ \t]*(?:[—–\-][ \t]*)?(?:\([^)]*\)|obligatorio corregir)?[ \t]*[—–\-]?[ \t]*:?\**`);
 const RE_NINGUNO = /^\(?(?:ningun[oa]|no hay(?: hallazgos)?)\.?\)?\.?$/i;
 // Otra sección que la revisión agrega por su cuenta ("Comprobado:", "### Lo que comprobé"): un título de Markdown, o
-// una línea corta que no es un elemento de lista y termina en ":". Solo se usa después de un "Ninguno" (PR #30).
+// una línea corta que no es un elemento de lista y termina en ":". Solo se usa después de un "Ninguno" (PR #30), y
+// nunca si menciona la corrección: un segundo encabezado de corrección no oculta sus hallazgos.
 const RE_TITULO_MARKDOWN = /^[ \t>]*#{1,6}[ \t]+\S/;
-const RE_OTRA_SECCION = /^(?!\d+[.)][ \t]|[-+•][ \t])\S[^:\n]{0,60}:$/u;
+const RE_ELEMENTO_LISTA = /^[ \t>]*(?:[-+*•][ \t]|\d+[.)][ \t]|[a-zA-Z][.)][ \t])/;
+const RE_LINEA_CON_DOS_PUNTOS = /^\S[^:\n]{0,60}:$/u;
+const RE_MENCIONA_CORRECCION = /correcci[óo]n/i;
+const RE_SEPARADOR = /^-{3,}$/;
+
+function esOtraSeccion(linea, limpia) {
+  if (RE_MENCIONA_CORRECCION.test(limpia)) return false;
+  return RE_TITULO_MARKDOWN.test(linea) || (!RE_ELEMENTO_LISTA.test(linea) && RE_LINEA_CON_DOS_PUNTOS.test(limpia));
+}
 
 /** Convierte la salida de `gh api --paginate --jq '.[] | {usuario, body, fecha, editado}'` (un JSON por línea) en un arreglo. */
 export function leerComentarios(texto) {
@@ -80,11 +89,11 @@ function analizar(cuerpo) {
   const primera = limpias.findIndex((t) => t !== "");
   let relevantes = limpias;
   if (primera >= 0 && RE_NINGUNO.test(limpias[primera])) {
-    const otraSeccion = lineas.findIndex((l, i) =>
-      i > primera && (RE_TITULO_MARKDOWN.test(l) || RE_OTRA_SECCION.test(limpias[i])));
+    const otraSeccion = lineas.findIndex((l, i) => i > primera && esOtraSeccion(l, limpias[i]));
     if (otraSeccion >= 0) relevantes = limpias.slice(0, otraSeccion);
   }
-  const correcciones = relevantes.some((texto) => texto !== "" && !RE_NINGUNO.test(texto));
+  // Una línea separadora ("---") no es un hallazgo.
+  const correcciones = relevantes.some((texto) => texto !== "" && !RE_NINGUNO.test(texto) && !RE_SEPARADOR.test(texto));
   return { veredicto: veredicto[1].toUpperCase(), correcciones, tarea: cuerpo.match(/REVISI[ÓO]N\s+([A-Z]{2}-\d{2,})/)?.[1] ?? "" };
 }
 
