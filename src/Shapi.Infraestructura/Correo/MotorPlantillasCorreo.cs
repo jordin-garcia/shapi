@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
+using Shapi.Dominio.Apis;
 
 namespace Shapi.Infraestructura.Correo;
 
@@ -20,6 +21,7 @@ public sealed partial class MotorPlantillasCorreo
         }
 
         // El portal solo vive en {sub}.{dominio_base} (06 §4): una etiqueta ASCII y el dominio base, nada más.
+        // Además, {sub} no puede ser un subdominio reservado (HostDelEnlace).
         _hostPortal = new Regex(
             $@"^[a-z0-9](?:[a-z0-9-]{{0,61}}[a-z0-9])?\.{Regex.Escape(_dominioBase)}$",
             RegexOptions.CultureInvariant);
@@ -66,7 +68,7 @@ public sealed partial class MotorPlantillasCorreo
         }
 
         var host = hostPortal.Trim().ToLowerInvariant();
-        if (!_hostPortal.IsMatch(host))
+        if (!_hostPortal.IsMatch(host) || SubdominiosReservados.Contiene(host[..host.IndexOf('.')]))
         {
             throw new InvalidOperationException(
                 $"El dato 'hostPortal' debe ser un subdominio de {_dominioBase}: '{hostPortal}'.");

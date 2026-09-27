@@ -81,6 +81,23 @@ public class MotorPlantillasCorreoTests
             .WithMessage("*hostPortal*");
     }
 
+    [Theory]
+    [InlineData("api.shapi.localhost")]
+    [InlineData("correo.shapi.localhost")]
+    [InlineData("Admin.shapi.localhost")]
+    [InlineData("interno.shapi.localhost")]
+    public void RF_46_HostDelPortalConSubdominioReservado_RechazaLaPlantilla(string hostPortal)
+    {
+        var motor = CrearMotor();
+
+        var accion = () => motor.Renderizar(
+            "recuperacion",
+            $$"""{"nombre":"Ana","token":"token-1","hostPortal":"{{hostPortal}}"}""");
+
+        accion.Should().Throw<InvalidOperationException>()
+            .WithMessage("*hostPortal*");
+    }
+
     [Fact]
     public void RF_46_DatoRequeridoAusente_RechazaLaPlantilla()
     {

@@ -16,6 +16,9 @@
         <PackageReference Include="StackExchange.Redis" />
     </ItemGroup>
     <ItemGroup>
+        <InternalsVisibleTo Include="Shapi.Api.Tests" />
+    </ItemGroup>
+    <ItemGroup>
         <EmbeddedResource Include="Correo\Plantillas\*.html" />
         <EmbeddedResource Include="Correo\Plantillas\*.txt" />
     </ItemGroup>

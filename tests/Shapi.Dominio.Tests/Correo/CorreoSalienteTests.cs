@@ -62,6 +62,36 @@ public class CorreoSalienteTests
         correo.UltimoError.Should().BeNull();
     }
 
+    [Fact]
+    public void RF_46_MarcarEnviado_QuitaElTokenDeLosDatos()
+    {
+        var correo = CrearCorreo();
+
+        correo.MarcarEnviado(Ahora);
+
+        LeerDatos(correo).Should().NotContainKey("token");
+        LeerDatos(correo).Should().Contain("nombre", "Ana");
+    }
+
+    [Fact]
+    public void RF_46_RegistrarFallo_AlQuedarFallidoQuitaElTokenDeLosDatos()
+    {
+        var correo = CrearCorreo();
+        for (var intento = 1; intento <= 5; intento++)
+        {
+            correo.RegistrarFallo($"fallo {intento}", Ahora);
+            LeerDatos(correo).Should().Contain("token", "secreto");
+        }
+
+        correo.RegistrarFallo("fallo 6", Ahora);
+
+        LeerDatos(correo).Should().NotContainKey("token");
+        LeerDatos(correo).Should().Contain("nombre", "Ana");
+    }
+
+    private static Dictionary<string, string> LeerDatos(CorreoSaliente correo) =>
+        System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(correo.Datos)!;
+
     private static CorreoSaliente CrearCorreo() => new(
         "verificacion_correo",
         "ana@ejemplo.com",

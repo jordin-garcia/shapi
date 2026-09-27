@@ -210,3 +210,22 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     Para EM-04 y EM-05, agrega tus endpoints en `Identidad/Endpoints.cs`, no en el módulo. Los intentos fallidos se cuentan con `ExecuteUpdate`; usa el mismo patrón para el consumidor.
   - **Dominique:** se regeneró `packages/api/src/generado/identidad.ts` con `pnpm generar:api`. `PeticionEntrar`, `PeticionReenviar` y `PeticionVerificacion` ya no tienen campos obligatorios. El *typecheck* y las pruebas del frontend pasan.
   - **José Pablo:** se modificó `infra/compose.yml`: la red `shapi` tiene la subred fija `172.30.0.0/24`, y `infra/verificar.mjs` sigue pasando. También se agregó `SHAPI_REDES_BORDE` a `.env.example`. El criterio 7 de JZ-06 explica que la API ya acepta esa subred, y que solo si `compose.prod.yml` usa otra red hay que pasarla en `SHAPI_REDES_BORDE`. Para JZ-07: en Linux, la CI no necesita configurar nada.
+
+## 2026-09-26 · JZ-03 · Correcciones de la auditoría: envío de correos
+- Hecho: paso 7 de `docs/plan/auditoria-2026-09-25.md` (H-61 a H-67).
+  - Cada correo se toma en su propia transacción con `FOR UPDATE SKIP LOCKED`: dos trabajadores ya no envían el mismo correo.
+  - El `token` se borra de `correo_saliente.datos` al quedar `enviado` o `fallido`.
+  - Si el trabajador se detiene justo después de entregar un correo, este queda `enviado` y no se reenvía: el resultado se guarda con `CancellationToken.None`. MailKit 4.18 ya ignoraba los errores del `QUIT`; se agregó un `try/catch` explícito por si cambia, con su prueba de regresión.
+  - SMTPS implícito en el puerto 465.
+  - `hostPortal` rechaza los subdominios reservados.
+  - Índice `(estado, proximo_intento_en)` en `correo_saliente`.
+  - Hay 16 pruebas nuevas y 2 ampliadas en `tests/*/Correo/` y `tests/Shapi.Dominio.Tests/Apis/`, incluido un Mailpit con STARTTLS y autenticación.
+- Decisiones (de Jordin, 26 sep):
+  - H-61: una transacción por correo; la entrega es "al menos una vez".
+  - H-64: no se usa `SecureSocketOptions.Auto`; con `SHAPI_SMTP_TLS=true` el cifrado es obligatorio (10 §6).
+  - H-65: la lista de subdominios reservados vive en `Shapi.Dominio/Apis/SubdominiosReservados.cs`.
+- Pendiente o aviso para otros:
+  - **José Pablo:** se modificaron tus archivos de correo: `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs`, `src/Shapi.Infraestructura/Correo/EnviadorSmtp.cs` y `MotorPlantillasCorreo.cs`, `src/Shapi.Dominio/Correo/CorreoSaliente.cs`, `tests/Shapi.Api.Tests/Correo/` (nuevo `EnviadorSmtpTests.cs`) y `tests/Shapi.Dominio.Tests/Correo/CorreoSalienteTests.cs`, además del `## Resultado` de JZ-03 y un comentario de `SHAPI_SMTP_TLS` en `.env.example`. `EnviadorSmtp` tiene un constructor interno para las pruebas (`InternalsVisibleTo` en `Shapi.Infraestructura.csproj`). Para JZ-11, el procesador ya maneja cualquier plantilla: solo agrega las plantillas y sus asuntos. Actualiza tu rama desde `main`.
+  - **Emilio:** se modificaron `Persistencia/Configuraciones/CorreoSalienteConfiguracion.cs` (índice) y el snapshot, y se agregó la migración `IndiceCorreoSalientePendientes`. Si tienes una migración en curso, actualiza tu rama desde `main` y vuelve a generarla (convenciones §3).
+  - **Dominique:** se creó `src/Shapi.Dominio/Apis/SubdominiosReservados.cs`, con su prueba en `tests/Shapi.Dominio.Tests/Apis/`.
+  - **DC-04:** para validar que el subdominio no está reservado (RF-08), usa `SubdominiosReservados.Contiene(subdominio)`; no crees otra lista.

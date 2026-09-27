@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace Shapi.Dominio.Correo;
 
 public class CorreoSaliente
@@ -50,6 +52,7 @@ public class CorreoSaliente
         EnviadoEn = enviadoEn;
         ProximoIntentoEn = null;
         UltimoError = null;
+        QuitarToken();
     }
 
     public void RegistrarFallo(string error, DateTimeOffset ahora)
@@ -66,9 +69,22 @@ public class CorreoSaliente
         {
             Estado = EstadoCorreo.Fallido;
             ProximoIntentoEn = null;
+            QuitarToken();
             return;
         }
 
         ProximoIntentoEn = ahora + EsperasReintento[Intentos - 1];
+    }
+
+    /// <summary>
+    /// El token solo se guarda en claro mientras el correo espera su envío: al quedar enviado o fallido ya no se
+    /// necesita y se borra de los datos (10 §3 y §8).
+    /// </summary>
+    private void QuitarToken()
+    {
+        if (JsonNode.Parse(Datos) is JsonObject datos && datos.Remove("token"))
+        {
+            Datos = datos.ToJsonString();
+        }
     }
 }
