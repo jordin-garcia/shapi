@@ -159,16 +159,20 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 6 · [EM-02] Seguridad de la identidad del personal
 
-- [ ] **H-49** Denegar por defecto (04): `SetFallbackPolicy(RequireAuthenticatedUser)` y `AllowAnonymous` explícito en `registro`, `verificar-correo`, `reenviar-verificacion`, `entrar` y `/salud`, con su prueba.
-- [ ] **H-50** Incrementar el contador de intentos fallidos de forma atómica, con `ExecuteUpdate` o un token de concurrencia `xmin`. Incluye una prueba de intentos en paralelo.
-- [ ] **H-51** Mismo tiempo de respuesta cuando la cuenta existe y cuando no (10 §1). Se evita el `SaveChanges` extra en la ruta de la contraseña incorrecta.
-- [ ] **H-52** `X-Forwarded-For`: confiar solo en la red del borde (Caddy), no en cualquier red privada.
-- [ ] **H-53** Límite de reenvíos de verificación por cuenta, además del límite por IP.
-- [ ] **H-54** CSRF: validar el esquema y el puerto del `Origin`, no solo el host.
-- [ ] **H-55** `salir` con la sesión vencida: borrar la cookie y aplicar la política de 04 §3.1.
-- [ ] **H-56** Validar el correo de forma más estricta (hoy acepta `a@b`) y hacer el rehash cuando `SuccessRehashNeeded`.
-- [ ] **H-57** JSON mal formado: responder 400 con `codigo` y documentarlo en `identidad.yaml`. Alinear también los campos `required` de `PeticionEntrar` y `PeticionReenviar` con lo que hace el backend.
-- [ ] **H-58** Nombres de las pruebas de CSRF y del límite con su requisito. Pruebas faltantes:
+- [x] **H-49** Denegar por defecto (04): `SetFallbackPolicy(RequireAuthenticatedUser)` y `AllowAnonymous` explícito en `registro`, `verificar-correo`, `reenviar-verificacion`, `entrar` y `/salud`, con su prueba.
+  - **Decidido por Jordin (26 sep):** se edita `Program.cs` (excepción puntual de convenciones §3) para poner `AllowAnonymous` en `/salud` y en `/openapi`.
+- [x] **H-50** Incrementar el contador de intentos fallidos de forma atómica, con `ExecuteUpdate` o un token de concurrencia `xmin`. Incluye una prueba de intentos en paralelo.
+- [x] **H-51** Mismo tiempo de respuesta cuando la cuenta existe y cuando no (10 §1). Se evita el `SaveChanges` extra en la ruta de la contraseña incorrecta.
+- [x] **H-52** `X-Forwarded-For`: confiar solo en la red del borde (Caddy), no en cualquier red privada.
+  - **Decidido por Jordin (26 sep):** variable `SHAPI_REDES_BORDE`; por defecto solo la máquina. JZ-06 fija la red de producción.
+- [x] **H-53** Límite de reenvíos de verificación por cuenta, además del límite por IP.
+  - **Decidido por Jordin (26 sep):** 3 reenvíos por hora; al pasarse responde el mismo 200 sin enviar.
+- [x] **H-54** CSRF: validar el esquema y el puerto del `Origin`, no solo el host.
+- [x] **H-55** `salir` con la sesión vencida: borrar la cookie y aplicar la política de 04 §3.1.
+  - **Decidido por Jordin (26 sep):** `salir` es público y siempre responde 200 y borra la cookie. Cerrar sesión está permitido a todos los roles.
+- [x] **H-56** Validar el correo de forma más estricta (hoy acepta `a@b`) y hacer el rehash cuando `SuccessRehashNeeded`.
+- [x] **H-57** JSON mal formado: responder 400 con `codigo` y documentarlo en `identidad.yaml`. Alinear también los campos `required` de `PeticionEntrar` y `PeticionReenviar` con lo que hace el backend.
+- [x] **H-58** Nombres de las pruebas de CSRF y del límite con su requisito. Pruebas faltantes:
   - 4 fallos, un acierto y otro fallo no bloquean;
   - verificación y registro simultáneos;
   - sesión de una cuenta desactivada;
@@ -177,8 +181,8 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - `salir`;
   - `HashContrasena` nula;
   - `ultimo_uso_en`.
-- [ ] **H-59** Mover los endpoints de `Modulos/IdentidadModulo.cs` a `Identidad/Endpoints.cs`, como pide `convenciones.md`.
-- [ ] **H-60** Agregar la entrada de EM-02 que falta en la bitácora de Emilio.
+- [x] **H-59** Mover los endpoints de `Modulos/IdentidadModulo.cs` a `Identidad/Endpoints.cs`, como pide `convenciones.md`.
+- [x] **H-60** Agregar la entrada de EM-02 que falta en la bitácora de Emilio.
 
 ## Paso 7 · [JZ-03] Envío de correos
 

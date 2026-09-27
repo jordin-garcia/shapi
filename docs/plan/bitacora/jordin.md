@@ -181,3 +181,31 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     Los constructores usan `Guid.CreateVersion7()`, y `PlanApi.Activo` y `PlanPlataforma.Activo` ya guardan `false`. Si necesitas cambiar el esquema en tu rama, borra tu migración, toma el *snapshot* de `main` y vuelve a generarla (convenciones §3).
   - **José Pablo:** se modificaron `Dominio/Bitacora/EntradaBitacora.cs` (su constructor recibe la fecha primero), `Infraestructura/Bitacora/BitacoraBaseDatos.cs` (usa `IReloj`) y `Dominio/Correo/CorreoSaliente.cs` (UUID v7, `creado_en` y `actualizado_en`). Para la siembra de JZ-05: los casos toman su número de la secuencia, así que CAS-100 a CAS-104 salen solos si se insertan en orden y sin `numero`. Además, la bitácora rechaza UPDATE, DELETE y TRUNCATE: para limpiarla en las pruebas, crea una base nueva.
   - **Dominique:** se modificó `Dominio/Apis/RegistroDnsSimulado.cs` (`creado_en` y `actualizado_en`). La columna `api.portal_logo` rechaza más de 512 KB y `ruta` rechaza la caché en métodos distintos de GET.
+
+## 2026-09-26 · EM-02 · Correcciones de la auditoría: seguridad de la identidad del personal
+- Hecho: paso 6 de `docs/plan/auditoria-2026-09-25.md` (H-49 a H-60).
+  - Se deniega por defecto: todo endpoint exige una sesión, salvo los públicos de `/api/auth`, `/salud` y `/openapi` en *Development*.
+  - Los intentos fallidos se cuentan de forma atómica, y la ruta de la cuenta inexistente hace el mismo trabajo en la base que la de la contraseña incorrecta.
+  - `X-Forwarded-For` solo se acepta de `SHAPI_REDES_BORDE`.
+  - Hay un límite de 3 reenvíos por hora.
+  - El `Origin` se compara con su esquema y su puerto.
+  - `salir` siempre borra la cookie.
+  - El correo se valida con más cuidado y se hace el *rehash*.
+  - El JSON mal formado responde 400 `datos_invalidos`.
+  - Los endpoints se movieron a `Identidad/Endpoints.cs`.
+  - Hay 22 casos de prueba nuevos en `AutenticacionTests`.
+- Decisiones (de Jordin, 26 sep):
+  - H-49: se editó `Program.cs` (`AllowAnonymous` en `/salud` y `/openapi`), como excepción puntual de convenciones §3.
+  - H-52: `SHAPI_REDES_BORDE`, que por defecto solo incluye la máquina; con Docker Desktop, Caddy llega desde `127.0.0.1` (medido en esta PC).
+  - H-53: 3 reenvíos por hora.
+  - H-55: `salir` es público.
+- Pendiente o aviso para otros:
+  - **Todos:** actualicen su rama desde `main`. Desde este PR, **un endpoint sin `RequireAuthorization(...)` ni `AllowAnonymous()` exige una sesión** (04 §4, regla 6). Si su endpoint debe ser público, como el portal sin sesión o `/interno/tls/autorizar`, declárenlo con `AllowAnonymous()` y agréguenlo a la lista de la prueba `Autorizacion_EndpointsAnonimos_SonSoloLosPublicos`. En desarrollo no hace falta configurar `SHAPI_REDES_BORDE`.
+  - **Emilio:** se modificaron tus archivos de identidad:
+    - `src/Shapi.Api/Identidad/` (el nuevo `Endpoints.cs`, `CsrfMiddleware.cs` y `PoliticasAutorizacion.cs`), `src/Shapi.Api/Modulos/IdentidadModulo.cs` (ahora solo registra servicios y el *pipeline*) y `src/Shapi.Aplicacion/Identidad/RegistroProveedor.cs` (`PatronCorreo`);
+    - `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs` y `contratos/openapi/identidad.yaml`;
+    - el `## Resultado` de EM-02 y tu bitácora (se agregó la entrada de EM-02 que faltaba).
+
+    Para EM-04 y EM-05, agrega tus endpoints en `Identidad/Endpoints.cs`, no en el módulo. Los intentos fallidos se cuentan con `ExecuteUpdate`; usa el mismo patrón para el consumidor.
+  - **Dominique:** se regeneró `packages/api/src/generado/identidad.ts` con `pnpm generar:api`. `PeticionEntrar`, `PeticionReenviar` y `PeticionVerificacion` ya no tienen campos obligatorios. El *typecheck* y las pruebas del frontend pasan.
+  - **José Pablo:** se agregó `SHAPI_REDES_BORDE` a `.env.example`, y el criterio 7 de JZ-06 pide fijarla en `compose.prod.yml` con la subred de la red del compose.

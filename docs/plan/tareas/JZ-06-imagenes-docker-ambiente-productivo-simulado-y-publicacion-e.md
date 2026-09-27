@@ -39,7 +39,7 @@ Empaquetar el sistema en imágenes y levantar el ambiente productivo simulado co
 4. `publicar-imagenes.yml`, en cada *push* a `main`, construye y publica `ghcr.io/jordin-garcia/shapi-{api,compuerta,trabajador,borde}` con las etiquetas `latest` y el SHA. `compose.prod.yml` usa esas imágenes, y `--build` permite construirlas localmente.
 5. El manual técnico explica cómo levantar, sembrar (`docker compose ... exec trabajador ... sembrar-demo`), ver los registros y apagar.
 6. El *healthcheck* de la API y de la compuerta consulta `http://localhost:8080/salud` dentro del contenedor. La compuerta solo responde `/salud` con el host `localhost` (`Program.cs`), para no tapar la ruta `/salud` de las APIs de los proveedores.
-7. El puerto de la API de control no se publica en el host: solo se llega a ella por el borde (`https://shapi.localhost/api/*`). La API confía en `X-Forwarded-For` solo si viene del borde (10 §1).
+7. El puerto de la API de control no se publica en el host: solo se llega a ella por el borde (`https://shapi.localhost/api/*`). La API confía en `X-Forwarded-For` solo si viene del borde (10 §1): `compose.prod.yml` fija una subred para la red del compose y pasa esa subred a la API en `SHAPI_REDES_BORDE`.
 
 ## Pruebas obligatorias
 - Levantar desde cero en un equipo y comprobar `https://shapi.localhost`, que los contenedores con *healthcheck* estén *healthy* (la API y la compuerta consultan `http://localhost:8080/salud` dentro del contenedor, 06 §8) y `https://envios.api.shapi.localhost` (404, porque todavía no hay siembra)

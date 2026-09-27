@@ -33,10 +33,11 @@ app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
 }
 
-app.MapHealthChecks("/salud");
+// La política por defecto exige una sesión (04); la salud es pública (06 §8).
+app.MapHealthChecks("/salud").AllowAnonymous();
 
 app
     .MapearModuloIdentidad()

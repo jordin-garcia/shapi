@@ -66,7 +66,7 @@ dotnet format Shapi.slnx --verify-no-changes
 
 La implementación original es de Emilio (PR #10). Se integró sin la revisión completa, y el 25 de septiembre de 2026 Jordin la corrigió (PR de corrección) para que cumpla los criterios. Lo que queda:
 
-- **Endpoints** (`src/Shapi.Api/Modulos/IdentidadModulo.cs`): `POST /api/auth/registro`, `verificar-correo`, `reenviar-verificacion`, `entrar` y `salir`, y `GET /api/auth/sesion`. Todos los errores son ProblemDetails con `codigo` (`Problemas.Crear`), y el 400 trae `errores` por campo.
+- **Endpoints** (`src/Shapi.Api/Identidad/Endpoints.cs`; hasta el 26 sep estaban en `Modulos/IdentidadModulo.cs`): `POST /api/auth/registro`, `verificar-correo`, `reenviar-verificacion`, `entrar` y `salir`, y `GET /api/auth/sesion`. Todos los errores son ProblemDetails con `codigo` (`Problemas.Crear`), y el 400 trae `errores` por campo.
 - **Registro:** `RegistroProveedor` y `ValidadorRegistroProveedor` (FluentValidation) en `Shapi.Aplicacion/Identidad`. Crea el usuario, la organización, la membresía de propietario y la Prueba con el ciclo de 09 §4 (`SuscripcionPlataforma.IniciarPrueba`), y encola `verificacion_correo` con `IColaCorreo` en la misma transacción. Los datos del correo son `{ nombre, token }`, donde `token` es el valor del enlace; JZ-03 arma el enlace.
 - **Sesión:** `PersonalAutenticacionHandler` (`Shapi.Api/Identidad`) lee la sesión, el usuario y la membresía sin el filtro global y pone los claims `OrganizacionId`, el rol y `Ambito`. `ContextoOrganizacionHttp` le da la organización al filtro global de los demás módulos.
 - **Dominio:** constructores y métodos en `Usuario` (bloqueo), `Token`, `Sesion` (vigencia y último uso), `Organizacion`, `Membresia` y `SuscripcionPlataforma`. Las propiedades siguen con `private set`.
@@ -81,3 +81,32 @@ La implementación original es de Emilio (PR #10). Se integró sin la revisión 
 - `GET /api/auth/sesion` y `POST /api/auth/salir` no llevan el límite por IP. El panel consulta la sesión en cada carga y esos endpoints no sirven para adivinar credenciales. Quedó en 10 §1.
 - Los endpoints todavía hacen las consultas a la base. Llevarlas a casos de uso de `Shapi.Aplicacion` (convenciones §6) necesita una abstracción del acceso a datos que ningún módulo tiene aún, y se decide en la convergencia (JG-08).
 
+
+### Correcciones de la auditoría (2026-09-26)
+
+Paso 6 de `docs/plan/auditoria-2026-09-25.md` (H-49 a H-60).
+
+- **H-49:** se deniega por defecto (04 §4, regla 6). La política por defecto exige una sesión, y solo `registro`, `verificar-correo`, `reenviar-verificacion`, `entrar`, `salir` y `/salud` (y `/openapi` en *Development*) son públicos, con `AllowAnonymous`. Una prueba falla si aparece otro endpoint público.
+- **H-50:** cada intento fallido se cuenta con un solo `UPDATE` (`ExecuteUpdate`), que también bloquea la cuenta al quinto. Antes, los intentos simultáneos se perdían. Una prueba hace 5 intentos en paralelo.
+- **H-51:** una cuenta inexistente y una contraseña incorrecta hacen el mismo trabajo en la base, un `SELECT` y un `UPDATE` (que no afecta filas si la cuenta no existe). Una prueba cuenta los comandos de las dos rutas.
+- **H-52:** `X-Forwarded-For` solo se acepta de las redes de `SHAPI_REDES_BORDE`. Por defecto, solo de la máquina, que es desde donde llega Caddy con Docker Desktop (medido el 26 sep). Antes bastaba con cualquier red privada.
+- **H-53:** como máximo 3 reenvíos de la verificación por cuenta en una hora, sin contar el enlace del registro. Al pasarse responde el mismo 200 sin enviar nada.
+- **H-54:** el `Origin` debe tener el mismo esquema, host y puerto que la petición, no solo el mismo host.
+- **H-55:** `salir` es público: revoca la sesión si existe y siempre borra la cookie, también con la sesión vencida.
+- **H-56:** el correo del registro necesita un dominio con punto y no puede tener espacios (se rechaza `a@b`). Si el hash de la contraseña es más débil que el actual, se recalcula al entrar.
+- **H-57:**
+  - Un JSON mal formado responde 400 `datos_invalidos`, igual en todos los entornos (`ThrowOnBadRequest = false`).
+  - En `identidad.yaml`, `PeticionEntrar`, `PeticionReenviar` y `PeticionVerificacion` ya no marcan campos como `required`, porque el backend no responde 400 cuando faltan: responde 401, 200 y 422. Se documentó.
+  - Se regeneró `packages/api/src/generado/identidad.ts`.
+- **H-58:** las pruebas de CSRF y del límite llevan RF-04. Se agregaron las que faltaban:
+  - 4 fallos, un acierto y otro fallo;
+  - registro y verificación simultáneos;
+  - cuenta desactivada con la sesión abierta;
+  - enlace reenviado;
+  - `Sesion:InactividadHoras`;
+  - `salir`;
+  - cuenta sin contraseña;
+  - `ultimo_uso_en`.
+- **H-59:** los endpoints pasaron a `src/Shapi.Api/Identidad/Endpoints.cs` (convenciones §1). `Modulos/IdentidadModulo.cs` solo registra los servicios y el *pipeline*.
+- **H-60:** se agregó la entrada de EM-02 en la bitácora de Emilio.
+- Especificaciones precisadas: 04 §4 y 10 §1. JZ-06 debe fijar `SHAPI_REDES_BORDE` en producción (criterio 7).

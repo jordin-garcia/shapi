@@ -20,6 +20,9 @@ public static class PoliticasAutorizacion
     public static IServiceCollection AgregarPoliticasShapi(this IServiceCollection services)
     {
         services.AddAuthorizationBuilder()
+            // 04: se deniega por defecto. Un endpoint sin política exige una sesión; los públicos llevan AllowAnonymous.
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+
             // 04 §3.1 Panel del proveedor
             .AddPolicy(Permisos.VerApis, p => p.RequireRole(Propietario, Editor, Lector))
             .AddPolicy(Permisos.ConfigurarApis, p => p.RequireRole(Propietario, Editor))
