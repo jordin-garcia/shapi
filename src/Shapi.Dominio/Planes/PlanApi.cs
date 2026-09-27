@@ -11,7 +11,7 @@ public class PlanApi
     public int VigenciaDias { get; private set; }
     public long CuotaLlamadas { get; private set; }
     public int LimiteMinuto { get; private set; }
-    public bool Activo { get; private set; }
+    public bool Activo { get; private set; } = true;
     public DateTimeOffset CreadoEn { get; private set; }
     public DateTimeOffset ActualizadoEn { get; private set; }
 

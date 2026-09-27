@@ -406,7 +406,7 @@ También hay tablas auxiliares que no aparecen en el diagrama: `correo_saliente`
 - Todas las fechas son `timestamptz` en UTC.
 - El dinero es `numeric(12,2)`.
 - Los enumerados son `text` con una restricción `CHECK`. Las restricciones también van en `snake_case`: `ck_<tabla>_<regla>`.
-- Toda tabla tiene `creado_en timestamptz not null default now()`. Las tablas que se modifican tienen además `actualizado_en`. En `sesion`, `bitacora` y `lote_consolidado`, las columnas `creada_en`, `fecha` y `procesado_en` hacen de `creado_en`. `medio_pago` y `caso_mensaje` no se modifican y solo tienen `creado_en`. La aplicación llena las dos columnas con la hora de `IReloj`, para que el modo demostración ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostracion)) también las adelante.
+- Toda tabla tiene `creado_en timestamptz not null default now()`. Las tablas que se modifican tienen además `actualizado_en`. En `sesion`, `bitacora` y `lote_consolidado`, las columnas `creada_en`, `fecha` y `procesado_en` hacen de `creado_en`. `medio_pago` y `caso_mensaje` no se modifican y solo tienen `creado_en`. La aplicación llena las dos columnas con la hora de `IReloj`, para que el modo demostración ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostracion)) también las adelante. Las actualizaciones que no pasan por el seguimiento de cambios de EF (`ExecuteUpdate` o SQL directo, como el UPSERT de `consumo_diario`) ponen `actualizado_en` a mano.
 - Los correos se guardan en minúsculas, normalizados en la aplicación, y son únicos con un índice sobre `lower(correo)`.
 - Las migraciones se hacen con EF Core, un proyecto por migración, en `Shapi.Infraestructura`.
 

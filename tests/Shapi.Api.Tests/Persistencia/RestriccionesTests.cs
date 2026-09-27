@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 
 namespace Shapi.Api.Tests.Persistencia;
@@ -320,6 +323,21 @@ public sealed class RestriccionesTests(PostgresPersistencia postgres) : BaseDePr
             """);
 
         Assert.Equal(0L, conMayusculas);
+    }
+
+    // La migración de la auditoría se puede revertir hasta Inicial: su Down quita el DEFAULT antes de borrar la secuencia.
+    [Fact]
+    public async Task Migraciones_RevertirAInicialYVolverAAplicar_TerminanSinError()
+    {
+        await using var db = CrearDb();
+        var migrador = db.GetService<IMigrator>();
+
+        await migrador.MigrateAsync("20260925073244_Inicial");
+        Assert.Equal(44L, await Escalar<long>("SELECT count(*) FROM pg_constraint WHERE conname LIKE 'CK\\_%'"));
+
+        await migrador.MigrateAsync();
+        Assert.Equal(0L, await Escalar<long>("SELECT count(*) FROM pg_constraint WHERE conname LIKE 'CK\\_%'"));
+        Assert.Empty(await db.Database.GetPendingMigrationsAsync());
     }
 
     private async Task<Guid> SuscripcionApiCompleta()

@@ -80,15 +80,15 @@ dotnet ef migrations has-pending-model-changes -p src/Shapi.Infraestructura -s s
 
 Paso 5 de `docs/plan/auditoria-2026-09-25.md` (H-30 a H-48). Todos los cambios del esquema van en la migración nueva `AjustesDelEsquemaAuditoria`, porque `Inicial` ya estaba aplicada en las bases locales.
 
-- **H-30:** `caso.numero` usaba HiLo con bloques de 10 desde 1. Ahora es `DEFAULT nextval('caso_numero_seq')`, que empieza en 100 y avanza de 1 en 1, como pide el criterio 3.
+- **H-30:** `caso.numero` usaba HiLo con bloques de 10 desde 1. Ahora es `DEFAULT nextval('caso_numero_seq')`, que empieza en 100 y avanza de 1 en 1, como pide el criterio 3. La migración se puede revertir hasta `Inicial`, y una prueba lo comprueba.
 - **H-31:** hay pruebas de las 7 restricciones del criterio 2, que faltaban (`RestriccionesTests`).
 - **H-32 a H-36:**
   - H-32: FK de `plan_siguiente_id` hacia el plan de su nivel.
-  - H-33: `activo = false` ya no se guarda como `true`; el *sentinel* de EF lo tomaba como "sin valor".
+  - H-33: `activo = false` ya no se guarda como `true`; el *sentinel* de EF lo tomaba como "sin valor". `Activo` empieza en `true` en la entidad, igual que el DEFAULT de la base.
   - H-34: columnas `rechazos_4xx` y `origen_Nxx` con los nombres de 07 §3.5.
   - H-35: CHECK de `mes_vencimiento`, de la caché solo en GET, del nombre de la organización, de los 10 rangos del histograma y de los 512 KB del logotipo.
   - H-36: DEFAULT de los estados.
-- **H-37:** `creado_en` y `actualizado_en` donde faltaban. `InterceptorFechasAuditoria` las llena con la hora de `IReloj`, para que el modo demostración también las adelante. Antes, `actualizado_en` nunca cambiaba.
+- **H-37:** `creado_en` y `actualizado_en` donde faltaban. `InterceptorFechasAuditoria` las llena con la hora de `IReloj`, para que el modo demostración también las adelante. Antes, `actualizado_en` nunca cambiaba. El `ExecuteUpdate` que marca un token como usado también la pone.
 - **H-38:** el filtro por organización cubre ahora todas las tablas que pertenecen a una organización, también a través de su padre (10 §2). Una prueba falla si se agrega una entidad sin filtro que no esté en la lista de tablas globales.
 - **H-39:** los identificadores son UUID v7 (`Guid.CreateVersion7()`); los que genera EF ya lo eran.
 - **H-40:** la bitácora rechaza también TRUNCATE, y el disparador y su mensaje están en español. Por decisión de Jordin se mantiene un solo rol de base de datos, y 07 §3.6 se precisó.

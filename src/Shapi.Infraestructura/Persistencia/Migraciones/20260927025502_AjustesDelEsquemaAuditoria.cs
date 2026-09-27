@@ -513,6 +513,16 @@ public partial class AjustesDelEsquemaAuditoria : Migration
             name: "creado_en",
             table: "consumidor");
 
+        // Primero se quita el DEFAULT nextval: PostgreSQL no deja borrar una secuencia que una columna usa.
+        migrationBuilder.AlterColumn<int>(
+            name: "numero",
+            table: "caso",
+            type: "integer",
+            nullable: false,
+            oldClrType: typeof(int),
+            oldType: "integer",
+            oldDefaultValueSql: "nextval('caso_numero_seq')");
+
         migrationBuilder.DropSequence(
             name: "caso_numero_seq");
 
@@ -586,15 +596,6 @@ public partial class AjustesDelEsquemaAuditoria : Migration
             oldClrType: typeof(string),
             oldType: "text",
             oldDefaultValue: "activo");
-
-        migrationBuilder.AlterColumn<int>(
-            name: "numero",
-            table: "caso",
-            type: "integer",
-            nullable: false,
-            oldClrType: typeof(int),
-            oldType: "integer",
-            oldDefaultValueSql: "nextval('caso_numero_seq')");
 
         migrationBuilder.AlterColumn<string>(
             name: "estado",
