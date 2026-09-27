@@ -284,17 +284,23 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     }
 
     [Theory]
-    [InlineData("api_key", true)]
-    [InlineData("cualquier_nombre", true)]
-    [InlineData("api_key", false)]
-    [InlineData(null, false)]
-    public async Task RF_29_ValidarClave_ClaveEnLaQuery_Responde401ClaveEnUrlYNoReenvia(string? nombre, bool tambienEnCabecera)
+    [InlineData("api_key={0}", true)]
+    [InlineData("cualquier_nombre={0}", true)]
+    [InlineData("api_key={0}", false)]
+    [InlineData("{0}", false)]
+    [InlineData("auth=Bearer%20{0}", true)]
+    [InlineData("a=1;k={0}", true)]
+    [InlineData("api_key={1}", true)]
+    [InlineData("api_key={2}", true)]
+    public async Task RF_29_ValidarClave_ClaveEnLaQuery_Responde401ClaveEnUrlYNoReenvia(string formato, bool tambienEnCabecera)
     {
         // 08 §1 (auditoría H-78): una clave en la URL queda en los registros de acceso, así que se rechaza aunque
-        // también venga una X-Api-Key válida. nombre = null: la clave es el propio nombre del parámetro.
+        // también venga una X-Api-Key válida: como nombre, como valor, dentro de otro texto, de pruebas o codificada.
         var (host, _, clave) = await SembrarApiYClaveAsync();
         using var cliente = entorno.Cliente(host);
-        var query = nombre is null ? clave : $"{nombre}={clave}";
+        var dePruebas = clave.Replace("shp_prod_", "shp_prueba_", StringComparison.Ordinal);
+        var codificada = clave.Replace("_", "%5F", StringComparison.Ordinal);
+        var query = string.Format(System.Globalization.CultureInfo.InvariantCulture, formato, clave, dePruebas, codificada);
         using var peticion = new HttpRequestMessage(HttpMethod.Get, $"/cotizaciones?moneda=GTQ&{query}");
         if (tambienEnCabecera)
         {

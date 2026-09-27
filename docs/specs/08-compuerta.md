@@ -5,7 +5,7 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 ## 1. Contrato de entrada
 
 - **Host:** `{sub}.api.shapi.localhost` o un dominio propio verificado.
-- **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso. Si el nombre o el valor de un parámetro de la query tiene el formato de clave ([§2](#2-formato-de-la-clave)), la compuerta responde 401 `clave_en_url` y no reenvía la petición, aunque también venga `X-Api-Key`. Los demás parámetros (por ejemplo, un `key` del proveedor) se reenvían. La compuerta tampoco registra la URL de destino con su query.
+- **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso. Si el nombre o el valor de un parámetro de la query contiene una clave con el formato de [§2](#2-formato-de-la-clave), sola o dentro de un texto más largo, la compuerta responde 401 `clave_en_url` y no reenvía la petición, aunque también venga `X-Api-Key`. Los demás parámetros (por ejemplo, un `key` del proveedor) se reenvían. La compuerta tampoco registra la URL de destino con su query.
 - **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
 - **Cuerpo:** máximo 10 MB. Si es más grande se responde 413 `cuerpo_demasiado_grande`.
 - **Tiempo de espera del origen:** 30 segundos **en total**, desde que se reenvía la petición hasta que termina la respuesta; no es un tiempo de inactividad. Si vence antes de que el origen responda, 504 `origen_sin_respuesta`. Si la respuesta ya empezó, se corta. Dentro de esos 30 segundos, la conexión con el origen tiene 10 segundos; si no se conecta, 502 `origen_inaccesible`.
@@ -28,6 +28,7 @@ flowchart LR
   F2 -- "ausente" --> R401a(["401 clave_ausente"])
   F2 -- "no existe, revocada o de otra API" --> R401b(["401 clave_invalida"])
   F2 -- "en la query string" --> R401c(["401 clave_en_url"])
+  F1 -. "Redis no disponible (en cualquier filtro)" .-> R503(["503 servicio_no_disponible"])
   F2 --> F3["3 · Organización<br/>estado efectivo"]
   F3 -- "suspendida" --> R403a(["403 api_no_disponible"])
   F3 --> F4["4 · Suscripción<br/>activa o en gracia"]
@@ -44,7 +45,7 @@ flowchart LR
   F8 -- "no se pudo conectar" --> R502(["502 origen_inaccesible<br/>(se devuelve la cuota)"])
   F8 -- "pasan 30 s" --> R504(["504 origen_sin_respuesta"])
   F8 --> OK(["Respuesta del origen"])
-  OK & HIT & R404 & R401a & R401b & R401c & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R504 --> F9["9 · Medición<br/>(después de responder)"]
+  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R504 --> F9["9 · Medición<br/>(después de responder)"]
 ```
 
 ### Detalle de cada filtro
@@ -99,7 +100,7 @@ Todos los rechazos de la compuerta responden con `Content-Type: application/json
 |---|---|---|---|
 | 401 | `clave_ausente` | Falta `X-Api-Key` | `WWW-Authenticate: ApiKey header="X-Api-Key"` |
 | 401 | `clave_invalida` | La clave no existe, está revocada, era una clave rotada que ya venció o es de otra API. También si llegan varias `X-Api-Key` | ídem |
-| 401 | `clave_en_url` | Un parámetro de la query string tiene el formato de clave ([§1](#1-contrato-de-entrada)) | ídem |
+| 401 | `clave_en_url` | Un parámetro de la query string contiene una clave ([§1](#1-contrato-de-entrada)) | ídem |
 | 403 | `api_no_disponible` | La organización proveedora está suspendida (por falta de pago o por el administrador) | — |
 | 403 | `suscripcion_inactiva` | La suscripción del consumidor está suspendida o finalizada | — |
 | 403 | `ruta_no_permitida` | El método y la ruta no existen o están ocultos | — |

@@ -96,8 +96,8 @@ Verificación manual con el entorno levantado:
 ### Correcciones de la auditoría (2026-09-27)
 
 Paso 10 de `docs/plan/auditoria-2026-09-25.md` (H-78 a H-82):
-- **Clave en la URL (H-78).** Si el nombre o el valor de un parámetro de la query tiene el formato de clave (08 §2), `FiltroClave` responde 401 `clave_en_url` sin reenviar, aunque también venga `X-Api-Key`. Así la clave no queda en los registros de acceso. Los parámetros del proveedor, como `key=abc123`, se reenvían. Además se silenció el registro "Proxying to …" de YARP, que escribía la URL de destino con su query: `ServiciosCompuerta` deja la categoría `Yarp.ReverseProxy.Forwarder.HttpForwarder` en `Warning`.
-- **Redis caído (H-79).** `TuberiaCompuerta` atrapa `RedisException` y `RedisTimeoutException` de los filtros y responde 503 `servicio_no_disponible`, con `Retry-After: 5` y el contrato de 08 §4. Antes respondía la página de excepciones en HTML. Se probó de verdad deteniendo el contenedor: la compuerta se recupera sola cuando Redis vuelve.
+- **Clave en la URL (H-78).** Si el nombre o el valor de un parámetro de la query contiene una clave con el formato de 08 §2, `FiltroClave` responde 401 `clave_en_url` sin reenviar, aunque también venga `X-Api-Key`. Se detecta sola, dentro de otro texto (`Bearer shp_prod_…`, `1;k=shp_prod_…`) o codificada en la URL. Así la clave no queda en los registros de acceso. Los parámetros del proveedor, como `key=abc123`, se reenvían. Además se silenció el registro "Proxying to …" de YARP, que escribía la URL de destino con su query: `ServiciosCompuerta` deja la categoría `Yarp.ReverseProxy.Forwarder.HttpForwarder` en `Warning`.
+- **Redis caído (H-79).** `TuberiaCompuerta` atrapa `RedisConnectionException` y `RedisTimeoutException` de los filtros (un error de datos de Redis no es un 503) y responde 503 `servicio_no_disponible`, con `Retry-After: 5` y el contrato de 08 §4. Antes respondía la página de excepciones en HTML. Se probó de verdad deteniendo el contenedor: la compuerta se recupera sola cuando Redis vuelve.
 - **Tiempo total (H-80).** `ActivityTimeout` se reinicia con cada byte, así que un origen que manda poco a poco nunca vencía. Ahora `ReenvioOrigen` pasa a YARP un token que vence a los 30 s en total:
   - si vence antes de que el origen responda, 504;
   - si la respuesta ya empezó, se corta.
@@ -113,6 +113,6 @@ Paso 10 de `docs/plan/auditoria-2026-09-25.md` (H-78 a H-82):
   - Redis caído;
   - la clave en la query y que YARP no registre la URL.
 
-  Las pruebas quedaron nombradas con su requisito (`RF_29_`, `RF_31_` y `RNF_13_`). Son 25 casos nuevos: la compuerta pasó de 91 a 116.
+  Las pruebas quedaron nombradas con su requisito (`RF_29_`, `RF_31_` y `RNF_13_`). Son 29 casos nuevos: la compuerta pasó de 91 a 120.
 - **RF-31 parcial (H-82):** se dejó escrito arriba, en este mismo `## Resultado`.
-- **Especificación:** 08 §1 precisa la clave en la URL, los tiempos y el registro. 08 §3 agrega `clave_en_url` al diagrama y al filtro 2. 08 §4 agrega `clave_en_url` y `servicio_no_disponible`, y precisa `clave_invalida` (varias cabeceras), 502 (10 s) y 504.
+- **Especificación:** 08 §1 precisa la clave en la URL, los tiempos y el registro. 08 §3 agrega `clave_en_url` y el 503 al diagrama, y la clave en la URL al filtro 2. 08 §4 agrega `clave_en_url` y `servicio_no_disponible`, y precisa `clave_invalida` (varias cabeceras), 502 (10 s) y 504.

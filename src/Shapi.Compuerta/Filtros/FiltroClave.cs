@@ -60,11 +60,14 @@ public sealed partial class FiltroClave(IConnectionMultiplexer redis) : IFiltroC
         return ResultadoFiltro.Continuar;
     }
 
-    /// <summary>Un nombre o un valor de la query con el formato de clave de 08 §2, sea cual sea el parámetro.</summary>
+    /// <summary>
+    /// Una clave con el formato de 08 §2 en cualquier nombre o valor de la query, sola o dentro de un texto más largo
+    /// ("Bearer shp_prod_…", "1;k=shp_prod_…"). <see cref="HttpRequest.Query"/> ya decodifica el <c>%xx</c>.
+    /// </summary>
     private static bool TieneClaveEnLaQuery(IQueryCollection query) =>
         query.Any(parametro => FormatoClave().IsMatch(parametro.Key)
             || parametro.Value.Any(valor => valor is not null && FormatoClave().IsMatch(valor)));
 
-    [GeneratedRegex("^shp_(?:prod|prueba)_[0-9A-Za-z]{26}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("(?<![0-9A-Za-z])shp_(?:prod|prueba)_[0-9A-Za-z]{26}(?![0-9A-Za-z])", RegexOptions.CultureInvariant)]
     private static partial Regex FormatoClave();
 }

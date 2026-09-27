@@ -41,10 +41,12 @@ public sealed class TuberiaCompuerta(
             {
                 resultado = await filtro.EvaluarAsync(contexto);
             }
-            catch (Exception excepcion) when (excepcion is RedisException or RedisTimeoutException)
+            catch (Exception excepcion) when (excepcion is RedisConnectionException or RedisTimeoutException)
             {
+                // Solo la caída o la lentitud de Redis; un error de datos (RedisServerException) no es un 503.
                 // El mensaje de StackExchange.Redis no incluye la clave: solo la llave de Redis, que lleva su hash.
-                registro.LogError(excepcion, "Redis no está disponible: la compuerta responde 503");
+                // Sin la traza: mientras Redis esté caído, esto se registra en cada petición.
+                registro.LogWarning("Redis no está disponible, la compuerta responde 503: {Motivo}", excepcion.Message);
                 resultado = RedisNoDisponible;
             }
 
