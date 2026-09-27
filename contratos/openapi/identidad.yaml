@@ -6,7 +6,9 @@ info:
     Registro, verificación de correo e inicio y cierre de sesión del personal (EM-02).
     La sesión viaja en la cookie `shapi_sesion` (HttpOnly, Secure, SameSite=Lax, Path=/).
     Todo método distinto de GET exige la cabecera `X-Requested-With: shapi`; si falta, responde 403 `csrf` (10 §1).
-    Los errores siguen ProblemDetails con `codigo` (convenciones §5).
+    Los errores siguen ProblemDetails con `codigo` (convenciones §5). Un cuerpo que no es un JSON válido responde
+    400 `datos_invalidos`, sin `errores`.
+    Todo endpoint exige una sesión salvo los que no declaran `security` (04: se deniega por defecto).
 servers:
   - url: https://shapi.localhost
     description: Panel del proveedor detrás del borde (la API escucha en http://localhost:5080)
@@ -63,6 +65,8 @@ paths:
           headers:
             Set-Cookie:
               $ref: '#/components/headers/CookieSesion'
+        '400':
+          $ref: '#/components/responses/CuerpoInvalido'
         '403':
           description: Falta la cabecera CSRF (`csrf`) o la cuenta está desactivada (`cuenta_desactivada`).
           content:
@@ -82,8 +86,9 @@ paths:
     post:
       summary: Reenvía el correo de verificación
       description: |
-        Genera un enlace nuevo si la cuenta existe y su correo no está verificado.
-        Responde igual exista o no la cuenta, para no revelar qué correos están registrados. Límite de 10 por minuto por IP.
+        Genera un enlace nuevo si la cuenta existe y su correo no está verificado, hasta 3 reenvíos por cuenta en una hora
+        (el enlace del registro no cuenta). Responde igual exista o no la cuenta y aunque se haya pasado del límite, para
+        no revelar qué correos están registrados. Límite de 10 por minuto por IP.
       operationId: reenviarVerificacion
       parameters:
         - $ref: '#/components/parameters/XRequestedWith'
@@ -96,6 +101,8 @@ paths:
       responses:
         '200':
           description: Solicitud recibida.
+        '400':
+          $ref: '#/components/responses/CuerpoInvalido'
         '403':
           $ref: '#/components/responses/Csrf'
         '429':
@@ -122,8 +129,10 @@ paths:
           headers:
             Set-Cookie:
               $ref: '#/components/headers/CookieSesion'
+        '400':
+          $ref: '#/components/responses/CuerpoInvalido'
         '401':
-          description: El correo o la contraseña no son correctos (`credenciales_invalidas`).
+          description: El correo o la contraseña no son correctos, o falta alguno de los dos (`credenciales_invalidas`).
           content:
             application/problem+json:
               schema:
@@ -146,17 +155,15 @@ paths:
   /api/auth/salir:
     post:
       summary: Cierra la sesión
-      description: Revoca la sesión en el servidor y borra la cookie.
+      description: |
+        No exige una sesión vigente. Si la cookie corresponde a una sesión, la revoca en el servidor. Siempre borra la
+        cookie, también cuando la sesión ya venció.
       operationId: salir
-      security:
-        - cookieSesion: []
       parameters:
         - $ref: '#/components/parameters/XRequestedWith'
       responses:
         '200':
-          description: Sesión revocada.
-        '401':
-          $ref: '#/components/responses/SinSesion'
+          description: Sesión revocada, si existía, y cookie borrada.
         '403':
           $ref: '#/components/responses/Csrf'
 
@@ -215,8 +222,14 @@ components:
             errores:
               contrasena:
                 - La contraseña debe tener entre 10 y 128 caracteres.
+    CuerpoInvalido:
+      description: El cuerpo no es un JSON válido (`datos_invalidos`, sin `errores`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
     Csrf:
-      description: Falta la cabecera `X-Requested-With` o el `Origin` no es el del host (`csrf`).
+      description: Falta la cabecera `X-Requested-With`, o el `Origin` no tiene el mismo esquema, host y puerto que la petición (`csrf`).
       content:
         application/problem+json:
           schema:
@@ -257,6 +270,7 @@ components:
           type: string
           format: email
           maxLength: 254
+          description: Una parte local, una arroba y un dominio con al menos un punto, sin espacios.
         organizacion:
           type: string
           minLength: 2
@@ -269,7 +283,7 @@ components:
 
     PeticionVerificacion:
       type: object
-      required: [token]
+      description: Si falta `token`, responde 422 `token_invalido`.
       properties:
         token:
           type: string
@@ -277,7 +291,7 @@ components:
 
     PeticionReenviar:
       type: object
-      required: [correo]
+      description: Si falta `correo`, responde 200 sin hacer nada.
       properties:
         correo:
           type: string
@@ -285,7 +299,7 @@ components:
 
     PeticionEntrar:
       type: object
-      required: [correo, contrasena]
+      description: Si falta `correo` o `contrasena`, responde 401 `credenciales_invalidas`.
       properties:
         correo:
           type: string

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -142,6 +143,8 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     [InlineData("Ana", "ana@enviosxelaju.com", "Envíos Xelajú", null, "contrasena")]
     [InlineData("Ana", "ana@enviosxelaju.com", "E", ContrasenaValida, "organizacion")]
     [InlineData("Ana", "no-es-un-correo", "Envíos Xelajú", ContrasenaValida, "correo")]
+    [InlineData("Ana", "a@b", "Envíos Xelajú", ContrasenaValida, "correo")]
+    [InlineData("Ana", "ana lopez@enviosxelaju.com", "Envíos Xelajú", ContrasenaValida, "correo")]
     [InlineData("", "ana@enviosxelaju.com", "Envíos Xelajú", ContrasenaValida, "nombre")]
     public async Task RF_01_Registro_DatosInvalidos_Responde400ConErroresPorCampo(string nombre, string correo, string organizacion, string? contrasena, string campo)
     {
@@ -407,10 +410,10 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion")).StatusCode);
     }
 
-    // ---------- 10 §1 · CSRF ----------
+    // ---------- RF-04 y 10 §1 · CSRF ----------
 
     [Fact]
-    public async Task CSRF_SinXRequestedWith_Responde403Csrf()
+    public async Task RF_04_Csrf_SinXRequestedWith_Responde403Csrf()
     {
         var peticion = new HttpRequestMessage(HttpMethod.Post, "/api/auth/entrar") { Content = JsonContent.Create(new { correo = "a@b.com", contrasena = "x" }) };
 
@@ -418,7 +421,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     }
 
     [Fact]
-    public async Task CSRF_OriginDeOtroHost_Responde403Csrf_YDelMismoHostPasa()
+    public async Task RF_04_Csrf_OriginDeOtroHost_Responde403Csrf_YDelMismoHostPasa()
     {
         var ajeno = Peticion(HttpMethod.Post, "/api/auth/entrar", new { correo = "a@b.com", contrasena = "x" });
         ajeno.Headers.Add("Origin", "https://sitio-malicioso.example");
@@ -429,10 +432,10 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         await AfirmarProblema(await _cliente.SendAsync(propio), HttpStatusCode.Unauthorized, "credenciales_invalidas");
     }
 
-    // ---------- 10 §1 · Limitación de peticiones ----------
+    // ---------- RF-04 y 10 §1 · Limitación de peticiones ----------
 
     [Fact]
-    public async Task Limite_LaPeticion11EnUnMinuto_Responde429_YLaSesionNoSeLimita()
+    public async Task RF_04_Limite_LaPeticion11EnUnMinuto_Responde429_YLaSesionNoSeLimita()
     {
         for (var i = 0; i < 10; i++)
         {
@@ -447,15 +450,333 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     }
 
     [Fact]
-    public async Task Limite_DetrasDelBorde_CuentaPorLaIpDelCliente()
+    public async Task RF_04_Limite_DetrasDelBorde_CuentaPorLaIpDelCliente()
     {
+        await using var fabrica = Variante(("SHAPI_REDES_BORDE", "172.18.0.0/16"));
         for (var i = 0; i < 10; i++)
         {
-            Assert.Equal(StatusCodes.Status401Unauthorized, (await EntrarDesdeElBorde("203.0.113.10")).Response.StatusCode);
+            Assert.Equal(StatusCodes.Status401Unauthorized, (await EntrarDesdeElBorde(fabrica, "203.0.113.10")).Response.StatusCode);
         }
 
-        Assert.Equal(StatusCodes.Status429TooManyRequests, (await EntrarDesdeElBorde("203.0.113.10")).Response.StatusCode);
-        Assert.Equal(StatusCodes.Status401Unauthorized, (await EntrarDesdeElBorde("203.0.113.11")).Response.StatusCode);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, (await EntrarDesdeElBorde(fabrica, "203.0.113.10")).Response.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, (await EntrarDesdeElBorde(fabrica, "203.0.113.11")).Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_Limite_DesdeUnaRedQueNoEsElBorde_IgnoraXForwardedFor()
+    {
+        // Sin SHAPI_REDES_BORDE solo se confía en la máquina: una red privada cualquiera no puede elegir su IP.
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.Equal(StatusCodes.Status401Unauthorized, (await EntrarDesdeElBorde(_fabrica, $"203.0.113.{i}")).Response.StatusCode);
+        }
+
+        Assert.Equal(StatusCodes.Status429TooManyRequests, (await EntrarDesdeElBorde(_fabrica, "203.0.113.99")).Response.StatusCode);
+    }
+
+    // ---------- 04 · Denegar por defecto ----------
+
+    [Fact]
+    public async Task Autorizacion_PoliticaPorDefecto_ExigeUnUsuarioAutenticado()
+    {
+        var proveedor = _fabrica.Services.GetRequiredService<IAuthorizationPolicyProvider>();
+
+        var politica = await proveedor.GetFallbackPolicyAsync();
+
+        Assert.NotNull(politica);
+        Assert.Contains(politica.Requirements, r => r is Microsoft.AspNetCore.Authorization.Infrastructure.DenyAnonymousAuthorizationRequirement);
+    }
+
+    [Fact]
+    public void Autorizacion_EndpointsAnonimos_SonSoloLosPublicos()
+    {
+        var anonimos = _fabrica.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+            .Select(e => e.RoutePattern.RawText)
+            .Order()
+            .ToList();
+
+        Assert.Equal(
+            // /openapi solo se mapea en Development, que es el entorno de las pruebas.
+            ["/api/auth/entrar", "/api/auth/reenviar-verificacion", "/api/auth/registro", "/api/auth/salir", "/api/auth/verificar-correo",
+             "/openapi/{documentName}.json", "/salud"],
+            anonimos);
+    }
+
+    // ---------- RF-04 · Intentos fallidos y tiempo de respuesta ----------
+
+    [Fact]
+    public async Task RF_04_Entrar_CincoIntentosFallidosEnParalelo_BloqueanLaCuenta()
+    {
+        await Registrar("ana@enviosxelaju.com");
+
+        var intentos = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => Entrar("ana@enviosxelaju.com", "Incorrecta123")));
+
+        Assert.All(intentos, r => Assert.Equal(HttpStatusCode.Unauthorized, r.StatusCode));
+        await AfirmarProblema(await Entrar("ana@enviosxelaju.com", ContrasenaValida), HttpStatusCode.Locked, "cuenta_bloqueada");
+    }
+
+    [Fact]
+    public async Task RF_04_Entrar_CuatroFallosUnAciertoYOtroFallo_NoBloquean()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        for (var i = 0; i < 4; i++)
+        {
+            await Entrar("ana@enviosxelaju.com", "Incorrecta123");
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await Entrar("ana@enviosxelaju.com", ContrasenaValida)).StatusCode);
+        await AfirmarProblema(await Entrar("ana@enviosxelaju.com", "Incorrecta123"), HttpStatusCode.Unauthorized, "credenciales_invalidas");
+
+        Assert.Equal(HttpStatusCode.OK, (await Entrar("ana@enviosxelaju.com", ContrasenaValida)).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_Entrar_CuentaInexistenteYContrasenaIncorrecta_HacenLasMismasConsultas()
+    {
+        // 10 §1: el mismo tiempo de respuesta. Se comprueba que las dos rutas hagan el mismo trabajo en la base.
+        var contador = new ContadorComandos();
+        await using var fabrica = _fabrica.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
+            s.ConfigureDbContext<ShapiDbContext>(o => o.AddInterceptors(contador))));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/registro",
+            new { nombre = "Ana López", correo = "ana@enviosxelaju.com", organizacion = "Envíos Xelajú", contrasena = ContrasenaValida }));
+
+        contador.Comandos = 0;
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/entrar", new { correo = "nadie@enviosxelaju.com", contrasena = "Incorrecta123" }));
+        var inexistente = contador.Comandos;
+        contador.Comandos = 0;
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/entrar", new { correo = "ana@enviosxelaju.com", contrasena = "Incorrecta123" }));
+
+        Assert.Equal(inexistente, contador.Comandos);
+    }
+
+    [Fact]
+    public async Task RF_04_Entrar_CuentaSinContrasena_Responde401Generico()
+    {
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            var organizacion = await db.Set<Organizacion>().SingleAsync(o => o.Tipo == TipoOrganizacion.Plataforma);
+            var usuario = new Usuario("Sofía", "sofia@shapi.test"); // cuenta de plataforma que todavía no define su contraseña
+            db.AddRange(usuario, new Membresia(usuario.Id, organizacion.Id, Rol.Soporte));
+            await db.SaveChangesAsync();
+        }
+
+        await AfirmarProblema(await Entrar("sofia@shapi.test", ContrasenaValida), HttpStatusCode.Unauthorized, "credenciales_invalidas");
+    }
+
+    [Fact]
+    public async Task RNF_07_Entrar_HashConMenosIteraciones_SeRecalculaAlEntrar()
+    {
+        var (correo, _) = await CrearMiembro(Rol.Editor);
+        var hasherViejo = new PasswordHasher<Usuario>(Microsoft.Extensions.Options.Options.Create(new PasswordHasherOptions { IterationCount = 1_000 }));
+        string hashViejo;
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == correo);
+            hashViejo = hasherViejo.HashPassword(usuario, ContrasenaValida);
+            usuario.DefinirHashContrasena(hashViejo);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await Entrar(correo, ContrasenaValida)).StatusCode);
+
+        await using var lectura = Db(out var scopeLectura);
+        using var __ = scopeLectura;
+        var actualizado = await lectura.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == correo);
+        Assert.NotEqual(hashViejo, actualizado.HashContrasena);
+        Assert.Equal(PasswordVerificationResult.Success, new PasswordHasher<Usuario>().VerifyHashedPassword(actualizado, actualizado.HashContrasena!, ContrasenaValida));
+    }
+
+    // ---------- RF-01 y RF-02 · Peticiones simultáneas y reenvíos ----------
+
+    [Fact]
+    public async Task RF_01_Registro_DosSimultaneosConElMismoCorreo_SoloUnoCreaLaCuenta()
+    {
+        var respuestas = await Task.WhenAll(Registrar("ana@enviosxelaju.com"), Registrar("ana@enviosxelaju.com"));
+
+        Assert.Equal(
+            new[] { HttpStatusCode.OK, HttpStatusCode.Conflict },
+            respuestas.Select(r => r.StatusCode).Order().ToArray());
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        Assert.Equal(1, await db.Set<Usuario>().IgnoreQueryFilters().CountAsync(u => u.Correo == "ana@enviosxelaju.com"));
+    }
+
+    [Fact]
+    public async Task RF_02_VerificarCorreo_DosPeticionesSimultaneas_SoloUnaIniciaSesion()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        var token = await TokenDelUltimoCorreo("ana@enviosxelaju.com");
+
+        var respuestas = await Task.WhenAll(
+            Enviar(HttpMethod.Post, "/api/auth/verificar-correo", new { token }),
+            Enviar(HttpMethod.Post, "/api/auth/verificar-correo", new { token }));
+
+        Assert.Equal(
+            new[] { HttpStatusCode.OK, (HttpStatusCode)422 },
+            respuestas.Select(r => r.StatusCode).Order().ToArray());
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        Assert.Equal(1, await db.Set<Sesion>().CountAsync());
+    }
+
+    [Fact]
+    public async Task RF_02_ReenviarVerificacion_ElEnlaceReenviadoVerificaElCorreo()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        await Enviar(HttpMethod.Post, "/api/auth/reenviar-verificacion", new { correo = "ana@enviosxelaju.com" });
+        var reenviado = await TokenDelUltimoCorreo("ana@enviosxelaju.com");
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/auth/verificar-correo", new { token = reenviado });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.True((await LeerSesion(CookieDeSesion(respuesta))).GetProperty("correoVerificado").GetBoolean());
+    }
+
+    [Fact]
+    public async Task RF_02_ReenviarVerificacion_MasDeTresPorHora_RespondeIgualSinEncolar()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/auth/reenviar-verificacion", new { correo = "ana@enviosxelaju.com" })).StatusCode);
+        }
+
+        var cuarto = await Enviar(HttpMethod.Post, "/api/auth/reenviar-verificacion", new { correo = "ana@enviosxelaju.com" });
+        _reloj.Avanzar(TimeSpan.FromHours(1));
+        await Enviar(HttpMethod.Post, "/api/auth/reenviar-verificacion", new { correo = "ana@enviosxelaju.com" });
+
+        Assert.Equal(HttpStatusCode.OK, cuarto.StatusCode);
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        // El del registro, 3 reenvíos y, una hora después, otro más.
+        Assert.Equal(5, await db.Set<CorreoSaliente>().CountAsync(c => c.Destinatario == "ana@enviosxelaju.com"));
+    }
+
+    // ---------- RF-04 · Sesión ----------
+
+    [Fact]
+    public async Task RF_04_Sesion_CuentaDesactivadaDespuesDeEntrar_Responde401()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        var cookie = CookieDeSesion(await Entrar("ana@enviosxelaju.com", ContrasenaValida));
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            await db.Set<Usuario>().IgnoreQueryFilters().Where(u => u.Correo == "ana@enviosxelaju.com")
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Estado, EstadoCuenta.Desactivado));
+        }
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie)).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_Sesion_InactividadHorasConfigurable()
+    {
+        await using var fabrica = Variante(("Sesion:InactividadHoras", "2"));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/registro",
+            new { nombre = "Ana López", correo = "ana@enviosxelaju.com", organizacion = "Envíos Xelajú", contrasena = ContrasenaValida }));
+        var cookie = CookieDeSesion(await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/entrar",
+            new { correo = "ana@enviosxelaju.com", contrasena = ContrasenaValida })));
+
+        _reloj.Avanzar(TimeSpan.FromMinutes(119));
+        Assert.Equal(HttpStatusCode.OK, (await cliente.SendAsync(Peticion(HttpMethod.Get, "/api/auth/sesion", cookie: cookie))).StatusCode);
+        _reloj.Avanzar(TimeSpan.FromHours(2));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await cliente.SendAsync(Peticion(HttpMethod.Get, "/api/auth/sesion", cookie: cookie))).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_Sesion_UltimoUsoSeActualizaComoMaximoUnaVezPorMinuto()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        var inicio = _reloj.Ahora;
+        var cookie = CookieDeSesion(await Entrar("ana@enviosxelaju.com", ContrasenaValida));
+        var hash = SeguridadTokens.HashearToken(cookie["shapi_sesion=".Length..]);
+
+        _reloj.Avanzar(TimeSpan.FromSeconds(59));
+        await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie);
+        Assert.Equal(inicio, await UltimoUso(hash));
+
+        _reloj.Avanzar(TimeSpan.FromSeconds(1));
+        await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie);
+        Assert.Equal(inicio.AddMinutes(1), await UltimoUso(hash));
+    }
+
+    [Fact]
+    public async Task RF_04_Salir_SinCookieOConLaSesionVencida_Responde200YBorraLaCookie()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        var cookie = CookieDeSesion(await Entrar("ana@enviosxelaju.com", ContrasenaValida));
+        _reloj.Avanzar(TimeSpan.FromDays(8));
+
+        var sinCookie = await Enviar(HttpMethod.Post, "/api/auth/salir");
+        var vencida = await Enviar(HttpMethod.Post, "/api/auth/salir", cookie: cookie);
+
+        foreach (var respuesta in new[] { sinCookie, vencida })
+        {
+            Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+            var borrado = respuesta.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("shapi_sesion=", StringComparison.Ordinal));
+            Assert.Contains("expires=Thu, 01 Jan 1970", borrado, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    // ---------- RF-04 y 10 §1 · CSRF: esquema y puerto del Origin ----------
+
+    [Theory]
+    [InlineData("https://localhost")]
+    [InlineData("http://localhost:8080")]
+    public async Task RF_04_Csrf_OriginConOtroEsquemaOPuerto_Responde403(string origen)
+    {
+        var peticion = Peticion(HttpMethod.Post, "/api/auth/entrar", new { correo = "a@b.com", contrasena = "x" });
+        peticion.Headers.Add("Origin", origen);
+
+        await AfirmarProblema(await _cliente.SendAsync(peticion), HttpStatusCode.Forbidden, "csrf");
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1")] // Caddy con Docker Desktop
+    [InlineData("172.30.0.7")] // Caddy en la red shapi, en Linux
+    public async Task RF_04_Csrf_DetrasDelBorde_ElOriginHttpsDelNavegadorPasa(string ipBorde)
+    {
+        var contexto = await EntrarDesdeElBorde(_fabrica, "203.0.113.10", ipBorde, "shapi.localhost", "https", "https://shapi.localhost");
+
+        // Pasa el CSRF y llega a la comprobación de credenciales.
+        Assert.Equal(StatusCodes.Status401Unauthorized, contexto.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_Csrf_DesdeOtraRedPrivada_NoSeConfiaEnXForwardedProto()
+    {
+        var contexto = await EntrarDesdeElBorde(_fabrica, "203.0.113.10", "172.18.0.5", "shapi.localhost", "https", "https://shapi.localhost");
+
+        Assert.Equal(StatusCodes.Status403Forbidden, contexto.Response.StatusCode);
+    }
+
+    [Fact]
+    public void RF_04_RedesDelBorde_CidrMalEscrito_DetieneElArranque()
+    {
+        using var fabrica = Variante(("SHAPI_REDES_BORDE", "172.30.0.0/99"));
+
+        Assert.ThrowsAny<Exception>(() => fabrica.CreateClient());
+    }
+
+    // ---------- Convenciones §5 · JSON mal formado ----------
+
+    [Theory]
+    [InlineData("/api/auth/registro")]
+    [InlineData("/api/auth/entrar")]
+    public async Task RF_04_Peticion_JsonMalFormado_Responde400DatosInvalidos(string url)
+    {
+        var peticion = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent("{\"correo\": ", Encoding.UTF8, "application/json") };
+        peticion.Headers.Add("X-Requested-With", "shapi");
+
+        await AfirmarProblema(await _cliente.SendAsync(peticion), HttpStatusCode.BadRequest, "datos_invalidos");
     }
 
     // ---------- Utilidades ----------
@@ -490,16 +811,58 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     private Task<HttpResponseMessage> Entrar(string correo, string contrasena) =>
         Enviar(HttpMethod.Post, "/api/auth/entrar", new { correo, contrasena });
 
-    private Task<HttpContext> EntrarDesdeElBorde(string ipCliente) =>
-        _fabrica.Server.SendAsync(contexto =>
+    /// <summary>La misma aplicación y la misma base, con otros ajustes de configuración.</summary>
+    private WebApplicationFactory<Program> Variante(params (string Clave, string Valor)[] ajustes) =>
+        _fabrica.WithWebHostBuilder(builder =>
         {
-            contexto.Connection.RemoteIpAddress = IPAddress.Parse("172.18.0.5"); // el borde, en la red de Docker
+            foreach (var (clave, valor) in ajustes)
+            {
+                builder.UseSetting(clave, valor);
+            }
+        });
+
+    private async Task<DateTimeOffset> UltimoUso(string hash)
+    {
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        return (await db.Set<Sesion>().IgnoreQueryFilters().SingleAsync(s => s.HashIdentificador == hash)).UltimoUsoEn;
+    }
+
+    private sealed class ContadorComandos : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        private int _comandos;
+
+        public int Comandos { get => _comandos; set => _comandos = value; }
+
+        public override System.Data.Common.DbCommand CommandInitialized(
+            Microsoft.EntityFrameworkCore.Diagnostics.CommandEndEventData eventData, System.Data.Common.DbCommand result)
+        {
+            Interlocked.Increment(ref _comandos);
+            return result;
+        }
+    }
+
+    /// <summary>Un POST a <c>entrar</c> como lo manda Caddy: por http, desde <paramref name="ipBorde"/>, con las cabeceras X-Forwarded-*.</summary>
+    private static Task<HttpContext> EntrarDesdeElBorde(
+        WebApplicationFactory<Program> fabrica, string ipCliente, string ipBorde = "172.18.0.5", string host = "localhost",
+        string? esquemaOriginal = null, string? origen = null) =>
+        fabrica.Server.SendAsync(contexto =>
+        {
+            contexto.Connection.RemoteIpAddress = IPAddress.Parse(ipBorde);
             contexto.Request.Method = HttpMethods.Post;
             contexto.Request.Scheme = "http";
-            contexto.Request.Host = new HostString("localhost");
+            contexto.Request.Host = new HostString(host);
             contexto.Request.Path = "/api/auth/entrar";
             contexto.Request.Headers["X-Requested-With"] = "shapi";
             contexto.Request.Headers["X-Forwarded-For"] = ipCliente;
+            if (esquemaOriginal is not null)
+            {
+                contexto.Request.Headers["X-Forwarded-Proto"] = esquemaOriginal;
+            }
+            if (origen is not null)
+            {
+                contexto.Request.Headers.Origin = origen;
+            }
             var cuerpo = Encoding.UTF8.GetBytes("{\"correo\":\"nadie@enviosxelaju.com\",\"contrasena\":\"Incorrecta123\"}");
             contexto.Request.ContentType = "application/json";
             contexto.Request.ContentLength = cuerpo.Length;

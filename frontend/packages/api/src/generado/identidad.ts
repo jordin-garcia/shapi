@@ -52,8 +52,9 @@ export interface paths {
         put?: never;
         /**
          * Reenvía el correo de verificación
-         * @description Genera un enlace nuevo si la cuenta existe y su correo no está verificado.
-         *     Responde igual exista o no la cuenta, para no revelar qué correos están registrados. Límite de 10 por minuto por IP.
+         * @description Genera un enlace nuevo si la cuenta existe y su correo no está verificado, hasta 3 reenvíos por cuenta en una hora
+         *     (el enlace del registro no cuenta). Responde igual exista o no la cuenta y aunque se haya pasado del límite, para
+         *     no revelar qué correos están registrados. Límite de 10 por minuto por IP.
          */
         post: operations["reenviarVerificacion"];
         delete?: never;
@@ -94,7 +95,8 @@ export interface paths {
         put?: never;
         /**
          * Cierra la sesión
-         * @description Revoca la sesión en el servidor y borra la cookie.
+         * @description No exige una sesión vigente. Si la cookie corresponde a una sesión, la revoca en el servidor. Siempre borra la
+         *     cookie, también cuando la sesión ya venció.
          */
         post: operations["salir"];
         delete?: never;
@@ -129,24 +131,30 @@ export interface components {
     schemas: {
         PeticionRegistro: {
             nombre: string;
-            /** Format: email */
+            /**
+             * Format: email
+             * @description Una parte local, una arroba y un dominio con al menos un punto, sin espacios.
+             */
             correo: string;
             organizacion: string;
             /** @description No puede ser igual al correo. */
             contrasena: string;
         };
+        /** @description Si falta `token`, responde 422 `token_invalido`. */
         PeticionVerificacion: {
             /** @description El valor del enlace de verificación. */
-            token: string;
+            token?: string;
         };
+        /** @description Si falta `correo`, responde 200 sin hacer nada. */
         PeticionReenviar: {
             /** Format: email */
-            correo: string;
+            correo?: string;
         };
+        /** @description Si falta `correo` o `contrasena`, responde 401 `credenciales_invalidas`. */
         PeticionEntrar: {
             /** Format: email */
-            correo: string;
-            contrasena: string;
+            correo?: string;
+            contrasena?: string;
         };
         Sesion: {
             usuario: {
@@ -204,7 +212,16 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
-        /** @description Falta la cabecera `X-Requested-With` o el `Origin` no es el del host (`csrf`). */
+        /** @description El cuerpo no es un JSON válido (`datos_invalidos`, sin `errores`). */
+        CuerpoInvalido: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
+        /** @description Falta la cabecera `X-Requested-With`, o el `Origin` no tiene el mismo esquema, host y puerto que la petición (`csrf`). */
         Csrf: {
             headers: {
                 [name: string]: unknown;
@@ -311,6 +328,7 @@ export interface operations {
                 };
                 content?: never;
             };
+            400: components["responses"]["CuerpoInvalido"];
             /** @description Falta la cabecera CSRF (`csrf`) o la cuenta está desactivada (`cuenta_desactivada`). */
             403: {
                 headers: {
@@ -355,6 +373,7 @@ export interface operations {
                 };
                 content?: never;
             };
+            400: components["responses"]["CuerpoInvalido"];
             403: components["responses"]["Csrf"];
             429: components["responses"]["DemasiadasPeticiones"];
         };
@@ -383,7 +402,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description El correo o la contraseña no son correctos (`credenciales_invalidas`). */
+            400: components["responses"]["CuerpoInvalido"];
+            /** @description El correo o la contraseña no son correctos, o falta alguno de los dos (`credenciales_invalidas`). */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -425,14 +445,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Sesión revocada. */
+            /** @description Sesión revocada, si existía, y cookie borrada. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            401: components["responses"]["SinSesion"];
             403: components["responses"]["Csrf"];
         };
     };

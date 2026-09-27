@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 
 namespace Shapi.Aplicacion.Identidad;
@@ -11,6 +12,9 @@ public class ValidadorRegistroProveedor : AbstractValidator<RegistroProveedor>
     public const int LargoMinimoContrasena = 10;
     public const int LargoMaximoContrasena = 128;
 
+    /// <summary>Una parte local, una arroba y un dominio con al menos un punto, sin espacios (rechaza <c>a@b</c>).</summary>
+    public const string PatronCorreo = @"^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$";
+
     public ValidadorRegistroProveedor()
     {
         RuleFor(r => r.Nombre)
@@ -21,7 +25,7 @@ public class ValidadorRegistroProveedor : AbstractValidator<RegistroProveedor>
         RuleFor(r => r.Correo)
             .NotEmpty().WithMessage("Escriba su correo.")
             .MaximumLength(254).WithMessage("El correo no puede tener más de 254 caracteres.")
-            .EmailAddress().WithMessage("Escriba un correo válido.")
+            .Must(c => c is null || Regex.IsMatch(c.Trim(), PatronCorreo)).WithMessage("Escriba un correo válido.")
             .OverridePropertyName("correo");
 
         RuleFor(r => r.Organizacion)
