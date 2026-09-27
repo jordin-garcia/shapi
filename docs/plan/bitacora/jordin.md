@@ -215,7 +215,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: paso 7 de `docs/plan/auditoria-2026-09-25.md` (H-61 a H-67).
   - Cada correo se toma en su propia transacción con `FOR UPDATE SKIP LOCKED`: dos trabajadores ya no envían el mismo correo.
   - El `token` se borra de `correo_saliente.datos` al quedar `enviado` o `fallido`.
-  - Un error en el `QUIT` o una cancelación después de entregar ya no provocan un reenvío.
+  - Si el trabajador se detiene justo después de entregar un correo, este queda `enviado` y no se reenvía: el resultado se guarda con `CancellationToken.None`. MailKit 4.18 ya ignoraba los errores del `QUIT`; se agregó un `try/catch` explícito por si cambia, con su prueba de regresión.
   - SMTPS implícito en el puerto 465.
   - `hostPortal` rechaza los subdominios reservados.
   - Índice `(estado, proximo_intento_en)` en `correo_saliente`.

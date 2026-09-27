@@ -73,7 +73,7 @@ dotnet format Shapi.slnx --verify-no-changes
 Paso 7 de `docs/plan/auditoria-2026-09-25.md` (H-61 a H-67):
 - **Dos trabajadores no envían el mismo correo (H-61).** Antes, cada trabajador leía un lote de 50 sin bloquearlo, así que dos trabajadores enviaban los mismos correos. Ahora cada correo se toma en su propia transacción con `FOR UPDATE SKIP LOCKED`. Mientras un trabajador lo envía, el otro lo salta y toma el siguiente.
 - **El token no se queda en la base (H-62).** Al quedar `enviado` o `fallido`, el `token` se borra de `correo_saliente.datos` (10 §3 y §8). Mientras el correo está pendiente sigue en claro, porque hace falta para el enlace.
-- **Sin reenvíos por errores después de entregar (H-63).** Un error o una cancelación al cerrar la sesión (`QUIT`) ya no se registra como fallo. El resultado se guarda con `CancellationToken.None`, así que si el trabajador se detiene justo después de enviar, el correo queda `enviado`.
+- **Sin reenvíos después de entregar (H-63).** El resultado se guardaba con el token de cancelación del trabajador: si se detenía justo después de enviar, el correo seguía `pendiente` y se reenviaba. Ahora se guarda con `CancellationToken.None` y el correo queda `enviado`. En cuanto al `QUIT`, MailKit 4.18 ya ignora sus errores y cancelaciones. Aun así, se agregó un `try/catch` explícito, por si eso cambia, con una prueba de regresión.
 - **SMTPS implícito (H-64).** Con `SHAPI_SMTP_TLS=true`, se usa SMTPS implícito en el puerto 465 y STARTTLS obligatorio en los demás. No se usa `SecureSocketOptions.Auto`, porque enviaría en claro si el servidor no ofrece STARTTLS (decisión de Jordin).
 - **Subdominios reservados (H-65).** `hostPortal` rechaza los subdominios reservados de 06 §4 (`api`, `correo`, `interno`…). La lista está en `Shapi.Dominio/Apis/SubdominiosReservados.cs`, que también usará DC-04.
 - **Índice (H-66).** `correo_saliente` tiene un índice por `(estado, proximo_intento_en)` (migración `IndiceCorreoSalientePendientes`). `creado_en` ya se había agregado con H-37.
@@ -84,6 +84,6 @@ Paso 7 de `docs/plan/auditoria-2026-09-25.md` (H-61 a H-67):
   - el cuerpo entregado (enlace, HTML escapado y parte de texto) leído de Mailpit;
   - un Mailpit que exige STARTTLS y usuario, con credenciales correctas, incorrectas y sin TLS;
   - el trabajador detenido después de enviar;
-  - el error en el `QUIT`;
+  - el error en el `QUIT` (regresión);
   - la elección del cifrado según el puerto.
 - Especificación precisada en `07-modelo-de-datos.md` §3.6 y `10-identidad-y-seguridad.md` §3 y §6.
