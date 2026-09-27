@@ -16,7 +16,7 @@ public class Organizacion
 
     public Organizacion(string nombre, TipoOrganizacion tipo)
     {
-        Id = Guid.NewGuid();
+        Id = Guid.CreateVersion7();
         Nombre = nombre.Trim();
         Tipo = tipo;
         EstadoAdmin = EstadoAdmin.Activa;

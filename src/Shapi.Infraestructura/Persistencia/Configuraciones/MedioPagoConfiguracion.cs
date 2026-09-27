@@ -25,7 +25,7 @@ public class MedioPagoConfiguracion : IEntityTypeConfiguration<MedioPago>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_medio_pago_org_cons",
+        builder.ToTable(t => t.HasCheckConstraint("ck_medio_pago_dueno",
             "num_nonnulls(organizacion_id, consumidor_id) = 1"));
 
         builder.Property(x => x.TokenPasarela).IsRequired();
@@ -34,11 +34,12 @@ public class MedioPagoConfiguracion : IEntityTypeConfiguration<MedioPago>
             .IsRequired()
             .HasConversion(Conversores.MarcaTarjeta);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_medio_pago_marca",
+        builder.ToTable(t => t.HasCheckConstraint("ck_medio_pago_marca",
             "marca IN ('Visa','Mastercard','American Express')"));
 
         builder.Property(x => x.Ultimos4).IsRequired().HasMaxLength(4).IsFixedLength();
         builder.Property(x => x.Titular).IsRequired();
+        builder.ToTable(t => t.HasCheckConstraint("ck_medio_pago_mes_vencimiento", "mes_vencimiento BETWEEN 1 AND 12"));
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
     }

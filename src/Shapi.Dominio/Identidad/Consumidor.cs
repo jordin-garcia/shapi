@@ -14,6 +14,8 @@ public class Consumidor : IPerteneceAOrganizacion
     public EstadoCuenta Estado { get; private set; }
     public int IntentosFallidos { get; private set; }
     public DateTimeOffset? BloqueadoHasta { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected Consumidor() { }
 }

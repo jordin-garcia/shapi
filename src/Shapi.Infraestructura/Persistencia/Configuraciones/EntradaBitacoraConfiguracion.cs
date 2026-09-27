@@ -26,7 +26,7 @@ public class EntradaBitacoraConfiguracion : IEntityTypeConfiguration<EntradaBita
             .IsRequired()
             .HasConversion(Conversores.ActorTipo);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_bitacora_actor_tipo",
+        builder.ToTable(t => t.HasCheckConstraint("ck_bitacora_actor_tipo",
             "actor_tipo IN ('usuario','consumidor','sistema')"));
 
         builder.Property(x => x.ActorNombre).IsRequired();

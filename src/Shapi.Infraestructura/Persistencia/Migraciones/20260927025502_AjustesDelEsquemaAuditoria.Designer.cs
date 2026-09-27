@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Shapi.Infraestructura.Persistencia;
@@ -12,9 +13,11 @@ using Shapi.Infraestructura.Persistencia;
 namespace Shapi.Infraestructura.Persistencia.Migraciones
 {
     [DbContext(typeof(ShapiDbContext))]
-    partial class ShapiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927025502_AjustesDelEsquemaAuditoria")]
+    partial class AjustesDelEsquemaAuditoria
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

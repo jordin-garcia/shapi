@@ -6,6 +6,8 @@ public class RegistroDnsSimulado
     public string Nombre { get; private set; } = null!;
     public string Tipo { get; private set; } = null!;
     public string Valor { get; private set; } = null!;
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected RegistroDnsSimulado() { }
 }

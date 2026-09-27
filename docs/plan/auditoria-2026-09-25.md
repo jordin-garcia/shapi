@@ -116,8 +116,8 @@ Este paso afecta el paso 2 del guion de la demostración del Avance 1.
 
 Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` ya está aplicada en las bases locales.
 
-- [ ] **H-30 (crítico)** `caso.numero`: la secuencia debe empezar en 100 e incrementar de 1 en 1, con `DEFAULT nextval`, en lugar del HiLo con bloques de 10 que empieza en 1 (`CasoConfiguracion.cs:41`). Incluye una prueba de que el primer caso es CAS-100. Así se evita el choque con la siembra de JZ-05, que inserta CAS-100 a CAS-104.
-- [ ] **H-31 (crítico)** Pruebas de las 7 restricciones del criterio 2:
+- [x] **H-30 (crítico)** `caso.numero`: la secuencia debe empezar en 100 e incrementar de 1 en 1, con `DEFAULT nextval`, en lugar del HiLo con bloques de 10 que empieza en 1 (`CasoConfiguracion.cs:41`). Incluye una prueba de que el primer caso es CAS-100. Así se evita el choque con la siembra de JZ-05, que inserta CAS-100 a CAS-104.
+- [x] **H-31 (crítico)** Pruebas de las 7 restricciones del criterio 2:
   - propietario único;
   - una suscripción vigente única;
   - una clave activa por tipo;
@@ -125,36 +125,37 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - `num_nonnulls` en `pago`;
   - `num_nonnulls` en `medio_pago`;
   - `es_prueba` único.
-- [ ] **H-32** Agregar la FK de `plan_siguiente_id` en `suscripcion_plataforma` y `suscripcion_api`.
-- [ ] **H-33** `Activo` usa `HasDefaultValue(true)` en `PlanApi` y `PlanPlataforma`. Por el *sentinel* de EF, un plan que se inserte con `false` queda guardado como `true`. Se corrige y se agrega una prueba.
-- [ ] **H-34** `consumo_diario`: renombrar las columnas a `rechazos_401…429` y `origen_2xx…5xx`, como dice 07 §3.
-- [ ] **H-35** CHECK faltantes:
+- [x] **H-32** Agregar la FK de `plan_siguiente_id` en `suscripcion_plataforma` y `suscripcion_api`.
+- [x] **H-33** `Activo` usa `HasDefaultValue(true)` en `PlanApi` y `PlanPlataforma`. Por el *sentinel* de EF, un plan que se inserte con `false` queda guardado como `true`. Se corrige y se agrega una prueba.
+- [x] **H-34** `consumo_diario`: renombrar las columnas a `rechazos_401…429` y `origen_2xx…5xx`, como dice 07 §3.
+- [x] **H-35** CHECK faltantes:
   - `medio_pago.mes_vencimiento` entre 1 y 12;
   - `ruta.cache_segundos = 0 OR metodo = 'GET'`;
   - `organizacion.nombre` con al menos 2 caracteres;
   - largo de `hist_latencia_*`;
   - tamaño de `portal_logo`.
-- [ ] **H-36** Los estados deben tener DEFAULT en la base: `'activa'`, `'activo'` y `'borrador'`.
-- [ ] **H-37** Columnas de auditoría:
+- [x] **H-36** Los estados deben tener DEFAULT en la base: `'activa'`, `'activo'` y `'borrador'`.
+- [x] **H-37** Columnas de auditoría:
   - agregar `creado_en` y `actualizado_en` donde faltan;
   - agregar un `SaveChangesInterceptor` que actualice `actualizado_en`, que hoy nunca cambia.
-- [ ] **H-38** Ampliar el filtro global por organización a todas las entidades que pertenecen a una organización (10 §1), con sus pruebas. Hoy solo cubre 5.
-- [ ] **H-39** Los identificadores deben ser UUID v7 (`Guid.CreateVersion7()`), como pide 07 §3. Hoy los constructores del dominio usan `Guid.NewGuid()`.
-- [ ] **H-40** `bitacora`:
+  - **Decidido por Jordin (26 sep):** según el uso real. Llevan `creado_en` y `actualizado_en` `usuario`, `membresia`, `consumidor`, `token`, `correo_saliente`, `consumo_diario` y `registro_dns_simulado`, y `sesion` suma `actualizado_en`. En `sesion`, `bitacora` y `lote_consolidado`, `creada_en`, `fecha` y `procesado_en` hacen de `creado_en`. Así se precisó en 07 §3.
+- [x] **H-38** Ampliar el filtro global por organización a todas las entidades que pertenecen a una organización (10 §1), con sus pruebas. Hoy solo cubre 5.
+  - **Decidido por Jordin (26 sep):** entidades directas e indirectas: las que tienen `organizacion_id` y las que pertenecen a una organización por su padre, con subconsultas. Las tablas globales o previas a la sesión quedan sin filtro. La lista está en 10 §2.
+- [x] **H-39** Los identificadores deben ser UUID v7 (`Guid.CreateVersion7()`), como pide 07 §3. Hoy los constructores del dominio usan `Guid.NewGuid()`.
+- [x] **H-40** `bitacora`:
   - bloquear también TRUNCATE;
   - traducir al español el disparador y su mensaje;
   - cumplir los permisos de 07:695.
-  - **❓ Decisión pendiente:** separar el rol que migra del rol de la aplicación afecta a las cadenas de conexión, a `compose.yml` y a `.env.example`. Opciones:
-    - (a) dos roles de PostgreSQL;
-    - (b) solo los disparadores, y precisar la especificación.
-- [ ] **H-41** `EntradaBitacora` usa `DateTimeOffset.UtcNow`. Debe recibir la fecha desde `IReloj` (convenciones §6 y el modo demostración de 09 §9).
-- [ ] **H-42** Pruebas de la siembra: comprobar los valores de los 5 planes contra 01 §6 y el aviso cuando faltan las variables `SHAPI_ADMIN_*`.
-- [ ] **H-43** Pruebas de los servicios comunes: comprobar que se inserta la fila en `correo_saliente` y en `bitacora`. Renombrar la prueba `ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas` y decidir qué se hace con `ColaCorreoNula` y `BitacoraNula`, que ya no se registran.
-- [ ] **H-44** Borrar los 15 scripts Python de la raíz: `add_fks.py`, los 11 `fix_*.py`, `modificar_migracion.py`, `update_bitacora.py` y `update_correo_saliente.py`.
-- [ ] **H-45** Quitar `Microsoft.EntityFrameworkCore.InMemory`, que no está autorizada y no se usa.
-- [ ] **H-46** Quitar `#pragma warning disable CS0618` y usar el constructor no obsoleto de `PostgreSqlBuilder`. Las pruebas de persistencia deben llevar el código de su requisito.
-- [ ] **H-47** Los nombres de las restricciones usan el prefijo `CK_` en mayúsculas y el resto del esquema usa `snake_case`. Se unifican.
-- [ ] **H-48** Agregar el `## Resultado` de EM-01, que falta, y corregir la bitácora de Emilio: el nombre del disparador, la afirmación falsa sobre la migración en Development y el formato de los avisos.
+  - **Decidido por Jordin (26 sep):** opción (b), solo los disparadores: se precisó 07 §3.6 y no cambian las cadenas de conexión, `compose.yml` ni `.env.example`. La otra opción era (a), dos roles de PostgreSQL.
+- [x] **H-41** `EntradaBitacora` usa `DateTimeOffset.UtcNow`. Debe recibir la fecha desde `IReloj` (convenciones §6 y el modo demostración de 09 §9).
+- [x] **H-42** Pruebas de la siembra: comprobar los valores de los 5 planes contra 01 §6 y el aviso cuando faltan las variables `SHAPI_ADMIN_*`.
+- [x] **H-43** Pruebas de los servicios comunes: comprobar que se inserta la fila en `correo_saliente` y en `bitacora`. Renombrar la prueba `ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas` y decidir qué se hace con `ColaCorreoNula` y `BitacoraNula`, que ya no se registran.
+  - **Decidido por Jordin (26 sep):** se borran; eran código muerto.
+- [x] **H-44** Borrar los 15 scripts Python de la raíz: `add_fks.py`, los 11 `fix_*.py`, `modificar_migracion.py`, `update_bitacora.py` y `update_correo_saliente.py`.
+- [x] **H-45** Quitar `Microsoft.EntityFrameworkCore.InMemory`, que no está autorizada y no se usa.
+- [x] **H-46** Quitar `#pragma warning disable CS0618` y usar el constructor no obsoleto de `PostgreSqlBuilder`. Las pruebas de persistencia deben llevar el código de su requisito.
+- [x] **H-47** Los nombres de las restricciones usan el prefijo `CK_` en mayúsculas y el resto del esquema usa `snake_case`. Se unifican.
+- [x] **H-48** Agregar el `## Resultado` de EM-01, que falta, y corregir la bitácora de Emilio: el nombre del disparador, la afirmación falsa sobre la migración en Development y el formato de los avisos.
 
 ## Paso 6 · [EM-02] Seguridad de la identidad del personal
 

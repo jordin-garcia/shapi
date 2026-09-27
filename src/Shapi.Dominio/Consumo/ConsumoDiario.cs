@@ -25,6 +25,8 @@ public class ConsumoDiario
     public int[] HistLatenciaCompuerta { get; private set; } = new int[10];
     public long LatenciaTotalSumaMs { get; private set; }
     public long LatenciaCompuertaSumaMs { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected ConsumoDiario() { }
 }

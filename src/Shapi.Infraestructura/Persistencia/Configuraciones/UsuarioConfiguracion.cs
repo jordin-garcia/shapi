@@ -20,11 +20,15 @@ public class UsuarioConfiguracion : IEntityTypeConfiguration<Usuario>
 
         builder.Property(x => x.Estado)
             .IsRequired()
-            .HasConversion(Conversores.EstadoCuenta);
+            .HasConversion(Conversores.EstadoCuenta)
+            .HasDefaultValue(EstadoCuenta.Activo)
+            .ValueGeneratedNever();
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_usuario_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_usuario_estado",
             "estado IN ('activo','desactivado')"));
 
         builder.Property(x => x.IntentosFallidos).HasDefaultValue(0);
+        builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

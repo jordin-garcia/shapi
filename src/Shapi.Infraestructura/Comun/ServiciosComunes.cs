@@ -31,7 +31,7 @@ public static class ServiciosComunes
 
         // Registrar DbContext sin lanzar excepción si falta la cadena de conexión.
         // La excepción ocurrirá cuando realmente se use la BD, no al registrar.
-        services.AddDbContext<ShapiDbContext>(options =>
+        services.AddDbContext<ShapiDbContext>((proveedor, options) =>
         {
             var cs = configuration["SHAPI_POSTGRES_CADENA"];
             if (!string.IsNullOrEmpty(cs))
@@ -42,6 +42,9 @@ public static class ServiciosComunes
             {
                 options.UseNpgsql("Host=no-configurado;Database=shapi");
             }
+
+            // creado_en y actualizado_en con la hora de IReloj (07 §3).
+            options.AddInterceptors(new InterceptorFechasAuditoria(proveedor.GetRequiredService<IReloj>()));
         });
 
         return services;

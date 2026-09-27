@@ -15,13 +15,15 @@ public class Token
     public string? Rol { get; private set; }
     public DateTimeOffset ExpiraEn { get; private set; }
     public DateTimeOffset? UsadoEn { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected Token() { }
 
     /// <summary>Enlace de verificación del correo de un usuario del personal. Solo se guarda el hash del valor del enlace.</summary>
     public static Token VerificacionCorreo(string hashToken, Usuario usuario, DateTimeOffset ahora) => new()
     {
-        Id = Guid.NewGuid(),
+        Id = Guid.CreateVersion7(),
         Tipo = TipoToken.VerificacionCorreo,
         HashToken = hashToken,
         UsuarioId = usuario.Id,

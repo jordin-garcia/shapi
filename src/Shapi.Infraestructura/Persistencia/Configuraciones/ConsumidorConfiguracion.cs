@@ -24,14 +24,18 @@ public class ConsumidorConfiguracion : IEntityTypeConfiguration<Consumidor>
 
         builder.Property(x => x.Estado)
             .IsRequired()
-            .HasConversion(Conversores.EstadoCuenta);
+            .HasConversion(Conversores.EstadoCuenta)
+            .HasDefaultValue(EstadoCuenta.Activo)
+            .ValueGeneratedNever();
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_consumidor_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_consumidor_estado",
             "estado IN ('activo','desactivado')"));
 
         builder.Property(x => x.IntentosFallidos).HasDefaultValue(0);
 
         // RNF-08: UNIQUE (organizacion_id, lower(correo)) - el lower se aplica como SQL en la migración
         builder.HasIndex(x => new { x.OrganizacionId, x.Correo }).IsUnique();
+        builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

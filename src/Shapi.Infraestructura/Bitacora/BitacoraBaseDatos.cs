@@ -8,7 +8,7 @@ using DominioEntry = Shapi.Dominio.Bitacora.EntradaBitacora;
 namespace Shapi.Infraestructura.Bitacora;
 
 /// <summary>Registra entradas en la tabla <c>bitacora</c>. Solo INSERT, nunca modifica.</summary>
-public class BitacoraBaseDatos(ShapiDbContext db) : IBitacora
+public class BitacoraBaseDatos(ShapiDbContext db, IReloj reloj) : IBitacora
 {
     public async Task Registrar(AplicacionEntry entrada, CancellationToken cancelacion = default)
     {
@@ -29,6 +29,7 @@ public class BitacoraBaseDatos(ShapiDbContext db) : IBitacora
             : null;
 
         var entidad = new DominioEntry(
+            reloj.Ahora,
             actorTipo,
             entrada.ActorId,
             entrada.ActorNombre,

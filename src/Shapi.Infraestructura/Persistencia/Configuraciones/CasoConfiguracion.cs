@@ -36,9 +36,9 @@ public class CasoConfiguracion : IEntityTypeConfiguration<Caso>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // RF-03: secuencia de numero empieza en 100
+        // 07 §3.6: la secuencia empieza en 100 y avanza de 1 en 1 (CAS-100, CAS-101…)
         builder.Property(x => x.Numero)
-            .UseHiLo("caso_numero_seq");
+            .HasDefaultValueSql($"nextval('{ShapiDbContext.SecuenciaNumeroCaso}')");
         builder.HasIndex(x => x.Numero).IsUnique();
 
         builder.Property(x => x.Asunto).IsRequired().HasMaxLength(120);
@@ -47,7 +47,7 @@ public class CasoConfiguracion : IEntityTypeConfiguration<Caso>
             .IsRequired()
             .HasConversion(Conversores.EstadoCaso);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_caso_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_caso_estado",
             "estado IN ('abierto','cerrado')"));
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");

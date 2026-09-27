@@ -30,6 +30,11 @@ public class SuscripcionApiConfiguracion : IEntityTypeConfiguration<SuscripcionA
             .HasForeignKey(x => x.PlanId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<PlanApi>()
+            .WithMany()
+            .HasForeignKey(x => x.PlanSiguienteId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<MedioPago>()
             .WithMany()
             .HasForeignKey(x => x.MedioPagoId)
@@ -40,9 +45,9 @@ public class SuscripcionApiConfiguracion : IEntityTypeConfiguration<SuscripcionA
             .IsRequired()
             .HasConversion(Conversores.EstadoSuscripcion);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_api_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_suscripcion_api_estado",
             "estado IN ('activa','en_gracia','suspendida','finalizada')"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_suscripcion_api_fechas", "fin > inicio"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_suscripcion_api_fechas", "fin > inicio"));
 
         // RNF-08: Una sola suscripción vigente por consumidor en cada API
         builder.HasIndex(x => new { x.ConsumidorId, x.ApiId })
