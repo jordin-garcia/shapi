@@ -5,8 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./apis": "./src/generado/apis.ts",
-    "./identidad": "./src/generado/identidad.ts"
+    "./*": "./src/generado/*.ts"
   },
   "scripts": {
     "lint": "eslint .",

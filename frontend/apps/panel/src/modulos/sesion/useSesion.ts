@@ -1,17 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { crearCliente, ProblemDetailsError } from '@shapi/api';
-import type { ContratoSesion } from './contratoSesion';
+import type { components, paths } from '@shapi/api/identidad';
 
-export const clienteSesion = crearCliente<ContratoSesion>(window.location.origin);
+export const clienteSesion = crearCliente<paths>(window.location.origin);
+
+type Sesion = components['schemas']['Sesion'];
 
 export interface SesionActual {
   nombre: string;
   correo: string;
-  rol: 'propietario' | 'editor' | 'lector' | 'administrador' | 'soporte';
+  rol: Sesion['rol'];
   nombreOrganizacion: string;
   organizacionId: string;
   correoVerificado: boolean;
-  destino: string;
+  destino: Sesion['destino'];
 }
 
 export const claveSesion = ['sesion'] as const;

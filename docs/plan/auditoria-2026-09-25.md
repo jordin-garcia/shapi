@@ -248,8 +248,8 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 11 · [EM-17] Publicar el contrato de identidad en el frontend
 
-- [ ] **H-83** Generar `packages/api/src/generado/identidad.ts` y exportar `"./*"` en `packages/api/package.json`. (Paso 2: `identidad.ts` ya está generado y se exporta como `./identidad`. Falta el `"./*"`.)
-- [ ] **H-84** Reemplazar el contrato provisional `modulos/sesion/contratoSesion.ts` por los tipos generados, y cerrar EM-17.
+- [x] **H-83** Generar `packages/api/src/generado/identidad.ts` y exportar `"./*"` en `packages/api/package.json`. (Paso 2: `identidad.ts` ya está generado y se exporta como `./identidad`. Falta el `"./*"`.)
+- [x] **H-84** Reemplazar el contrato provisional `modulos/sesion/contratoSesion.ts` por los tipos generados, y cerrar EM-17.
 
 ## Paso 12 · [DC-01] Sistema de diseño
 
