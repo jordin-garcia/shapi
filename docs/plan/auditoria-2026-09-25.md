@@ -281,15 +281,18 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 13 · [DC-02] Estructura del panel y del sitio público
 
-- [ ] **H-94** Sacar A0.1 (`/`) de `LayoutPublico`, como ya se hizo con `/_ui`.
-- [ ] **H-95** `errorElement`: distinguir un 404 (`isRouteErrorResponse`) de los demás errores y ofrecer "Reintentar".
-- [ ] **H-96** Rutas índice en `/panel`, `/admin` y `/panel/apis/:id`. El 403 entre áreas debe dar una salida (cerrar sesión o ir a su área). Un 404 dentro del panel debe conservar el layout.
-- [ ] **H-97** (Paso 2: el encabezado de A1 ya tiene el `gap` y el `letter-spacing` del mockup.) Medidas de N.1 según el mockup: rellenos de la barra superior y de la lateral, altura de línea, selector con flecha y *hover* del botón de salir. Medidas del encabezado de A1: `gap` de 11 px y `letter-spacing`.
-- [ ] **H-98** Colores de los layouts con tokens en lugar de hex escritos a mano.
-- [ ] **H-99** Usar `h-screen` para que el pie de la barra lateral quede fijo, y hacer que el HMR de Vite funcione también sin Caddy.
-- [ ] **H-100** Un solo cliente de sesión (hoy `useSesion` y `CerrarSesion` tienen uno cada uno). `SelectorApi` debe reutilizar `Selector`. Agregar `staleTime` a la consulta de sesión.
-- [ ] **H-101** Limitar `/_ui` al entorno de desarrollo.
-- [ ] **H-102** Pruebas:
+- [x] **H-94** Sacar A0.1 (`/`) de `LayoutPublico`, como ya se hizo con `/_ui`.
+- [x] **H-95** `errorElement`: distinguir un 404 (`isRouteErrorResponse`) de los demás errores y ofrecer "Reintentar".
+- [x] **H-96** Rutas índice en `/panel`, `/admin` y `/panel/apis/:id`. El 403 entre áreas debe dar una salida (cerrar sesión o ir a su área). Un 404 dentro del panel debe conservar el layout.
+  - **Decidido por Jordin (27 sep):** el 403 entre áreas ofrece "Ir a su panel" (el destino de 10 §1) y "Cerrar sesión".
+- [x] **H-97** (Paso 2: el encabezado de A1 ya tiene el `gap` y el `letter-spacing` del mockup.) Medidas de N.1 según el mockup: rellenos de la barra superior y de la lateral, altura de línea, selector con flecha y *hover* del botón de salir. Medidas del encabezado de A1: `gap` de 11 px y `letter-spacing`.
+- [x] **H-98** Colores de los layouts con tokens en lugar de hex escritos a mano.
+  - Según la decisión del paso 12, los colores oscuros que faltaban se tomaron de N.1, A6 y B3 y se agregaron a 11 §1: `--borde-barra`, `--tinta-rotulo`, `--tinta-navegacion` y `--fondo-activo`.
+- [x] **H-99** Usar `h-screen` para que el pie de la barra lateral quede fijo, y hacer que el HMR de Vite funcione también sin Caddy.
+- [x] **H-100** Un solo cliente de sesión (hoy `useSesion` y `CerrarSesion` tienen uno cada uno). `SelectorApi` debe reutilizar `Selector`. Agregar `staleTime` a la consulta de sesión.
+  - **Decidido por Jordin (27 sep):** 5 minutos.
+- [x] **H-101** Limitar `/_ui` al entorno de desarrollo.
+- [x] **H-102** Pruebas:
   - el orden completo de N.1 y A6;
   - los textos de B3;
   - un 501 en el selector se trata como "Sin APIs";

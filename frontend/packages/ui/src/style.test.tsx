@@ -35,18 +35,19 @@ describe('RNF-12 · hoja de estilos del sistema de diseño', () => {
 
   it('RNF-12 · H-86 el tema oscuro solo redefine los valores de la columna oscura de 11 §1', () => {
     // Los tokens sin valor oscuro en 11 §1 (principal-hover, borde-fila, fondos y bordes de estado, neutro) no se
-    // inventan: heredan el valor claro.
+    // inventan: heredan el valor claro. Los cuatro últimos son solo de las barras oscuras (N.1, A6 y B3).
     expect(oscuro()).toEqual({
       '--principal': '#7FA6FF', '--tinta': '#E8EDF7', '--tinta-suave': '#8B98B0',
       '--fondo': '#060910', '--panel': '#0C1220', '--borde': '#1B2436', '--borde-campo': '#2A3550',
       '--correcto-base': '#3FBF88', '--correcto': '#3FBF88', '--alerta-base': '#F08A5F', '--alerta': '#F08A5F',
+      '--borde-barra': '#131B2B', '--tinta-rotulo': '#7F8DA8', '--tinta-navegacion': '#B9C4D8', '--fondo-activo': '#0E1830',
     });
   });
 
   it('RNF-12 · H-86 los colores de Tailwind leen el token en cada elemento, para que .dark los cambie', () => {
     // En un @theme normal, `--color-fondo: var(--fondo)` se resuelve una sola vez en :root y los hijos de .dark heredan
     // el valor claro. Con @theme inline, `bg-fondo` usa `var(--fondo)` directamente y toma el valor de .dark.
-    const colores = Object.keys(claro()).map(token => token.slice(2));
+    const colores = Object.keys({ ...claro(), ...oscuro() }).map(token => token.slice(2));
     expect(temaEnLinea()).toEqual(Object.fromEntries(colores.map(color => [`--color-${color}`, `var(--${color})`])));
     expect(Object.values(tema()).some(valor => valor.startsWith('var('))).toBe(false);
   });

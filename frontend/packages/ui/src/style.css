@@ -40,6 +40,10 @@
   --color-tinta-inactiva: var(--tinta-inactiva);
   --color-borde-inactivo: var(--borde-inactivo);
   --color-anillo-foco: var(--anillo-foco);
+  --color-borde-barra: var(--borde-barra);
+  --color-tinta-rotulo: var(--tinta-rotulo);
+  --color-tinta-navegacion: var(--tinta-navegacion);
+  --color-fondo-activo: var(--fondo-activo);
 }
 
 @theme {
@@ -125,6 +129,12 @@
     --correcto: #3FBF88;
     --alerta-base: #F08A5F;
     --alerta: #F08A5F;
+
+    /* Solo de las barras oscuras (N.1, A6 y B3): separador, rótulo de grupo, enlace y enlace activo. */
+    --borde-barra: #131B2B;
+    --tinta-rotulo: #7F8DA8;
+    --tinta-navegacion: #B9C4D8;
+    --fondo-activo: #0E1830;
   }
 
   body {

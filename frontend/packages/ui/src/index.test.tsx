@@ -189,6 +189,18 @@ describe('RNF-12 · componentes base', () => {
     render(<Selector id="selector-api" aria-label="API" opciones={[{ etiqueta: 'Envíos', valor: 'envios' }]} value="envios" onChange={vi.fn()} />);
     expect(screen.getByRole('combobox', { name: 'API' }).id).toBe('selector-api');
   });
+  it('RNF-12 · H-97 Selector tiene la flecha y las medidas del selector de N.1, y admite una opción deshabilitada', () => {
+    const { container } = render(<Selector aria-label="API" className="w-full" opciones={[{ etiqueta: 'Seleccione una API', valor: '', deshabilitada: true }, { etiqueta: 'Envíos', valor: 'envios' }]} value="" onChange={vi.fn()} />);
+    const selector = screen.getByRole('combobox', { name: 'API' });
+    for (const clase of ['appearance-none', 'w-full', 'py-[9px]', 'pl-3', 'pr-9', 'text-[14px]', 'leading-[1.5]', 'font-medium', 'border-borde-campo', 'bg-panel', 'text-tinta']) {
+      expect(selector.className).toContain(clase);
+    }
+    expect(container.firstElementChild!.className).toContain('w-full');
+    const flecha = container.querySelector('svg');
+    expect(flecha?.getAttribute('aria-hidden')).toBe('true');
+    expect(flecha?.getAttribute('class')).toContain('text-tinta-suave');
+    expect((screen.getByRole('option', { name: 'Seleccione una API' }) as HTMLOptionElement).disabled).toBe(true);
+  });
 });
 
 describe('RNF-12 · H-92 estados comunes (11 §4)', () => {
