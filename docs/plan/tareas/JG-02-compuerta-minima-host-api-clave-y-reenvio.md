@@ -7,7 +7,7 @@ avance: 1
 prioridad: P1
 estado: hecha
 depende_de: [JG-01]
-requisitos: [RF-29, RF-31]
+requisitos: [RF-29, RF-31, RNF-13]
 pantallas: []
 ---
 

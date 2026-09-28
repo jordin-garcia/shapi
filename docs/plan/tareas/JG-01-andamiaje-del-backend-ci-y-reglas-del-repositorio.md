@@ -134,3 +134,8 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
   - **Documentación:** la plantilla del PR pide la evidencia de `tareas.mjs --validar`, `dotnet format` y `pnpm build`. El `README.md` tiene todas las carpetas y un arranque rápido (H-111).
   - **Pruebas en Windows:** `instalacion.md` §4 y `AGENTS.md` indican `dotnet test Shapi.slnx -m:1` si las pruebas en paralelo fallan por Docker. La CI no cambia (H-112, decisión de Jordin del 27 sep).
   - **Pruebas:** `scripts/reglas-repositorio.test.mjs` comprueba cada regla leyendo los workflows y `.claude/settings.json`.
+- **Huecos de requisitos** (paso 16 de la auditoría, H-113 y H-114):
+  - tareas nuevas de José Pablo: JZ-17 (disponibilidad del enrutamiento, RNF-06) y JZ-18 (publicar una API en menos de 5 minutos, RNF-11), las dos P2 del avance final;
+  - 03 §2 dice cómo se mide RNF-06 (sonda externa) y cómo se verifica RNF-11 (E2E cronometrada);
+  - JG-02 incluye RNF-13 en sus requisitos;
+  - `calendario.md` ya no dice que las P1 cubren todos los requisitos de los lineamientos: cubren el mínimo de cada uno, y se nombran las P2 que completan la trazabilidad (EM-12, EM-13, DC-14, JG-13 y JZ-12).
