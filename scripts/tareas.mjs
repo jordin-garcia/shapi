@@ -228,7 +228,7 @@ if (esPrincipal) {
     const titulo = args[1] ?? process.env.TITULO_PR;
     const erroresTitulo = validarTituloPr(titulo, tareas.map((t) => t.id));
     if (erroresTitulo.length) {
-      console.error(`${erroresTitulo.join("\n")}\nCorrija el título del PR: la CI se vuelve a ejecutar sola al editarlo.`);
+      console.error(`${erroresTitulo.join("\n")}\nCorrija el título del PR: el check «titulo» se vuelve a ejecutar solo al editarlo.`);
       process.exit(1);
     }
     console.log(`Título válido: ${titulo}`);

@@ -392,3 +392,21 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-08 y EM-09:** la pasarela solo está registrada en la API (`PagosModulo`). EM-09 tiene que registrarla también en el Trabajador para las renovaciones. En las pruebas con `WebApplicationFactory` que cobren, fijen `Pagos:DemoraMs=0`; si no, cada operación tarda de 300 a 800 ms.
   - **Dominique:** en `mockups/A5/Pago.dc.html` y en `mockups/a5-portal-marca-blanca.html`, la tarjeta de ejemplo ahora es `5412 7534 1203 3057` (**DC-09**, A5.6). Actualiza tu rama desde `main`.
   - **Todos:** para probar la contratación en la demostración, usen las tarjetas de 09 §2. Las de los mockups ya pasan Luhn: `4024 0071 2284 4821` y `5412 7534 1203 3057`.
+
+## 2026-09-27 · JG-01 · Correcciones de la auditoría: CI y reglas del repositorio
+- Hecho: paso 15 de `docs/plan/auditoria-2026-09-25.md` (H-106 a H-112).
+  - La CI falla si el modelo tiene cambios sin migración o si los tipos generados no coinciden con los contratos.
+  - Todos los jobs tienen tiempo máximo. La acción de Claude va fijada por SHA.
+  - Los agentes ya no pueden hacer `git push` a `main` por ninguna variante.
+  - La plantilla del PR pide toda la evidencia de B7, y el `README.md` tiene las carpetas y el arranque rápido.
+  - `scripts/reglas-repositorio.test.mjs` tiene 8 pruebas nuevas que leen los workflows y `.claude/settings.json`.
+- Decisiones (de Jordin, 27 sep):
+  - El título del PR lo valida un workflow aparte, `titulo-pr.yml`, con el check obligatorio `titulo`. Editar el PR ya no repite ni cancela la CI.
+  - Para las pruebas del backend en Windows, se documenta `-m:1`; la CI no cambia.
+- Pendiente o aviso para otros:
+  - **Todos:**
+    - Hay una verificación obligatoria nueva, `titulo`. Si el título del PR está mal, falla `titulo`, ya no `plan`. Al corregirlo con `gh pr edit --title`, solo se repiten `titulo` y la revisión con Claude.
+    - Si cambian una entidad o una configuración de EF Core, generen la migración en el mismo PR (`dotnet ef migrations add <Nombre> -p src/Shapi.Infraestructura -s src/Shapi.Api`): la CI ahora lo exige.
+    - Si cambian un contrato de `contratos/openapi/`, ejecuten `pnpm generar:api` en `frontend/` y hagan *commit* de `packages/api/src/generado/`: la CI ahora lo exige.
+    - Si en Windows `dotnet test Shapi.slnx` falla con errores de Docker, repitan con `dotnet test Shapi.slnx -m:1`.
+    - La plantilla del PR ahora pide la evidencia de `node scripts/tareas.mjs --validar`, `dotnet format` y `pnpm build`.

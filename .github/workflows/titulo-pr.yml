@@ -1,0 +1,32 @@
+# Valida el título del PR (protocolo §B11): "[<ID>] <título>", con una tarea que exista. Sin el ID, la revisión con
+# Claude no revisa criterios ni alcance. Es la verificación obligatoria `titulo` de main (auditoría del 25 sep, H-108).
+# Va aparte de ci.yml para que editar el PR solo repita esta validación, que tarda segundos, y no toda la CI.
+# El job no lleva `if`: un check obligatorio omitido cuenta como aprobado.
+name: Título del PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: titulo-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  titulo:
+    name: titulo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # El título va en una variable de entorno, nunca interpolado en el comando.
+      - name: Validar el título del PR
+        env:
+          TITULO_PR: ${{ github.event.pull_request.title }}
+        run: node scripts/tareas.mjs --validar-titulo
