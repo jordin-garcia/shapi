@@ -136,6 +136,6 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
   - **Pruebas:** `scripts/reglas-repositorio.test.mjs` comprueba cada regla leyendo los workflows y `.claude/settings.json`.
 - **Huecos de requisitos** (paso 16 de la auditoría, H-113 y H-114):
   - RNF-06 queda como objetivo de diseño para un despliegue real y no se mide en el ambiente simulado (03 §2, y una fila nueva en 03 §4). Lo respaldan JZ-06, RNF-04 y JZ-12;
-  - tarea nueva de José Pablo: JZ-18 (publicar una API en menos de 5 minutos, RNF-11), P2 del avance final. 03 §2 dice que se verifica con una prueba E2E cronometrada;
+  - RNF-11 también queda como objetivo de diseño, sin medición (03 §2 y §4). La tarea JZ-18 (prueba E2E cronometrada) se creó y se borró el mismo día, por decisión de Jordin;
   - JG-02 incluye RNF-13 en sus requisitos;
   - `calendario.md` ya no dice que las P1 cubren todos los requisitos de los lineamientos: cubren el mínimo de cada uno, y se nombran las P2 que completan la trazabilidad (EM-12, DC-14, JG-13 y JZ-12, además de EM-13 para RF-43).

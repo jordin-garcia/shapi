@@ -91,7 +91,7 @@
 | Jordin | JG-15 (caché, P3), JG-16 (PDF de requisitos y diseño), JG-17 (convergencia final y congelamiento, jueves 29) |
 | Emilio | EM-16 (pruebas de aislamiento y permisos) |
 | Dominique | DC-16 (revisión visual contra los mockups) |
-| José Pablo | JZ-13 (E2E de los flujos principales), JZ-14 (pruebas de carga), JZ-15 (manual técnico), JZ-16 (manual de usuario), JZ-18 (publicar en menos de 5 minutos, P2) |
+| José Pablo | JZ-13 (E2E de los flujos principales), JZ-14 (pruebas de carga), JZ-15 (manual técnico), JZ-16 (manual de usuario) |
 
 **Guion final (exposición):** el guion 3 completo, más un arranque limpio del ambiente productivo simulado, las pruebas E2E en verde, el resultado de las pruebas de carga (RNF-01 y RNF-03) y la defensa de la arquitectura con `docs/specs/12-decisiones.md`.
 
