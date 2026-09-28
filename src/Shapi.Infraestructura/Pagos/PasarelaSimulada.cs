@@ -4,226 +4,169 @@ using Shapi.Aplicacion.Pagos;
 
 namespace Shapi.Infraestructura.Pagos;
 
+/// <summary>
+/// Pasarela simulada de 09 §2. Nunca registra ni devuelve el número completo ni el CVV (ADR-13).
+/// </summary>
 public class PasarelaSimulada : IPasarelaPagos
 {
-    private readonly int _demoraMs;
+    // Tarjetas de prueba de 09 §2, comparadas por el número completo. Su comportamiento va en el token
+    // (tok_sim_{sufijo}_{uuid}) para que lo respete cualquier proceso que cobre, como el Trabajador en las renovaciones.
+    private static readonly Dictionary<string, string> TarjetasEspeciales = new()
+    {
+        ["4000000000000002"] = "0002",
+        ["4000000000000069"] = "0069",
+        ["4000000000000341"] = "0341",
+    };
+
+    // Guatemala no tiene horario de verano (UTC−6).
+    private static readonly TimeSpan DesfaseGuatemala = TimeSpan.FromHours(-6);
+
+    private readonly int? _demoraMs;
     private readonly bool _falla;
     private readonly IReloj _reloj;
 
     public PasarelaSimulada(IConfiguration configuracion, IReloj reloj)
     {
-        _demoraMs = configuracion.GetValue<int>("Pagos:DemoraMs", 0);
-        var fallaEnv = Environment.GetEnvironmentVariable("SHAPI_PASARELA_FALLA");
-        _falla = fallaEnv == "true" || configuracion.GetValue<bool>("SHAPI_PASARELA_FALLA", false);
+        // Sin Pagos:DemoraMs, la demora es al azar entre 300 y 800 ms; con un valor, es ese valor (0 en las pruebas).
+        _demoraMs = configuracion.GetValue<int?>("Pagos:DemoraMs");
+        _falla = configuracion.GetValue<bool>("SHAPI_PASARELA_FALLA");
         _reloj = reloj;
-    }
-
-    private async Task SimularLatenciaYFallaAsync()
-    {
-        if (_demoraMs > 0)
-        {
-            // Simular demora aleatoria según la spec
-            await Task.Delay(Random.Shared.Next(300, 800));
-        }
-
-        if (_falla)
-        {
-            throw new PasarelaException("pasarela_no_disponible");
-        }
     }
 
     public async Task<ResultadoTokenizacion> TokenizarAsync(DatosTarjeta tarjeta)
     {
-        try
+        await SimularDemoraAsync();
+        if (_falla)
         {
-            await SimularLatenciaYFallaAsync();
-        }
-        catch (PasarelaException ex)
-        {
-            return new ResultadoTokenizacion { Exitoso = false, Error = ex.Message };
+            return new ResultadoTokenizacion { Exitoso = false, Error = "pasarela_no_disponible" };
         }
 
-        var num = tarjeta.Numero.Replace(" ", "").Replace("-", "");
-
-        if (num.Length < 13 || num.Length > 19 || !PasaLuhn(num))
+        var numero = tarjeta.Numero.Replace(" ", "").Replace("-", "");
+        if (numero.Length is < 13 or > 19 || !numero.All(char.IsAsciiDigit) || !PasaLuhn(numero))
         {
             return new ResultadoTokenizacion { Exitoso = false, Error = "numero_invalido" };
         }
 
-        var marca = ObtenerMarca(num);
-        if (marca == null)
+        var marca = ObtenerMarca(numero);
+        if (marca is null)
         {
             return new ResultadoTokenizacion { Exitoso = false, Error = "marca_no_soportada" };
         }
 
-        if (!ValidarVencimiento(tarjeta.MesVencimiento, tarjeta.AnioVencimiento))
+        if (!EstaVigente(tarjeta.MesVencimiento, tarjeta.AnioVencimiento))
         {
             return new ResultadoTokenizacion { Exitoso = false, Error = "tarjeta_vencida" };
         }
 
-        int longitudCvvEsperada = marca == "American Express" ? 4 : 3;
-        if (tarjeta.Cvv.Length != longitudCvvEsperada || !int.TryParse(tarjeta.Cvv, out _))
+        var longitudCvv = marca == "American Express" ? 4 : 3;
+        if (tarjeta.Cvv.Length != longitudCvv || !tarjeta.Cvv.All(char.IsAsciiDigit))
         {
             return new ResultadoTokenizacion { Exitoso = false, Error = "cvv_invalido" };
         }
 
-        var tokenUuid = Guid.NewGuid().ToString("N");
-        var tokenPrefijo = num.EndsWith("0341") ? "tok_sim_0341_" : "tok_sim_";
-        var tokenCompleto = $"{tokenPrefijo}{tokenUuid}";
-
-        if (num.EndsWith("0002"))
-        {
-            TokensEspeciales[tokenCompleto] = "0002";
-        }
-
-        if (num.EndsWith("0069"))
-        {
-            TokensEspeciales[tokenCompleto] = "0069";
-        }
+        var token = TarjetasEspeciales.TryGetValue(numero, out var sufijo)
+            ? $"tok_sim_{sufijo}_{Guid.NewGuid()}"
+            : $"tok_sim_{Guid.NewGuid()}";
 
         return new ResultadoTokenizacion
         {
             Exitoso = true,
-            Token = tokenCompleto,
+            Token = token,
             Marca = marca,
-            Ultimos4 = num.Substring(num.Length - 4),
-            Titular = tarjeta.Titular
+            Ultimos4 = numero[^4..],
+            Titular = tarjeta.Titular,
         };
     }
 
     public async Task<ResultadoCobro> CobrarAsync(string token, decimal monto, string referencia, bool esRenovacion)
     {
-        try
+        await SimularDemoraAsync();
+        if (_falla)
         {
-            await SimularLatenciaYFallaAsync();
-        }
-        catch (PasarelaException ex)
-        {
-            return new ResultadoCobro { Exitoso = false, Error = ex.Message };
+            return new ResultadoCobro { Exitoso = false, Error = "pasarela_no_disponible" };
         }
 
-        // Simular validaciones en base a prefijos o base en memoria si aplica,
-        // pero la regla principal para tarjetas de prueba es el final del token o datos:
-        // No tenemos el número completo aquí, pero la spec dice:
-        // "La pasarela guarda en memoria ... el comportamiento de cada tarjeta especial. 
-        // Además lo incluye en el token (tok_sim_0341_{uuid}) para no perderlo..."
-        // Para 0002 y 0069 no especifica si van en el token, pero TokenizarAsync 
-        // asocia el token a la tarjeta. Como es simulado y stateless, podemos
-        // hacer que el token también lleve esa info o guardarlo en memoria.
-        // Un diccionario estático sirve mientras el proceso está activo.
-
-        // Buscamos si el token indica "0341"
-        if (token.StartsWith("tok_sim_0341_"))
+        // 0341 se aprueba al contratar y se rechaza en las renovaciones.
+        var motivoRechazo = token switch
         {
-            if (esRenovacion)
-            {
-                return new ResultadoCobro { Exitoso = false, Error = "fondos_insuficientes" }; // O cualquier error de rechazo
-            }
-        }
-        else
-        {
-            // Verificamos si en memoria tenemos registrado el token
-            if (TokensEspeciales.TryGetValue(token, out var sufijo))
-            {
-                if (sufijo == "0002")
-                {
-                    return new ResultadoCobro { Exitoso = false, Error = "fondos_insuficientes" };
-                }
-
-                if (sufijo == "0069")
-                {
-                    return new ResultadoCobro { Exitoso = false, Error = "tarjeta_vencida" };
-                }
-            }
-        }
-
-        return new ResultadoCobro
-        {
-            Exitoso = true,
-            Referencia = $"ch_sim_{Guid.NewGuid():N}"
+            _ when token.StartsWith("tok_sim_0002_", StringComparison.Ordinal) => "fondos_insuficientes",
+            _ when token.StartsWith("tok_sim_0069_", StringComparison.Ordinal) => "tarjeta_vencida",
+            _ when token.StartsWith("tok_sim_0341_", StringComparison.Ordinal) && esRenovacion => "fondos_insuficientes",
+            _ => null,
         };
+
+        return motivoRechazo is null
+            ? new ResultadoCobro { Exitoso = true, Referencia = $"ch_sim_{Guid.NewGuid()}" }
+            : new ResultadoCobro { Exitoso = false, Error = motivoRechazo };
     }
 
     public async Task<ResultadoReembolso> ReembolsarAsync(string referenciaCobro)
     {
-        try
+        await SimularDemoraAsync();
+        if (_falla)
         {
-            await SimularLatenciaYFallaAsync();
-        }
-        catch (PasarelaException ex)
-        {
-            return new ResultadoReembolso { Exitoso = false, Error = ex.Message };
+            return new ResultadoReembolso { Exitoso = false, Error = "pasarela_no_disponible" };
         }
 
-        return new ResultadoReembolso
-        {
-            Exitoso = true,
-            Referencia = $"re_sim_{Guid.NewGuid():N}"
-        };
+        return new ResultadoReembolso { Exitoso = true, Referencia = $"re_sim_{Guid.NewGuid()}" };
     }
 
-    // Memoria estática para asociar tokens a tarjetas especiales
-    public static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> TokensEspeciales = new();
-
-    private bool PasaLuhn(string numero)
+    private Task SimularDemoraAsync()
     {
-        int suma = 0;
-        bool alternar = false;
-        for (int i = numero.Length - 1; i >= 0; i--)
-        {
-            if (!char.IsDigit(numero[i]))
-            {
-                return false;
-            }
+        var demora = _demoraMs ?? Random.Shared.Next(300, 801);
+        return demora > 0 ? Task.Delay(demora) : Task.CompletedTask;
+    }
 
-            int n = numero[i] - '0';
-            if (alternar)
+    private static bool PasaLuhn(string numero)
+    {
+        var suma = 0;
+        var duplicar = false;
+        for (var i = numero.Length - 1; i >= 0; i--)
+        {
+            var digito = numero[i] - '0';
+            if (duplicar)
             {
-                n *= 2;
-                if (n > 9)
+                digito *= 2;
+                if (digito > 9)
                 {
-                    n -= 9;
+                    digito -= 9;
                 }
             }
-            suma += n;
-            alternar = !alternar;
+
+            suma += digito;
+            duplicar = !duplicar;
         }
+
         return suma % 10 == 0;
     }
 
-    private string? ObtenerMarca(string numero)
+    private static string? ObtenerMarca(string numero)
     {
-        if (numero.StartsWith("4"))
+        var prefijo2 = int.Parse(numero[..2]);
+        var prefijo4 = int.Parse(numero[..4]);
+
+        if (numero[0] == '4')
         {
             return "Visa";
         }
 
-        if (numero.StartsWith("34") || numero.StartsWith("37"))
+        if (prefijo2 is >= 51 and <= 55 || prefijo4 is >= 2221 and <= 2720)
+        {
+            return "Mastercard";
+        }
+
+        if (prefijo2 is 34 or 37)
         {
             return "American Express";
-        }
-
-        if (int.TryParse(numero.Substring(0, 2), out int pre2) && pre2 >= 51 && pre2 <= 55)
-        {
-            return "Mastercard";
-        }
-
-        if (numero.Length >= 4 && int.TryParse(numero.Substring(0, 4), out int pre4) && pre4 >= 2221 && pre4 <= 2720)
-        {
-            return "Mastercard";
         }
 
         return null;
     }
 
-    private bool ValidarVencimiento(string mesStr, string anioStr)
+    // El vencimiento tiene que ser el mes actual o uno posterior, en la zona de Guatemala.
+    private bool EstaVigente(string mesTexto, string anioTexto)
     {
-        if (!int.TryParse(mesStr, out int mes) || !int.TryParse(anioStr, out int anio))
-        {
-            return false;
-        }
-
-        if (mes < 1 || mes > 12)
+        if (!int.TryParse(mesTexto, out var mes) || !int.TryParse(anioTexto, out var anio) || mes is < 1 or > 12)
         {
             return false;
         }
@@ -233,22 +176,7 @@ public class PasarelaSimulada : IPasarelaPagos
             anio += 2000;
         }
 
-        var ahora = _reloj.Ahora.UtcDateTime;
-        if (anio < ahora.Year)
-        {
-            return false;
-        }
-
-        if (anio == ahora.Year && mes < ahora.Month)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private class PasarelaException : Exception
-    {
-        public PasarelaException(string message) : base(message) { }
+        var hoy = _reloj.Ahora.ToOffset(DesfaseGuatemala);
+        return anio > hoy.Year || (anio == hoy.Year && mes >= hoy.Month);
     }
 }
