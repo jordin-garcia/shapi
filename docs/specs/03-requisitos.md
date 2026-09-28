@@ -136,8 +136,8 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | RF-35 | Se agregan histogramas, bytes y errores por código | ADR-23 |
 | RF-40 | El proveedor abre y conversa en sus casos | ADR-29 |
 | RF-43 a RF-47 | Requisitos nuevos | ADR-16, ADR-19, ADR-24, ADR-27, ADR-11 |
-| RNF-06 | Queda como objetivo de diseño para un despliegue real: no se mide en el ambiente productivo simulado | Decisión de Jordin del 27 sep (auditoría del 25 sep, H-113) |
 | RNF-04, RNF-05, RNF-07, RNF-09, RNF-10 | Se precisan | ADR-01, ADR-09, ADR-11, ADR-22, ADR-27 |
+| RNF-06 | Queda como objetivo de diseño para un despliegue real: no se mide en el ambiente productivo simulado | Decisión de Jordin del 27 sep (auditoría del 25 sep, H-113) |
 | RNF-15 | Requisito nuevo | ADR-31 |
 
 [RNF-02]: #rnf-02

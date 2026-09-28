@@ -337,7 +337,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 16 · [JG-01] Huecos de requisitos (tareas nuevas según §C)
 
-- [x] **H-113** Crear tareas para RNF-06 (disponibilidad del 99.5 %) y RNF-11 (publicar en menos de 5 minutos). Agregar RNF-13 a los metadatos de JG-02.
+- [x] **H-113** Crear tareas para RNF-06 (disponibilidad del 99.5 %) y RNF-11 (publicar en menos de 5 minutos). (RNF-06 quedó sin tarea: ver la decisión de abajo.) Agregar RNF-13 a los metadatos de JG-02.
 - [x] **H-114** `calendario.md:102` dice que las tareas P1 cubren los lineamientos obligatorios. Hoy solo los cubren tareas P2:
   - RF-06: EM-12;
   - RF-11 y RF-12: DC-14;
