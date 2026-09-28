@@ -44,5 +44,8 @@ export function useSesion() {
     queryKey: claveSesion,
     queryFn: consultarSesion,
     retry: false,
+    // El nombre y el rol cambian poco: no se vuelven a pedir en cada navegación. Entrar pide la sesión de nuevo y salir
+    // borra la caché, así que esos cambios se ven de inmediato.
+    staleTime: 5 * 60 * 1000,
   });
 }

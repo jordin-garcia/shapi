@@ -91,3 +91,37 @@ git diff --check           OK
 - Revisión independiente según `docs/plan/prompts/revision.md`: **LISTO**, sin hallazgos pendientes tras corregir encabezado y ampliar pruebas.
 - La rama se rebasó sobre `main` después de integrar DC-01 y se conservó su generador de contratos y la normalización segura de errores.
 - El cliente provisional de sesión se alineó con la respuesta real de la rama EM-02 (`usuario` y `organizacion` anidados, respuesta 200 al salir) y la transforma al modelo que consumen los layouts, sin apropiarse del contrato OpenAPI de Identidad.
+
+### Correcciones de la auditoría (2026-09-27)
+
+Paso 13 de `docs/plan/auditoria-2026-09-25.md` (H-94 a H-102):
+- **A0.1 fuera del encabezado público (H-94).** `/` es una ruta propia, como `/_ui`. `LayoutPublico` es una ruta sin `path` que solo envuelve las pantallas de acceso.
+- **Errores de ruta (H-95).** `paginas/Error-Ruta.tsx` distingue un 404 (`isRouteErrorResponse`) de los demás errores. Para estos muestra `EstadoError`, y "Reintentar" vuelve a cargar la página (`modulos/navegador.ts`). Hay un `path: '*'` en la raíz.
+- **Rutas índice, 403 y 404 (H-96).**
+  - `/panel` y `/admin` llevan al destino del rol (`IrAlDestino`), y `/panel/apis/:id` lleva a `especificacion`.
+  - `RequiereRol` tiene la opción `area`: el 403 entre áreas muestra "Ir a su panel" y "Cerrar sesión" (decisión de Jordin).
+  - `/panel/*` y `/admin/*` tienen su propio 404, que conserva el layout.
+- **Medidas de N.1 (H-97).**
+  - Barra superior: 0 44 0 28 px.
+  - Barra lateral: 24 16 20 px.
+  - Rótulos con interlineado de 1.2 y enlaces de 1.5.
+  - `Selector` con la flecha y las medidas del selector de N.1.
+  - Botón de salir con borde `--principal` y texto `--tinta` con el cursor encima.
+  - Se comprobó en Chrome a 1440×900, contra el mockup.
+- **Tokens (H-98).** Las barras llevan la clase `dark` y usan tokens. De N.1, A6 y B3 se agregaron `--borde-barra`, `--tinta-rotulo`, `--tinta-navegacion` y `--fondo-activo` a 11 §1 (decisión de Jordin del paso 12). Las piezas comunes están en `layouts/Navegacion.tsx`.
+- **Altura y HMR (H-99).**
+  - La estructura usa `h-screen`, así que solo se desplaza el contenido y el pie de la barra lateral queda fijo.
+  - Se quitó `hmr.clientPort: 443` de Vite en el panel y en el portal. El HMR se conectó con `vite` directo (5173) y a través de Caddy (`wss://shapi.localhost`).
+- **Sesión y selector (H-100).**
+  - `useCerrarSesion` usa el `clienteSesion` de `useSesion`.
+  - La consulta de la sesión tiene `staleTime` de 5 minutos (decisión de Jordin).
+  - `SelectorApi` usa `Selector`, que admite opciones deshabilitadas.
+- **`/_ui` solo en desarrollo (H-101).** `crearRutas({ desarrollo })` agrega `/_ui` solo con `import.meta.env.DEV`, y la lámina no entra al build de producción (`laminaDiferida.ts`).
+- **Pruebas (H-102).** `tests/Estructura.test.tsx` cubre:
+  - el orden completo de N.1, A6 y B3;
+  - el 501 como "Sin APIs";
+  - A0.1 sin encabezado;
+  - un error que no es 404;
+  - las rutas índice, el 403 entre áreas y el 404 con layout;
+  - las medidas, los tokens, la altura, el HMR, el `staleTime` y `/_ui` en producción.
+- Se precisaron `11-interfaz.md` §1 (tokens de las barras), §3 (A0.2) y la estructura de navegación.

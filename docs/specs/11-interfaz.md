@@ -27,8 +27,12 @@ Escala: título de página 32/1.2 (Sora 400) · título de tarjeta 22/1.3 · cue
 | `--tinta-inactiva` | `#A3AEC2` (texto del botón deshabilitado y texto guía de los campos) | — |
 | `--borde-inactivo` | `#E4E9F1` (borde del botón deshabilitado) | — |
 | `--anillo-foco` | `#DEE7FC` (anillo de 3 px del campo enfocado) | — |
+| `--borde-barra` | — | `#131B2B` (separadores de la barra superior y la lateral) |
+| `--tinta-rotulo` | — | `#7F8DA8` (rótulos de grupo de la barra lateral) |
+| `--tinta-navegacion` | — | `#B9C4D8` (enlaces de la barra lateral y botón de salir) |
+| `--fondo-activo` | — | `#0E1830` (enlace activo de la barra lateral) |
 
-En la superficie oscura solo cambian los tokens que tienen valor en su columna; los demás conservan el de la superficie clara. Correcto y alerta tienen allí un solo tono, que vale para la base y para la etiqueta. En Tailwind, los colores se declaran con `@theme inline`, para que la clase `.dark` los cambie. Se precisó el 27 de septiembre (auditoría, H-86).
+En la superficie oscura solo cambian los tokens que tienen valor en su columna; los demás conservan el de la superficie clara. Correcto y alerta tienen allí un solo tono, que vale para la base y para la etiqueta. En Tailwind, los colores se declaran con `@theme inline`, para que la clase `.dark` los cambie. Se precisó el 27 de septiembre (auditoría, H-86). Los cuatro últimos tokens solo existen en la superficie oscura y salen de las barras de N.1, A6 y B3 (H-98).
 
 Cada color de estado tiene dos tonos, como en la lámina y los mockups:
 - **Base** (`--correcto-base` y `--alerta-base`): iconos de estado, muestras de la paleta, códigos HTTP (por ejemplo, el "200" de la consola) y texto de estado dentro de una tabla ("Expuesta").
@@ -68,7 +72,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
 | A0.1 | Inicio de Shapi con planes | `Main.dc.html` | `shapi.localhost/` | RF-19 | ✎ (peticiones, miembros, Escala mensual/anual, texto de las claves) |
-| A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | `shapi.localhost/_ui` | — | ✎ (subdominio de ejemplo) |
+| A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | `shapi.localhost/_ui` (solo en desarrollo) | — | ✎ (subdominio de ejemplo) |
 
 > A0.2 lleva el host completo a propósito: la prueba del catálogo (`frontend/apps/panel/src/tests/rutas.test.tsx`) exige que cada ruta que empieza con `/` muestre su ID, y la lámina no lo muestra. La ruta `/_ui` se prueba aparte.
 
@@ -205,6 +209,11 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - Mientras no exista el listado de DC-04, una respuesta 404 o 501 se presenta como «Sin APIs». Los demás errores muestran el aviso recuperable con «Reintentar».
 - Una sesión ausente (401) redirige a `/entrar`; un error de red o servidor mantiene la dirección y ofrece reintentar. Al cerrar sesión se espera la revocación del servidor antes de salir y limpiar los datos privados del cliente; si falla, se conserva la pantalla con un aviso y reintento.
 - El encabezado del proveedor muestra el nombre de su organización, que `GET /api/auth/sesion` devuelve en `organizacion.nombre`.
+- `/panel` y `/admin` llevan al destino del rol (10 §1), y `/panel/apis/:id` lleva a la especificación de esa API. A0.1 (`/`) tiene su propio encabezado; el de A1 solo va en las pantallas de acceso.
+- Quien entra al área de otro rol (un proveedor a `/admin`, o el personal de Shapi a `/panel`) ve "No tiene permiso para ver esta página" sin barra lateral, con "Ir a su panel" (su destino) y "Cerrar sesión". Dentro de su área, el 403 y el 404 conservan la barra lateral.
+- Un error que no es 404 (por ejemplo, una página que no se pudo descargar) muestra el aviso de error con "Reintentar", que vuelve a cargar la página.
+- La sesión consultada se considera vigente 5 minutos. Entrar la vuelve a pedir y salir borra la caché.
+- La estructura ocupa la altura de la ventana: solo se desplaza el contenido, y el pie de la barra lateral queda fijo.
 
 ### Comportamiento de las pantallas de acceso (EM-03)
 

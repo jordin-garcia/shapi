@@ -81,8 +81,9 @@ describe('H-84 · el panel no conserva un contrato de sesión provisional', () =
 
   it('no existe contratoSesion.ts y el módulo de sesión toma sus tipos de @shapi/api/identidad', () => {
     expect(Object.keys(fuentes)).not.toContain('../modulos/sesion/contratoSesion.ts');
-    for (const archivo of ['../modulos/sesion/useSesion.ts', '../modulos/sesion/CerrarSesion.tsx']) {
-      expect(fuentes[archivo]).toContain("from '@shapi/api/identidad'");
-    }
+    expect(fuentes['../modulos/sesion/useSesion.ts']).toContain("from '@shapi/api/identidad'");
+    // Cerrar sesión usa el cliente de useSesion, que tiene esos tipos (H-100).
+    expect(fuentes['../modulos/sesion/useCerrarSesion.ts']).toContain("import { clienteSesion } from './useSesion'");
+    for (const fuente of Object.values(fuentes)) expect(fuente).not.toContain('contratoSesion');
   });
 });

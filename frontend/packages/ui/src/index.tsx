@@ -167,14 +167,20 @@ export function DialogoConfirmacion({ abierto, titulo, children, textoConfirmar 
   );
 }
 
-export function Selector({ opciones, className = '', ...props }: Omit<React.ComponentPropsWithoutRef<"select">, 'children'> & { opciones: { etiqueta: string; valor: string }[] }) {
+/** Selector con la flecha y las medidas del selector de API de N.1. `className` se aplica al contenedor (por ejemplo, el ancho). */
+export function Selector({ opciones, className = '', ...props }: Omit<React.ComponentPropsWithoutRef<"select">, 'children'> & { opciones: { etiqueta: string; valor: string; deshabilitada?: boolean }[] }) {
   return (
-    <select
-      className={`h-11 rounded-base border border-borde-campo px-3 bg-panel text-tinta outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco ${className}`}
-      {...props}
-    >
-      {opciones.map(opcion => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
-    </select>
+    <div className={`relative ${className}`}>
+      <select
+        className="w-full appearance-none rounded-base border border-borde-campo bg-panel py-[9px] pl-3 pr-9 text-[14px] leading-[1.5] font-medium text-tinta outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco"
+        {...props}
+      >
+        {opciones.map(opcion => <option key={opcion.valor} value={opcion.valor} disabled={opcion.deshabilitada}>{opcion.etiqueta}</option>)}
+      </select>
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-tinta-suave">
+        <path d="M4 6 L8 10 L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
 

@@ -346,3 +346,32 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - Los errores de la API llegan como `ErrorApi` (convenciones §7).
     - Una petición que la prueba no simula con MSW ahora falla la prueba.
     - Los colores van con los tokens (`text-correcto-base`, `bg-panel`…); `gray-*`, `red-*` y el resto de la paleta de Tailwind ya no existen.
+
+## 2026-09-27 · DC-02 · Correcciones de la auditoría: estructura del panel y del sitio público
+- Hecho: paso 13 de `docs/plan/auditoria-2026-09-25.md` (H-94 a H-102).
+  - A0.1 va sin el encabezado de A1. Un error que no es 404 ofrece "Reintentar".
+  - `/panel`, `/admin` y `/panel/apis/:id` tienen ruta índice. El 403 entre áreas ofrece una salida, y el 404 dentro del panel conserva el layout.
+  - Las barras tienen las medidas de N.1 y usan tokens. La estructura ocupa la altura de la ventana, y el HMR funciona con Caddy y sin él.
+  - Hay un solo cliente de sesión, con 5 minutos de vigencia. El selector de API usa `Selector`, y `/_ui` solo existe en desarrollo.
+  - Hay 27 casos de prueba más (el frontend pasó de 162 a 189). Se comprobó en Chrome contra N.1.
+- Decisiones (de Jordin, 27 sep):
+  - H-96: el 403 entre áreas ofrece "Ir a su panel" y "Cerrar sesión".
+  - H-100: `staleTime` de 5 minutos.
+  - H-98: los colores oscuros de las barras se agregaron a 11 §1.
+- Pendiente o aviso para otros:
+  - **Dominique:** se modificaron tus archivos:
+    - `layouts/`: `LayoutPanel`, `LayoutAdmin` y `LayoutPublico`, y el nuevo `Navegacion.tsx` con las piezas comunes;
+    - `rutas.tsx`, que ahora exporta `crearRutas({ desarrollo })` además de `router`;
+    - `paginasDiferidas.tsx` (la lámina pasó a `laminaDiferida.ts`) y `modulos/apis/SelectorApi.tsx`;
+    - `modulos/sesion/`: `CerrarSesion`, `useSesion` y `RequiereRol`, y los nuevos `useCerrarSesion` e `IrAlDestino`;
+    - `paginas/Error-403.tsx` y el nuevo `Error-Ruta.tsx`;
+    - las pruebas `Layouts.test.tsx` y `Estructura.test.tsx` (nueva);
+    - `vite.config.ts` del panel y del portal (sin `clientPort`);
+    - en `packages/ui`: `Selector` (flecha, medidas de N.1, `className` en el contenedor y `deshabilitada` en las opciones) y los tokens de las barras en `style.css`, con sus pruebas en `index.test.tsx` y `style.test.tsx`.
+
+    Actualiza tu rama desde `main`. **DC-03:** usa `MarcaShapi` y los tokens de `Navegacion.tsx` si el portal los necesita. **DC-15:** A0.1 ya no tiene el encabezado de A1; el suyo va en su página.
+  - **Emilio:** en `tests/Sesion.test.tsx` (EM-17), la prueba de H-84 ahora busca `clienteSesion` en `useCerrarSesion.ts`, porque ese hook salió de `CerrarSesion.tsx`.
+  - **Todos:**
+    - Para ocultar una opción de menú o proteger una sección, sigue valiendo `RequiereRol`; `area` es solo para `/panel` y `/admin`.
+    - `Selector` recibe el ancho en `className` (por ejemplo, `w-full`).
+    - Si una pantalla cambia el nombre o el rol del usuario, que invalide `claveSesion` para que se vea de inmediato.
