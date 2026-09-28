@@ -45,7 +45,23 @@ Vite: el verificador ocupa temporalmente los puertos 5080, 5090, 5173 y 5174 y
 fallará con `EADDRINUSE` si alguno ya está en uso.
 
 Los procesos de Shapi y Vite se ejecutan en el equipo para conservar la recarga
-en caliente:
+en caliente. .NET no lee el archivo `.env`: sin sus variables, la API no
+encuentra la base de datos (`SHAPI_POSTGRES_CADENA`) y no puede aplicar las
+migraciones al iniciar. Cargue el `.env` en cada terminal antes de
+`dotnet run`. Los valores no van entre comillas y la cadena de conexión lleva
+`;`, así que no use `source .env`:
+
+```powershell
+# PowerShell
+Get-Content .env | ForEach-Object { if ($_ -match '^\s*([A-Z_][A-Z0-9_]*)=(.*)$') { Set-Item "env:$($Matches[1])" $Matches[2] } }
+```
+
+```bash
+# bash (Linux, macOS o Git Bash)
+while IFS= read -r linea || [[ -n $linea ]]; do [[ $linea =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] && export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]%$'\r'}"; done < .env
+```
+
+Después, en esas mismas terminales:
 
 ```bash
 dotnet run --project src/Shapi.Api
@@ -64,9 +80,10 @@ dotnet run --project src/Shapi.Compuerta --urls http://0.0.0.0:5090
 cd frontend && pnpm dev -- --host 0.0.0.0
 ```
 
-La configuración definitiva de Vite debe conservar `server.host: "0.0.0.0"` y
-usar `server.hmr.clientPort: 443` para que la recarga en caliente funcione detrás
-de Caddy. Estos puertos son exclusivamente de desarrollo; no exponga este
+La configuración de Vite usa `server.host: "0.0.0.0"` por la misma razón: en
+Linux, Caddy llega a Vite por el puente de Docker. No fija
+`server.hmr.clientPort`: el navegador abre la recarga en caliente en el puerto
+de la página, 443 detrás de Caddy o 5173 y 5174 sin él. Estos puertos son exclusivamente de desarrollo; no exponga este
 entorno en una red no confiable.
 
 ### Confiar en la autoridad certificadora local

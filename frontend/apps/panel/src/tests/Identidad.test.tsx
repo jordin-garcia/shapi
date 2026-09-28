@@ -111,6 +111,20 @@ describe('RF-01 · A1.1 Registro del proveedor', () => {
     await userEvent.type(await screen.findByLabelText('Correo electrónico'), 'ana.morales@enviosxelaju.com');
     await userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     await waitFor(() => expect(errorBajo('Correo electrónico')).toContain('Ya existe una cuenta con ese correo.'));
+    // CU-01 2a: con enlaces a entrar y a recuperar la contraseña.
+    expect(screen.getByRole('link', { name: 'Recuperar la contraseña' }).getAttribute('href')).toBe('/recuperar');
+    expect(screen.getAllByRole('link', { name: 'Entrar' }).map(enlace => enlace.getAttribute('href'))).toEqual(['/entrar', '/entrar']);
+  });
+
+  it('RF-01 un error con código que no es de un campo se muestra en el aviso de arriba, sin "Reintentar"', async () => {
+    server.use(http.post(`${API}/registro`, () => problema(429, 'demasiadas_peticiones', 'Demasiadas peticiones. Intente de nuevo en un minuto.')));
+    await abrir('/registro');
+    await userEvent.click(await screen.findByRole('button', { name: 'Crear cuenta' }));
+
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('Demasiadas peticiones. Intente de nuevo en un minuto.');
+    expect(within(aviso).queryByRole('button', { name: 'Reintentar' })).toBeNull();
+    expect(errorBajo('Correo electrónico')).not.toContain('Demasiadas peticiones');
   });
 
   it('RF-01 un error del servidor muestra un aviso y "Reintentar" vuelve a enviar', async () => {
@@ -134,11 +148,40 @@ describe('RF-02 · A1.2 Verificación de correo', () => {
     expect(screen.getByText('Verificación de correo')).toBeDefined();
     expect(screen.getByText('ana.morales@enviosxelaju.com')).toBeDefined();
     expect(screen.getByText('24 horas')).toBeDefined();
+    const parrafo = (inicio: string) => screen.getByText((_, elemento) => elemento?.tagName === 'P' && !!elemento.textContent?.startsWith(inicio));
+    expect(parrafo('Enviamos').textContent).toContain('Enviamos un enlace de confirmación a ana.morales@enviosxelaju.com. Abra ese enlace para confirmar su cuenta.');
+    expect(parrafo('Enviamos').textContent).toContain('Vence en 24 horas.');
+    expect(parrafo('Su organización').textContent).toBe('Su organización ya quedó en el plan Prueba: 1 API y 10,000 peticiones, sin costo por 30 días.');
     expect(screen.getByText('No podrá publicar APIs mientras su correo no esté confirmado.')).toBeDefined();
 
     await userEvent.click(screen.getByRole('button', { name: 'Enviar el enlace otra vez' }));
     expect((await screen.findByRole('status')).textContent).toBe(ENLACE_REENVIADO);
     expect(peticiones).toEqual([{ ruta: 'reenviar', csrf: 'shapi', cuerpo: { correo: 'ana.morales@enviosxelaju.com' } }]);
+  });
+
+  it('RF-02 si falla el reenvío, avisa y "Reintentar" lo vuelve a pedir', async () => {
+    let intentos = 0;
+    server.use(http.post(`${API}/reenviar-verificacion`, () => (++intentos === 1 ? errorDelServidor() : new HttpResponse(null, { status: 200 }))));
+    await abrir('/verificar-correo?correo=ana.morales%40enviosxelaju.com');
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar el enlace otra vez' }));
+
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('No se pudo completar la solicitud. Revise su conexión e intente de nuevo.');
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Reintentar' }));
+    expect((await screen.findByRole('status')).textContent).toBe(ENLACE_REENVIADO);
+    expect(intentos).toBe(2);
+  });
+
+  it('RF-02 muestra "Confirmando su correo" mientras verifica el enlace', async () => {
+    let liberar!: () => void;
+    const espera = new Promise<void>(resolver => { liberar = resolver; });
+    server.use(http.post(`${API}/verificar-correo`, async () => { await espera; return problema(422, 'token_invalido', 'El enlace venció o ya se usó.'); }));
+    await abrir('/verificar-correo?token=abc');
+
+    expect(await screen.findByRole('heading', { name: 'Confirmando su correo' })).toBeDefined();
+    liberar();
+    expect(await screen.findByRole('heading', { name: 'Enlace no válido' })).toBeDefined();
+    expect(screen.getByText('Escriba su correo y le enviaremos un enlace nuevo.')).toBeDefined();
   });
 
   it('RF-02 el enlace del correo verifica una sola vez (también en StrictMode) y lleva al destino', async () => {
@@ -166,10 +209,26 @@ describe('RF-02 · A1.2 Verificación de correo', () => {
     expect(router.state.location.pathname).toBe('/verificar-correo');
   });
 
+  it('RF-02 si falla el reenvío desde un enlace no válido, muestra el mensaje de la API', async () => {
+    server.use(
+      http.post(`${API}/verificar-correo`, () => problema(422, 'token_invalido', 'El enlace venció o ya se usó.')),
+      http.post(`${API}/reenviar-verificacion`, () => problema(429, 'demasiadas_peticiones', 'Demasiadas peticiones. Intente de nuevo en un minuto.')),
+    );
+    await abrir('/verificar-correo?token=vencido');
+    await userEvent.type(await screen.findByLabelText('Correo electrónico'), 'ana@enviosxelaju.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar el enlace otra vez' }));
+
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('Demasiadas peticiones. Intente de nuevo en un minuto.');
+    expect(within(aviso).queryByRole('button', { name: 'Reintentar' })).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('RF-02 una cuenta desactivada muestra su mensaje y no ofrece reenviar', async () => {
     server.use(http.post(`${API}/verificar-correo`, () => problema(403, 'cuenta_desactivada', 'Cuenta desactivada.')));
     await abrir('/verificar-correo?token=abc');
     expect(await screen.findByText('Cuenta desactivada.')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'No se pudo confirmar su correo' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Enviar el enlace otra vez' })).toBeNull();
   });
 

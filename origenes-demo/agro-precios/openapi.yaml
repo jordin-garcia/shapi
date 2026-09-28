@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: API de Precios de Mercado
   version: 1.0.0
-  description: API de demostración de Agro Precios para consultar precios mayoristas de Guatemala.
+  description: Consulte precios de granos, hortalizas y frutas por mercado y por fecha directamente desde su propio sistema.
 servers:
   - url: https://agro.api.shapi.localhost
     description: Compuerta local de Shapi

@@ -130,6 +130,15 @@ describe('RNF-12 · componentes base', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(confirmar).toHaveBeenCalledOnce(); expect(cerrar).toHaveBeenCalledOnce();
   });
+  it('RNF-12 DialogoConfirmacion dentro de un formulario no lo envía con sus botones', async () => {
+    const enviar = vi.fn((evento: { preventDefault: () => void }) => evento.preventDefault());
+    const confirmar = vi.fn(); const cerrar = vi.fn();
+    render(<form onSubmit={enviar}><DialogoConfirmacion abierto titulo="Guardar el plan" cerrar={cerrar} confirmar={confirmar} /></form>);
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(confirmar).toHaveBeenCalledOnce(); expect(cerrar).toHaveBeenCalledOnce();
+    expect(enviar).not.toHaveBeenCalled();
+  });
   it('RNF-12 · H-88 DialogoConfirmacion admite textos y contenido propios y se nombra por su título', () => {
     render(<DialogoConfirmacion abierto titulo="Revocar la clave" textoConfirmar="Revocar" textoCancelar="Volver" cerrar={vi.fn()} confirmar={vi.fn()}>
       <p>La clave dejará de funcionar de inmediato.</p>

@@ -449,6 +449,23 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion")).StatusCode);
     }
 
+    // 10 §1: registro, verificación, reenvío y entrada llevan el límite de 10 por minuto por IP.
+    [Theory]
+    [InlineData("/api/auth/registro")]
+    [InlineData("/api/auth/verificar-correo")]
+    [InlineData("/api/auth/reenviar-verificacion")]
+    [InlineData("/api/auth/entrar")]
+    public async Task RF_04_Limite_CadaEndpointDeAutenticacion_LaPeticion11Responde429(string ruta)
+    {
+        var cuerpo = new { correo = "nadie@enviosxelaju.com", contrasena = "Incorrecta123", token = "inexistente" };
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, (await Enviar(HttpMethod.Post, ruta, cuerpo)).StatusCode);
+        }
+
+        await AfirmarProblema(await Enviar(HttpMethod.Post, ruta, cuerpo), HttpStatusCode.TooManyRequests, "demasiadas_peticiones");
+    }
+
     [Fact]
     public async Task RF_04_Limite_DetrasDelBorde_CuentaPorLaIpDelCliente()
     {
@@ -655,6 +672,43 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         using var _ = scope;
         // El del registro, 3 reenvíos y, una hora después, otro más.
         Assert.Equal(5, await db.Set<CorreoSaliente>().CountAsync(c => c.Destinatario == "ana@enviosxelaju.com"));
+    }
+
+    [Fact]
+    public async Task RF_02_ReenviarVerificacion_OchoSimultaneos_EncolanComoMaximoTres()
+    {
+        await Registrar("ana@enviosxelaju.com");
+
+        // 1 registro + 8 reenvíos: no alcanza el límite de 10 por minuto por IP.
+        var respuestas = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
+            Enviar(HttpMethod.Post, "/api/auth/reenviar-verificacion", new { correo = "ana@enviosxelaju.com" })));
+
+        Assert.All(respuestas, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        // El del registro y 3 reenvíos.
+        Assert.Equal(4, await db.Set<CorreoSaliente>().CountAsync(c => c.Destinatario == "ana@enviosxelaju.com"));
+    }
+
+    [Fact]
+    public async Task CU_02_2b_VerificarCorreo_CuentaDesactivada_Responde403SinIniciarSesion()
+    {
+        await Registrar("ana@enviosxelaju.com");
+        var token = await TokenDelUltimoCorreo("ana@enviosxelaju.com");
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            await db.Set<Usuario>().IgnoreQueryFilters().Where(u => u.Correo == "ana@enviosxelaju.com")
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Estado, EstadoCuenta.Desactivado));
+        }
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/auth/verificar-correo", new { token });
+
+        await AfirmarProblema(respuesta, HttpStatusCode.Forbidden, "cuenta_desactivada");
+        Assert.False(respuesta.Headers.Contains("Set-Cookie"));
+        await using var db2 = Db(out var scope2);
+        using var __ = scope2;
+        Assert.Equal(0, await db2.Set<Sesion>().CountAsync());
     }
 
     // ---------- RF-04 · Sesión ----------

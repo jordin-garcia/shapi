@@ -11,8 +11,9 @@ public class OrganizacionConfiguracion : IEntityTypeConfiguration<Organizacion>
         builder.ToTable("organizacion");
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Nombre).IsRequired().HasMaxLength(120);
-        builder.ToTable(t => t.HasCheckConstraint("ck_organizacion_nombre", "char_length(nombre) >= 2"));
+        // 07 §3.1: text con el largo en un CHECK, no varchar(n).
+        builder.Property(x => x.Nombre).IsRequired();
+        builder.ToTable(t => t.HasCheckConstraint("ck_organizacion_nombre", "char_length(nombre) BETWEEN 2 AND 120"));
 
         builder.Property(x => x.Tipo)
             .IsRequired()

@@ -205,7 +205,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     [Fact]
     public async Task RF_29_ValidarClave_PeticionesConClave_NuncaSeRegistraEnClaro()
     {
-        // Criterio 4 y 10 §7: la clave nunca aparece en los registros.
+        // Criterio 4 y convenciones §6: la clave nunca aparece en los registros.
         var (host, _, clave) = await SembrarApiYClaveAsync();
         var claveInvalida = NuevaClave();
         using var cliente = entorno.Cliente(host);
@@ -314,6 +314,10 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
         await VerificarErrorAsync(respuesta, HttpStatusCode.Unauthorized, "clave_en_url");
         VerificarWwwAuthenticate(respuesta);
         entorno.Origen.Ultima.Should().BeNull("la petición con la clave en la URL no se reenvía");
+        // 08 §1: tampoco queda en ningún registro que la configuración de la compuerta deje pasar.
+        entorno.Registros.Lineas.Should().NotContain(linea =>
+            linea.Contains(clave, StringComparison.Ordinal) || linea.Contains(dePruebas, StringComparison.Ordinal)
+            || linea.Contains(codificada, StringComparison.Ordinal));
     }
 
     [Fact]

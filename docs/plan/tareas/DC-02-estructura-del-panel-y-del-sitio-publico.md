@@ -125,3 +125,7 @@ Paso 13 de `docs/plan/auditoria-2026-09-25.md` (H-94 a H-102):
   - las rutas índice, el 403 entre áreas y el 404 con layout;
   - las medidas, los tokens, la altura, el HMR, el `staleTime` y `/_ui` en producción.
 - Se precisaron `11-interfaz.md` §1 (tokens de las barras), §3 (A0.2) y la estructura de navegación.
+
+**Auditoría final (paso 17):**
+- **H-150:** el contrato mínimo `contratos/openapi/apis.yaml` lo completa DC-04: `security`, 401 y `required`.
+- Los textos de las páginas de relleno («A3-4», nombre del archivo) se aceptan como están, porque son temporales.

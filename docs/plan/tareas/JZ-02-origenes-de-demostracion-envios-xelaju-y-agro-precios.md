@@ -85,3 +85,8 @@ Paso 9 de `docs/plan/auditoria-2026-09-25.md` (H-74 a H-77, H-116 y H-117):
   - la coherencia de `/precios` con `/historial` para todo el catálogo;
   - los 404 y 400 de `/precios`.
 - Se corrigió en DC-05 la ruta de los archivos de ejemplo: el de Envíos es `cotizacion-envios.yaml`.
+
+**Auditoría final (paso 17):**
+- **H-122:** la descripción de las dos APIs y la de /guias, /rastreo y /cobertura son las de A5.0 e InicioAgro, con prueba en `OpenApiTests`.
+- **H-140:** `/cotizaciones` responde 400 si `tipo_servicio` no es `normal` ni `urgente`, como dice su contrato.
+- **H-141:** `/cobertura` devuelve `dias_habiles: null` para un municipio sin cobertura. El contrato lo declara `nullable` y la prueba lo comprueba.

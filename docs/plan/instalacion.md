@@ -65,6 +65,8 @@ cd frontend && pnpm install && pnpm dev               # terminal 4: panel y port
 ```
 Luego abre https://shapi.localhost. El correo simulado se ve en https://correo.shapi.localhost.
 
+.NET no lee el `.env`: antes de cada `dotnet run`, carga sus variables en esa terminal con el comando de PowerShell o de bash de `docs/manual-tecnico.md` ("Levantar y verificar la infraestructura"). Sin ellas, la API no encuentra la base de datos.
+
 Compose necesita `--env-file .env` para leer el `.env` de la raíz; sin esa opción lo busca en `infra/`. Si otro PostgreSQL ya usa el puerto 5432, cambia `SHAPI_POSTGRES_PUERTO` en tu `.env` (por ejemplo, a `5433`) y pon el mismo número en `Port=` de `SHAPI_POSTGRES_CADENA`.
 
 ### 5.1 Confiar en el certificado local (una sola vez, después de JZ-01)

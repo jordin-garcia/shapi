@@ -7,7 +7,7 @@
 | Mecanismo | **Sesiones del lado del servidor** con una cookie, sin JWT ([ADR-06](12-decisiones.md)). La cookie guarda un valor aleatorio de 32 bytes, y la tabla `sesion` guarda su SHA-256 |
 | Cookie | Personal: `shapi_sesion`, en el host `shapi.localhost`. Consumidor: `portal_sesion`, en el host de cada portal. Las dos son `HttpOnly`, `Secure`, `SameSite=Lax` y `Path=/` |
 | Vencimiento | A las 8 h de inactividad (`Sesion:InactividadHoras`) o a los 7 días desde el inicio de sesión. Cada petición actualiza `ultimo_uso_en`, como máximo una vez por minuto |
-| CSRF | `SameSite=Lax`, más la cabecera `X-Requested-With: shapi` obligatoria en todo método que no sea GET, más la comprobación de `Origin`: si llega, debe tener el mismo esquema, host y puerto que la petición. Los frontends llaman a la API **en su mismo host**, así que no hace falta CORS entre el panel y la API |
+| CSRF | `SameSite=Lax`, más la cabecera `X-Requested-With: shapi` obligatoria en todo método no seguro (los distintos de GET, HEAD, OPTIONS y TRACE), más la comprobación de `Origin`: si llega, debe tener el mismo esquema, host y puerto que la petición. Los frontends llaman a la API **en su mismo host**, así que no hace falta CORS entre el panel y la API |
 | Contraseñas | Tienen entre 10 y 128 caracteres y no pueden ser iguales al correo. Se guardan con `PasswordHasher<T>` de ASP.NET Core Identity (PBKDF2-HMAC-SHA512, 100,000 iteraciones o más). Si el hash guardado se hizo con parámetros más débiles que los actuales, se recalcula al iniciar sesión |
 | Bloqueo | Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos (`bloqueado_hasta`). Los mensajes de error son genéricos: `401 credenciales_invalidas` si la cuenta no existe o la contraseña no coincide, con el mismo tiempo de respuesta en los dos casos. Durante el bloqueo responde `423 cuenta_bloqueada`. Una cuenta desactivada responde `403 cuenta_desactivada` (CU-02 2b), solo si la contraseña es correcta. Cada intento fallido se cuenta en una sola sentencia de la base, para que los intentos simultáneos no se pierdan |
 | Recuperación | Siempre se responde lo mismo, exista o no la cuenta. El enlace es de un solo uso y vence a los 60 minutos. Al usarlo **se revocan todas las sesiones** de la cuenta ([RF-03](03-requisitos.md#rf-03)) |
@@ -92,7 +92,7 @@ Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan co
 
 **Cifrado:** con `SHAPI_SMTP_TLS=true`, el cifrado es obligatorio: SMTPS implícito si `SHAPI_SMTP_PUERTO` es 465, y STARTTLS en cualquier otro puerto. Si el servidor no ofrece STARTTLS, el envío falla y nunca sale en texto plano. Con `false` no se cifra, como en Mailpit.
 
-Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4).
+Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4) y salen con «Shapi» como nombre visible del remitente; los de un portal, con el nombre del portal (`nombrePortal`). Quien encola un correo de consumidor pasa en `datos` `nombrePortal`, `hostPortal`, `colorPortal` (el `api.portal_color`, solo `#RRGGBB`) y, si el portal tiene logotipo, `logoPortal: "true"`; el enlace del logotipo es `https://{hostPortal}/api/portal/logo`.
 
 ## 7. Bitácora
 

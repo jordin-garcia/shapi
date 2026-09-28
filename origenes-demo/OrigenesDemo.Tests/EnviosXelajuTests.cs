@@ -197,6 +197,25 @@ public sealed class EnviosXelajuTests(WebApplicationFactory<EnviosXelajuAplicaci
     }
 
     [Theory]
+    [InlineData("express")]
+    [InlineData("")]
+    public async Task Cotizaciones_TipoDeServicioQueNoEsNormalNiUrgente_Responde400(string tipoServicio)
+    {
+        // Contrato de /cotizaciones: tipo_servicio es normal o urgente (auditoría final).
+        using var cliente = fabrica.CreateClient();
+
+        var respuesta = await cliente.PostAsJsonAsync("/cotizaciones", new
+        {
+            origen = "0901",
+            destino = "0301",
+            peso_kg = 2.5,
+            tipo_servicio = tipoServicio,
+        });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Theory]
     [InlineData("0901", "Quetzaltenango", true, 1)]
     [InlineData("0301", "Antigua Guatemala", true, 2)]
     [InlineData("0101", "Ciudad de Guatemala", true, 2)]
@@ -215,7 +234,11 @@ public sealed class EnviosXelajuTests(WebApplicationFactory<EnviosXelajuAplicaci
         contenido.GetProperty("municipio").GetString().Should().Be(municipio);
         contenido.GetProperty("nombre").GetString().Should().Be(nombre);
         contenido.GetProperty("cubierto").GetBoolean().Should().Be(cubierto);
-        if (diasHabiles is not null)
+        if (diasHabiles is null)
+        {
+            contenido.GetProperty("dias_habiles").ValueKind.Should().Be(JsonValueKind.Null);
+        }
+        else
         {
             contenido.GetProperty("dias_habiles").GetInt32().Should().Be(diasHabiles);
         }

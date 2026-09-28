@@ -33,24 +33,27 @@ const claraBandas: Color[] = [
 function datos(muestra: Color) {
   return { 'data-nombre': muestra.nombre, 'data-color': muestra.color, 'data-token': muestra.token };
 }
-function MuestraPanel({ muestra }: { muestra: Color }) {
+// En la superficie oscura, los códigos de color y los rótulos van en --tinta-rotulo y los nombres de las bandas
+// en --tinta-navegacion, como en la lámina; esos tokens solo existen dentro de .dark.
+const codigo = (oscura: boolean) => (oscura ? 'text-tinta-rotulo' : 'text-tinta-suave');
+function MuestraPanel({ muestra, oscura = false }: { muestra: Color; oscura?: boolean }) {
   return <div {...datos(muestra)} className="border border-borde rounded-base overflow-hidden">
     <div style={{ background: muestra.color }} className="h-[88px]" />
     <div className="p-[14px] border-t border-borde flex flex-col gap-[2px]">
       <span className="text-[14px] font-semibold">{muestra.nombre}</span>
-      <span className="text-[13px] text-tinta-suave tabular-nums">{muestra.color}</span>
+      <span className={`text-[13px] ${codigo(oscura)} tabular-nums`}>{muestra.color}</span>
       {muestra.descripcion && <span className="text-[13px] text-tinta-suave">{muestra.descripcion}</span>}
     </div>
   </div>;
 }
-function MuestraBanda({ muestra, conBorde = false }: { muestra: Color; conBorde?: boolean }) {
+function MuestraBanda({ muestra, conBorde = false, oscura = false }: { muestra: Color; conBorde?: boolean; oscura?: boolean }) {
   return <div {...datos(muestra)} className="flex flex-col gap-2">
     <div style={{ background: muestra.color }} className={`h-12 rounded-base ${conBorde ? 'border border-borde' : ''}`} />
-    <span className="text-[13px]">{muestra.nombre} <span className="text-tinta-suave tabular-nums">{muestra.color}</span></span>
+    <span className={`text-[13px] ${oscura ? 'text-tinta-navegacion' : ''}`}>{muestra.nombre} <span className={`${codigo(oscura)} tabular-nums`}>{muestra.color}</span></span>
   </div>;
 }
-function Rotulo({ children }: { children: ReactNode }) {
-  return <p className="text-etiqueta uppercase font-medium text-tinta-suave">{children}</p>;
+function Rotulo({ children, oscura = false }: { children: ReactNode; oscura?: boolean }) {
+  return <p className={`text-etiqueta uppercase font-medium ${codigo(oscura)}`}>{children}</p>;
 }
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   const id = `seccion-${titulo.normalize('NFD').replace(/[^\w]+/g, '-').toLowerCase()}`;
@@ -79,17 +82,17 @@ export default function UI() {
   return <main className="bg-panel min-h-screen pb-20">
     <div className="dark bg-fondo text-tinta px-20 pt-14 pb-16">
       <header className="flex justify-between items-end gap-16 pb-12">
-        <div className="flex flex-col gap-4"><Rotulo>Lámina de estilo · Variante 4</Rotulo><h1 className="font-display text-[52px] leading-[1.05] font-light tracking-[-0.03em]">Plano azul</h1></div>
+        <div className="flex flex-col gap-4"><Rotulo oscura>Lámina de estilo · Variante 4</Rotulo><h1 className="font-display text-[52px] leading-[1.05] font-light tracking-[-0.03em]">Plano azul</h1></div>
         <p className="max-w-[58ch] text-right text-[15px] text-tinta-suave">Azul de plano como color principal: sobre el fondo casi negro funciona como luz y como acento sin recurrir al morado, y sobre la superficie clara de la aplicación conserva contraste suficiente para marcar la acción disponible en una tabla larga.</p>
       </header>
       <h2 className="font-sans text-etiqueta uppercase font-medium border-b border-borde pb-3">Superficie oscura · página de inicio</h2>
-      <div className="grid grid-cols-4 gap-5 mt-7">{oscuraPaneles.map(muestra => <MuestraPanel key={muestra.nombre} muestra={muestra} />)}</div>
-      <div className="grid grid-cols-4 gap-5 mt-5">{oscuraTextos.map(muestra => <MuestraBanda key={muestra.nombre} muestra={muestra} />)}</div>
+      <div className="grid grid-cols-4 gap-5 mt-7">{oscuraPaneles.map(muestra => <MuestraPanel key={muestra.nombre} muestra={muestra} oscura />)}</div>
+      <div className="grid grid-cols-4 gap-5 mt-5">{oscuraTextos.map(muestra => <MuestraBanda key={muestra.nombre} muestra={muestra} oscura />)}</div>
       <p className="text-[14px] text-tinta-suave mt-5 max-w-[96ch]">En la superficie oscura la acción principal se resuelve en blanco sobre fondo negro. El azul queda como acento, resplandor y retícula de plano, nunca como relleno de botón.</p>
       <div className="grid grid-cols-3 gap-8 mt-9">
-        <div className="flex flex-col gap-[14px]"><Rotulo>Botones sobre oscuro</Rotulo><div className="flex gap-3"><Boton className="bg-tinta! text-[#08101F]! hover:bg-tinta!">Crear cuenta</Boton><Boton principal={false} className="bg-transparent text-tinta hover:bg-panel">Ver precios</Boton></div></div>
-        <div className="flex flex-col gap-[14px]"><Rotulo>Panel sobre oscuro</Rotulo><div className="bg-panel border border-borde rounded-base p-[18px] flex flex-col gap-2"><h3 className="font-display text-[19px]">Plan Producto</h3><p className="text-[14px] text-tinta-suave">Proveedores con clientes establecidos</p></div></div>
-        <div className="flex flex-col gap-[14px]"><Rotulo>Retícula de plano</Rotulo><div className="h-[92px] border border-borde rounded-base" style={{ backgroundImage: 'linear-gradient(to right,#121B2E 1px,transparent 1px),linear-gradient(to bottom,#121B2E 1px,transparent 1px)', backgroundSize: '32px 32px' }} /></div>
+        <div className="flex flex-col gap-[14px]"><Rotulo oscura>Botones sobre oscuro</Rotulo><div className="flex gap-3"><Boton className="bg-tinta! text-[#08101F]! hover:bg-tinta!">Crear cuenta</Boton><Boton principal={false} className="bg-transparent text-tinta hover:bg-panel">Ver precios</Boton></div></div>
+        <div className="flex flex-col gap-[14px]"><Rotulo oscura>Panel sobre oscuro</Rotulo><div className="bg-panel border border-borde rounded-base p-[18px] flex flex-col gap-2"><h3 className="font-display text-[19px]">Plan Producto</h3><p className="text-[14px] text-tinta-suave">Proveedores con clientes establecidos</p></div></div>
+        <div className="flex flex-col gap-[14px]"><Rotulo oscura>Retícula de plano</Rotulo><div className="h-[92px] border border-borde rounded-base" style={{ backgroundImage: 'linear-gradient(to right,#121B2E 1px,transparent 1px),linear-gradient(to bottom,#121B2E 1px,transparent 1px)', backgroundSize: '32px 32px' }} /></div>
       </div>
     </div>
     <Seccion titulo="Superficie clara · aplicación y portal">
@@ -119,7 +122,7 @@ export default function UI() {
         <div className="flex flex-col gap-[14px]"><Rotulo>Botón principal</Rotulo><div className="flex gap-3"><Boton onClick={() => setDialogo(true)}>Publicar API</Boton><Boton className="bg-principal-hover" onClick={() => setDialogo(true)}>Publicar API</Boton></div><p className="text-[13px] text-tinta-suave">Reposo y cursor encima. Altura 46 px.</p></div>
         <div className="flex flex-col gap-[14px]"><Rotulo>Botón secundario</Rotulo><div className="flex gap-3"><Boton principal={false}>Cancelar</Boton><Boton principal={false} deshabilitado>Cancelar</Boton></div><p className="text-[13px] text-tinta-suave">Reposo y deshabilitado.</p></div>
         <div className="flex flex-col gap-[14px]"><Rotulo>Etiqueta de estado</Rotulo><div className="flex gap-[10px] flex-wrap"><Etiqueta estado="correcto">Activa</Etiqueta><Etiqueta estado="alerta">Suspendida</Etiqueta><Etiqueta estado="neutro">Despublicada</Etiqueta></div><p className="text-[13px] text-tinta-suave">Correcto, alerta y neutro. No hay más colores de estado.</p></div>
-        <div className="flex flex-col gap-[14px]"><Rotulo>Campo de formulario</Rotulo><Campo etiqueta="Servidor de origen" placeholder="https://" /><Campo etiqueta="Subdominio" defaultValue="envios" /><p className="text-[13px] text-tinta-suave">Vacío con texto guía, y enfocado.</p></div>
+        <div className="flex flex-col gap-[14px]"><Rotulo>Campo de formulario</Rotulo><Campo etiqueta="Servidor de origen" placeholder="https://" /><Campo etiqueta="Subdominio" defaultValue="envios" className="[&_input]:border-principal [&_input]:ring-[3px] [&_input]:ring-anillo-foco" /><p className="text-[13px] text-tinta-suave">Vacío con texto guía, y enfocado.</p></div>
         <div className="flex flex-col gap-[14px]"><Rotulo>Tarjeta</Rotulo><Tarjeta className="flex flex-col gap-3"><div className="flex items-center justify-between gap-4"><h3 className="font-display text-[20px]">Plan Lanzamiento</h3><Etiqueta estado="correcto">Activa</Etiqueta></div><p className="text-[14px] text-tinta-suave">Empezar a cobrar por una API existente</p><p className="border-t border-borde-fila pt-3 flex items-baseline gap-2"><span className="font-display text-[26px] tracking-[-0.03em] tabular-nums">Q 199.00</span><span className="text-[13px] text-tinta-suave">cada 30 días</span></p></Tarjeta><p className="text-[13px] text-tinta-suave">Borde de 1 px, radio 8 px, sin sombra.</p></div>
         <div className="flex flex-col gap-[14px]"><Rotulo>Tabla</Rotulo><Tabla encabezados={['Ruta','Llamadas','Estado']} filas={[
           ['/cotizaciones','128,400',<span className="text-correcto-base font-semibold" key="c">Expuesta</span>],['/guias','64,120',<span className="text-correcto-base font-semibold" key="g">Expuesta</span>],['/tarifas','9,860',<span className="text-tinta-suave" key="t">Oculta</span>],

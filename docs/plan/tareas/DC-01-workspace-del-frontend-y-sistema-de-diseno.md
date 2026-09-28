@@ -107,3 +107,6 @@ Paso 12 de `docs/plan/auditoria-2026-09-25.md` (H-85 a H-93):
 - Se precisaron `11-interfaz.md` §1 y §4 y `convenciones.md` §7.
 - Las pantallas A1 (EM-03) conservan `CampoEtiquetado` y `AvisoError`: unificarlas con los componentes base le queda a DC-16 (decisión de Jordin).
 
+**Auditoría final (paso 17):**
+- **H-132:** los botones de `DialogoConfirmacion` llevan `type="button"`: dentro de un formulario ya no lo envían. Tiene prueba.
+- **H-133:** `/_ui` muestra enfocado el campo «Subdominio», como la lámina. En la superficie oscura, los rótulos y los códigos de color usan `--tinta-rotulo`, y los nombres de las bandas usan `--tinta-navegacion`. Tiene prueba.

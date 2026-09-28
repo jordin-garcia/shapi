@@ -62,3 +62,7 @@ La terminó el coordinador (Jordin) el 2026-09-27, en el paso 11 de `docs/plan/a
   - `rutas.test.tsx` (guardias de DC-02) y `packages/api/src/index.test.ts` usan los tipos generados en lugar de copias escritas a mano.
   - `packages/api/generar.test.mjs`: el comodín `./*` existe y cada YAML de `contratos/openapi/` se resuelve como `@shapi/api/<modulo>`.
 - Archivos principales: `frontend/packages/api/package.json`, `frontend/apps/panel/src/modulos/sesion/` y `frontend/apps/panel/src/tests/Sesion.test.tsx`.
+
+### Correcciones de la auditoría (2026-09-27)
+
+- **H-129:** la prueba de cerrar sesión de `Sesion.test.tsx` decía RF-07, que es la matriz de permisos. Ahora dice RF-04.

@@ -39,6 +39,25 @@ describe('RNF-12 · lámina oficial', () => {
     }
   });
 
+  it('RNF-12 en la superficie oscura, los rótulos y los códigos de color usan --tinta-rotulo, como la lámina', () => {
+    const { container } = render(<UI />);
+    for (const rotulo of ['Lámina de estilo · Variante 4', 'Botones sobre oscuro', 'Panel sobre oscuro', 'Retícula de plano']) {
+      expect(screen.getByText(rotulo).className, rotulo).toContain('text-tinta-rotulo');
+    }
+    const codigosOscuros = [...container.querySelectorAll<HTMLElement>('.dark [data-token] .tabular-nums')];
+    expect(codigosOscuros).toHaveLength(8);
+    for (const codigo of codigosOscuros) expect(codigo.className).toContain('text-tinta-rotulo');
+    // Fuera de lo oscuro, --tinta-rotulo no existe: los rótulos claros siguen en tinta suave.
+    expect(screen.getByText('Campo de formulario').className).toContain('text-tinta-suave');
+  });
+
+  it('RNF-12 el campo Subdominio se muestra enfocado, con el borde principal y el anillo de foco', () => {
+    render(<UI />);
+    const contenedor = screen.getByRole('textbox', { name: 'Subdominio' }).parentElement!;
+    for (const clase of ['[&_input]:border-principal', '[&_input]:ring-[3px]', '[&_input]:ring-anillo-foco']) expect(contenedor.className).toContain(clase);
+    expect(screen.getByRole('textbox', { name: 'Servidor de origen' }).parentElement!.className).not.toContain('border-principal');
+  });
+
   it('RNF-12 · H-87 el logotipo tiene la medida y los trazos de la lámina, en positivo y en negativo', () => {
     render(<UI />);
     const logotipos = screen.getAllByRole('img', { name: 'Shapi' });

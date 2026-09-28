@@ -103,7 +103,7 @@ Formato: **Actor**, **Precondiciones**, **Flujo principal**, **Flujos alternos**
 - **Flujo principal:**
   1. El actor escribe su correo y su contraseña.
   2. El sistema los verifica, crea una sesión y envía la cookie de su ámbito.
-  3. El sistema lo enruta: el administrador y el soporte a `/admin`, el proveedor a `/panel/apis` y el consumidor a `/cuenta/suscripcion`, o a la página desde la que llegó.
+  3. El sistema lo enruta: el administrador y el soporte a `/admin`, el proveedor a `/panel/apis` y el consumidor a `/cuenta/suscripcion` o, si no tiene suscripción, a `/planes` (el destino según el rol de 10 §1).
   4. Al cerrar sesión, la sesión queda revocada.
 - **Flujos alternos:**
   - **2a.** Las credenciales no son válidas: se muestra un mensaje genérico. Al quinto intento, la cuenta se bloquea 15 minutos.

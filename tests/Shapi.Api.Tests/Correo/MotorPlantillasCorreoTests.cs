@@ -22,6 +22,8 @@ public class MotorPlantillasCorreoTests
         resultado.Texto.Should().Contain("usted");
         resultado.Html.Should().NotContain("{{");
         resultado.Texto.Should().NotContain("{{");
+        // 10 §6: sin portal es un correo del personal, que sale con el nombre de Shapi.
+        resultado.NombreRemitente.Should().Be("Shapi");
     }
 
     [Fact]

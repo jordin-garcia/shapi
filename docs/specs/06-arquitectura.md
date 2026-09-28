@@ -317,7 +317,7 @@ sequenceDiagram
 El proyecto tiene presupuesto Q 0.00 ([ADR-09](12-decisiones.md)), así que:
 
 1. **Resolución de nombres:** los navegadores actuales (Chrome, Edge y Firefox) resuelven cualquier `*.localhost` a `127.0.0.1` sin configurar nada (RFC 6761). Por eso todos los hosts de la plataforma cuelgan de `shapi.localhost`.
-2. **Certificados:** Caddy usa su **autoridad certificadora interna** (`local_certs`). Emite al instante los comodines `*.shapi.localhost` y `*.api.shapi.localhost`, y los certificados *on-demand* de los dominios propios, y los renueva solo. Cada equipo instala una vez la raíz de Caddy como confiable (`docker compose exec borde caddy trust`, o importando `root.crt`); el manual técnico (`docs/manual-tecnico.md`, se escribe durante el desarrollo) explica cómo.
+2. **Certificados:** Caddy usa su **autoridad certificadora interna** (`local_certs`). Emite al instante los comodines `*.shapi.localhost` y `*.api.shapi.localhost`, y los certificados *on-demand* de los dominios propios, y los renueva solo. Cada equipo instala una vez la raíz de Caddy como confiable, importando su `root.crt` en el almacén del equipo (`caddy trust` dentro del contenedor solo la instala en el contenedor, no en el navegador); el manual técnico (`docs/manual-tecnico.md`, se escribe durante el desarrollo) explica cómo.
 3. **Dominios propios:** en el entorno simulado deben terminar en `.localhost` (por ejemplo `api.enviosxelaju.localhost`) para que resuelvan al equipo local. La verificación usa `IResolutorDns`:
    - `SHAPI_DNS_MODO=simulado`, el valor por defecto: consulta la tabla `registro_dns_simulado`. El botón "Simular la creación del registro" de A3.6 inserta el CNAME, haciendo el papel del proveedor de DNS del cliente.
    - `SHAPI_DNS_MODO=real`: consulta el DNS público con DnsClient.NET. Queda disponible por si algún día hay un dominio real.
@@ -404,7 +404,7 @@ shapi/
 │  └─ manual-usuario.md
 ├─ mockups/             ← diseños aprobados (ver 11 · Interfaz)
 ├─ contratos/openapi/   ← contratos HTTP de la API de control, uno por módulo
-├─ scripts/             ← tareas.mjs, verificar-entorno.mjs, generar-pdf.mjs
+├─ scripts/             ← tareas.mjs, tablero.mjs, veredicto-revision.mjs, verificar-entorno.mjs, generar-pdf.mjs
 ├─ AGENTS.md            ← instrucciones para cualquier agente de IA (CLAUDE.md lo importa)
 ├─ src/
 │  ├─ Shapi.Dominio/          ← capa de lógica: entidades, reglas y máquinas de estado (sin dependencias)

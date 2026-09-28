@@ -131,3 +131,19 @@ test("H-110: las ramas de trabajo se pueden subir", () => {
   // Protocolo B11: el push forzado con --force-with-lease sobre la rama propia no se niega (pide confirmación).
   assert.ok(!negado("git push --force-with-lease origin jordin/EM-06-pasarela-de-pagos"));
 });
+
+test("H-09: el check obligatorio revision-claude no se omite y siempre decide el veredicto", () => {
+  const revision = jobs(leer(".github", "workflows", "revision-claude.yml")).revision;
+  assert.match(revision, /name: revision-claude/);
+  // Un job omitido cuenta como aprobado: sin `if` a nivel de job.
+  assert.doesNotMatch(revision, /^ {4}if:/m);
+  const pasos = revision.split(/\n(?= {6}- )/);
+  const accion = pasos.find((paso) => paso.includes("uses: anthropics/claude-code-action@"));
+  const veredicto = pasos.find((paso) => paso.includes("name: Veredicto de la revisión"));
+  assert.ok(accion && veredicto, "faltan los pasos de la revisión o del veredicto");
+  // Si la acción falla, el veredicto igual se ejecuta y el check falla porque no encuentra la revisión.
+  assert.match(accion, /^ {8}continue-on-error: true$/m);
+  assert.match(veredicto, /^ {8}if: \$\{\{ !cancelled\(\) \}\}$/m);
+  assert.doesNotMatch(veredicto, /continue-on-error/);
+  assert.match(veredicto, /node scripts\/veredicto-revision\.mjs "\$RUNNER_TEMP\/comentarios\.jsonl" "\$SHA" "\$TAREA"/);
+});

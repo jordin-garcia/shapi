@@ -52,6 +52,8 @@ dotnet run --project src/Shapi.Trabajador                  # terminal 3: trabaja
 cd frontend && pnpm install && pnpm dev                    # terminal 4: panel y portal
 ```
 
+.NET no lee el `.env`: en cada terminal de `dotnet run`, carga antes sus variables con el comando de [`docs/manual-tecnico.md`](docs/manual-tecnico.md).
+
 Luego abre https://shapi.localhost. El correo simulado se ve en https://correo.shapi.localhost. Las pruebas se ejecutan con `dotnet test Shapi.slnx` y, en `frontend/`, con `pnpm test`. Los demás comandos están en [`AGENTS.md`](AGENTS.md#comandos).
 
 ## Arquitectura en una línea

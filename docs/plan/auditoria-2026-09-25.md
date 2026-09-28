@@ -351,6 +351,75 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 17 · [JG-01] Auditoría final
 
-- [ ] Ejecutar la verificación completa: build, formato, pruebas, lint, typecheck, build del frontend, `scripts/` y `--validar`.
-- [ ] Volver a auditar todas las tareas hechas contra su archivo de tarea y contra las especificaciones, en contexto limpio.
-- [ ] Anotar el resultado final en este documento y en la bitácora de Jordin.
+- [x] Ejecutar la verificación completa: build, formato, pruebas, lint, typecheck, build del frontend, `scripts/` y `--validar`.
+- [x] Volver a auditar todas las tareas hechas contra su archivo de tarea y contra las especificaciones, en contexto limpio.
+- [x] Anotar el resultado final en este documento y en la bitácora de Jordin.
+
+**Verificación antes de corregir (27 sep).** Todo pasó: `--validar` (66 tareas), 55 pruebas de `scripts/`, compilación sin advertencias, formato, migraciones al día, 584 pruebas del backend (`-m:1`), tipos generados al día, lint, *typecheck*, 189 pruebas del frontend y su *build*.
+
+**Auditoría.** Se auditaron en contexto limpio las 13 tareas hechas, con 9 subagentes (EM-01 · EM-02 y EM-17 · EM-03 · EM-06 · DC-01 y DC-02 · JG-01 y JG-03 · JG-02 · JZ-01 y JZ-02 · JZ-03). No volvió a aparecer ninguno de los hallazgos H-01 a H-119. Salieron 25 hallazgos nuevos (H-120 a H-144), ninguno de severidad alta, y 21 dudas. Las que Jordin decidió resolver quedaron como H-145 a H-151; las demás se quedan como están.
+
+**Decidido (27 sep):**
+- Se corrige todo en un solo paso y en un solo PR, con el ID de JG-01, en vez de un PR por tarea original. Cada archivo de tarea lleva su subsección de correcciones y la bitácora de Jordin lleva los avisos.
+- Las dudas se resuelven con las recomendaciones del agente, salvo la de Vite (ver abajo).
+- **Se quedan como están:**
+  - Vite escucha en `0.0.0.0`: en Linux, Caddy llega a Vite por el puente de Docker, y con `127.0.0.1` se rompería el panel detrás de Caddy (manual técnico);
+  - los textos de las páginas de relleno de DC-02;
+  - `api.especificacion` no lleva un CHECK de 2 MB: la valida la aplicación (DC-05);
+  - `/historial` de Agro responde 200 con `precios: []` para un producto o un mercado sin datos;
+  - la pasarela simulada acepta tokens que no reconoce, porque 09 §2 no lo define.
+
+### Hallazgos
+
+- [x] **H-120** (media, EM-03) Con `correo_ya_registrado`, A1.1 no ofrecía los enlaces a entrar y a recuperar la contraseña de CU-01 2a (`A1-1-Registro.tsx:30`). Ahora aparecen debajo del correo, y 11 §4 lo precisa.
+- [x] **H-121** (media, EM-03) Faltaban pruebas de estos casos:
+  - los estados de A1.2: «Confirmando su correo», «Enlace no válido» y «No se pudo confirmar su correo»;
+  - los textos del correo enviado y del plan Prueba;
+  - el fallo del reenvío en las dos variantes;
+  - un error con código que no es de campo en A1.1 (429).
+- [x] **H-122** (media, JZ-02) La descripción de las dos APIs y la de /guias, /rastreo y /cobertura no coincidían con A5.0 ni con InicioAgro. Se copiaron del mockup, con prueba.
+- [x] **H-123** (baja, EM-01) `organizacion.nombre`, `caso.asunto` y `api.portal_bienvenida` eran `varchar(n)`, y 07 §3 pide `text`. Ahora son `text`, con el largo en un CHECK (migración `TextoConLargoEnCheck`).
+- [x] **H-124** (baja, EM-01) `lote_consolidado.procesado_en`, que hace de `creado_en`, no tenía `DEFAULT now()`.
+- [x] **H-125** (baja, EM-01) La siembra guardaba al administrador y su membresía en dos `SaveChanges`. Si fallaba entre los dos, el administrador quedaba sin organización para siempre. Ahora:
+  - usa una transacción;
+  - completa la membresía que falte, con la contraseña y la verificación del correo si también faltan;
+  - nunca convierte en administrador a un usuario de otra organización, y avisa en el registro si el correo ya es de otra;
+  - crea las entidades con los constructores del dominio, así que los identificadores son UUID v7.
+- [x] **H-126** (baja, EM-02) Con peticiones simultáneas se podía pasar el límite de 3 reenvíos por hora. Ahora el reenvío bloquea la fila del usuario (`FOR UPDATE`) dentro de una transacción.
+- [x] **H-127** (baja, EM-02) Solo se probaba el límite por IP de `entrar`. Ahora una teoría cubre los 4 endpoints.
+- [x] **H-128** (baja, EM-02) Faltaba la prueba del 403 `cuenta_desactivada` de `verificar-correo`.
+- [x] **H-129** (baja, EM-17) La prueba de cerrar sesión decía RF-07. Ahora dice RF-04.
+- [x] **H-130** (baja, EM-06) El aviso de la bitácora decía que EM-09 registraba la pasarela en el Trabajador, pero las renovaciones las cobra EM-10. Se corrigió el aviso y se agregó a EM-10.
+- [x] **H-131** (baja, EM-06) `PasarelaSimulada` escribía los códigos de error como texto. Ahora usa `CodigosError`.
+- [x] **H-132** (baja, DC-01) Los botones de `DialogoConfirmacion` no llevaban `type="button"`, así que dentro de un formulario también lo enviaban.
+- [x] **H-133** (baja, DC-01) `/_ui` no mostraba el campo enfocado de la lámina, y los rótulos y códigos de la superficie oscura no usaban `--tinta-rotulo`.
+- [x] **H-134** (baja, JG-01) El `## Resultado` decía «12 códigos» de 08 §4, y hoy son 14.
+- [x] **H-135** (baja, JG-03) El criterio 1 decía `@v1`, pero desde H-109 la acción está fijada por SHA.
+- [x] **H-136** (baja, JG-01) 06 §9 no listaba `tablero.mjs` ni `veredicto-revision.mjs` en `scripts/`.
+- [x] **H-137** (baja, JG-03) Ninguna prueba vigilaba el cableado del check obligatorio `revision-claude`. Ahora una prueba comprueba:
+  - que el job no tiene `if`;
+  - que la acción tiene `continue-on-error`;
+  - que el veredicto se decide con `!cancelled()`.
+- [x] **H-138** (baja, JG-02) Un comentario de prueba citaba 10 §7 en vez de convenciones §6.
+- [x] **H-139** (baja, JG-02) Ninguna prueba comprobaba que una clave enviada en la query no quedara en los registros.
+- [x] **H-140** (baja, JZ-02) `/cotizaciones` aceptaba cualquier `tipo_servicio`. Ahora responde 400 si no es normal ni urgente.
+- [x] **H-141** (baja, JZ-02) `/cobertura` devolvía `dias_habiles: 2` para un municipio sin cobertura. Ahora devuelve `null`, y está documentado en el contrato.
+- [x] **H-142** (baja, JZ-01) El manual técnico pedía `hmr.clientPort: 443`, lo que contradecía H-99.
+- [x] **H-143** (baja, JZ-01) El manual, `instalacion.md` y el README no decían cómo pasar el `.env` a `dotnet run`. Ahora tienen los comandos de PowerShell y de bash, y los dos se probaron.
+- [x] **H-144** (baja, JZ-03) DC-04 no decía que tenía que reutilizar `SubdominiosReservados`.
+- [x] **H-145** (media, JG-01) 06 §8 pide registros JSON en los tres procesos, y ninguno lo hacía. Ahora `Logging:Console:FormatterName` es `json` en los tres `appsettings.json`, con prueba.
+- [x] **H-146** (baja, JZ-03) Los correos del personal salían sin nombre de remitente. Ahora salen como «Shapi», y 10 §6 lo precisa.
+- [x] **H-147** (baja, JZ-11) JZ-11 precisa dos cosas:
+  - que también se agrega la marca a `verificacion_correo` y `recuperacion`;
+  - de dónde salen el color y el logotipo del portal.
+- [x] **H-148** (baja, especificaciones) Se precisaron tres textos:
+  - CSRF, en 10 §1, convenciones §5 y el criterio 5 de EM-02: «método no seguro», como hace el código;
+  - 08 §8: un invocador de YARP con *pooling* por destino;
+  - 06 §4: se quitó `caddy trust` dentro del contenedor, que no sirve para el navegador.
+- [x] **H-149** (baja, EM-03) CU-02 paso 3 decía «o a la página desde la que llegó», y ninguna tarea lo pide. Ahora remite al destino del rol de 10 §1.
+- [x] **H-150** (baja, DC-04) DC-04 completa `apis.yaml`: `security`, 401 y `required`.
+- [ ] **H-151** (baja, JG-03) Negar `gh pr merge *--admin*` a los agentes en `.claude/settings.json`, para que solo Jordin integre un falso positivo. **No se aplicó en este PR:** el modo automático de Claude Code bloquea que un agente edite sus propios permisos. Lo aplica Jordin a mano.
+
+**Verificación después de corregir (27 sep).** Todo pasó: `--validar` (66 tareas), 56 pruebas de `scripts/`, compilación sin advertencias, formato, migraciones al día, 605 pruebas del backend (`-m:1`: Api 403, Compuerta 120, OrígenesDemo 48 y Dominio 34), tipos generados al día, lint, *typecheck*, 196 pruebas del frontend y su *build*. La revisión en contexto limpio (subagente `revisor`) dio `VEREDICTO: LISTO`, y también se aplicaron sus 5 sugerencias opcionales.
+
+**Resultado final.** Con este PR, lo integrado cumple sus tareas y las especificaciones, salvo H-151, que queda en manos de Jordin.

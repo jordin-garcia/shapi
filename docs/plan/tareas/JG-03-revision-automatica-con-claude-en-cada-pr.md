@@ -39,7 +39,7 @@ Dos automatizaciones de GitHub para el equipo:
 ## Criterios de aceptación
 
 ### Revisión con Claude
-1. Se ejecuta `anthropics/claude-code-action@v1` en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened` y `edited`; una revisión nueva del mismo commit solo se hace si no hay una completa o si cambió la tarea del título); en los borradores no revisa (el check se decide al marcarlos listos), con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
+1. Se ejecuta `anthropics/claude-code-action` v1, fijada por SHA porque recibe el token (H-109), en los eventos `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened` y `edited`; una revisión nueva del mismo commit solo se hace si no hay una completa o si cambió la tarea del título); en los borradores no revisa (el check se decide al marcarlos listos), con `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
 2. El `prompt` pide aplicar `docs/plan/prompts/revision.md` al PR (el ID sale del título `[XX-00]`) y publicar el resultado como **un comentario** en el PR. `claude_args` permite solo lo necesario, sin límite de turnos (el tope lo pone `timeout-minutes`): `--allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"`.
 3. Otro workflow, `claude-interactivo.yml`, responde a `@claude` en comentarios de issues y PR, solo para usuarios con permiso de escritura, que es el comportamiento por defecto de la acción.
 4. Un `concurrency` por número de PR cancela la revisión anterior cuando llegan *commits* nuevos.
@@ -180,3 +180,11 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - Una usa la estructura real del #30, con variantes del título.
   - La otra comprueba que una sección posterior no oculta hallazgos: ni un hallazgo antes del título, ni un segundo encabezado de corrección, ni una viñeta o una enumeración con letra que termine en ":".
 - **Comprobación con datos reales:** se recalculó el veredicto de todas las revisiones reales de los PR #16 a #30 con el script anterior y con el nuevo. Solo cambia el #30.
+
+**Auditoría final (paso 17):**
+- **H-135:** el criterio 1 dice que la acción v1 está fijada por SHA (H-109).
+- **H-137:** una prueba de `reglas-repositorio.test.mjs` comprueba el cableado del check obligatorio `revision-claude`:
+  - el job no tiene `if`;
+  - la acción tiene `continue-on-error: true`;
+  - el veredicto se decide con `if: ${{ !cancelled() }}`.
+- **H-151 (pendiente):** negar `gh pr merge *--admin*` a los agentes en `.claude/settings.json`. El modo automático no deja que un agente edite sus propios permisos, así que lo aplica Jordin a mano.
