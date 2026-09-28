@@ -24,7 +24,7 @@ public interface IPasarelaPagos
 |---|---|
 | Número | Tiene entre 13 y 19 dígitos y pasa el **algoritmo de Luhn**. Si no, `numero_invalido` |
 | Marca (según el BIN) | `4…` → Visa · `51–55…` o `2221–2720…` → Mastercard · `34…` o `37…` → American Express. Cualquier otro → `marca_no_soportada` |
-| Vencimiento | Tiene que ser el mes actual o uno posterior. Si no, `tarjeta_vencida` |
+| Vencimiento | Tiene que ser el mes actual o uno posterior, según la fecha en America/Guatemala. Si no, `tarjeta_vencida` |
 | CVV | 3 dígitos, o 4 si es American Express. Si no, `cvv_invalido` |
 
 ### Tarjetas de prueba
@@ -35,12 +35,13 @@ public interface IPasarelaPagos
 | `5555 5555 5555 4444` | Mastercard · siempre se aprueba |
 | `4000 0000 0000 0002` | Visa · siempre se rechaza (`fondos_insuficientes`) |
 | `4000 0000 0000 0069` | Visa · siempre se rechaza (`tarjeta_vencida`) |
-| `4000 0000 0000 0341` | Visa · **se aprueba al contratar y se rechaza en las renovaciones**. Sirve para demostrar el periodo de gracia |
-| Cualquier otro número válido según Luhn | Se aprueba. Por ejemplo, las tarjetas de los mockups: `4024 0071 2244 4821` y `5412 7534 1209 3057` |
+| `4000 0000 0000 0341` | Visa · **se aprueba al contratar y se rechaza en las renovaciones** (`fondos_insuficientes`). Sirve para demostrar el periodo de gracia |
+| Cualquier otro número válido según Luhn | Se aprueba. Por ejemplo, las tarjetas de los mockups: `4024 0071 2284 4821` y `5412 7534 1203 3057` |
 
-- Con `SHAPI_PASARELA_FALLA=true`, todos los cobros fallan con `pasarela_no_disponible` (B3 la muestra fuera de servicio).
-- La pasarela simulada tarda entre 300 y 800 ms en responder, para que se note la espera en la interfaz.
-- El token tiene el formato `tok_sim_{uuid}`. La pasarela guarda en memoria, **solo mientras el proceso está activo**, el comportamiento de cada tarjeta especial. Además lo incluye en el token (`tok_sim_0341_{uuid}`) para no perderlo si el proceso se reinicia.
+- Las tarjetas de prueba se reconocen por el **número completo**. Otra tarjeta que termine en `0002`, `0069` o `0341` se trata como cualquier otra.
+- Con `SHAPI_PASARELA_FALLA=true`, todas las operaciones (tokenizar, cobrar y reembolsar) fallan con `pasarela_no_disponible` (B3 la muestra fuera de servicio).
+- La pasarela simulada tarda entre 300 y 800 ms en responder, para que se note la espera en la interfaz. Con `Pagos:DemoraMs` se fija otra demora en milisegundos; las pruebas usan 0.
+- El token tiene el formato `tok_sim_{uuid}`. El de una tarjeta de prueba especial lleva sus últimos 4 dígitos (`tok_sim_0002_{uuid}`, `tok_sim_0069_{uuid}` o `tok_sim_0341_{uuid}`), para que su comportamiento no se pierda si el proceso se reinicia y lo respete cualquier proceso que cobre, como el Trabajador en las renovaciones. La pasarela no guarda nada en memoria.
 - Las referencias de cobro tienen el formato `ch_sim_{uuid}` y las de reembolso `re_sim_{uuid}`.
 
 ## 3. Máquina de estados de las suscripciones
