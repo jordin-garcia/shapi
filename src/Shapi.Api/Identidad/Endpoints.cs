@@ -167,6 +167,11 @@ public static class Endpoints
             return TypedResults.Ok();
         }
 
+        // Los reenvíos de una misma cuenta se serializan bloqueando su fila: si no, varias peticiones simultáneas
+        // leerían el mismo conteo y encolarían más de 3 enlaces.
+        await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM usuario WHERE id = {usuario.Id} FOR UPDATE", cancelacion);
+
         // 10 §1: como máximo 3 reenvíos por hora. El enlace del registro no cuenta como reenvío.
         var ahora = reloj.Ahora;
         var haceUnaHora = ahora.AddHours(-1);
@@ -182,6 +187,7 @@ public static class Endpoints
         db.Add(Token.VerificacionCorreo(SeguridadTokens.HashearToken(valorToken), usuario, ahora));
         await colaCorreo.Encolar(PlantillaVerificacionCorreo, usuario.Correo, new { nombre = usuario.Nombre, token = valorToken }, cancelacion);
         await db.SaveChangesAsync(cancelacion);
+        await transaccion.CommitAsync(cancelacion);
         return TypedResults.Ok();
     }
 

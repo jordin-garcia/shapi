@@ -116,3 +116,8 @@ Paso 10 de `docs/plan/auditoria-2026-09-25.md` (H-78 a H-82):
   Las pruebas quedaron nombradas con su requisito (`RF_29_`, `RF_31_` y `RNF_13_`). Son 29 casos nuevos: la compuerta pasó de 91 a 120.
 - **RF-31 parcial (H-82):** se dejó escrito arriba, en este mismo `## Resultado`.
 - **Especificación:** 08 §1 precisa la clave en la URL, los tiempos y el registro. 08 §3 agrega `clave_en_url` y el 503 al diagrama, y la clave en la URL al filtro 2. 08 §4 agrega `clave_en_url` y `servicio_no_disponible`, y precisa `clave_invalida` (varias cabeceras), 502 (10 s) y 504.
+
+**Auditoría final (paso 17):**
+- **H-138:** el comentario de la prueba de registros cita convenciones §6 y no 10 §7.
+- **H-139:** la teoría de `clave_en_url` también comprueba que la clave, en cualquiera de sus formatos, no aparece en los registros.
+- **H-148:** 08 §8 describe lo que hace el código: un solo invocador de YARP con `SocketsHttpHandler`, que agrupa las conexiones por destino.

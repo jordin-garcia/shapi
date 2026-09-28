@@ -13,46 +13,44 @@ public static class SiembraBase
     {
         await db.Database.MigrateAsync();
 
-        var plataformaOrgId = Guid.Empty;
         var orgPlataforma = await db.Set<Organizacion>().IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Tipo == TipoOrganizacion.Plataforma);
         if (orgPlataforma == null)
         {
-            orgPlataforma = (Organizacion)Activator.CreateInstance(typeof(Organizacion), true)!;
-            typeof(Organizacion).GetProperty("Nombre")!.SetValue(orgPlataforma, "Shapi");
-            typeof(Organizacion).GetProperty("Tipo")!.SetValue(orgPlataforma, TipoOrganizacion.Plataforma);
+            orgPlataforma = new Organizacion("Shapi", TipoOrganizacion.Plataforma);
             db.Set<Organizacion>().Add(orgPlataforma);
             await db.SaveChangesAsync();
         }
-        plataformaOrgId = orgPlataforma.Id;
 
         await SembrarPlanesAsync(db);
 
         if (string.IsNullOrWhiteSpace(adminCorreo) || string.IsNullOrWhiteSpace(adminNombre) || string.IsNullOrWhiteSpace(adminContrasena))
         {
             logger.LogWarning("Faltan las variables SHAPI_ADMIN_*; no se creará el administrador inicial.");
+            return;
         }
-        else
-        {
-            adminCorreo = adminCorreo.Trim().ToLowerInvariant();
-            var admin = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == adminCorreo);
-            if (admin == null)
-            {
-                admin = (Usuario)Activator.CreateInstance(typeof(Usuario), true)!;
-                typeof(Usuario).GetProperty("Nombre")!.SetValue(admin, adminNombre);
-                typeof(Usuario).GetProperty("Correo")!.SetValue(admin, adminCorreo);
-                typeof(Usuario).GetProperty("HashContrasena")!.SetValue(admin, hasher.HashPassword(admin, adminContrasena));
-                typeof(Usuario).GetProperty("CorreoVerificadoEn")!.SetValue(admin, reloj.Ahora);
-                db.Set<Usuario>().Add(admin);
-                await db.SaveChangesAsync();
 
-                var membresia = (Membresia)Activator.CreateInstance(typeof(Membresia), true)!;
-                typeof(Membresia).GetProperty("UsuarioId")!.SetValue(membresia, admin.Id);
-                typeof(Membresia).GetProperty("OrganizacionId")!.SetValue(membresia, plataformaOrgId);
-                typeof(Membresia).GetProperty("Rol")!.SetValue(membresia, Rol.Administrador);
-                db.Set<Membresia>().Add(membresia);
-                await db.SaveChangesAsync();
-            }
+        // El administrador y su membresía se crean juntos. Si una ejecución anterior dejó al usuario sin ninguna
+        // membresía, se completa aquí, para que la siembra siga siendo idempotente. Un usuario que ya pertenece a
+        // otra organización (por ejemplo, un proveedor registrado con ese correo) no se convierte en administrador.
+        await using var transaccion = await db.Database.BeginTransactionAsync();
+        var correo = Usuario.NormalizarCorreo(adminCorreo);
+        var admin = await db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == correo);
+        if (admin == null)
+        {
+            admin = new Usuario(adminNombre, correo);
+            admin.DefinirHashContrasena(hasher.HashPassword(admin, adminContrasena));
+            admin.VerificarCorreo(reloj.Ahora);
+            db.Set<Usuario>().Add(admin);
         }
+
+        var tieneMembresia = await db.Set<Membresia>().IgnoreQueryFilters().AnyAsync(m => m.UsuarioId == admin.Id);
+        if (!tieneMembresia)
+        {
+            db.Set<Membresia>().Add(new Membresia(admin.Id, orgPlataforma.Id, Rol.Administrador));
+        }
+
+        await db.SaveChangesAsync();
+        await transaccion.CommitAsync();
     }
 
     private static async Task SembrarPlanesAsync(ShapiDbContext db)

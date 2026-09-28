@@ -41,7 +41,8 @@ public class CasoConfiguracion : IEntityTypeConfiguration<Caso>
             .HasDefaultValueSql($"nextval('{ShapiDbContext.SecuenciaNumeroCaso}')");
         builder.HasIndex(x => x.Numero).IsUnique();
 
-        builder.Property(x => x.Asunto).IsRequired().HasMaxLength(120);
+        builder.Property(x => x.Asunto).IsRequired();
+        builder.ToTable(t => t.HasCheckConstraint("ck_caso_asunto", "char_length(asunto) <= 120"));
 
         builder.Property(x => x.Estado)
             .IsRequired()

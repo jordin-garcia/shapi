@@ -78,3 +78,14 @@ Lo terminó Jordin (coordinador, protocolo §E4) el 26 de septiembre, a partir d
   - Manda 10 §1: el enlace es `/verificar-correo?token=`, no `/verificar?token=`, y se corrigió el texto de la tarea. El archivo de A1.3 es `A1-3-Sesion.tsx`, el que creó DC-02.
   - Los formularios usan `noValidate`, así que los mensajes de validación son los de la API, en español y debajo de cada campo, y no las burbujas del navegador.
   - El mensaje del reenvío no revela si la cuenta existe (10 §1).
+
+### Correcciones de la auditoría (2026-09-27)
+
+- **H-120:** con `correo_ya_registrado`, A1.1 muestra debajo del correo los enlaces «Entrar» y «Recuperar la contraseña» (CU-01 2a). 11 §4 lo precisa.
+- **H-121:** pruebas nuevas:
+  - «Confirmando su correo» mientras se verifica y «Enlace no válido» al terminar;
+  - «No se pudo confirmar su correo»;
+  - el texto del correo enviado y el del plan Prueba;
+  - el reenvío fallido en «Revise su correo» (con «Reintentar») y en «Enlace no válido» (429, sin «Reintentar»);
+  - un 429 en el registro, que va en el aviso de arriba.
+- **H-149:** CU-02 paso 3 ya no dice «o a la página desde la que llegó». El destino es el del rol de 10 §1; en el portal, DC-08 lleva a `/cuenta/suscripcion` o a `/planes`.

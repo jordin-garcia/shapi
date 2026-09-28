@@ -30,12 +30,12 @@ Permitir que el proveedor registre una API (nombre, URL de origen y subdominio),
 - `src/Shapi.Contratos/Red/ValidadorDireccionOrigen.cs` (crear; la compuerta lo usará en JG-05)
 - `src/Shapi.{Dominio,Aplicacion,Infraestructura,Api}/Apis/**` (crear)
 - `src/Shapi.Api/Modulos/ApisModulo.cs`
-- `contratos/openapi/apis.yaml` (crear)
+- `contratos/openapi/apis.yaml` (completar: DC-02 lo creó solo con un `GET /api/apis` mínimo, sin `security: cookieSesion`, sin la respuesta 401 y sin campos `required`; agrégalos, como en `identidad.yaml`)
 - `frontend/apps/panel/src/paginas/A3-1-Apis.tsx` y `A3-2-RegistrarApi.tsx`
 - `tests/*/Apis/**`
 
 ## Criterios de aceptación
-1. `POST /api/apis` `{nombre, urlOrigen, subdominio}` (propietario o editor). El subdominio cumple `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`, no está en la lista de reservados de 06 §4 y es único (409 `subdominio_ocupado`).
+1. `POST /api/apis` `{nombre, urlOrigen, subdominio}` (propietario o editor). El subdominio cumple `^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$`, no está en la lista de reservados de 06 §4 (usa `Shapi.Dominio.Apis.SubdominiosReservados.Contiene`, la única definición de esa lista, que ya usa el correo) y es único (409 `subdominio_ocupado`).
 2. `ValidadorDireccionOrigen` exige `http` o `https` sin credenciales, resuelve el DNS y rechaza cualquier dirección de los rangos de 10 §4 (422 `origen_no_permitido`). Con `SHAPI_MODO_DEMO=true` permite las entradas `host:puerto` de `SHAPI_ORIGENES_PERMITIDOS`.
 3. La prueba de conexión (GET con 5 s de espera, sin seguir redirecciones) se aprueba con cualquier respuesta HTTP. Si falla → 422 `origen_inaccesible`, con el detalle, **sin guardar nada**.
 4. La API se guarda en estado `borrador` con un secreto de origen `shps_` + 32 base62 **cifrado** con Data Protection (llaves en el directorio `SHAPI_DPKEYS_DIR`). La respuesta 201 incluye el secreto en claro **una sola vez**. Bitácora `api.registrada`.

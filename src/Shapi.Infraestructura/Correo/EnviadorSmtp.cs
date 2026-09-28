@@ -42,7 +42,7 @@ public sealed class EnviadorSmtp : IEnviadorCorreo
         CancellationToken cancelacion = default)
     {
         var mensaje = new MimeMessage();
-        mensaje.From.Add(new MailboxAddress(contenido.NombreRemitente ?? string.Empty, _remitente));
+        mensaje.From.Add(new MailboxAddress(contenido.NombreRemitente, _remitente));
         mensaje.To.Add(MailboxAddress.Parse(correo.Destinatario));
         mensaje.Subject = correo.Asunto;
         mensaje.Body = new BodyBuilder

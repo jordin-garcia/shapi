@@ -27,6 +27,7 @@ Automatizar en el trabajador la máquina de estados de las suscripciones de los 
 ## Archivos que creas o modificas
 - `src/Shapi.Dominio/Suscripciones/**` (modificar: transiciones)
 - `src/Shapi.Trabajador/CierreCiclo/**` (crear)
+- `src/Shapi.Trabajador/Program.cs` (modificar: registrar `IPasarelaPagos` con `PasarelaSimulada`, que hoy solo registra la API en `PagosModulo`)
 - `src/Shapi.Infraestructura/Comun/RelojSistema.cs` (modificar: desplazamiento desde `demo:reloj:desplazamiento` en Redis, solo con `SHAPI_MODO_DEMO=true`)
 - `src/Shapi.Api/Suscripciones/**` (modificar: `POST /api/admin/demo/reloj` y `POST /api/portal/suscripcion/pagar`)
 - `contratos/openapi/suscripciones.yaml` (modificar)
@@ -44,6 +45,7 @@ Automatizar en el trabajador la máquina de estados de las suscripciones de los 
 - Integración del trabajo con `IReloj` falso para cada transición y cada nivel
 - El escenario completo del criterio 6
 - Idempotencia: ejecutar el trabajo dos veces no cobra dos veces
+- Las pruebas que cobren fijan `Pagos:DemoraMs=0`; si no, cada operación de la pasarela tarda de 300 a 800 ms (09 §2)
 
 ## Verificación
 Todos estos comandos deben pasar, además de los generales del protocolo (B7):

@@ -219,6 +219,47 @@ public sealed class RestriccionesTests(PostgresPersistencia postgres) : BaseDePr
         Assert.Equal(CheckViolado, error.SqlState);
     }
 
+    [Fact]
+    public async Task RF_01_Organizacion_NombreDeMasDe120Caracteres_SeRechaza()
+    {
+        await Ejecutar($"INSERT INTO organizacion (id, nombre, tipo, estado_admin) VALUES (gen_random_uuid(), '{new string('a', 120)}', 'proveedor', 'activa')");
+
+        var error = await Rechazo($"INSERT INTO organizacion (id, nombre, tipo, estado_admin) VALUES (gen_random_uuid(), '{new string('a', 121)}', 'proveedor', 'activa')");
+
+        Assert.Equal(CheckViolado, error.SqlState);
+    }
+
+    // 07 §3: estas columnas son text y su largo máximo va en un CHECK.
+    [Theory]
+    [InlineData("organizacion", "nombre", "ck_organizacion_nombre")]
+    [InlineData("caso", "asunto", "ck_caso_asunto")]
+    [InlineData("api", "portal_bienvenida", "ck_api_portal_bienvenida")]
+    public async Task Columna_EsTextConSuLargoEnUnCheck(string tabla, string columna, string restriccion)
+    {
+        var tipo = await Escalar<string>($"""
+            SELECT data_type::text FROM information_schema.columns WHERE table_name = '{tabla}' AND column_name = '{columna}'
+            """);
+        var existe = await Escalar<long>($"SELECT count(*) FROM pg_constraint WHERE conname = '{restriccion}' AND contype = 'c'");
+
+        Assert.Equal("text", tipo);
+        Assert.Equal(1L, existe);
+    }
+
+    // 07 §3: en sesion, bitacora y lote_consolidado, estas columnas hacen de creado_en y llevan DEFAULT now().
+    [Theory]
+    [InlineData("sesion", "creada_en")]
+    [InlineData("bitacora", "fecha")]
+    [InlineData("lote_consolidado", "procesado_en")]
+    public async Task ColumnaQueHaceDeCreadoEn_TieneDefaultNow(string tabla, string columna)
+    {
+        var valorPorDefecto = await Escalar<string>($"""
+            SELECT column_default::text FROM information_schema.columns
+            WHERE table_name = '{tabla}' AND column_name = '{columna}' AND is_nullable = 'NO'
+            """);
+
+        Assert.Equal("now()", valorPorDefecto);
+    }
+
     [Theory]
     [InlineData(9)]
     [InlineData(11)]

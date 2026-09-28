@@ -66,6 +66,50 @@ public sealed class SiembraBaseTests(PostgresPersistencia postgres) : BaseDePrue
         Assert.Equal(Rol.Administrador, membresia.Rol);
     }
 
+    [Fact]
+    public async Task Siembra_AdministradorSinMembresia_LaCompletaEnLaSiguienteEjecucion()
+    {
+        await using var db = CrearDb();
+        await SiembraBase.EjecutarAsync(db, null, null, null, Reloj, _hasher, NullLogger.Instance);
+        // Una ejecución anterior que se cayó después de guardar el usuario y antes de su membresía.
+        db.Set<Usuario>().Add(new Usuario("Admin", "admin@shapi.test"));
+        await db.SaveChangesAsync();
+
+        await SiembraBase.EjecutarAsync(db, "admin@shapi.test", "Admin", "Contra123", Reloj, _hasher, NullLogger.Instance);
+
+        var admin = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync();
+        var membresia = await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync();
+        var plataforma = await db.Set<Organizacion>().IgnoreQueryFilters().SingleAsync(o => o.Tipo == TipoOrganizacion.Plataforma);
+        Assert.Equal((admin.Id, plataforma.Id, Rol.Administrador), (membresia.UsuarioId, membresia.OrganizacionId, membresia.Rol));
+    }
+
+    [Fact]
+    public async Task Siembra_UnProveedorConElCorreoDelAdministrador_NoSeConvierteEnAdministrador()
+    {
+        await using var db = CrearDb();
+        await SiembraBase.EjecutarAsync(db, null, null, null, Reloj, _hasher, NullLogger.Instance);
+        var proveedor = new Usuario("Ana", "admin@shapi.test");
+        var organizacion = new Organizacion("Envíos Xelajú", TipoOrganizacion.Proveedor);
+        db.AddRange(proveedor, organizacion, new Membresia(proveedor.Id, organizacion.Id, Rol.Propietario));
+        await db.SaveChangesAsync();
+
+        await SiembraBase.EjecutarAsync(db, "admin@shapi.test", "Admin", "Contra123", Reloj, _hasher, NullLogger.Instance);
+
+        var membresia = await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync();
+        Assert.Equal(Rol.Propietario, membresia.Rol);
+    }
+
+    [Fact]
+    public async Task Siembra_UsaIdentificadoresUuidVersion7()
+    {
+        await using var db = CrearDb();
+        await SiembraBase.EjecutarAsync(db, "admin@shapi.test", "Admin", "Contra123", Reloj, _hasher, NullLogger.Instance);
+
+        Assert.Equal(7, (await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync()).Id.Version);
+        Assert.Equal(7, (await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync()).Id.Version);
+        Assert.Equal(7, (await db.Set<Organizacion>().IgnoreQueryFilters().SingleAsync()).Id.Version);
+    }
+
     [Theory]
     [InlineData(null, "Admin", "Contra123")]
     [InlineData("admin@shapi.test", null, "Contra123")]

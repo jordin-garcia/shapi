@@ -45,7 +45,7 @@ public class EnviadorSmtpTests
             "Recupere su contraseña",
             DateTimeOffset.UtcNow);
 
-        var accion = () => enviador.EnviarAsync(correo, new CorreoRenderizado("<p>Hola</p>", "Hola", null));
+        var accion = () => enviador.EnviarAsync(correo, new CorreoRenderizado("<p>Hola</p>", "Hola", "Shapi"));
 
         await accion.Should().NotThrowAsync();
         servidor.MensajesAceptados.Should().Be(1);

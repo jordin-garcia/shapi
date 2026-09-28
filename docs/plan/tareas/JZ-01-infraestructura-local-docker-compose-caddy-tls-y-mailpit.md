@@ -86,3 +86,8 @@ Paso 8 de `docs/plan/auditoria-2026-09-25.md` (H-68 a H-73):
   - que todos los servicios tienen *healthcheck* y los seis están *healthy*;
   - las variables nuevas de `.env.example`, el `--env-file` en los documentos con comandos (manual, instalación, `AGENTS.md`, calendario y tareas), el `.dockerignore` y el `.gitignore`.
 - La prueba de JZ-02 `InfraestructuraTests` exige ahora los puertos de los orígenes en `127.0.0.1`.
+
+**Auditoría final (paso 17):**
+- **H-142:** el manual técnico ya no pide `hmr.clientPort: 443`, lo que contradecía H-99. Explica por qué Vite escucha en `0.0.0.0`.
+- **H-143:** el manual técnico, `instalacion.md` y el README explican cómo cargar el `.env` antes de `dotnet run`, con un comando de PowerShell y uno de bash. Los dos se probaron con `.env.example`, incluida la cadena de conexión con `;`.
+- **H-148:** 06 §4 ya no ofrece `caddy trust` dentro del contenedor, porque así la raíz no llega al navegador.

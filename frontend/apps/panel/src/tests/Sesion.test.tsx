@@ -50,8 +50,8 @@ describe('RF-04 · sesión con el contrato generado de identidad', () => {
   });
 });
 
-describe('RF-07 · cierre de sesión con el contrato generado de identidad', () => {
-  it('RF-07 envía la cabecera CSRF, lleva a /entrar y borra los datos de la sesión', async () => {
+describe('RF-04 · cierre de sesión con el contrato generado de identidad', () => {
+  it('RF-04 envía la cabecera CSRF, lleva a /entrar y borra los datos de la sesión', async () => {
     let cabecera: string | null = null;
     server.use(http.post('http://localhost/api/auth/salir', ({ request }) => {
       cabecera = request.headers.get('X-Requested-With');

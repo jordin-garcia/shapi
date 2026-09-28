@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
+using Shapi.Contratos;
 
 namespace Shapi.Infraestructura.Pagos;
 
@@ -39,31 +40,31 @@ public class PasarelaSimulada : IPasarelaPagos
         await SimularDemoraAsync();
         if (_falla)
         {
-            return new ResultadoTokenizacion { Exitoso = false, Error = "pasarela_no_disponible" };
+            return new ResultadoTokenizacion { Exitoso = false, Error = CodigosError.PasarelaNoDisponible };
         }
 
         var numero = (tarjeta.Numero ?? "").Replace(" ", "").Replace("-", "");
         if (numero.Length is < 13 or > 19 || !numero.All(char.IsAsciiDigit) || !PasaLuhn(numero))
         {
-            return new ResultadoTokenizacion { Exitoso = false, Error = "numero_invalido" };
+            return new ResultadoTokenizacion { Exitoso = false, Error = CodigosError.NumeroInvalido };
         }
 
         var marca = ObtenerMarca(numero);
         if (marca is null)
         {
-            return new ResultadoTokenizacion { Exitoso = false, Error = "marca_no_soportada" };
+            return new ResultadoTokenizacion { Exitoso = false, Error = CodigosError.MarcaNoSoportada };
         }
 
         if (!EstaVigente(tarjeta.MesVencimiento, tarjeta.AnioVencimiento))
         {
-            return new ResultadoTokenizacion { Exitoso = false, Error = "tarjeta_vencida" };
+            return new ResultadoTokenizacion { Exitoso = false, Error = CodigosError.TarjetaVencida };
         }
 
         var longitudCvv = marca == "American Express" ? 4 : 3;
         var cvv = tarjeta.Cvv ?? "";
         if (cvv.Length != longitudCvv || !cvv.All(char.IsAsciiDigit))
         {
-            return new ResultadoTokenizacion { Exitoso = false, Error = "cvv_invalido" };
+            return new ResultadoTokenizacion { Exitoso = false, Error = CodigosError.CvvInvalido };
         }
 
         var token = TarjetasEspeciales.TryGetValue(numero, out var sufijo)
@@ -85,15 +86,15 @@ public class PasarelaSimulada : IPasarelaPagos
         await SimularDemoraAsync();
         if (_falla)
         {
-            return new ResultadoCobro { Exitoso = false, Error = "pasarela_no_disponible" };
+            return new ResultadoCobro { Exitoso = false, Error = CodigosError.PasarelaNoDisponible };
         }
 
         // 0341 se aprueba al contratar y se rechaza en las renovaciones.
         var motivoRechazo = token switch
         {
-            _ when token.StartsWith("tok_sim_0002_", StringComparison.Ordinal) => "fondos_insuficientes",
-            _ when token.StartsWith("tok_sim_0069_", StringComparison.Ordinal) => "tarjeta_vencida",
-            _ when token.StartsWith("tok_sim_0341_", StringComparison.Ordinal) && esRenovacion => "fondos_insuficientes",
+            _ when token.StartsWith("tok_sim_0002_", StringComparison.Ordinal) => CodigosError.FondosInsuficientes,
+            _ when token.StartsWith("tok_sim_0069_", StringComparison.Ordinal) => CodigosError.TarjetaVencida,
+            _ when token.StartsWith("tok_sim_0341_", StringComparison.Ordinal) && esRenovacion => CodigosError.FondosInsuficientes,
             _ => null,
         };
 
@@ -107,7 +108,7 @@ public class PasarelaSimulada : IPasarelaPagos
         await SimularDemoraAsync();
         if (_falla)
         {
-            return new ResultadoReembolso { Exitoso = false, Error = "pasarela_no_disponible" };
+            return new ResultadoReembolso { Exitoso = false, Error = CodigosError.PasarelaNoDisponible };
         }
 
         return new ResultadoReembolso { Exitoso = true, Referencia = $"re_sim_{Guid.NewGuid()}" };

@@ -87,3 +87,11 @@ Paso 7 de `docs/plan/auditoria-2026-09-25.md` (H-61 a H-67):
   - el error en el `QUIT` (regresión);
   - la elección del cifrado según el puerto.
 - Especificación precisada en `07-modelo-de-datos.md` §3.6 y `10-identidad-y-seguridad.md` §3 y §6.
+
+### Correcciones de la auditoría (2026-09-27)
+
+- **H-144:** DC-04 dice que tiene que usar `SubdominiosReservados.Contiene`, la única definición de la lista.
+- **H-146:** los correos del personal salen con «Shapi» como nombre visible del remitente, y los de un portal, con `nombrePortal` (10 §6). Tiene prueba.
+- **H-147:** JZ-11 precisa dos cosas:
+  - que también se agrega la marca a `verificacion_correo` y `recuperacion`;
+  - qué `datos` pasa quien encola un correo de consumidor (`nombrePortal`, `hostPortal`, `colorPortal` y `logoPortal`).

@@ -76,3 +76,8 @@ Lo terminó Jordin (coordinador, protocolo §E4) el 27 de septiembre, a partir d
   - `0341` se rechaza en las renovaciones con `fondos_insuficientes`.
 - **Contradicción corregida (H-119):** las tarjetas de ejemplo de 09 §2 y de los mockups A2 y A5 (`4024 0071 2244 4821` y `5412 7534 1209 3057`) no pasaban Luhn. Manda la regla de 09 §2: se cambió un dígito del medio y se conservaron los últimos 4 (`4024 0071 2284 4821` y `5412 7534 1203 3057`), en 09 §2, `mockups/A2/Contratacion.dc.html`, `mockups/A5/Pago.dc.html` y sus exportaciones.
 - **Verificación:** `dotnet build`, `dotnet test` y `dotnet format --verify-no-changes` pasan.
+
+### Correcciones de la auditoría (2026-09-27)
+
+- **H-130:** el aviso de la bitácora de Jordin decía que EM-09 registraba la pasarela en el Trabajador, pero las renovaciones las cobra EM-10. Se corrigió el aviso y EM-10 ya lo incluye en sus archivos y en sus pruebas (`Pagos:DemoraMs=0`).
+- **H-131:** `PasarelaSimulada` usa las constantes de `CodigosError` en lugar de escribir los códigos como texto.

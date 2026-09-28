@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: API de Cotización de Envíos
   version: 1.0.0
-  description: API de demostración de Envíos Xelajú para cotizar, crear y rastrear envíos.
+  description: Cotice envíos entre municipios, genere guías, consulte la cobertura y rastree sus paquetes directamente desde su propio sistema.
 servers:
   - url: https://envios.api.shapi.localhost
     description: Compuerta local de Shapi
@@ -41,7 +41,7 @@ paths:
   /guias:
     post:
       summary: Crear una guía
-      description: Crea una guía para recoger y entregar un paquete cotizado.
+      description: Genera la guía de envío de un paquete ya cotizado.
       requestBody:
         required: true
         content:
@@ -122,7 +122,7 @@ paths:
   /rastreo:
     get:
       summary: Rastrear una guía
-      description: Devuelve el estado actual y los eventos de una guía.
+      description: Consulta el estado de un paquete con su número de guía.
       parameters:
         - name: guia
           in: query
@@ -170,7 +170,7 @@ paths:
   /cobertura:
     get:
       summary: Consultar cobertura
-      description: Indica si un municipio tiene cobertura y el tiempo estimado de entrega.
+      description: Indica si un municipio tiene cobertura de entrega.
       parameters:
         - name: municipio
           in: query
@@ -196,6 +196,8 @@ paths:
                     type: boolean
                   dias_habiles:
                     type: integer
+                    nullable: true
+                    description: Días hábiles estimados de entrega. Es null si el municipio no tiene cobertura
               example:
                 municipio: '0301'
                 nombre: Antigua Guatemala

@@ -30,6 +30,14 @@ app.MapPost("/cotizaciones", (CotizacionSolicitud solicitud) =>
         return Results.BadRequest(new { error = "Origen, destino y peso_kg son obligatorios." });
     }
 
+    // tipo_servicio es opcional, pero si viene tiene que ser uno de los dos del contrato.
+    if (solicitud.TipoServicio is not null
+        && !string.Equals(solicitud.TipoServicio, "normal", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(solicitud.TipoServicio, "urgente", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.BadRequest(new { error = "tipo_servicio debe ser normal o urgente." });
+    }
+
     // La tarifa sale de la misma tabla que /tarifas: precio_base + precio_por_kg × peso_kg.
     var urgente = string.Equals(solicitud.TipoServicio, "urgente", StringComparison.OrdinalIgnoreCase);
     var servicio = urgente ? Tarifas.Urgente : Tarifas.Normal;
@@ -92,13 +100,19 @@ app.MapGet("/rastreo", (string guia) => Results.Ok(new
     },
 }));
 
-app.MapGet("/cobertura", (string municipio) => Results.Ok(new
+app.MapGet("/cobertura", (string municipio) =>
 {
-    municipio,
-    nombre = NombreMunicipio(municipio),
-    cubierto = municipio is "0901" or "0301" or "0101",
-    dias_habiles = municipio == "0901" ? 1 : 2,
-}));
+    // Sin cobertura no hay tiempo de entrega: dias_habiles es null.
+    var cubierto = municipio is "0901" or "0301" or "0101";
+    int? diasHabiles = cubierto ? (municipio == "0901" ? 1 : 2) : null;
+    return Results.Ok(new
+    {
+        municipio,
+        nombre = NombreMunicipio(municipio),
+        cubierto,
+        dias_habiles = diasHabiles,
+    });
+});
 
 app.MapGet("/salud", () => Results.Ok(new { estado = "saludable" }));
 

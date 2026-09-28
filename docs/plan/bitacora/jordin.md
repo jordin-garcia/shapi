@@ -389,7 +389,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - `0341` se rechaza en las renovaciones con `fondos_insuficientes`.
 - Pendiente o aviso para otros:
   - **Emilio:** se terminó tu EM-06 en la rama `jordin/EM-06-pasarela-de-pagos`, que parte de la tuya; tu rama no se modificó. El PR #14 queda cerrado. Cambiaron `src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs` (reescrita), `docs/plan/tareas/EM-06-pasarela-de-pagos-simulada.md` (criterio 1 y `## Resultado`), tu bitácora (nota en la entrada de EM-06), `mockups/A2/Contratacion.dc.html` y su exportación, y se agregó `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs`. Actualiza tu rama desde `main`.
-  - **EM-08 y EM-09:** la pasarela solo está registrada en la API (`PagosModulo`). EM-09 tiene que registrarla también en el Trabajador para las renovaciones. En las pruebas con `WebApplicationFactory` que cobren, fijen `Pagos:DemoraMs=0`; si no, cada operación tarda de 300 a 800 ms.
+  - **EM-08 y EM-10:** la pasarela solo está registrada en la API (`PagosModulo`). EM-10, que cobra las renovaciones, tiene que registrarla también en el Trabajador (corregido en la auditoría final: antes decía EM-09). En las pruebas con `WebApplicationFactory` que cobren, fijen `Pagos:DemoraMs=0`; si no, cada operación tarda de 300 a 800 ms.
   - **Dominique:** en `mockups/A5/Pago.dc.html` y en `mockups/a5-portal-marca-blanca.html`, la tarjeta de ejemplo ahora es `5412 7534 1203 3057` (**DC-09**, A5.6). Actualiza tu rama desde `main`.
   - **Todos:** para probar la contratación en la demostración, usen las tarjetas de 09 §2. Las de los mockups ya pasan Luhn: `4024 0071 2284 4821` y `5412 7534 1203 3057`.
 
@@ -429,3 +429,36 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones (de Jordin, 27 sep): RNF-11, igual que RNF-06, no es un lineamiento del curso y medirlo podía atrasar el avance final.
 - Pendiente o aviso para otros:
   - **José Pablo:** JZ-18 ya no existe; no tienes que hacer la prueba cronometrada. JZ-13 no cambia. En el manual técnico (JZ-15) basta con presentar RNF-06 como objetivo de diseño, como ya dice su criterio 1.
+
+## 2026-09-27 · JG-01 · Correcciones de la auditoría: auditoría final
+- Hecho: paso 17 de `docs/plan/auditoria-2026-09-25.md`.
+  - Se ejecutó la verificación completa y se volvieron a auditar las 13 tareas hechas en contexto limpio. No volvió ningún hallazgo anterior.
+  - Se corrigieron los 25 nuevos (H-120 a H-144) y las 6 dudas que Jordin decidió resolver (H-145 a H-150), en un solo PR.
+  - Queda pendiente H-151, que aplica Jordin a mano: negar `gh pr merge *--admin*` en `.claude/settings.json`. El modo automático no deja que un agente edite sus propios permisos.
+- Decisiones (de Jordin, 27 sep):
+  - Todo el paso va en un solo PR con el ID de JG-01.
+  - Los registros de los tres procesos van en JSON (06 §8).
+  - Los correos del personal salen como «Shapi».
+  - Vite sigue escuchando en `0.0.0.0`, porque en Linux Caddy llega por el puente de Docker.
+  - Se quedan como están los textos de las páginas de relleno, `/historial` vacío con 200, los tokens desconocidos de la pasarela y la especificación sin CHECK de 2 MB.
+- Pendiente o aviso para otros:
+  - **Emilio:**
+    - **EM-01:** cambiaron `OrganizacionConfiguracion.cs`, `CasoConfiguracion.cs`, `ApiConfiguracion.cs` y `LoteConsolidadoConfiguracion.cs`, y hay una migración nueva, `TextoConLargoEnCheck`. Si tu rama tiene una migración, sigue convenciones §3: bórrala, toma el snapshot de `main` y vuelve a generarla.
+    - **Siembra:** `SiembraBase.cs` ahora usa una transacción y los constructores del dominio.
+    - **EM-02:** en `Identidad/Endpoints.cs`, el reenvío bloquea la fila del usuario.
+    - **EM-06:** `PasarelaSimulada.cs` usa `CodigosError`.
+    - **EM-10:** registra `IPasarelaPagos` en `src/Shapi.Trabajador/Program.cs`. Está en sus archivos y en sus pruebas; antes el aviso decía EM-09.
+    - **Pruebas nuevas:** `AutenticacionTests.cs`, `RestriccionesTests.cs`, `SiembraBaseTests.cs` y, en el frontend, `Identidad.test.tsx` y `Sesion.test.tsx`.
+    - **A1.1:** `A1-1-Registro.tsx` muestra los enlaces de CU-01 2a.
+    - Actualiza tu rama desde `main`.
+  - **Dominique:**
+    - cambiaron `packages/ui/src/index.tsx` (`type="button"` en `DialogoConfirmacion`) y su prueba, y también `paginas/_UI.tsx` y `_UI.test.tsx`;
+    - **DC-04:** usa `SubdominiosReservados.Contiene` y completa `apis.yaml` (`security`, 401 y `required`);
+    - Actualiza tu rama desde `main`.
+  - **José Pablo:**
+    - cambiaron `origenes-demo/envios-xelaju/Program.cs`, `cotizacion-envios.yaml`, `agro-precios/openapi.yaml` y sus pruebas, además de `MotorPlantillasCorreo.cs`, `CorreoRenderizado.cs`, `EnviadorSmtp.cs`, `docs/manual-tecnico.md` e `instalacion.md`;
+    - **JZ-11** precisa la marca de las dos plantillas que ya existen y los `datos` del portal (`colorPortal` y `logoPortal`);
+    - Actualiza tu rama desde `main`.
+  - **Todos:**
+    - los registros de la API, la compuerta y el trabajador ahora salen en JSON;
+    - para `dotnet run`, carguen antes el `.env` con el comando del manual técnico.

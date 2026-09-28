@@ -54,7 +54,17 @@ export default function PaginaA11Registro() {
       <form ref={formulario} onSubmit={enviar} noValidate>
         <div className="flex flex-col gap-5 mt-8">
           <CampoEtiquetado etiqueta="Nombre" value={datos.nombre} onChange={cambiar('nombre')} error={errorDe('nombre')} autoComplete="name" />
-          <CampoEtiquetado etiqueta="Correo electrónico" type="email" value={datos.correo} onChange={cambiar('correo')} error={errorDe('correo')} autoComplete="email" />
+          <div className="flex flex-col gap-2">
+            <CampoEtiquetado etiqueta="Correo electrónico" type="email" value={datos.correo} onChange={cambiar('correo')} error={errorDe('correo')} autoComplete="email" />
+            {/* CU-01 2a: con el correo repetido se ofrece entrar o recuperar la contraseña. */}
+            {error?.codigo === 'correo_ya_registrado' && (
+              <p className="text-sm text-tinta-suave m-0">
+                <Link to="/entrar" className="text-principal hover:text-principal-hover no-underline hover:underline">Entrar</Link>
+                {' · '}
+                <Link to="/recuperar" className="text-principal hover:text-principal-hover no-underline hover:underline">Recuperar la contraseña</Link>
+              </p>
+            )}
+          </div>
           <CampoEtiquetado etiqueta="Nombre de la organización" value={datos.organizacion} onChange={cambiar('organizacion')} error={errorDe('organizacion')} autoComplete="organization" />
           <CampoEtiquetado etiqueta="Contraseña" type="password" value={datos.contrasena} onChange={cambiar('contrasena')} error={errorDe('contrasena')}
             autoComplete="new-password" style={datos.contrasena ? { letterSpacing: '0.18em' } : undefined} />

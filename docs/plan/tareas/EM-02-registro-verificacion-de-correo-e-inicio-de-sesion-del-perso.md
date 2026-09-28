@@ -38,7 +38,7 @@ Implementar la autenticación del ámbito `personal`: registro del proveedor con
 2. `POST /api/auth/verificar-correo` `{token}` marca `correo_verificado_en`, marca el token como usado e inicia sesión. Un token vencido o ya usado → 422 `token_invalido`. `POST /api/auth/reenviar-verificacion` genera un token nuevo.
 3. `POST /api/auth/entrar` crea la sesión (tabla `sesion` con el hash del identificador) y la cookie `shapi_sesion` (`HttpOnly`, `Secure`, `SameSite=Lax`). La sesión vence tras 8 h de inactividad o a los 7 días. `POST /api/auth/salir` la revoca.
 4. Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos (`cuenta_bloqueada`). Los mensajes de credenciales incorrectas son genéricos (`credenciales_invalidas`).
-5. Todo método distinto de GET sin `X-Requested-With: shapi` → 403 `csrf`. `/api/auth/*` tiene un límite de 10 peticiones por minuto por IP (429).
+5. Todo método no seguro (distinto de GET, HEAD, OPTIONS y TRACE) sin `X-Requested-With: shapi` → 403 `csrf`. `/api/auth/*` tiene un límite de 10 peticiones por minuto por IP (429).
 6. `GET /api/auth/sesion` devuelve el usuario, la organización, el rol, `correoVerificado` y el `destino` según el rol (10 §1).
 7. Quedan registrados el esquema de autenticación por cookie y **todas las políticas de permisos** de 04 §3 como constantes (`Permisos.*`), para que los demás módulos usen `RequireAuthorization(Permisos.X)`.
 
@@ -110,3 +110,10 @@ Paso 6 de `docs/plan/auditoria-2026-09-25.md` (H-49 a H-60).
 - **H-59:** los endpoints pasaron a `src/Shapi.Api/Identidad/Endpoints.cs` (convenciones §1). `Modulos/IdentidadModulo.cs` solo registra los servicios y el *pipeline*.
 - **H-60:** se agregó la entrada de EM-02 en la bitácora de Emilio.
 - Especificaciones precisadas: 04 §4 y 10 §1. JZ-06 debe fijar `SHAPI_REDES_BORDE` en producción (criterio 7).
+
+### Correcciones de la auditoría (2026-09-27)
+
+- **H-126:** el reenvío de la verificación bloquea la fila del usuario (`SELECT … FOR UPDATE`) dentro de una transacción, antes de contar los enlaces de la última hora. Con peticiones simultáneas ya no se encolan más de 3. Prueba: 8 reenvíos simultáneos dan 4 correos (el del registro y 3).
+- **H-127:** una teoría comprueba el límite de 10 por minuto en `registro`, `verificar-correo`, `reenviar-verificacion` y `entrar`.
+- **H-128:** prueba del 403 `cuenta_desactivada` de `verificar-correo`, sin cookie ni sesión.
+- **H-148:** el criterio 5 dice «método no seguro (distinto de GET, HEAD, OPTIONS y TRACE)», que es lo que hace `CsrfMiddleware`. También se precisaron 10 §1 y convenciones §5.

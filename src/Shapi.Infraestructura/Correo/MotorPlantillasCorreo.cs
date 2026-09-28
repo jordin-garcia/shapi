@@ -9,6 +9,9 @@ namespace Shapi.Infraestructura.Correo;
 public sealed partial class MotorPlantillasCorreo
 {
     private const string PrefijoRecursos = "Shapi.Infraestructura.Correo.Plantillas";
+
+    /// <summary>Nombre visible del remitente en los correos del personal (10 §6).</summary>
+    public const string NombreRemitentePersonal = "Shapi";
     private readonly string _dominioBase;
     private readonly Regex _hostPortal;
 
@@ -34,9 +37,12 @@ public sealed partial class MotorPlantillasCorreo
 
         var html = Reemplazar(Cargar(plantilla, "html"), datos, escaparHtml: true);
         var texto = Reemplazar(Cargar(plantilla, "txt"), datos, escaparHtml: false);
-        datos.TryGetValue("nombrePortal", out var nombrePortal);
+        // 10 §6: los correos de un portal salen con el nombre del portal; los del personal, con el de Shapi.
+        var nombreRemitente = datos.TryGetValue("nombrePortal", out var nombrePortal) && !string.IsNullOrWhiteSpace(nombrePortal)
+            ? nombrePortal
+            : NombreRemitentePersonal;
 
-        return new CorreoRenderizado(html, texto, nombrePortal);
+        return new CorreoRenderizado(html, texto, nombreRemitente);
     }
 
     private void AgregarEnlace(string plantilla, IDictionary<string, string> datos)

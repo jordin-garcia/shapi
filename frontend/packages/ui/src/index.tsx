@@ -159,8 +159,8 @@ export function DialogoConfirmacion({ abierto, titulo, children, textoConfirmar 
         <h2 id={idTitulo} className="text-titulo-tarjeta font-display">{titulo}</h2>
         {children && <div className="mt-3 text-tinta-suave">{children}</div>}
         <div className="flex gap-4 justify-end mt-6">
-          <Boton principal={false} onClick={cerrar}>{textoCancelar}</Boton>
-          <Boton onClick={confirmar}>{textoConfirmar}</Boton>
+          <Boton type="button" principal={false} onClick={cerrar}>{textoCancelar}</Boton>
+          <Boton type="button" onClick={confirmar}>{textoConfirmar}</Boton>
         </div>
       </div>
     </div>

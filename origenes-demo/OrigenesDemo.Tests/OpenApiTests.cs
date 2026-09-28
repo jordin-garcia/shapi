@@ -100,8 +100,13 @@ public sealed class OpenApiTests(
     [Fact]
     public async Task Especificacion_TextosDeA51_CoincidenConElMockup()
     {
-        // JZ-02 CA3: los textos que muestran A5.1 y A5 (InicioAgro).
+        // JZ-02 CA3: los textos que muestran A5.0, A5.1 y A5 (InicioAgro).
         var envios = await Cargar(ArchivoEnvios);
+        envios.Info.Description.Should().Be(
+            "Cotice envíos entre municipios, genere guías, consulte la cobertura y rastree sus paquetes directamente desde su propio sistema.");
+        envios.Paths["/guias"].Operations![HttpMethod.Post].Description.Should().Be("Genera la guía de envío de un paquete ya cotizado.");
+        envios.Paths["/rastreo"].Operations![HttpMethod.Get].Description.Should().Be("Consulta el estado de un paquete con su número de guía.");
+        envios.Paths["/cobertura"].Operations![HttpMethod.Get].Description.Should().Be("Indica si un municipio tiene cobertura de entrega.");
         var cotizaciones = envios.Paths["/cotizaciones"].Operations![HttpMethod.Post];
         cotizaciones.Description.Should().Be("Calcula el costo de un envío según origen, destino, peso y tipo de servicio.");
         var solicitud = cotizaciones.RequestBody!.Content!["application/json"].Schema!.Properties!;
@@ -111,6 +116,8 @@ public sealed class OpenApiTests(
         solicitud["tipo_servicio"].Description.Should().Be("Normal o urgente. Si se omite, se cotiza como normal");
 
         var agro = await Cargar(ArchivoAgro);
+        agro.Info.Description.Should().Be(
+            "Consulte precios de granos, hortalizas y frutas por mercado y por fecha directamente desde su propio sistema.");
         agro.Paths["/precios"].Operations![HttpMethod.Get].Description
             .Should().Be("Devuelve el precio del día de un producto en un mercado.");
         agro.Paths["/productos"].Operations![HttpMethod.Get].Description

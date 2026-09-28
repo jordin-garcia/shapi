@@ -52,7 +52,8 @@ public class ApiConfiguracion : IEntityTypeConfiguration<Api>
 
         builder.ToTable(t => t.HasCheckConstraint("ck_api_portal_logo",
             "portal_logo IS NULL OR octet_length(portal_logo) <= 524288"));
-        builder.Property(x => x.PortalBienvenida).HasMaxLength(280);
+        builder.ToTable(t => t.HasCheckConstraint("ck_api_portal_bienvenida",
+            "portal_bienvenida IS NULL OR char_length(portal_bienvenida) <= 280"));
         builder.Property(x => x.SecretoOrigenCifrado).IsRequired();
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
