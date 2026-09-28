@@ -450,13 +450,14 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - **EM-10:** registra `IPasarelaPagos` en `src/Shapi.Trabajador/Program.cs`. Está en sus archivos y en sus pruebas; antes el aviso decía EM-09.
     - **Pruebas nuevas:** `AutenticacionTests.cs`, `RestriccionesTests.cs`, `SiembraBaseTests.cs` y, en el frontend, `Identidad.test.tsx` y `Sesion.test.tsx`.
     - **A1.1:** `A1-1-Registro.tsx` muestra los enlaces de CU-01 2a.
+    - **Tareas:** el criterio 5 de EM-02 (CSRF: «método no seguro») y los `## Resultado` de EM-01, EM-02, EM-03, EM-06 y EM-17.
     - Actualiza tu rama desde `main`.
   - **Dominique:**
-    - cambiaron `packages/ui/src/index.tsx` (`type="button"` en `DialogoConfirmacion`) y su prueba, y también `paginas/_UI.tsx` y `_UI.test.tsx`;
+    - cambiaron `packages/ui/src/index.tsx` (`type="button"` en `DialogoConfirmacion`) y su prueba, `paginas/_UI.tsx` y `_UI.test.tsx`, un comentario en `apps/panel/vite.config.ts` y `apps/portal/vite.config.ts`, y los `## Resultado` de DC-01 y DC-02;
     - **DC-04:** usa `SubdominiosReservados.Contiene` y completa `apis.yaml` (`security`, 401 y `required`);
     - Actualiza tu rama desde `main`.
   - **José Pablo:**
-    - cambiaron `origenes-demo/envios-xelaju/Program.cs`, `cotizacion-envios.yaml`, `agro-precios/openapi.yaml` y sus pruebas, además de `MotorPlantillasCorreo.cs`, `CorreoRenderizado.cs`, `EnviadorSmtp.cs`, `docs/manual-tecnico.md` e `instalacion.md`;
+    - cambiaron `origenes-demo/envios-xelaju/Program.cs`, `cotizacion-envios.yaml`, `agro-precios/openapi.yaml` y sus pruebas, además de `MotorPlantillasCorreo.cs`, `CorreoRenderizado.cs`, `EnviadorSmtp.cs`, `docs/manual-tecnico.md`, `instalacion.md`, el `README.md` y los `## Resultado` de JZ-01, JZ-02 y JZ-03;
     - **JZ-11** precisa la marca de las dos plantillas que ya existen y los `datos` del portal (`colorPortal` y `logoPortal`);
     - Actualiza tu rama desde `main`.
   - **Todos:**

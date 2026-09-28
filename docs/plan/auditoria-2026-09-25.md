@@ -382,7 +382,8 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [x] **H-124** (baja, EM-01) `lote_consolidado.procesado_en`, que hace de `creado_en`, no tenía `DEFAULT now()`.
 - [x] **H-125** (baja, EM-01) La siembra guardaba al administrador y su membresía en dos `SaveChanges`. Si fallaba entre los dos, el administrador quedaba sin organización para siempre. Ahora:
   - usa una transacción;
-  - completa la membresía que falte, pero nunca convierte en administrador a un usuario de otra organización;
+  - completa la membresía que falte, con la contraseña y la verificación del correo si también faltan;
+  - nunca convierte en administrador a un usuario de otra organización, y avisa en el registro si el correo ya es de otra;
   - crea las entidades con los constructores del dominio, así que los identificadores son UUID v7.
 - [x] **H-126** (baja, EM-02) Con peticiones simultáneas se podía pasar el límite de 3 reenvíos por hora. Ahora el reenvío bloquea la fila del usuario (`FOR UPDATE`) dentro de una transacción.
 - [x] **H-127** (baja, EM-02) Solo se probaba el límite por IP de `entrar`. Ahora una teoría cubre los 4 endpoints.
@@ -418,5 +419,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 - [x] **H-149** (baja, EM-03) CU-02 paso 3 decía «o a la página desde la que llegó», y ninguna tarea lo pide. Ahora remite al destino del rol de 10 §1.
 - [x] **H-150** (baja, DC-04) DC-04 completa `apis.yaml`: `security`, 401 y `required`.
 - [ ] **H-151** (baja, JG-03) Negar `gh pr merge *--admin*` a los agentes en `.claude/settings.json`, para que solo Jordin integre un falso positivo. **No se aplicó en este PR:** el modo automático de Claude Code bloquea que un agente edite sus propios permisos. Lo aplica Jordin a mano.
+
+**Verificación después de corregir (27 sep).** Todo pasó: `--validar` (66 tareas), 56 pruebas de `scripts/`, compilación sin advertencias, formato, migraciones al día, 605 pruebas del backend (`-m:1`: Api 403, Compuerta 120, OrígenesDemo 48 y Dominio 34), tipos generados al día, lint, *typecheck*, 196 pruebas del frontend y su *build*. La revisión en contexto limpio (subagente `revisor`) dio `VEREDICTO: LISTO`, y también se aplicaron sus 5 sugerencias opcionales.
 
 **Resultado final.** Con este PR, lo integrado cumple sus tareas y las especificaciones, salvo H-151, que queda en manos de Jordin.

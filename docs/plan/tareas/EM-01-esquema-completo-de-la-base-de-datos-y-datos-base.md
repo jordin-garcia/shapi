@@ -107,8 +107,8 @@ Paso 5 de `docs/plan/auditoria-2026-09-25.md` (H-30 a H-48). Todos los cambios d
 - **H-124:** `lote_consolidado.procesado_en`, que hace de `creado_en`, tiene `DEFAULT now()`, como `sesion.creada_en` y `bitacora.fecha`.
 - **H-125:** la siembra del administrador:
   - guarda al usuario y su membresía en una sola transacción;
-  - si una ejecución anterior dejó al usuario sin membresía, la completa;
-  - nunca convierte en administrador a un usuario que ya pertenece a otra organización;
+  - si una ejecución anterior dejó al usuario sin membresía, la completa, junto con la contraseña y la verificación del correo si también faltan;
+  - nunca convierte en administrador a un usuario que ya pertenece a otra organización, y en ese caso lo avisa en el registro;
   - usa los constructores del dominio, así que los identificadores son UUID v7.
 - **Pruebas:**
   - `RestriccionesTests`: columnas `text` con CHECK, `DEFAULT now()` y nombre de 121 caracteres;

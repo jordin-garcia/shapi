@@ -43,10 +43,21 @@ public static class SiembraBase
             db.Set<Usuario>().Add(admin);
         }
 
-        var tieneMembresia = await db.Set<Membresia>().IgnoreQueryFilters().AnyAsync(m => m.UsuarioId == admin.Id);
-        if (!tieneMembresia)
+        var membresias = await db.Set<Membresia>().IgnoreQueryFilters().Where(m => m.UsuarioId == admin.Id).ToListAsync();
+        if (membresias.Count == 0)
         {
+            // Si una ejecución anterior se cayó a medias, el administrador también puede haber quedado sin contraseña.
+            if (admin.HashContrasena is null)
+            {
+                admin.DefinirHashContrasena(hasher.HashPassword(admin, adminContrasena));
+            }
+
+            admin.VerificarCorreo(reloj.Ahora);
             db.Set<Membresia>().Add(new Membresia(admin.Id, orgPlataforma.Id, Rol.Administrador));
+        }
+        else if (!membresias.Any(m => m.OrganizacionId == orgPlataforma.Id))
+        {
+            logger.LogWarning("El correo de SHAPI_ADMIN_CORREO ya pertenece a otra organización; no se creó el administrador inicial.");
         }
 
         await db.SaveChangesAsync();

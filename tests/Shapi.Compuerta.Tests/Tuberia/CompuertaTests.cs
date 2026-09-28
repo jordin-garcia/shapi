@@ -314,7 +314,7 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
         await VerificarErrorAsync(respuesta, HttpStatusCode.Unauthorized, "clave_en_url");
         VerificarWwwAuthenticate(respuesta);
         entorno.Origen.Ultima.Should().BeNull("la petición con la clave en la URL no se reenvía");
-        // 08 §1: tampoco queda en los registros de la compuerta (por ejemplo, el "Request starting" de Hosting).
+        // 08 §1: tampoco queda en ningún registro que la configuración de la compuerta deje pasar.
         entorno.Registros.Lineas.Should().NotContain(linea =>
             linea.Contains(clave, StringComparison.Ordinal) || linea.Contains(dePruebas, StringComparison.Ordinal)
             || linea.Contains(codificada, StringComparison.Ordinal));

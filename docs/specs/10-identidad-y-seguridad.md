@@ -92,7 +92,7 @@ Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan co
 
 **Cifrado:** con `SHAPI_SMTP_TLS=true`, el cifrado es obligatorio: SMTPS implícito si `SHAPI_SMTP_PUERTO` es 465, y STARTTLS en cualquier otro puerto. Si el servidor no ofrece STARTTLS, el envío falla y nunca sale en texto plano. Con `false` no se cifra, como en Mailpit.
 
-Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4) y salen con «Shapi» como nombre visible del remitente; los de un portal, con el nombre del portal (`nombrePortal`).
+Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4) y salen con «Shapi» como nombre visible del remitente; los de un portal, con el nombre del portal (`nombrePortal`). Quien encola un correo de consumidor pasa en `datos` `nombrePortal`, `hostPortal`, `colorPortal` (el `api.portal_color`, solo `#RRGGBB`) y, si el portal tiene logotipo, `logoPortal: "true"`; el enlace del logotipo es `https://{hostPortal}/api/portal/logo`.
 
 ## 7. Bitácora
 

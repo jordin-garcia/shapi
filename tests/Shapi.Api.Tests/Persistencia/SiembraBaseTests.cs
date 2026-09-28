@@ -81,6 +81,9 @@ public sealed class SiembraBaseTests(PostgresPersistencia postgres) : BaseDePrue
         var membresia = await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync();
         var plataforma = await db.Set<Organizacion>().IgnoreQueryFilters().SingleAsync(o => o.Tipo == TipoOrganizacion.Plataforma);
         Assert.Equal((admin.Id, plataforma.Id, Rol.Administrador), (membresia.UsuarioId, membresia.OrganizacionId, membresia.Rol));
+        // Y puede entrar: tiene contraseña y el correo verificado.
+        Assert.Equal(PasswordVerificationResult.Success, _hasher.VerifyHashedPassword(admin, admin.HashContrasena!, "Contra123"));
+        Assert.NotNull(admin.CorreoVerificadoEn);
     }
 
     [Fact]
@@ -93,10 +96,14 @@ public sealed class SiembraBaseTests(PostgresPersistencia postgres) : BaseDePrue
         db.AddRange(proveedor, organizacion, new Membresia(proveedor.Id, organizacion.Id, Rol.Propietario));
         await db.SaveChangesAsync();
 
-        await SiembraBase.EjecutarAsync(db, "admin@shapi.test", "Admin", "Contra123", Reloj, _hasher, NullLogger.Instance);
+        var registro = new RegistroCapturado();
+        await SiembraBase.EjecutarAsync(db, "admin@shapi.test", "Admin", "Contra123", Reloj, _hasher, registro);
 
         var membresia = await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync();
         Assert.Equal(Rol.Propietario, membresia.Rol);
+        var aviso = Assert.Single(registro.Entradas);
+        Assert.Equal(LogLevel.Warning, aviso.Nivel);
+        Assert.Contains("SHAPI_ADMIN_CORREO", aviso.Mensaje);
     }
 
     [Fact]
