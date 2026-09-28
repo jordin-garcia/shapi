@@ -463,3 +463,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Todos:**
     - los registros de la API, la compuerta y el trabajador ahora salen en JSON;
     - para `dotnet run`, carguen antes el `.env` con el comando del manual técnico.
+
+## 2026-09-28 · JG-01 · Correcciones de la auditoría: H-151
+- Hecho: último pendiente del paso 17 de `docs/plan/auditoria-2026-09-25.md`.
+  - `.claude/settings.json` niega `gh pr merge *--admin*` a los agentes.
+  - Una prueba nueva de `scripts/reglas-repositorio.test.mjs` comprueba que `--admin` está negado y que el *auto-merge* normal de B11 sigue permitido.
+  - Con esto quedan corregidos los 151 hallazgos de la auditoría.
+- Decisiones (de Jordin, 28 sep): Jordin agregó la regla a mano, porque el modo automático no deja que un agente edite sus propios permisos.
+- Pendiente o aviso para otros:
+  - **Todos:** sus agentes ya no pueden integrar un PR con `--admin`. Si `revision-claude` da un falso positivo, avísenle a Jordin (B11). Abran una sesión nueva de Claude Code para que tome la regla.

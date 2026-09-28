@@ -147,3 +147,13 @@ test("H-09: el check obligatorio revision-claude no se omite y siempre decide el
   assert.doesNotMatch(veredicto, /continue-on-error/);
   assert.match(veredicto, /node scripts\/veredicto-revision\.mjs "\$RUNNER_TEMP\/comentarios\.jsonl" "\$SHA" "\$TAREA"/);
 });
+
+test("H-151: ningún agente integra con --admin; solo Jordin, a mano, salta un falso positivo (B11)", () => {
+  for (const comando of ["gh pr merge 40 --admin --squash", "gh pr merge --admin 40", "gh pr merge 40 --squash --admin --delete-branch"]) {
+    assert.ok(negado(comando), `no está negado: ${comando}`);
+  }
+  // El auto-merge normal de B11 sigue permitido.
+  const autoMerge = "gh pr merge 40 --auto --squash --delete-branch";
+  assert.ok(!negado(autoMerge), "se niega el auto-merge normal");
+  assert.ok(reglas("allow").some((p) => coincide(p, autoMerge)), "el auto-merge normal no está permitido");
+});

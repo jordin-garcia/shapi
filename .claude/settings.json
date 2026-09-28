@@ -42,6 +42,7 @@
       "Bash(git push *--all*)",
       "Bash(git push *--mirror*)",
       "Bash(git commit *--no-verify*)",
+      "Bash(gh pr merge *--admin*)",
       "Read(./.env)",
       "Read(./**/.env)"
     ]

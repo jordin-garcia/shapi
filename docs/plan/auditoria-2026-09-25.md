@@ -418,8 +418,8 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - 06 §4: se quitó `caddy trust` dentro del contenedor, que no sirve para el navegador.
 - [x] **H-149** (baja, EM-03) CU-02 paso 3 decía «o a la página desde la que llegó», y ninguna tarea lo pide. Ahora remite al destino del rol de 10 §1.
 - [x] **H-150** (baja, DC-04) DC-04 completa `apis.yaml`: `security`, 401 y `required`.
-- [ ] **H-151** (baja, JG-03) Negar `gh pr merge *--admin*` a los agentes en `.claude/settings.json`, para que solo Jordin integre un falso positivo. **No se aplicó en este PR:** el modo automático de Claude Code bloquea que un agente edite sus propios permisos. Lo aplica Jordin a mano.
+- [x] **H-151** (baja, JG-03) Negar `gh pr merge *--admin*` a los agentes en `.claude/settings.json`, para que solo Jordin integre un falso positivo. No entró en el PR #40, porque el modo automático de Claude Code bloquea que un agente edite sus propios permisos. Jordin agregó la regla a mano el 28 sep, en un PR aparte, y una prueba de `reglas-repositorio.test.mjs` la vigila.
 
 **Verificación después de corregir (27 sep).** Todo pasó: `--validar` (66 tareas), 56 pruebas de `scripts/`, compilación sin advertencias, formato, migraciones al día, 605 pruebas del backend (`-m:1`: Api 403, Compuerta 120, OrígenesDemo 48 y Dominio 34), tipos generados al día, lint, *typecheck*, 196 pruebas del frontend y su *build*. La revisión en contexto limpio (subagente `revisor`) dio `VEREDICTO: LISTO`, y también se aplicaron sus 5 sugerencias opcionales.
 
-**Resultado final.** Con este PR, lo integrado cumple sus tareas y las especificaciones, salvo H-151, que queda en manos de Jordin.
+**Resultado final.** Con los PR #40 y el de H-151, lo integrado cumple sus tareas y las especificaciones, y los 151 hallazgos de la auditoría están corregidos.
