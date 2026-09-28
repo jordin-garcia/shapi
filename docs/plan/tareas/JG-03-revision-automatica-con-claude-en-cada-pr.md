@@ -187,4 +187,4 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
   - el job no tiene `if`;
   - la acción tiene `continue-on-error: true`;
   - el veredicto se decide con `if: ${{ !cancelled() }}`.
-- **H-151 (pendiente):** negar `gh pr merge *--admin*` a los agentes en `.claude/settings.json`. El modo automático no deja que un agente edite sus propios permisos, así que lo aplica Jordin a mano.
+- **H-151:** `.claude/settings.json` niega `gh pr merge *--admin*` a los agentes, así que solo Jordin, desde su terminal, integra un falso positivo del check (criterio 5 y B11). El modo automático no deja que un agente edite sus propios permisos, así que Jordin agregó la regla a mano el 28 sep. Una prueba de `reglas-repositorio.test.mjs` comprueba que `--admin` está negado y que el *auto-merge* normal sigue permitido.
