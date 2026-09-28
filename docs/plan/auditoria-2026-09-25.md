@@ -323,14 +323,17 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 15 · [JG-01] CI y reglas del repositorio
 
-- [ ] **H-106** En el job `backend`: `dotnet ef migrations has-pending-model-changes`.
-- [ ] **H-107** En el job `frontend`: `pnpm generar:api` y luego `git diff --exit-code` sobre `generado/`.
-- [ ] **H-108** `timeout-minutes` en los jobs. El evento `edited` solo debe volver a ejecutar la CI cuando cambia el título.
-- [ ] **H-109** Fijar por SHA las acciones de terceros que reciben secretos.
-- [ ] **H-110** `.claude/settings.json`: negar también `git push origin HEAD:main` y sus variantes.
+- [x] **H-106** En el job `backend`: `dotnet ef migrations has-pending-model-changes`.
+- [x] **H-107** En el job `frontend`: `pnpm generar:api` y luego `git diff --exit-code` sobre `generado/`.
+- [x] **H-108** `timeout-minutes` en los jobs. El evento `edited` solo debe volver a ejecutar la CI cuando cambia el título.
+- [x] **H-109** Fijar por SHA las acciones de terceros que reciben secretos.
+- [x] **H-110** `.claude/settings.json`: negar también `git push origin HEAD:main` y sus variantes.
   - **Decidido en el paso 3 (26 sep):** `enforce_admins` queda desactivado, porque Jordin desbloquea los falsos positivos de `revision-claude` con `--admin`.
-- [ ] **H-111** La plantilla de PR debe pedir la evidencia de `dotnet format`, `pnpm build` y `tareas.mjs --validar`. Completar el `README.md` con las carpetas y los comandos de arranque.
-- [ ] **H-112** Ejecutar las pruebas en paralelo es inestable con Docker en Windows (se vio en la auditoría). Se evalúa limitar el paralelismo entre proyectos o documentarlo.
+- [x] **H-111** La plantilla de PR debe pedir la evidencia de `dotnet format`, `pnpm build` y `tareas.mjs --validar`. Completar el `README.md` con las carpetas y los comandos de arranque.
+- [x] **H-112** Ejecutar las pruebas en paralelo es inestable con Docker en Windows (se vio en la auditoría). Se evalúa limitar el paralelismo entre proyectos o documentarlo.
+- **Decidido en este paso (27 sep):**
+  - H-108: el título lo valida `titulo-pr.yml` (check obligatorio `titulo`) y `ci.yml` deja de escuchar `edited`. No se usa `if` en los jobs, porque un check obligatorio omitido cuenta como aprobado.
+  - H-112: se documenta `dotnet test Shapi.slnx -m:1` para Windows; la CI no cambia.
 
 ## Paso 16 · [JG-01] Huecos de requisitos (tareas nuevas según §C)
 

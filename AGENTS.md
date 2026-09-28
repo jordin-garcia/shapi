@@ -32,7 +32,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 | Tareas | `node scripts/tareas.mjs --persona <clave>` · `--ver <ID>` · `--validar` |
 | Infraestructura local | `docker compose --env-file .env -f infra/compose.yml up -d` · `docker compose --env-file .env -f infra/compose.yml down` |
 | Backend: compilar | `dotnet build Shapi.slnx` |
-| Backend: pruebas | `dotnet test Shapi.slnx` (usa Docker por Testcontainers) |
+| Backend: pruebas | `dotnet test Shapi.slnx` (usa Docker por Testcontainers). Si en Windows falla con errores de Docker, repite con `dotnet test Shapi.slnx -m:1`, que corre un proyecto a la vez |
 | Backend: formato | `dotnet format Shapi.slnx --verify-no-changes` (para corregir: sin `--verify-no-changes`) |
 | Backend: ejecutar | `dotnet run --project src/Shapi.Api` · `src/Shapi.Compuerta` · `src/Shapi.Trabajador` |
 | Migraciones | `dotnet ef migrations add <Nombre> -p src/Shapi.Infraestructura -s src/Shapi.Api` |

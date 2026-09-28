@@ -62,7 +62,7 @@ dotnet build Shapi.slnx
 dotnet test Shapi.slnx
 dotnet format Shapi.slnx --verify-no-changes
 node scripts/tareas.mjs --validar
-gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status_checks.contexts'   # debe mostrar plan, backend, frontend y (desde la auditoría del 26 sep) revision-claude
+gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status_checks.contexts'   # debe mostrar plan, backend, frontend y, desde la auditoría, revision-claude (26 sep) y titulo (27 sep)
 ```
 
 ## ⚠️ Pasos que requieren a una persona
@@ -122,3 +122,15 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
     - JZ-06: *healthcheck* y el puerto de la API;
     - JG-04: `DEL` y luego `HSET`.
   - **EM-17 y calendario:** EM-17 quedó al día con lo que ya hizo EM-03 y aparece en la tabla del Avance 1.
+
+### Correcciones de la auditoría (2026-09-27)
+- **CI y reglas del repositorio** (paso 15 de la auditoría, H-106 a H-112):
+  - **`backend`:** instala `dotnet-ef` con la versión de EF Core de `Directory.Packages.props` y ejecuta `dotnet ef migrations has-pending-model-changes`. Así, un cambio del modelo sin su migración falla en la CI (H-106).
+  - **`frontend`:** ejecuta `pnpm generar:api` y falla si `packages/api/src/generado/` cambia o tiene archivos nuevos (H-107).
+  - **Tiempos máximos:** todos los jobs tienen `timeout-minutes`: `plan` 5, `titulo` 5, `backend` 20 y `frontend` 15 (H-108).
+  - **Título del PR:** lo valida un workflow aparte, `titulo-pr.yml`, con el check obligatorio `titulo`, y `ci.yml` ya no escucha `edited`. Editar el PR solo repite esa validación, que tarda segundos, y no cancela ni repite la CI. No se usa un `if` en los jobs de `ci.yml`, porque un check obligatorio omitido cuenta como aprobado (H-108, decisión de Jordin del 27 sep).
+  - **Acción de Claude:** `anthropics/claude-code-action`, que recibe el token de Jordin, va fijada por SHA en `revision-claude.yml` y `claude-interactivo.yml` (`756cc22e…`, la v1.0.235). Para actualizarla, se busca el SHA de la etiqueta nueva y se cambia en los dos archivos (H-109).
+  - **Permisos de los agentes:** `.claude/settings.json` niega también `git push` a `main` con otro remoto, con `HEAD:main`, `rama:main`, `refs/heads/main`, `+main`, entre comillas, `--all` y `--mirror`. Ninguna regla de texto cubre `git push origin HEAD` estando en `main`: eso lo impide el protocolo, que siempre trabaja en una rama. `enforce_admins` sigue desactivado (decidido en el paso 3) (H-110).
+  - **Documentación:** la plantilla del PR pide la evidencia de `tareas.mjs --validar`, `dotnet format` y `pnpm build`. El `README.md` tiene todas las carpetas y un arranque rápido (H-111).
+  - **Pruebas en Windows:** `instalacion.md` §4 y `AGENTS.md` indican `dotnet test Shapi.slnx -m:1` si las pruebas en paralelo fallan por Docker. La CI no cambia (H-112, decisión de Jordin del 27 sep).
+  - **Pruebas:** `scripts/reglas-repositorio.test.mjs` comprueba cada regla leyendo los workflows y `.claude/settings.json`.

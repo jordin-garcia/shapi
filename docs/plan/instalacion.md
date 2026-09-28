@@ -49,6 +49,8 @@ node scripts/verificar-entorno.mjs
 ```
 Todo debe aparecer con ✅. Si algo falla, el mismo script dice qué instalar.
 
+**Pruebas del backend en Windows.** `dotnet test Shapi.slnx` corre los proyectos de prueba en paralelo, y cada uno levanta sus contenedores con Testcontainers. Con Docker Desktop en Windows, eso a veces falla por errores de Docker o por tiempos agotados que no tienen que ver con el código. Si pasa, repite con `dotnet test Shapi.slnx -m:1`, que corre un proyecto a la vez: es más lento, pero estable. La CI corre en Linux y no lo necesita.
+
 ## 5. Levantar el entorno de desarrollo
 
 > Esta sección funciona **a medida que se terminan** JZ-01 (infraestructura), JG-01 (backend), DC-01 (frontend) y JZ-05 (siembra). Antes de eso, no hay nada que levantar. Los comandos definitivos quedan en `docs/manual-tecnico.md`.
