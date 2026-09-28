@@ -413,13 +413,13 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
 ## 2026-09-27 · JG-01 · Correcciones de la auditoría: huecos de requisitos
 - Hecho: paso 16 de `docs/plan/auditoria-2026-09-25.md` (H-113 y H-114).
-  - Tareas nuevas JZ-17 (RNF-06) y JZ-18 (RNF-11).
-  - 03 §2 dice cómo se verifica cada uno. JG-02 declara RNF-13.
+  - RNF-06 queda como objetivo de diseño, sin medición. Hay una tarea nueva, JZ-18 (RNF-11).
+  - 03 §2 dice cómo se verifica RNF-11. JG-02 declara RNF-13.
   - `calendario.md` precisa qué cubren las P1.
 - Decisiones (de Jordin, 27 sep):
-  - JZ-17 y JZ-18 son de José Pablo, P2, del avance final.
-  - RNF-06 se mide con una sonda externa, que no cuenta los errores del origen. RNF-11 se verifica solo con una prueba E2E cronometrada, sin pruebas con personas.
-  - No se sube ninguna prioridad: las P1 cubren el mínimo de cada lineamiento, y las P2 EM-12, EM-13, DC-14, JG-13 y JZ-12 completan la trazabilidad. Si hay que recortarlas, Jordin lo decide y lo anota aquí.
+  - RNF-06 no se mide en el ambiente simulado, porque no corre de forma continua. Queda como objetivo de diseño para un despliegue real, respaldado por el reinicio automático (JZ-06), RNF-04 y el estado de los componentes (JZ-12).
+  - JZ-18 es de José Pablo, P2, del avance final. RNF-11 se verifica solo con una prueba E2E cronometrada, sin pruebas con personas.
+  - No se sube ninguna prioridad: las P1 cubren el mínimo de cada lineamiento, y las P2 EM-12, DC-14, JG-13 y JZ-12 completan la trazabilidad (EM-12 y EM-13 cubren además RF-43, que no está en la tabla). Si hay que recortarlas, Jordin lo decide y lo anota aquí.
 - Pendiente o aviso para otros:
-  - **José Pablo:** tienes dos tareas nuevas en el avance final, JZ-17 (sonda de disponibilidad en `scripts/`, prueba de recuperación de la compuerta y resultado en el manual técnico) y JZ-18 (prueba E2E cronometrada de la publicación). Léelas con `node scripts/tareas.mjs --ver JZ-17` y `--ver JZ-18`. JZ-17 reutiliza el reinicio automático de JZ-06; JZ-18 reutiliza el flujo de JZ-13.
-  - **Emilio, Dominique y José Pablo:** EM-12, EM-13, DC-14 y JZ-12 siguen en P2, pero ahora `calendario.md` las nombra como las que completan los lineamientos. Avísenle a Jordin antes de dejarlas para después.
+  - **José Pablo:** tienes una tarea nueva en el avance final, JZ-18 (prueba E2E cronometrada de la publicación, RNF-11), que reutiliza el flujo de JZ-13. Léela con `node scripts/tareas.mjs --ver JZ-18`. En el manual técnico (JZ-15), RNF-06 se presenta como objetivo de diseño con los mecanismos de 03 §2, sin medición.
+  - **Emilio, Dominique y José Pablo:** EM-12, EM-13, DC-14 y JZ-12 siguen en P2, pero ahora `calendario.md` las nombra: completan los lineamientos o RF-43. Avísenle a Jordin antes de dejarlas para después.

@@ -91,7 +91,7 @@
 | Jordin | JG-15 (caché, P3), JG-16 (PDF de requisitos y diseño), JG-17 (convergencia final y congelamiento, jueves 29) |
 | Emilio | EM-16 (pruebas de aislamiento y permisos) |
 | Dominique | DC-16 (revisión visual contra los mockups) |
-| José Pablo | JZ-13 (E2E de los flujos principales), JZ-14 (pruebas de carga), JZ-15 (manual técnico), JZ-16 (manual de usuario), JZ-17 (disponibilidad, P2), JZ-18 (publicar en menos de 5 minutos, P2) |
+| José Pablo | JZ-13 (E2E de los flujos principales), JZ-14 (pruebas de carga), JZ-15 (manual técnico), JZ-16 (manual de usuario), JZ-18 (publicar en menos de 5 minutos, P2) |
 
 **Guion final (exposición):** el guion 3 completo, más un arranque limpio del ambiente productivo simulado, las pruebas E2E en verde, el resultado de las pruebas de carga (RNF-01 y RNF-03) y la defensa de la arquitectura con `docs/specs/12-decisiones.md`.
 
@@ -101,10 +101,11 @@
 
 1. Las tareas **P3** son las primeras en quedar fuera. Después, las **P2** del avance en curso, que pasan a la semana final.
 2. **Las P1 no se recortan**: cubren el mínimo de cada lineamiento obligatorio (`docs/specs/03-requisitos.md` §3). Estas P2 completan requisitos de esa tabla de trazabilidad, así que, si hay que recortarlas, Jordin lo decide y lo anota en la bitácora:
-   - EM-12: RF-06 (miembros con rol) y RF-43;
-   - EM-13: RF-43 (límites del plan de plataforma);
-   - DC-14: RF-11 y RF-12 (dominio propio);
+   - EM-12: RF-06 (miembros con rol);
+   - DC-14: RF-11 (hosts con TLS automático, en A3.6) y RF-12 (dominio propio);
    - JG-13: RF-36 (consumo por consumidor);
    - JZ-12: RF-39 (estado de los componentes).
+
+   EM-12 y EM-13 cubren además RF-43 (límites del plan de plataforma), que no está en esa tabla.
 3. En cada convergencia (JG-08, JG-14, JG-17), Jordin revisa la carga de cada persona y reprioriza.
 4. Si alguien no va a poder avanzar en una semana, avisa al grupo. Jordin puede reasignar una tarea mediante un PR que cambie en su archivo `persona` y `responsable` y agregue la línea `reasignada: si`. El ID **no cambia**, para no romper las dependencias.
