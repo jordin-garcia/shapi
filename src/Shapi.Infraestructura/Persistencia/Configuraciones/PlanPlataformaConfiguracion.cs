@@ -16,18 +16,19 @@ public class PlanPlataformaConfiguracion : IEntityTypeConfiguration<PlanPlatafor
 
         builder.Property(x => x.Descripcion).IsRequired();
         builder.Property(x => x.Precio).HasColumnType("numeric(12,2)");
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_plataforma_precio", "precio >= 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_plataforma_precio", "precio >= 0"));
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_plataforma_vigencia", "vigencia_dias BETWEEN 1 AND 366"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_plataforma_vigencia", "vigencia_dias BETWEEN 1 AND 366"));
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_plan_plataforma_cuota", "cuota_peticiones > 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_plataforma_cuota", "cuota_peticiones > 0"));
 
         builder.Property(x => x.EsPrueba).HasDefaultValue(false);
 
         // RNF-08: Un solo plan es_prueba
         builder.HasIndex(x => x.EsPrueba).IsUnique().HasFilter("es_prueba = true");
 
-        builder.Property(x => x.Activo).HasDefaultValue(true);
+        // ValueGeneratedNever: sin él, EF toma false como "sin valor" y la base guardaría el DEFAULT true
+        builder.Property(x => x.Activo).HasDefaultValue(true).ValueGeneratedNever();
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
         builder.Property(x => x.ActualizadoEn).IsRequired();

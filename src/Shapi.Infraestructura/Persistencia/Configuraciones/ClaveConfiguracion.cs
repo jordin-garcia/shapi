@@ -21,7 +21,7 @@ public class ClaveConfiguracion : IEntityTypeConfiguration<Clave>
             .IsRequired()
             .HasConversion(Conversores.TipoClave);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_clave_tipo",
+        builder.ToTable(t => t.HasCheckConstraint("ck_clave_tipo",
             "tipo IN ('produccion','pruebas')"));
 
         builder.Property(x => x.Prefijo).IsRequired();
@@ -33,13 +33,13 @@ public class ClaveConfiguracion : IEntityTypeConfiguration<Clave>
             .IsRequired()
             .HasConversion(Conversores.EstadoClave);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_clave_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_clave_estado",
             "estado IN ('activa','rotada','revocada')"));
 
         builder.Property(x => x.RevocadaPor)
             .HasConversion(Conversores.RevocadaPor);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_clave_revocada_por",
+        builder.ToTable(t => t.HasCheckConstraint("ck_clave_revocada_por",
             "revocada_por IS NULL OR revocada_por IN ('consumidor','proveedor')"));
 
         // RNF-08: Una sola clave activa por tipo por suscripción

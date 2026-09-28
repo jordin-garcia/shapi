@@ -101,7 +101,8 @@ El dominio base se configura con `SHAPI_DOMINIO_BASE` y vale `shapi.localhost` e
 
 La API de control expone además `/interno/*`, que **solo es accesible desde la red de Docker** porque Caddy no lo publica:
 - `GET /interno/tls/autorizar?domain=…`: el *ask* de *on-demand TLS*. Responde 200 si el dominio es propio y está verificado, y 404 en cualquier otro caso.
-- `GET /interno/salud`.
+
+La salud de la API y de la compuerta se consulta en su propio `/salud` (§8), dentro del propio contenedor (host `localhost`) o en la máquina; Caddy no lo publica.
 
 La **consola de pruebas** llama desde `https://{sub}.shapi.localhost` a `https://{sub}.api.shapi.localhost`, así que la compuerta responde el *preflight* CORS **sin pedir clave**, y solo permite como origen el host del portal de esa API ([08 §6](08-compuerta.md#6-cors)).
 
@@ -376,7 +377,7 @@ Los orígenes de demostración (`origen-envios` y `origen-agro`) son dos APIs m�
 
 ## 8. Observabilidad y estado de componentes
 
-- Cada proceso .NET expone `/salud`, con verificaciones de salud de ASP.NET Core, y escribe registros estructurados en JSON en la salida estándar.
+- La API de control y la compuerta exponen `/salud`, con verificaciones de salud de ASP.NET Core. La compuerta solo lo responde con el host `localhost`, para no tapar una ruta `/salud` de las APIs de los proveedores. El trabajador no tiene HTTP: su salud es el latido de abajo. Los tres procesos escriben registros estructurados en JSON en la salida estándar.
 - La compuerta y el trabajador escriben cada 10 segundos un **latido** en Redis (`salud:compuerta:{instancia}` y `salud:trabajador`, con un TTL de 30 s).
 - La API de control calcula el estado de B3.1 cada 30 segundos:
 
@@ -426,7 +427,8 @@ shapi/
 │  ├─ envios-xelaju/
 │  └─ agro-precios/
 ├─ infra/
-│  ├─ caddy/Caddyfile
+│  ├─ caddy/Caddyfile.dev       ← desarrollo (JZ-01)
+│  ├─ caddy/Caddyfile.prod      ← ambiente productivo simulado (JZ-06)
 │  ├─ compose.yml
 │  └─ compose.prod.yml
 └─ .github/workflows/
@@ -442,6 +444,7 @@ shapi/
 | Borde | Caddy 2 |
 | Pruebas | xUnit, Testcontainers, FluentAssertions, Vitest, Testing Library, Playwright, k6 (carga, para RNF-01 y RNF-03) |
 | Infraestructura | Docker Compose, GitHub Actions, GHCR |
+| Paquetes de apoyo (autorizados por JG-01 y DC-01) | NuGet: `EFCore.NamingConventions`, `Microsoft.Extensions.Identity.Core` (`PasswordHasher`), `Microsoft.Extensions.Hosting`, `Microsoft.AspNetCore.OpenApi`, `Microsoft.OpenApi.YamlReader`, `FluentValidation.DependencyInjectionExtensions`, `Microsoft.EntityFrameworkCore.Design` (migraciones), `NSubstitute`, `Microsoft.AspNetCore.Mvc.Testing`. npm: `openapi-fetch`, `openapi-typescript`, `msw`, `react-markdown`, `rehype-sanitize`, `@fontsource/sora`, `@fontsource/ibm-plex-sans`, `eslint` y sus complementos, `jsdom`, `@testing-library/user-event` |
 
 ### Justificación de cada tecnología
 

@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { generarContratos } from './generar.mjs';
 
 const temporales = [];
@@ -19,6 +21,10 @@ describe('RNF-12 · generación por módulo', () => {
   it('admite la carpeta de contratos vacía', async () => {
     await expect(generarContratos(await entorno())).resolves.toEqual([]);
   });
+  it('RNF-12 · H-90 admite que la carpeta de contratos no exista', async () => {
+    const rutas = await entorno();
+    await expect(generarContratos({ contratos: join(rutas.contratos, 'no-existe'), salida: rutas.salida })).resolves.toEqual([]);
+  });
   it('genera cada YAML e ignora README.md', async () => {
     const rutas = await entorno();
     await writeFile(join(rutas.contratos, 'apis.yaml'), contrato('apis'));
@@ -32,5 +38,21 @@ describe('RNF-12 · generación por módulo', () => {
     const rutas = await entorno();
     await writeFile(join(rutas.contratos, 'invalido.yaml'), contenido);
     await expect(generarContratos(rutas)).rejects.toThrow();
+  });
+});
+
+describe('RNF-12 · exportación de los tipos generados (H-83)', () => {
+  const contratos = fileURLToPath(new URL('../../../contratos/openapi/', import.meta.url));
+  const generado = fileURLToPath(new URL('./src/generado/', import.meta.url));
+
+  it('exporta cualquier módulo generado como @shapi/api/<modulo>, sin editar package.json', async () => {
+    const paquete = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
+    expect(paquete.exports['./*']).toBe('./src/generado/*.ts');
+  });
+  it('cada contrato de contratos/openapi se importa como @shapi/api/<modulo>', async () => {
+    const modulos = (await readdir(contratos)).filter(archivo => archivo.endsWith('.yaml')).map(archivo => archivo.replace(/\.yaml$/, ''));
+    expect(modulos).toContain('identidad');
+    const requerir = createRequire(import.meta.url);
+    for (const modulo of modulos) expect(requerir.resolve(`@shapi/api/${modulo}`)).toBe(join(generado, `${modulo}.ts`));
   });
 });

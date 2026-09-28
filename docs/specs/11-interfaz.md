@@ -10,7 +10,7 @@ La variante 4 es la oficial ([ADR-32](12-decisiones.md)). Las otras cinco quedar
 | Títulos, cifras destacadas y precios | **Sora** | 300 (titular del inicio), 400 y 500 |
 | Interfaz y datos | **IBM Plex Sans** | 400, 500 y 600. Cifras tabulares (`font-variant-numeric: tabular-nums`) en toda tabla |
 
-Escala: título de página 32/1.2 (Sora 400) · título de tarjeta 22/1.3 · cuerpo 16/1.6 · dato de tabla 15 · etiqueta 12, en mayúsculas, con `letter-spacing .16em`, color `--tinta-suave` · encabezado de tabla 11, en mayúsculas, con `letter-spacing .12em`.
+Escala: título de página 32/1.2 (Sora 400) · título de tarjeta 22/1.3 · cuerpo 16/1.6 · dato de tabla 15 · etiqueta 12, en mayúsculas, con `letter-spacing .16em`, color `--tinta-suave` · encabezado de tabla 11, en mayúsculas, con `letter-spacing .12em`. En Tailwind son `text-titulo`, `text-titulo-tarjeta`, `text-cuerpo`, `text-dato`, `text-etiqueta` y `text-encabezado`.
 
 ### Colores
 | Token | Superficie clara (aplicación y portal) | Superficie oscura (inicio y barra lateral) |
@@ -21,18 +21,34 @@ Escala: título de página 32/1.2 (Sora 400) · título de tarjeta 22/1.3 · cue
 | `--fondo` | `#F4F6FA` | `#060910` |
 | `--panel` | `#FFFFFF` | `#0C1220` |
 | `--borde` | `#DCE3EE` (campos: `#C9D2E1`, filas: `#EBEFF5`) | `#1B2436` (`#2A3550` en los controles) |
-| `--correcto` | texto `#146542` · fondo `#E4F3EC` · borde `#B6DCC9` | `#3FBF88` |
-| `--alerta` | texto `#8E3315` · fondo `#FBE9E3` · borde `#EDC3B4` | `#F08A5F` |
+| `--correcto` | base `#1F8A5B` · etiqueta: texto `#146542`, fondo `#E4F3EC`, borde `#B6DCC9` | `#3FBF88` |
+| `--alerta` | base `#C2481F` · etiqueta: texto `#8E3315`, fondo `#FBE9E3`, borde `#EDC3B4` | `#F08A5F` |
 | `--neutro` | texto `#5A6884` · fondo `#F4F6FA` · borde `#DCE3EE` | — |
+| `--tinta-inactiva` | `#A3AEC2` (texto del botón deshabilitado y texto guía de los campos) | — |
+| `--borde-inactivo` | `#E4E9F1` (borde del botón deshabilitado) | — |
+| `--anillo-foco` | `#DEE7FC` (anillo de 3 px del campo enfocado) | — |
+| `--borde-barra` | — | `#131B2B` (separadores de la barra superior y la lateral) |
+| `--tinta-rotulo` | — | `#7F8DA8` (rótulos de grupo de la barra lateral) |
+| `--tinta-navegacion` | — | `#B9C4D8` (enlaces de la barra lateral y botón de salir) |
+| `--fondo-activo` | — | `#0E1830` (enlace activo de la barra lateral) |
+
+En la superficie oscura solo cambian los tokens que tienen valor en su columna; los demás conservan el de la superficie clara. Correcto y alerta tienen allí un solo tono, que vale para la base y para la etiqueta. En Tailwind, los colores se declaran con `@theme inline`, para que la clase `.dark` los cambie. Se precisó el 27 de septiembre (auditoría, H-86). Los cuatro últimos tokens solo existen en la superficie oscura y salen de las barras de N.1, A6 y B3 (H-98).
+
+Cada color de estado tiene dos tonos, como en la lámina y los mockups:
+- **Base** (`--correcto-base` y `--alerta-base`): iconos de estado, muestras de la paleta, códigos HTTP (por ejemplo, el "200" de la consola) y texto de estado dentro de una tabla ("Expuesta").
+- **Etiqueta** (`--correcto` y `--alerta`, con su fondo y su borde): el texto sobre fondo de color, en las etiquetas `eti-c` y `eti-a` y en los avisos.
+
+Se precisó el 26 de septiembre: la tabla solo tenía el tono de etiqueta, mientras que la lámina y unos 20 mockups usan también el tono base.
 
 **Solo hay tres colores de estado**: correcto (activa, pagado, en servicio), alerta (suspendida, rechazado, en gracia, degradado) y neutro (despublicada, pendiente, cerrado).
 
 ### Componentes base
 - **Radio único:** 8 px. **Espaciado:** 4 · 8 · 12 · 16 · 20 · 24 · 32 · 44 · 64 · 80.
-- **Botón principal:** 46 px de alto, fondo `--principal`. **Botón secundario:** borde `#C9D2E1`. **Botón deshabilitado:** borde `#E4E9F1` y texto `#A3AEC2`.
+- **Botón principal:** 46 px de alto, texto de 15 px con peso 500, fondo `--principal`. **Botón secundario:** borde `#C9D2E1`. **Botón deshabilitado:** borde `#E4E9F1` y texto `#A3AEC2`.
+- **Campo:** 48 px de alto, texto de 15 px, relleno horizontal de 14 px y borde `#C9D2E1`. Enfocado: borde `--principal` y anillo de 3 px `--anillo-foco`. Texto guía en `--tinta-inactiva`. La etiqueta va encima, en 13 px seminegra.
 - **Etiqueta de estado:** clases `eti-c` (correcto), `eti-a` (alerta) y `eti-n` (neutro).
-- **Tabla:** filas de 42 px, encabezado de 11 px en mayúsculas y separador `#EBEFF5`.
-- **Tarjeta:** fondo blanco, borde de 1 px `#DCE3EE` y radio de 8 px, **sin sombra**.
+- **Tabla:** filas de 42 px, encabezado de 11 px en mayúsculas, seminegro, con 10 px debajo y borde `#DCE3EE`, y separador `#EBEFF5` en todas las filas. Las celdas tienen 16 px de relleno a la derecha y ninguno a la izquierda.
+- **Tarjeta:** fondo blanco, borde de 1 px `#DCE3EE`, radio de 8 px y relleno de 20 px, **sin sombra**.
 - **Estructura del panel:** barra superior oscura de 76 px, barra lateral oscura de 272 px con grupos *Publicación · API · Organización* y contenido con un margen de 44 px. Se diseña para 1440 × 900 y funciona desde 1280 px.
 - **Portal:** usa la misma estructura clara, pero el color principal es `--marca-principal`, el de la API. En el portal no aparece la marca de Shapi.
 
@@ -56,7 +72,9 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
 | A0.1 | Inicio de Shapi con planes | `Main.dc.html` | `shapi.localhost/` | RF-19 | ✎ (peticiones, miembros, Escala mensual/anual, texto de las claves) |
-| A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | — | — | ✎ (subdominio de ejemplo) |
+| A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | `shapi.localhost/_ui` (solo en desarrollo) | — | ✎ (subdominio de ejemplo) |
+
+> A0.2 lleva el host completo a propósito: la prueba del catálogo (`frontend/apps/panel/src/tests/rutas.test.tsx`) exige que cada ruta que empieza con `/` muestre su ID, y la lámina no lo muestra. La ruta `/_ui` se prueba aparte.
 
 ### A1 · Acceso del proveedor (`a1-acceso-proveedor.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
@@ -180,7 +198,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 Estos estados no tienen mockup propio. Se implementan con los componentes base:
 
 - **Cargando:** esqueleto con la forma de la tabla o la tarjeta.
-- **Error de red o del servidor:** un aviso con el estilo `eti-a` y el botón "Reintentar".
+- **Error de red o del servidor:** un aviso con los colores de `eti-a` y el botón secundario "Reintentar". El aviso no copia de la etiqueta las mayúsculas ni el texto en una sola línea.
 - **Error de validación:** el mensaje va debajo del campo, en `--alerta`, y el campo lleva un borde de ese color.
 - **Sin permiso:** el menú oculta la opción. Si se entra directo por la URL, se muestra "No tiene permiso para ver esta página".
 - **Acción confirmada:** un aviso breve (4 s) en la esquina superior derecha.
@@ -190,4 +208,23 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - La API seleccionada se representa en `/panel/apis/:id/...`. Al elegir desde una página sin ID, se abre su especificación; al cambiar de API desde una sección, se conserva esa sección. Sin selección, se indica que debe elegir una API y no se crean enlaces a un ID ficticio.
 - Mientras no exista el listado de DC-04, una respuesta 404 o 501 se presenta como «Sin APIs». Los demás errores muestran el aviso recuperable con «Reintentar».
 - Una sesión ausente (401) redirige a `/entrar`; un error de red o servidor mantiene la dirección y ofrece reintentar. Al cerrar sesión se espera la revocación del servidor antes de salir y limpiar los datos privados del cliente; si falla, se conserva la pantalla con un aviso y reintento.
-- El encabezado del proveedor muestra el nombre de su organización. Mientras el contrato provisional de sesión no lo suministre, muestra «Panel del proveedor».
+- El encabezado del proveedor muestra el nombre de su organización, que `GET /api/auth/sesion` devuelve en `organizacion.nombre`.
+- `/panel` y `/admin` llevan al destino del rol (10 §1), y `/panel/apis/:id` lleva a la especificación de esa API. A0.1 (`/`) tiene su propio encabezado; el de A1 solo va en las pantallas de acceso.
+- Quien entra al área de otro rol (un proveedor a `/admin`, o el personal de Shapi a `/panel`) ve "No tiene permiso para ver esta página" sin barra lateral, con "Ir a su panel" (su destino) y "Cerrar sesión". Dentro de su área, el 403 y el 404 conservan la barra lateral.
+- Un error que no es 404 (por ejemplo, una página que no se pudo descargar) muestra el aviso de error con "Reintentar", que vuelve a cargar la página.
+- La sesión consultada se considera vigente 5 minutos. Entrar la vuelve a pedir y salir borra la caché.
+- La estructura ocupa la altura de la ventana: solo se desplaza el contenido, y el pie de la barra lateral queda fijo.
+
+### Comportamiento de las pantallas de acceso (EM-03)
+
+- **A1.1 y A1.3:**
+  - en A1.1, los errores de validación de la API (`errores` por campo) se muestran debajo de cada campo;
+  - `correo_ya_registrado` se muestra debajo del correo;
+  - los demás errores con `codigo` (credenciales incorrectas, cuenta bloqueada o desactivada, demasiadas peticiones) se muestran en un aviso de alerta arriba del formulario, con el mensaje de la API;
+  - si falla la red o el servidor (un 5xx, aunque venga como ProblemDetails sin `codigo` del contrato), el aviso dice «No se pudo completar la solicitud. Revise su conexión e intente de nuevo.» y ofrece «Reintentar», que vuelve a enviar el formulario. Si la sesión no quedó iniciada después de entrar, se avisa lo mismo.
+- **A1.2 sin `token`:** es el aviso «Revise su correo» del mockup, con el correo de `?correo=`. «Enviar el enlace otra vez» pide un enlace nuevo y confirma con «Si su correo todavía no está confirmado, le llegará un enlace nuevo en unos minutos.», un mensaje que no revela si la cuenta existe (10 §1).
+- **A1.2 con `?token=`**, el destino del enlace del correo (10 §1):
+  - muestra «Confirmando su correo» mientras llama a la API, una sola vez por token;
+  - si la verificación funciona, consulta la sesión y lleva al destino según el rol;
+  - si el enlace venció o ya se usó (`token_invalido`), muestra «Enlace no válido» y un campo de correo para pedir otro, porque el enlace no trae la dirección;
+  - cualquier otro error muestra «No se pudo confirmar su correo» con el mensaje. Si es de red o del servidor, ofrece «Reintentar», y si el correo ya se confirmó y solo falló la consulta de la sesión, el reintento no vuelve a enviar el token.

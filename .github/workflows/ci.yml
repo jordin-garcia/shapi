@@ -4,6 +4,8 @@ name: CI
 
 on:
   pull_request:
+    # edited: al corregir el título del PR se vuelve a validar.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
 
@@ -26,6 +28,13 @@ jobs:
           node-version: 24
       - name: Validar las tareas del plan
         run: node scripts/tareas.mjs --validar
+      # Protocolo §B11: "[<ID>] <título>". Sin el ID, la revisión con Claude no revisa criterios ni alcance.
+      # El título va en una variable de entorno, nunca interpolado en el comando.
+      - name: Validar el título del PR
+        if: github.event_name == 'pull_request'
+        env:
+          TITULO_PR: ${{ github.event.pull_request.title }}
+        run: node scripts/tareas.mjs --validar-titulo
       # Node no recorre directorios con --test: se le pasa el patrón entre comillas y lo expande él.
       - name: Pruebas de los scripts
         run: node --test "scripts/*.test.mjs"

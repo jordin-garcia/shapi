@@ -23,7 +23,7 @@
 
 ## Reglas para quien implementa (personas o agentes de IA)
 
-1. **No se inventan requisitos.** Si algo no está especificado, se agrega aquí primero, mediante un *pull request* que modifique la especificación, y después se implementa.
+1. **No se inventan requisitos.** Si algo no está especificado, se agrega a la especificación en el mismo *pull request* que lo implementa, siguiendo `docs/plan/protocolo.md` §C; si es de alto impacto, se pregunta antes.
 2. **Los nombres del dominio van en español** y siguen el [glosario](02-glosario.md) en el código, la base de datos, la API y las pruebas.
 3. **Cada requisito tiene su criterio de aceptación**, que debe quedar cubierto por al menos una prueba automatizada que mencione su código (por ejemplo `// RF-28`).
 4. **La interfaz se implementa igual a los mockups** de [11](11-interfaz.md), con los datos de la siembra de demostración.

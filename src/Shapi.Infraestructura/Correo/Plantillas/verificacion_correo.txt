@@ -1,0 +1,6 @@
+Hola, {{nombre}}.
+
+Para verificar su correo, abra el siguiente enlace:
+{{enlace}}
+
+Este enlace vence en 24 horas. Si usted no creó esta cuenta, puede ignorar este mensaje.

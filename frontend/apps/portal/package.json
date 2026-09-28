@@ -7,8 +7,7 @@
     "dev": "vite --port 5174",
     "build": "tsc && vite build",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@shapi/ui": "workspace:*",

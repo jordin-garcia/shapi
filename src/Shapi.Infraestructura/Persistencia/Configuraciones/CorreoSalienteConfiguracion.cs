@@ -20,9 +20,14 @@ public class CorreoSalienteConfiguracion : IEntityTypeConfiguration<CorreoSalien
             .IsRequired()
             .HasConversion(Conversores.EstadoCorreo);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_correo_saliente_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_correo_saliente_estado",
             "estado IN ('pendiente','enviado','fallido')"));
 
+        // El trabajador busca cada 5 s los pendientes cuyo próximo intento ya venció (10 §6).
+        builder.HasIndex(x => new { x.Estado, x.ProximoIntentoEn });
+
         builder.Property(x => x.Intentos).HasDefaultValue(0);
+        builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

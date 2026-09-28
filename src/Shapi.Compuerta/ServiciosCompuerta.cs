@@ -24,7 +24,12 @@ public static class ServiciosCompuerta
         });
 
         services.AddHttpForwarder();
-        services.AddSingleton(_ => ReenvioOrigen.CrearInvocador());
+
+        // YARP registra la URL de destino con su query ("Proxying to …"), que puede traer datos del consumidor
+        // (08 §1). Solo se conservan sus advertencias y errores.
+        services.AddLogging(registros => registros.AddFilter("Yarp.ReverseProxy.Forwarder.HttpForwarder", LogLevel.Warning));
+        services.AddSingleton(TiemposOrigen.PorDefecto);
+        services.AddSingleton(sp => ReenvioOrigen.CrearInvocador(sp.GetRequiredService<TiemposOrigen>()));
         services.AddSingleton<IReenvioOrigen, ReenvioOrigen>();
 
         foreach (var filtro in TuberiaCompuerta.Orden)
@@ -34,7 +39,8 @@ public static class ServiciosCompuerta
 
         services.AddSingleton(sp => new TuberiaCompuerta(
             TuberiaCompuerta.Orden.Select(filtro => (IFiltroCompuerta)sp.GetRequiredService(filtro)),
-            sp.GetRequiredService<IReenvioOrigen>()));
+            sp.GetRequiredService<IReenvioOrigen>(),
+            sp.GetRequiredService<ILogger<TuberiaCompuerta>>()));
         return services;
     }
 }

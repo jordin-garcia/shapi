@@ -23,8 +23,8 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.HasSequence("caso_numero_seq")
-                .IncrementsBy(10);
+            modelBuilder.HasSequence<int>("caso_numero_seq")
+                .StartsAt(100L);
 
             modelBuilder.Entity("Shapi.Dominio.Apis.Api", b =>
                 {
@@ -72,6 +72,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("text")
+                        .HasDefaultValue("borrador")
                         .HasColumnName("estado");
 
                     b.Property<string>("Nombre")
@@ -140,15 +141,17 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("api", null, t =>
                         {
-                            t.HasCheckConstraint("CK_api_especificacion_formato", "especificacion_formato IS NULL OR especificacion_formato IN ('json','yaml')");
+                            t.HasCheckConstraint("ck_api_especificacion_formato", "especificacion_formato IS NULL OR especificacion_formato IN ('json','yaml')");
 
-                            t.HasCheckConstraint("CK_api_estado", "estado IN ('borrador','publicada','despublicada')");
+                            t.HasCheckConstraint("ck_api_estado", "estado IN ('borrador','publicada','despublicada')");
 
-                            t.HasCheckConstraint("CK_api_portal_color", "portal_color ~ '^#[0-9A-Fa-f]{6}$'");
+                            t.HasCheckConstraint("ck_api_portal_color", "portal_color ~ '^#[0-9A-Fa-f]{6}$'");
 
-                            t.HasCheckConstraint("CK_api_portal_logo_tipo", "portal_logo_tipo IS NULL OR portal_logo_tipo IN ('image/png','image/svg+xml')");
+                            t.HasCheckConstraint("ck_api_portal_logo", "portal_logo IS NULL OR octet_length(portal_logo) <= 524288");
 
-                            t.HasCheckConstraint("CK_api_subdominio", "subdominio ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'");
+                            t.HasCheckConstraint("ck_api_portal_logo_tipo", "portal_logo_tipo IS NULL OR portal_logo_tipo IN ('image/png','image/svg+xml')");
+
+                            t.HasCheckConstraint("ck_api_subdominio", "subdominio ~ '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'");
                         });
                 });
 
@@ -215,7 +218,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("dominio_propio", null, t =>
                         {
-                            t.HasCheckConstraint("CK_dominio_propio_estado", "estado IN ('pendiente','verificado','fallido')");
+                            t.HasCheckConstraint("ck_dominio_propio_estado", "estado IN ('pendiente','verificado','fallido')");
                         });
                 });
 
@@ -225,6 +228,18 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -250,7 +265,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("registro_dns_simulado", null, t =>
                         {
-                            t.HasCheckConstraint("CK_registro_dns_tipo", "tipo IN ('CNAME')");
+                            t.HasCheckConstraint("ck_registro_dns_simulado_tipo", "tipo IN ('CNAME')");
                         });
                 });
 
@@ -331,13 +346,15 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("ruta", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ruta_cache_segundos", "cache_segundos BETWEEN 0 AND 86400");
+                            t.HasCheckConstraint("ck_ruta_cache_segundos", "cache_segundos BETWEEN 0 AND 86400");
 
-                            t.HasCheckConstraint("CK_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0");
+                            t.HasCheckConstraint("ck_ruta_cache_solo_get", "cache_segundos = 0 OR metodo = 'GET'");
 
-                            t.HasCheckConstraint("CK_ruta_metodo", "metodo IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')");
+                            t.HasCheckConstraint("ck_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0");
 
-                            t.HasCheckConstraint("CK_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000");
+                            t.HasCheckConstraint("ck_ruta_metodo", "metodo IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')");
+
+                            t.HasCheckConstraint("ck_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000");
                         });
                 });
 
@@ -408,7 +425,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("bitacora", null, t =>
                         {
-                            t.HasCheckConstraint("CK_bitacora_actor_tipo", "actor_tipo IN ('usuario','consumidor','sistema')");
+                            t.HasCheckConstraint("ck_bitacora_actor_tipo", "actor_tipo IN ('usuario','consumidor','sistema')");
                         });
                 });
 
@@ -490,11 +507,11 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("clave", null, t =>
                         {
-                            t.HasCheckConstraint("CK_clave_estado", "estado IN ('activa','rotada','revocada')");
+                            t.HasCheckConstraint("ck_clave_estado", "estado IN ('activa','rotada','revocada')");
 
-                            t.HasCheckConstraint("CK_clave_revocada_por", "revocada_por IS NULL OR revocada_por IN ('consumidor','proveedor')");
+                            t.HasCheckConstraint("ck_clave_revocada_por", "revocada_por IS NULL OR revocada_por IN ('consumidor','proveedor')");
 
-                            t.HasCheckConstraint("CK_clave_tipo", "tipo IN ('produccion','pruebas')");
+                            t.HasCheckConstraint("ck_clave_tipo", "tipo IN ('produccion','pruebas')");
                         });
                 });
 
@@ -506,6 +523,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("ApiId")
                         .HasColumnType("uuid")
@@ -522,6 +545,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
                         .HasColumnName("bytes_salida");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Entorno")
                         .IsRequired()
@@ -560,25 +589,25 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("origen2xx");
+                        .HasColumnName("origen_2xx");
 
                     b.Property<long>("Origen3xx")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("origen3xx");
+                        .HasColumnName("origen_3xx");
 
                     b.Property<long>("Origen4xx")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("origen4xx");
+                        .HasColumnName("origen_4xx");
 
                     b.Property<long>("Origen5xx")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("origen5xx");
+                        .HasColumnName("origen_5xx");
 
                     b.Property<long>("OrigenFallo")
                         .ValueGeneratedOnAdd()
@@ -596,25 +625,25 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("rechazos401");
+                        .HasColumnName("rechazos_401");
 
                     b.Property<long>("Rechazos403")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("rechazos403");
+                        .HasColumnName("rechazos_403");
 
                     b.Property<long>("Rechazos404")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("rechazos404");
+                        .HasColumnName("rechazos_404");
 
                     b.Property<long>("Rechazos429")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L)
-                        .HasColumnName("rechazos429");
+                        .HasColumnName("rechazos_429");
 
                     b.Property<Guid?>("RutaId")
                         .HasColumnType("uuid")
@@ -644,7 +673,11 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("consumo_diario", null, t =>
                         {
-                            t.HasCheckConstraint("CK_consumo_entorno", "entorno IN ('produccion','pruebas')");
+                            t.HasCheckConstraint("ck_consumo_diario_entorno", "entorno IN ('produccion','pruebas')");
+
+                            t.HasCheckConstraint("ck_consumo_diario_hist_latencia_compuerta", "cardinality(hist_latencia_compuerta) = 10");
+
+                            t.HasCheckConstraint("ck_consumo_diario_hist_latencia_total", "cardinality(hist_latencia_total) = 10");
                         });
                 });
 
@@ -672,10 +705,22 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<string>("Asunto")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("asunto");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Datos")
                         .IsRequired()
@@ -718,9 +763,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                     b.HasKey("Id")
                         .HasName("pk_correo_saliente");
 
+                    b.HasIndex("Estado", "ProximoIntentoEn")
+                        .HasDatabaseName("ix_correo_saliente_estado_proximo_intento_en");
+
                     b.ToTable("correo_saliente", null, t =>
                         {
-                            t.HasCheckConstraint("CK_correo_saliente_estado", "estado IN ('pendiente','enviado','fallido')");
+                            t.HasCheckConstraint("ck_correo_saliente_estado", "estado IN ('pendiente','enviado','fallido')");
                         });
                 });
 
@@ -730,6 +778,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset?>("BloqueadoHasta")
                         .HasColumnType("timestamp with time zone")
@@ -744,9 +798,16 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("correo_verificado_en");
 
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("text")
+                        .HasDefaultValue("activo")
                         .HasColumnName("estado");
 
                     b.Property<string>("HashContrasena")
@@ -783,7 +844,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("consumidor", null, t =>
                         {
-                            t.HasCheckConstraint("CK_consumidor_estado", "estado IN ('activo','desactivado')");
+                            t.HasCheckConstraint("ck_consumidor_estado", "estado IN ('activo','desactivado')");
                         });
                 });
 
@@ -793,6 +854,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("AgenteUsuario")
                         .HasColumnType("text")
@@ -860,9 +927,9 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("sesion", null, t =>
                         {
-                            t.HasCheckConstraint("CK_sesion_actor", "num_nonnulls(usuario_id, consumidor_id) = 1");
+                            t.HasCheckConstraint("ck_sesion_actor", "num_nonnulls(usuario_id, consumidor_id) = 1");
 
-                            t.HasCheckConstraint("CK_sesion_ambito", "ambito IN ('personal','consumidor')");
+                            t.HasCheckConstraint("ck_sesion_ambito", "ambito IN ('personal','consumidor')");
                         });
                 });
 
@@ -873,6 +940,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<Guid?>("ConsumidorId")
                         .HasColumnType("uuid")
                         .HasColumnName("consumidor_id");
@@ -881,6 +954,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("correo");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset>("ExpiraEn")
                         .HasColumnType("timestamp with time zone")
@@ -932,7 +1011,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("token", null, t =>
                         {
-                            t.HasCheckConstraint("CK_token_tipo", "tipo IN ('verificacion_correo','recuperacion','invitacion_miembro','invitacion_consumidor','definir_contrasena')");
+                            t.HasCheckConstraint("ck_token_tipo", "tipo IN ('verificacion_correo','recuperacion','invitacion_miembro','invitacion_consumidor','definir_contrasena')");
                         });
                 });
 
@@ -942,6 +1021,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<DateTimeOffset?>("BloqueadoHasta")
                         .HasColumnType("timestamp with time zone")
@@ -956,9 +1041,16 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("correo_verificado_en");
 
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("text")
+                        .HasDefaultValue("activo")
                         .HasColumnName("estado");
 
                     b.Property<string>("HashContrasena")
@@ -985,7 +1077,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("usuario", null, t =>
                         {
-                            t.HasCheckConstraint("CK_usuario_estado", "estado IN ('activo','desactivado')");
+                            t.HasCheckConstraint("ck_usuario_estado", "estado IN ('activo','desactivado')");
                         });
                 });
 
@@ -995,6 +1087,18 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ActualizadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("actualizado_en")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("OrganizacionId")
                         .HasColumnType("uuid")
@@ -1023,7 +1127,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("membresia", null, t =>
                         {
-                            t.HasCheckConstraint("CK_membresia_rol", "rol IN ('administrador','soporte','propietario','editor','lector')");
+                            t.HasCheckConstraint("ck_membresia_rol", "rol IN ('administrador','soporte','propietario','editor','lector')");
                         });
                 });
 
@@ -1049,6 +1153,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                     b.Property<string>("EstadoAdmin")
                         .IsRequired()
                         .HasColumnType("text")
+                        .HasDefaultValue("activa")
                         .HasColumnName("estado_admin");
 
                     b.Property<string>("MotivoSuspension")
@@ -1076,9 +1181,11 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("organizacion", null, t =>
                         {
-                            t.HasCheckConstraint("CK_organizacion_estado_admin", "estado_admin IN ('activa','suspendida')");
+                            t.HasCheckConstraint("ck_organizacion_estado_admin", "estado_admin IN ('activa','suspendida')");
 
-                            t.HasCheckConstraint("CK_organizacion_tipo", "tipo IN ('plataforma','proveedor')");
+                            t.HasCheckConstraint("ck_organizacion_nombre", "char_length(nombre) >= 2");
+
+                            t.HasCheckConstraint("ck_organizacion_tipo", "tipo IN ('plataforma','proveedor')");
                         });
                 });
 
@@ -1144,9 +1251,11 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("medio_pago", null, t =>
                         {
-                            t.HasCheckConstraint("CK_medio_pago_marca", "marca IN ('Visa','Mastercard','American Express')");
+                            t.HasCheckConstraint("ck_medio_pago_dueno", "num_nonnulls(organizacion_id, consumidor_id) = 1");
 
-                            t.HasCheckConstraint("CK_medio_pago_org_cons", "num_nonnulls(organizacion_id, consumidor_id) = 1");
+                            t.HasCheckConstraint("ck_medio_pago_marca", "marca IN ('Visa','Mastercard','American Express')");
+
+                            t.HasCheckConstraint("ck_medio_pago_mes_vencimiento", "mes_vencimiento BETWEEN 1 AND 12");
                         });
                 });
 
@@ -1247,13 +1356,13 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("pago", null, t =>
                         {
-                            t.HasCheckConstraint("CK_pago_concepto", "concepto IN ('contratacion','renovacion','cambio_plan','reactivacion')");
+                            t.HasCheckConstraint("ck_pago_concepto", "concepto IN ('contratacion','renovacion','cambio_plan','reactivacion')");
 
-                            t.HasCheckConstraint("CK_pago_estado", "estado IN ('autorizado','rechazado','revertido')");
+                            t.HasCheckConstraint("ck_pago_estado", "estado IN ('autorizado','rechazado','revertido')");
 
-                            t.HasCheckConstraint("CK_pago_monto", "monto > 0");
+                            t.HasCheckConstraint("ck_pago_monto", "monto > 0");
 
-                            t.HasCheckConstraint("CK_pago_suscripcion", "num_nonnulls(suscripcion_plataforma_id, suscripcion_api_id) = 1");
+                            t.HasCheckConstraint("ck_pago_suscripcion", "num_nonnulls(suscripcion_plataforma_id, suscripcion_api_id) = 1");
                         });
                 });
 
@@ -1265,7 +1374,6 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnName("id");
 
                     b.Property<bool>("Activo")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("activo");
@@ -1325,15 +1433,15 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("plan_api", null, t =>
                         {
-                            t.HasCheckConstraint("CK_plan_api_cuota", "cuota_llamadas > 0");
+                            t.HasCheckConstraint("ck_plan_api_cuota", "cuota_llamadas > 0");
 
-                            t.HasCheckConstraint("CK_plan_api_gratuito", "NOT es_gratuito OR precio = 0");
+                            t.HasCheckConstraint("ck_plan_api_gratuito", "NOT es_gratuito OR precio = 0");
 
-                            t.HasCheckConstraint("CK_plan_api_limite", "limite_minuto > 0");
+                            t.HasCheckConstraint("ck_plan_api_limite", "limite_minuto > 0");
 
-                            t.HasCheckConstraint("CK_plan_api_precio", "precio >= 0");
+                            t.HasCheckConstraint("ck_plan_api_precio", "precio >= 0");
 
-                            t.HasCheckConstraint("CK_plan_api_vigencia", "vigencia_dias BETWEEN 1 AND 366");
+                            t.HasCheckConstraint("ck_plan_api_vigencia", "vigencia_dias BETWEEN 1 AND 366");
                         });
                 });
 
@@ -1345,7 +1453,6 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasColumnName("id");
 
                     b.Property<bool>("Activo")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("activo");
@@ -1420,11 +1527,11 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("plan_plataforma", null, t =>
                         {
-                            t.HasCheckConstraint("CK_plan_plataforma_cuota", "cuota_peticiones > 0");
+                            t.HasCheckConstraint("ck_plan_plataforma_cuota", "cuota_peticiones > 0");
 
-                            t.HasCheckConstraint("CK_plan_plataforma_precio", "precio >= 0");
+                            t.HasCheckConstraint("ck_plan_plataforma_precio", "precio >= 0");
 
-                            t.HasCheckConstraint("CK_plan_plataforma_vigencia", "vigencia_dias BETWEEN 1 AND 366");
+                            t.HasCheckConstraint("ck_plan_plataforma_vigencia", "vigencia_dias BETWEEN 1 AND 366");
                         });
                 });
 
@@ -1477,9 +1584,8 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                     b.Property<int>("Numero")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("numero");
-
-                    NpgsqlPropertyBuilderExtensions.UseHiLo(b.Property<int>("Numero"), "caso_numero_seq");
+                        .HasColumnName("numero")
+                        .HasDefaultValueSql("nextval('caso_numero_seq')");
 
                     b.Property<Guid>("OrganizacionId")
                         .HasColumnType("uuid")
@@ -1506,7 +1612,7 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("caso", null, t =>
                         {
-                            t.HasCheckConstraint("CK_caso_estado", "estado IN ('abierto','cerrado')");
+                            t.HasCheckConstraint("ck_caso_estado", "estado IN ('abierto','cerrado')");
                         });
                 });
 
@@ -1616,6 +1722,9 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                     b.HasIndex("PlanId")
                         .HasDatabaseName("ix_suscripcion_api_plan_id");
 
+                    b.HasIndex("PlanSiguienteId")
+                        .HasDatabaseName("ix_suscripcion_api_plan_siguiente_id");
+
                     b.HasIndex("ConsumidorId", "ApiId")
                         .IsUnique()
                         .HasDatabaseName("ix_suscripcion_api_consumidor_id_api_id")
@@ -1629,9 +1738,9 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("suscripcion_api", null, t =>
                         {
-                            t.HasCheckConstraint("CK_suscripcion_api_estado", "estado IN ('activa','en_gracia','suspendida','finalizada')");
+                            t.HasCheckConstraint("ck_suscripcion_api_estado", "estado IN ('activa','en_gracia','suspendida','finalizada')");
 
-                            t.HasCheckConstraint("CK_suscripcion_api_fechas", "fin > inicio");
+                            t.HasCheckConstraint("ck_suscripcion_api_fechas", "fin > inicio");
                         });
                 });
 
@@ -1701,6 +1810,9 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                     b.HasIndex("PlanId")
                         .HasDatabaseName("ix_suscripcion_plataforma_plan_id");
 
+                    b.HasIndex("PlanSiguienteId")
+                        .HasDatabaseName("ix_suscripcion_plataforma_plan_siguiente_id");
+
                     b.HasIndex("Estado", "Fin")
                         .HasDatabaseName("ix_suscripcion_plataforma_estado_fin");
 
@@ -1709,9 +1821,9 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
 
                     b.ToTable("suscripcion_plataforma", null, t =>
                         {
-                            t.HasCheckConstraint("CK_suscripcion_plat_estado", "estado IN ('activa','en_gracia','suspendida','finalizada')");
+                            t.HasCheckConstraint("ck_suscripcion_plataforma_estado", "estado IN ('activa','en_gracia','suspendida','finalizada')");
 
-                            t.HasCheckConstraint("CK_suscripcion_plat_fechas", "fin > inicio");
+                            t.HasCheckConstraint("ck_suscripcion_plataforma_fechas", "fin > inicio");
                         });
                 });
 
@@ -1975,6 +2087,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_suscripcion_api_plan_api_plan_id");
+
+                    b.HasOne("Shapi.Dominio.Planes.PlanApi", null)
+                        .WithMany()
+                        .HasForeignKey("PlanSiguienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_suscripcion_api_plan_api_plan_siguiente_id");
                 });
 
             modelBuilder.Entity("Shapi.Dominio.Suscripciones.SuscripcionPlataforma", b =>
@@ -1998,6 +2116,12 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_suscripcion_plataforma_plan_plataforma_plan_id");
+
+                    b.HasOne("Shapi.Dominio.Planes.PlanPlataforma", null)
+                        .WithMany()
+                        .HasForeignKey("PlanSiguienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_suscripcion_plataforma_plan_plataforma_plan_siguiente_id");
                 });
 #pragma warning restore 612, 618
         }

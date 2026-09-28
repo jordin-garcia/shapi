@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.TestHost;
 namespace Shapi.Compuerta.Tests.Soporte;
 
 /// <summary>
-/// Origen del proveedor en memoria (TestServer): guarda la última petición que recibe y responde
-/// siempre 201 con una cabecera y un cuerpo reconocibles.
+/// Origen del proveedor en memoria (TestServer): guarda la última petición que recibe y responde 201 con una
+/// cabecera y un cuerpo reconocibles, salvo que una prueba cambie la respuesta con <see cref="Responder"/>.
 /// </summary>
 public sealed class OrigenFalso : IAsyncDisposable
 {
@@ -16,6 +16,9 @@ public sealed class OrigenFalso : IAsyncDisposable
     private WebApplication? _app;
 
     public PeticionRecibida? Ultima { get; private set; }
+
+    /// <summary>Otra respuesta para las pruebas que la necesiten; <see cref="Olvidar"/> vuelve a la normal.</summary>
+    public Func<HttpContext, Task>? Responder { get; set; }
 
     public async Task IniciarAsync()
     {
@@ -33,6 +36,12 @@ public sealed class OrigenFalso : IAsyncDisposable
                 http.Request.Headers.ToDictionary(c => c.Key, c => c.Value.ToString(), StringComparer.OrdinalIgnoreCase),
                 cuerpo);
 
+            if (Responder is not null)
+            {
+                await Responder(http);
+                return;
+            }
+
             http.Response.StatusCode = StatusCodes.Status201Created;
             http.Response.Headers["X-Origen"] = "falso";
             http.Response.ContentType = "application/json";
@@ -43,7 +52,11 @@ public sealed class OrigenFalso : IAsyncDisposable
 
     public HttpMessageHandler CrearManejador() => _app!.GetTestServer().CreateHandler();
 
-    public void Olvidar() => Ultima = null;
+    public void Olvidar()
+    {
+        Ultima = null;
+        Responder = null;
+    }
 
     public async ValueTask DisposeAsync()
     {

@@ -23,7 +23,7 @@ Cargar y validar la especificación OpenAPI de una API, extraer sus rutas conser
 - `docs/specs/12-decisiones.md` ADR-26
 - `docs/specs/07-modelo-de-datos.md` §3.2 (`ruta.definicion`)
 - Mockups: `mockups/A3/Especificacion.dc.html`, `Rutas.dc.html`
-- Archivos de ejemplo: `origenes-demo/*/openapi.yaml` (de JZ-02)
+- Archivos de ejemplo: `origenes-demo/envios-xelaju/cotizacion-envios.yaml` (las 5 rutas de A3.3) y `origenes-demo/agro-precios/openapi.yaml` (de JZ-02)
 
 ## Archivos que creas o modificas
 - `src/*/Apis/**` (modificar)

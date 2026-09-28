@@ -49,11 +49,11 @@ scripts/
 
 ## 2. Qué pertenece a quién
 
-Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes".
+Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la tarea lo dice explícitamente; si no lo dice, se aplica "Preguntar antes". La excepción es el coordinador (Jordin): en cualquier PR suyo puede modificar cualquier archivo de esta tabla y de §3, y avisa en su bitácora a la persona dueña (`protocolo.md` §E1). La excepción cubre solo quién edita; las reglas técnicas de §3 (no editar el snapshot ni el lockfile a mano, no editar `Program.cs`, etc.) se siguen aplicando igual.
 
 | Persona | Backend (`src/*/<Modulo>/`, `tests/*/<Modulo>/`) | Frontend | Otros |
 |---|---|---|---|
-| **Jordin** (JG) | `Claves`, `Consumo`, `Cache`, todo `Shapi.Compuerta/`, `Shapi.Contratos/Redis/` | `panel/paginas/A4-3*`, `panel/paginas/B1-1*`, `panel/paginas/B1-2*`, `portal/paginas/B2-1*` | `.github/workflows/`, `Shapi.slnx`, `Directory.*.props`, `docs/specs/` (coordina) |
+| **Jordin** (JG) | `Claves`, `Consumo`, `Cache`, todo `Shapi.Compuerta/`, `Shapi.Contratos/Redis/` | `panel/paginas/A4-3*`, `panel/paginas/B1-1*`, `panel/paginas/B1-2*`, `portal/paginas/B2-1*` | `.github/workflows/`, `Shapi.slnx`, `Directory.*.props`, `docs/specs/` (coordina), `contratos/openapi/{claves,consumo}.yaml` |
 | **Emilio** (EM) | `Identidad`, `Organizaciones`, `Planes`, `Suscripciones`, `Pagos`, `Persistencia/` (esquema y migraciones), `Siembra/Base/` | `panel/paginas/A1-*`, `A2-*`, `A4-1*`, `A4-2*`, `A6-1*`, `A6-3*`, `A8-*`, `B1-3*`, `B1-4*`, `B1-5*` | `contratos/openapi/{identidad,organizaciones,planes,suscripciones,pagos}.yaml` |
 | **Dominique** (DC) | `Apis`, `Portal`, `Shapi.Contratos/Red/` (ValidadorDireccionOrigen) | `packages/ui/`, `packages/api/` (base), estructura de `apps/panel` y `apps/portal` (layouts, `rutas.tsx`), `panel/paginas/A0-*`, `A3-*`, todo `portal/paginas/` salvo `B2-1*` | `contratos/openapi/{apis,portal}.yaml`, `frontend/package.json` y el lockfile |
 | **José Pablo** (JZ) | `Administracion`, `Soporte`, `Bitacora`, `Correo`, `Estado`, `Siembra/Demo/` | `panel/paginas/A6-2*`, `A6-4*`, `A6-5*`, `A7-*`, `B3-*` | `infra/`, `origenes-demo/`, `tests/e2e/`, `tests/carga/`, `docs/manual-*.md`, Dockerfiles, `contratos/openapi/{administracion,soporte,sistema}.yaml` |
@@ -61,6 +61,8 @@ Cada persona modifica solo lo suyo. Si una tarea necesita tocar algo ajeno, la t
 Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `docs/specs/` que tienen que ver con su tarea.
 
 ## 3. Archivos calientes y cómo resolver sus conflictos
+
+Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo Jordin", "Cada quien edita los suyos") no aplican al coordinador (§2). Las reglas técnicas sí.
 
 | Archivo | Regla |
 |---|---|
@@ -70,7 +72,7 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
 | `frontend/apps/*/src/rutas.tsx` | Lo crea DC-02 con todas las rutas del catálogo, apuntando a páginas de relleno. **Para implementar una pantalla se reemplaza el contenido de su archivo en `paginas/`, no se toca `rutas.tsx`** |
 | `src/Shapi.Api/Program.cs` | No se edita. Cada módulo se registra en su `Modulos/<Modulo>Modulo.cs`, que ya existe desde JG-01 |
 | `Shapi.slnx` | Solo lo modifica JG-01. Los proyectos de demostración los agrega JZ-02 |
-| `infra/caddy/Caddyfile`, `infra/compose*.yml` | Solo José Pablo. Si otra tarea necesita un cambio, la tarea lo indica |
+| `infra/caddy/Caddyfile.*`, `infra/compose*.yml` | Solo José Pablo. Si otra tarea necesita un cambio, la tarea lo indica |
 | `.github/workflows/*` | Solo Jordin, salvo `publicar-imagenes.yml` (JZ-06) y `e2e.yml` (JZ-07), que son de José Pablo |
 | `docs/plan/tareas/*`, `docs/plan/bitacora/*` | Cada quien edita los suyos. Las tareas de convergencia de Jordin pueden crear tareas para otros |
 
@@ -78,8 +80,8 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
 
 - **Ramas:** `<persona>/<ID>-<descripcion>`, por ejemplo `jose-pablo/JZ-01-infraestructura-local`.
 - ***Commits*** en español, con el formato `tipo(modulo): descripción (ID)`. Los tipos son `feat`, `fix`, `test`, `docs`, `refactor`, `chore` y `ci`.
-- **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla.
-- **Integración:** *squash*, con auto-merge cuando pasan las verificaciones obligatorias (`plan`, `backend`, `frontend`). No se exigen aprobaciones humanas. La rama debe estar al día con `main`.
+- **Un PR por tarea**, con el título `[<ID>] <título de la tarea>` y el cuerpo según la plantilla. La CI rechaza los títulos sin `[<ID>]` o con un ID que no existe.
+- **Integración:** *squash*, con auto-merge cuando pasan las verificaciones obligatorias (`plan`, `backend`, `frontend` y `revision-claude`). No se exigen aprobaciones humanas. La rama debe estar al día con `main`. Si `revision-claude` falla por un falso positivo, solo el coordinador integra con `--admin` (`protocolo.md` B11).
 - `main` siempre tiene que compilar y pasar todas las pruebas.
 
 ## 5. Convenciones de la API de control
@@ -90,7 +92,7 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
   ```json
   { "type": "about:blank", "title": "El plan no permite más APIs", "status": 422, "codigo": "limite_del_plan", "detalle": { "limite": "apis" } }
   ```
-  Los códigos (`codigo`) son los que aparecen en las especificaciones: `correo_no_verificado`, `limite_del_plan`, `pago_rechazado`, `origen_inaccesible`, etc. Validación de datos → 400, con `errores` por campo. Sin sesión → 401. Sin permiso → 403. Recurso de otra organización o inexistente → 404. Regla de negocio → 422. Conflicto (un duplicado) → 409.
+  Los códigos (`codigo`) son los que aparecen en las especificaciones: `correo_no_verificado`, `limite_del_plan`, `pago_rechazado`, `origen_inaccesible`, etc. Validación de datos → 400 `datos_invalidos`, con `errores` por campo (nombre del campo en camelCase → lista de mensajes). Sin sesión → 401. Sin permiso → 403. Recurso de otra organización o inexistente → 404. Regla de negocio → 422. Conflicto (un duplicado) → 409.
 - **Listas paginadas:** `?pagina=1&tamano=20`, con la respuesta `{ "elementos": [...], "total": 123 }`.
 - **Autorización:** cada endpoint declara su política (`RequireAuthorization("Permiso.X")`) según `docs/specs/04-roles-y-permisos.md`. Los endpoints del portal usan la sesión del ámbito `consumidor` y la organización se resuelve por el host.
 - **CSRF:** todo método distinto de GET exige la cabecera `X-Requested-With: shapi`. El cliente del frontend la agrega siempre.
@@ -111,8 +113,10 @@ Todos pueden modificar su archivo de tarea, su bitácora y las secciones de `doc
 - React 19 con TypeScript estricto, Vite, React Router, TanStack Query para los datos y Tailwind 4 con los tokens de `packages/ui`.
 - **Una pantalla por archivo** en `paginas/`, nombrada con su ID del catálogo. Los estados que no tienen mockup propio (cargando, error, sin permiso) se hacen con los componentes base de `packages/ui`.
 - Los datos se piden con el cliente de `packages/api`, que usa los tipos generados desde los contratos. Nunca se escribe `fetch` suelto.
+  - Un error con ProblemDetails llega como `ErrorApi`, con `codigo`, `titulo`, `estado` (el código HTTP) y `errores` por campo: `if (error instanceof ErrorApi && error.codigo === 'limite_del_plan')`.
+  - Los tipos de cada módulo se importan como `@shapi/api/<modulo>`, por ejemplo `import type { paths } from '@shapi/api/identidad'`. Un contrato nuevo queda exportado al correr `pnpm generar:api`, sin editar `package.json`.
 - Toda la interfaz está en español y trata al usuario de *usted*. Los textos se copian del mockup.
-- **Pruebas:** Vitest y Testing Library por pantalla. Cada prueba verifica los textos y los datos clave del mockup y usa MSW para simular la API.
+- **Pruebas:** Vitest y Testing Library por pantalla. Cada prueba verifica los textos y los datos clave del mockup y usa MSW para simular la API. Una petición que la prueba no simula es un error (`onUnhandledRequest: 'error'`). Hay una sola configuración, `frontend/vitest.config.ts`, y las pruebas se corren con `pnpm test` desde `frontend/`.
 
 ## 8. Pruebas
 

@@ -7,13 +7,16 @@
 | Mecanismo | **Sesiones del lado del servidor** con una cookie, sin JWT ([ADR-06](12-decisiones.md)). La cookie guarda un valor aleatorio de 32 bytes, y la tabla `sesion` guarda su SHA-256 |
 | Cookie | Personal: `shapi_sesion`, en el host `shapi.localhost`. Consumidor: `portal_sesion`, en el host de cada portal. Las dos son `HttpOnly`, `Secure`, `SameSite=Lax` y `Path=/` |
 | Vencimiento | A las 8 h de inactividad (`Sesion:InactividadHoras`) o a los 7 días desde el inicio de sesión. Cada petición actualiza `ultimo_uso_en`, como máximo una vez por minuto |
-| CSRF | `SameSite=Lax`, más la cabecera `X-Requested-With: shapi` obligatoria en todo método que no sea GET, más la comprobación de `Origin`. Los frontends llaman a la API **en su mismo host**, así que no hace falta CORS entre el panel y la API |
-| Contraseñas | Tienen entre 10 y 128 caracteres y no pueden ser iguales al correo. Se guardan con `PasswordHasher<T>` de ASP.NET Core Identity (PBKDF2-HMAC-SHA512, 100,000 iteraciones o más) |
-| Bloqueo | Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos (`bloqueado_hasta`). Los mensajes de error son genéricos |
+| CSRF | `SameSite=Lax`, más la cabecera `X-Requested-With: shapi` obligatoria en todo método que no sea GET, más la comprobación de `Origin`: si llega, debe tener el mismo esquema, host y puerto que la petición. Los frontends llaman a la API **en su mismo host**, así que no hace falta CORS entre el panel y la API |
+| Contraseñas | Tienen entre 10 y 128 caracteres y no pueden ser iguales al correo. Se guardan con `PasswordHasher<T>` de ASP.NET Core Identity (PBKDF2-HMAC-SHA512, 100,000 iteraciones o más). Si el hash guardado se hizo con parámetros más débiles que los actuales, se recalcula al iniciar sesión |
+| Bloqueo | Tras 5 intentos fallidos seguidos, la cuenta se bloquea 15 minutos (`bloqueado_hasta`). Los mensajes de error son genéricos: `401 credenciales_invalidas` si la cuenta no existe o la contraseña no coincide, con el mismo tiempo de respuesta en los dos casos. Durante el bloqueo responde `423 cuenta_bloqueada`. Una cuenta desactivada responde `403 cuenta_desactivada` (CU-02 2b), solo si la contraseña es correcta. Cada intento fallido se cuenta en una sola sentencia de la base, para que los intentos simultáneos no se pierdan |
 | Recuperación | Siempre se responde lo mismo, exista o no la cuenta. El enlace es de un solo uso y vence a los 60 minutos. Al usarlo **se revocan todas las sesiones** de la cuenta ([RF-03](03-requisitos.md#rf-03)) |
-| Verificación de correo | El enlace vence a las 24 horas. Mientras no se confirme, el proveedor no puede **publicar** APIs y el consumidor no puede **contratar** planes ([RF-02](03-requisitos.md#rf-02)) |
+| Verificación de correo | El enlace vence a las 24 horas. El reenvío se limita a 3 por cuenta en una hora, sin contar el enlace del registro. Al pasarse responde lo mismo, pero no envía nada, para no revelar si la cuenta existe. Mientras no se confirme, el proveedor no puede **publicar** APIs y el consumidor no puede **contratar** planes ([RF-02](03-requisitos.md#rf-02)) |
 | Cuentas de plataforma | Las crea el administrador y reciben un enlace `definir_contrasena` que vence a los 7 días ([RF-42](03-requisitos.md#rf-42)) |
-| Limitación de peticiones | La API de control limita `/api/auth/*` a 10 peticiones por minuto por IP (`RateLimiter` de ASP.NET Core) |
+| Limitación de peticiones | La API de control limita a 10 peticiones por minuto por IP (`RateLimiter` de ASP.NET Core) los endpoints de `/api/auth/*` que reciben credenciales o tokens: `registro`, `verificar-correo`, `reenviar-verificacion` y `entrar`. Al pasarse responde `429 demasiadas_peticiones` con `Retry-After`. `GET /api/auth/sesion` y `POST /api/auth/salir` no se limitan, porque no sirven para adivinar credenciales y el panel consulta la sesión en cada carga. La IP del cliente se toma de `X-Forwarded-For`, y el esquema de `X-Forwarded-Proto`, solo si la conexión viene de las redes del borde, que se configuran en `SHAPI_REDES_BORDE` (CIDR separados por comas). Sin esa variable se confía en la máquina, desde donde llega Caddy con Docker Desktop, y en la red `shapi` de `infra/compose.yml`, que tiene la subred fija `172.30.0.0/24` y desde la que llega en Linux. Una red privada cualquiera no basta |
+| Cierre de sesión | `POST /api/auth/salir` no exige una sesión vigente: si la cookie corresponde a una sesión, la revoca, y siempre borra la cookie, aunque la sesión ya haya vencido |
+
+Los enlaces enviados por correo llevan a la pantalla del ámbito de la cuenta. Para el personal, el host es el dominio base configurado: la verificación lleva a `https://{dominio_base}/verificar-correo?token={token}` (A1.2) y la recuperación a `https://{dominio_base}/restablecer?token={token}` (A1.4b). Para un consumidor, quien encola el correo agrega `hostPortal` a los datos, con el host del portal de la API, `{sub}.{dominio_base}` (06 §4). Se arma con el subdominio de la API que resolvió `IResolutorPortal`, nunca copiando la cabecera `Host`, y el enlace usa ese host: `https://{hostPortal}/verificar-correo?token={token}` (A5.8) y `https://{hostPortal}/restablecer?token={token}` (A5.10). El dominio propio de una API (RF-12) no sirve, porque apunta a la compuerta y no al portal. Si `hostPortal` no es una sola etiqueta ASCII seguida del dominio base, el correo no se arma y cuenta como un intento fallido. El token se codifica como componente de la URL.
 
 ### Enrutamiento después de iniciar sesión
 
@@ -29,6 +32,9 @@
 - **Personal:** el `organizacion_id` sale de la membresía del usuario de la sesión.
 - **Portal:** la API de control identifica la API con el `Host` de la petición (`{sub}.shapi.localhost` → `api.subdominio`), y de ahí saca el `organizacion_id`. Para cada petición, la sesión del consumidor debe pertenecer a esa misma organización y a ese mismo host.
 - `ShapiDbContext` aplica un **filtro global** (`HasQueryFilter`) por `organizacion_id` a todas las entidades que pertenecen a una organización. Solo los servicios de administración, del trabajador y de la compuerta lo desactivan, y lo hacen de forma explícita (`IgnoreQueryFilters`), con una revisión obligatoria en el código.
+  - Pertenecen a una organización las tablas con `organizacion_id` propio (`membresia`, `consumidor`, `api`, `suscripcion_plataforma`, `caso` y `bitacora`), `medio_pago` (de la organización o de uno de sus consumidores) y las que dependen de ellas: `usuario` (por su membresía); `ruta`, `dominio_propio`, `plan_api`, `suscripcion_api` y `consumo_diario` (por la API); `clave` y `pago` (por la suscripción), y `caso_mensaje` (por el caso).
+  - No tienen filtro las tablas globales o que se usan antes de conocer la organización: `organizacion`, `plan_plataforma`, `token`, `sesion`, `correo_saliente`, `registro_dns_simulado` y `lote_consolidado`.
+  - Sin organización en el contexto, las tablas filtradas no devuelven nada. Las entradas de la bitácora sin organización solo las ve la administración.
 - Pedir un recurso de otra organización devuelve **404** ([04 §4](04-roles-y-permisos.md#4-reglas-adicionales)).
 
 ## 3. Secretos y datos sensibles
@@ -37,7 +43,7 @@
 |---|---|---|
 | Contraseña | PBKDF2 (Identity v3) | Nunca |
 | Clave de API | SHA-256 en hex + prefijo + últimos 4 | Completa **una sola vez**. Después, `shp_prod_••••7c2e` |
-| Token de correo y sesión | SHA-256 | Nunca (solo viaja en el enlace o en la cookie) |
+| Token de correo y sesión | SHA-256. El token de un correo va además en claro en `correo_saliente.datos` solo mientras el correo está `pendiente`, y se borra al quedar `enviado` o `fallido` | Nunca (solo viaja en el enlace o en la cookie) |
 | Secreto de origen | Cifrado con **ASP.NET Data Protection**. El anillo de llaves persiste en el volumen `dpkeys`, compartido por la API y el trabajador. En Redis va en claro, porque Redis solo es accesible desde la red interna | Completo **una sola vez**, al generarlo o regenerarlo |
 | Tarjeta | Solo el token de la pasarela, la marca, los últimos 4, el titular y el vencimiento | La marca y los últimos 4 |
 | Credenciales de infraestructura | Variables de entorno en `.env`, que no se versiona. En el repositorio va un `.env.example` | — |
@@ -54,14 +60,14 @@ Cuando se registra o se edita una API ([RF-08](03-requisitos.md#rf-08)), y **tam
 
 ## 5. Encabezados y protección de los frontends
 
-- La **política de seguridad de contenido** (CSP) del panel y del portal es `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.api.shapi.localhost; frame-ancestors 'none'`.
+- La **política de seguridad de contenido** (CSP) del panel y del portal es `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.api.shapi.localhost; frame-ancestors 'none'`.
 - Los logotipos SVG se sirven con `Content-Type: image/svg+xml`, `Content-Security-Policy: sandbox` y `X-Content-Type-Options: nosniff`. El portal los muestra **solo** con `<img>`, nunca incrustados en el HTML.
 - Todos los textos que escribe el proveedor (nombre, bienvenida y descripciones de la especificación) se muestran escapados. Las descripciones en Markdown de la especificación se convierten a HTML con una lista de etiquetas permitidas.
 - Caddy agrega `Strict-Transport-Security`, `X-Content-Type-Options: nosniff` y `Referrer-Policy: strict-origin-when-cross-origin`.
 
 ## 6. Correos (RF-46)
 
-Se envían desde `no-responder@shapi.localhost`. Los correos de un portal usan como remitente visible el nombre de ese portal. Las plantillas están en `Shapi.Infraestructura/Correo/Plantillas`:
+Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan como remitente visible el nombre de ese portal. Las plantillas están en `Shapi.Infraestructura/Correo/Plantillas`:
 
 | Plantilla | Destinatario | Disparador |
 |---|---|---|
@@ -78,7 +84,15 @@ Se envían desde `no-responder@shapi.localhost`. Los correos de un portal usan c
 | `aviso_cuota_plataforma` | Propietario | Al cruzar el 80 % y el 100 % de la cuota |
 | `respuesta_caso` | La otra parte del caso | Mensaje nuevo en un caso |
 
-Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace. Ningún correo lleva la marca de Shapi en el cuerpo.
+**Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`. Un error al armar el correo, por ejemplo un `hostPortal` inválido, también cuenta como intento fallido.
+
+**Varios trabajadores:** cada correo se toma en su propia transacción con `SELECT … FOR UPDATE SKIP LOCKED`, así que dos trabajadores nunca envían el mismo correo. En cuanto el servidor SMTP acepta el mensaje, el correo se guarda como `enviado`, aunque falle el cierre de la sesión (`QUIT`) o el trabajador se esté deteniendo.
+
+**Enlaces de un portal:** si los `datos` traen `hostPortal`, debe ser `{sub}.{dominio_base}`, con una sola etiqueta ASCII que no sea un subdominio reservado ([06 §4](06-arquitectura.md#4-hosts-y-enrutamiento-en-el-borde)).
+
+**Cifrado:** con `SHAPI_SMTP_TLS=true`, el cifrado es obligatorio: SMTPS implícito si `SHAPI_SMTP_PUERTO` es 465, y STARTTLS en cualquier otro puerto. Si el servidor no ofrece STARTTLS, el envío falla y nunca sale en texto plano. Con `false` no se cifra, como en Mailpit.
+
+Los correos de los consumidores llevan la marca del portal: el nombre, el color y el logotipo como enlace, y nunca la marca de Shapi en el cuerpo. Los correos del personal (proveedores, administración y soporte) llevan la marca de Shapi (variante 4).
 
 ## 7. Bitácora
 
@@ -111,7 +125,7 @@ La bitácora ([RF-41](03-requisitos.md#rf-41)) registra las acciones que cambian
 | Saltarse la compuerta llamando directo al origen | La URL de origen nunca aparece en el portal. El proveedor puede validar `X-Shapi-Secreto` o limitar las IP que acepta su origen. Es una limitación documentada |
 | SSRF desde la URL de origen | [§4](#4-proteccion-del-origen-ssrf) |
 | Fuerza bruta en el inicio de sesión | Bloqueo tras 5 intentos y limitación por IP |
-| Enumeración de cuentas | Mensajes genéricos al iniciar sesión y al recuperar la contraseña |
+| Enumeración de cuentas | Mensajes genéricos al iniciar sesión y al recuperar la contraseña, con el mismo tiempo de respuesta exista o no la cuenta. Se acepta que el registro (`409 correo_ya_registrado`, CU-01 2a) y el bloqueo (`423 cuenta_bloqueada`) revelen que una cuenta existe: la limitación por IP frena la enumeración masiva |
 | XSS a través de la marca o de la especificación | Escape de textos, sanitización del Markdown, SVG solo como `<img>` y CSP |
 | Acceso a datos de otra organización | Filtro global, 404 y pruebas automatizadas de aislamiento |
 | Abuso de peticiones | Límites por minuto y cuotas en la compuerta, y limitación en `/api/auth/*` |

@@ -5,12 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./apis": "./src/generado/apis.ts"
+    "./*": "./src/generado/*.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "generar:api": "node generar.mjs"
   },
   "peerDependencies": {

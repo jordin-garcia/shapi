@@ -34,7 +34,7 @@ public class TokenConfiguracion : IEntityTypeConfiguration<Token>
             .IsRequired()
             .HasConversion(Conversores.TipoToken);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_token_tipo",
+        builder.ToTable(t => t.HasCheckConstraint("ck_token_tipo",
             "tipo IN ('verificacion_correo','recuperacion','invitacion_miembro','invitacion_consumidor','definir_contrasena')"));
 
         builder.Property(x => x.HashToken).IsRequired().HasMaxLength(64).IsFixedLength();
@@ -42,5 +42,7 @@ public class TokenConfiguracion : IEntityTypeConfiguration<Token>
 
         builder.Property(x => x.Correo).IsRequired();
         builder.Property(x => x.ExpiraEn).IsRequired();
+        builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");
+        builder.Property(x => x.ActualizadoEn).IsRequired();
     }
 }

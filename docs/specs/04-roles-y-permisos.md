@@ -83,3 +83,11 @@ Leyenda: ✅ permitido · 👁 solo lectura · — no permitido.
 3. **Operaciones sobre uno mismo:** el propietario no puede quitarse ni cambiarse el rol, y un administrador no puede desactivar su propia cuenta.
 4. **Organización suspendida:** mientras está suspendida, su personal puede entrar al panel para pagar, consultar datos y abrir casos, pero **no puede publicar APIs nuevas**.
 5. **Consumidor con suscripción suspendida:** puede entrar al portal y pagar con otra tarjeta. Sus claves responden 403 hasta que pague.
+6. **Se deniega por defecto.** Todo endpoint de la API de control exige una sesión, salvo los que se declaran públicos de forma explícita (`AllowAnonymous`). Solo son públicos los que la especificación declara así:
+   - los de `/api/auth` que reciben credenciales o enlaces: `registro`, `verificar-correo`, `reenviar-verificacion`, `entrar`, `recuperar`, `restablecer` (RF-03) y `definir-contrasena` (RF-42);
+   - `/api/auth/salir` (10 §1);
+   - los del portal para visitantes sin sesión (§3.3);
+   - `/salud` y `/interno/tls/autorizar` (06);
+   - `/openapi`, solo en *Development*.
+
+   Sin sesión, un endpoint protegido responde 401.

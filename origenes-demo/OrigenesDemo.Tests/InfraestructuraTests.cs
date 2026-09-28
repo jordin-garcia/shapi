@@ -10,8 +10,8 @@ public sealed class InfraestructuraTests
         var compose = await File.ReadAllTextAsync(ruta);
 
         compose.Should().Contain("origen-envios:");
-        compose.Should().Contain("\"5101:8080\"");
+        compose.Should().Contain("\"127.0.0.1:5101:8080\"");
         compose.Should().Contain("origen-agro:");
-        compose.Should().Contain("\"5102:8080\"");
+        compose.Should().Contain("\"127.0.0.1:5102:8080\"");
     }
 }

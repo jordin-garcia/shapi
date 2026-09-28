@@ -9,6 +9,7 @@ public static class CodigosError
     // Compuerta: contrato de errores (08 §4)
     public const string ApiNoEncontrada = "api_no_encontrada";
     public const string ClaveAusente = "clave_ausente";
+    public const string ClaveEnUrl = "clave_en_url";
     public const string ClaveInvalida = "clave_invalida";
     public const string ApiNoDisponible = "api_no_disponible";
     public const string SuscripcionInactiva = "suscripcion_inactiva";
@@ -19,6 +20,7 @@ public static class CodigosError
     public const string CuotaPlataformaAgotada = "cuota_plataforma_agotada";
     public const string OrigenInaccesible = "origen_inaccesible";
     public const string OrigenSinRespuesta = "origen_sin_respuesta";
+    public const string ServicioNoDisponible = "servicio_no_disponible";
 
     // Identidad y organizaciones (03 RF-02 y RF-06)
     public const string CorreoNoVerificado = "correo_no_verificado";
@@ -26,11 +28,16 @@ public static class CodigosError
     public const string CorreoYaRegistrado = "correo_ya_registrado";
     public const string CredencialesInvalidas = "credenciales_invalidas";
     public const string CuentaBloqueada = "cuenta_bloqueada";
+    public const string CuentaDesactivada = "cuenta_desactivada";
     public const string TokenInvalido = "token_invalido";
     public const string ConsumidorExistente = "consumidor_existente";
 
     // Protección CSRF de la API de control (convenciones §5)
     public const string Csrf = "csrf";
+
+    // Errores generales de la API de control (convenciones §5 y 10 §1)
+    public const string DatosInvalidos = "datos_invalidos";
+    public const string DemasiadasPeticiones = "demasiadas_peticiones";
 
     // Planes y suscripciones (09 §5 y §6)
     public const string LimiteDelPlan = "limite_del_plan";

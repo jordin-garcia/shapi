@@ -20,7 +20,7 @@ public class RutaConfiguracion : IEntityTypeConfiguration<Ruta>
             .IsRequired()
             .HasConversion(Conversores.MetodoHttp);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_ruta_metodo", "metodo IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_ruta_metodo", "metodo IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')"));
 
         builder.Property(x => x.Patron).IsRequired();
 
@@ -28,13 +28,14 @@ public class RutaConfiguracion : IEntityTypeConfiguration<Ruta>
 
         builder.Property(x => x.Expuesta).IsRequired().HasDefaultValue(false);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_ruta_limite_minuto", "limite_minuto IS NULL OR limite_minuto > 0"));
 
         builder.Property(x => x.CacheSegundos).IsRequired().HasDefaultValue(0);
-        builder.ToTable(t => t.HasCheckConstraint("CK_ruta_cache_segundos", "cache_segundos BETWEEN 0 AND 86400"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_ruta_cache_segundos", "cache_segundos BETWEEN 0 AND 86400"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_ruta_cache_solo_get", "cache_segundos = 0 OR metodo = 'GET'"));
 
         builder.Property(x => x.PesoLlamadas).IsRequired().HasDefaultValue(1);
-        builder.ToTable(t => t.HasCheckConstraint("CK_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000"));
+        builder.ToTable(t => t.HasCheckConstraint("ck_ruta_peso_llamadas", "peso_llamadas BETWEEN 1 AND 1000"));
 
         builder.HasIndex(x => new { x.ApiId, x.Metodo, x.Patron }).IsUnique();
 

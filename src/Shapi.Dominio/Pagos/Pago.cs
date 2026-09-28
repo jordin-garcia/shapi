@@ -2,22 +2,22 @@ namespace Shapi.Dominio.Pagos;
 
 public class Pago
 {
-    public Guid Id { get; set; }
-    public Guid? SuscripcionPlataformaId { get; set; }
-    public Guid? SuscripcionApiId { get; set; }
-    public Guid? MedioPagoId { get; set; }
-    public ConceptoPago Concepto { get; set; }
-    public string Descripcion { get; set; } = null!;
-    public decimal Monto { get; set; }
-    public EstadoPago Estado { get; set; }
-    public string? ReferenciaPasarela { get; set; }
-    public string? MotivoRechazo { get; set; }
-    public DateTimeOffset? PeriodoInicio { get; set; }
-    public DateTimeOffset? PeriodoFin { get; set; }
-    public DateTimeOffset? RevertidoEn { get; set; }
-    public Guid? RevertidoPor { get; set; }
-    public DateTimeOffset CreadoEn { get; set; }
-    public DateTimeOffset ActualizadoEn { get; set; }
+    public Guid Id { get; private set; }
+    public Guid? SuscripcionPlataformaId { get; private set; }
+    public Guid? SuscripcionApiId { get; private set; }
+    public Guid? MedioPagoId { get; private set; }
+    public ConceptoPago Concepto { get; private set; }
+    public string Descripcion { get; private set; } = null!;
+    public decimal Monto { get; private set; }
+    public EstadoPago Estado { get; private set; }
+    public string? ReferenciaPasarela { get; private set; }
+    public string? MotivoRechazo { get; private set; }
+    public DateTimeOffset? PeriodoInicio { get; private set; }
+    public DateTimeOffset? PeriodoFin { get; private set; }
+    public DateTimeOffset? RevertidoEn { get; private set; }
+    public Guid? RevertidoPor { get; private set; }
+    public DateTimeOffset CreadoEn { get; private set; }
+    public DateTimeOffset ActualizadoEn { get; private set; }
 
-    public Pago() { }
+    protected Pago() { }
 }

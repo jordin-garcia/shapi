@@ -2,8 +2,8 @@ namespace Shapi.Dominio.Consumo;
 
 public class LoteConsolidado
 {
-    public Guid LoteId { get; set; }
-    public DateTimeOffset ProcesadoEn { get; set; }
+    public Guid LoteId { get; private set; }
+    public DateTimeOffset ProcesadoEn { get; private set; }
 
-    public LoteConsolidado() { }
+    protected LoteConsolidado() { }
 }

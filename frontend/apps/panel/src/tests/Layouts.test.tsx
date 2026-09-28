@@ -31,7 +31,8 @@ describe('RNF-12 / RF-07 · Layouts - Barras Laterales', () => {
   it('encabezado público conserva marca y superficie oscura de A1', () => {
     renderWithLayout(LayoutPublico);
     expect(screen.getByText('Shapi')).toBeDefined();
-    expect(screen.getByRole('banner').className).toContain('bg-[#060910]');
+    expect(screen.getByRole('banner').className).toContain('dark');
+    expect(screen.getByRole('banner').className).toContain('bg-fondo');
     expect(screen.getByRole('banner').querySelector('svg')).not.toBeNull();
   });
   it('LayoutPanel muestra los grupos correctos', () => {
@@ -53,8 +54,8 @@ describe('RNF-12 / RF-07 · Layouts - Barras Laterales', () => {
     expect(screen.getByText('Especificación')).toBeDefined();
     expect(screen.getByText('Organización')).toBeDefined();
     expect(screen.getByText('Casos de soporte')).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Planes' }).className).toContain('bg-[#0E1830]');
-    expect(screen.getByRole('link', { name: 'APIs' }).className).not.toContain('bg-[#0E1830]');
+    expect(screen.getByRole('link', { name: 'Planes' }).className).toContain('bg-fondo-activo');
+    expect(screen.getByRole('link', { name: 'APIs' }).className).not.toContain('bg-fondo-activo');
   });
 
   it('LayoutAdmin muestra los grupos correctos para administrador', () => {

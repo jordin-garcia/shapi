@@ -22,7 +22,8 @@ public partial class CodigosErrorTests
         var seccion = especificacion[inicio..fin];
         var codigosDeLaTabla = FilaDeError().Matches(seccion).Select(m => m.Groups["codigo"].Value).ToArray();
 
-        codigosDeLaTabla.Should().HaveCount(12);
+        codigosDeLaTabla.Should().HaveCount(14);
+        codigosDeLaTabla.Should().Contain(["clave_en_url", "servicio_no_disponible"]);
         Codigos.Should().Contain(codigosDeLaTabla);
     }
 
@@ -47,6 +48,7 @@ public partial class CodigosErrorTests
     [InlineData("correo_ya_registrado")]
     [InlineData("credenciales_invalidas")]
     [InlineData("cuenta_bloqueada")]
+    [InlineData("cuenta_desactivada")]
     [InlineData("token_invalido")]
     [InlineData("consumidor_existente")]
     [InlineData("suscripcion_existente")]
@@ -57,6 +59,8 @@ public partial class CodigosErrorTests
     [InlineData("logo_invalido")]
     [InlineData("clave_no_rotable")]
     [InlineData("csrf")]
+    [InlineData("datos_invalidos")]
+    [InlineData("demasiadas_peticiones")]
     [InlineData("caso_cerrado")]
     public void CodigosError_CodigoDeLaApiDeControl_EstaDeclarado(string codigo)
     {

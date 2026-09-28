@@ -26,7 +26,7 @@ public class DominioPropioConfiguracion : IEntityTypeConfiguration<DominioPropio
             .IsRequired()
             .HasConversion(Conversores.EstadoDominio);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_dominio_propio_estado",
+        builder.ToTable(t => t.HasCheckConstraint("ck_dominio_propio_estado",
             "estado IN ('pendiente','verificado','fallido')"));
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");

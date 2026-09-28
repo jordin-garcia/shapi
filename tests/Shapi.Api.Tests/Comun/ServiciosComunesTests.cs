@@ -1,4 +1,3 @@
-#pragma warning disable CS0618
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -11,8 +10,8 @@ using Testcontainers.PostgreSql;
 
 namespace Shapi.Api.Tests.Comun;
 
-// Criterio 7 de JG-01: implementaciones nulas por defecto, reemplazables por el módulo dueño.
-// (Modificado en EM-01 para usar BD directamente)
+// Criterio 7 de JG-01: implementaciones por defecto, reemplazables por el módulo dueño.
+// EM-01 reemplazó la cola de correo y la bitácora nulas por las que escriben en la base de datos.
 public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _fabrica;
@@ -20,7 +19,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
 
     public ServiciosComunesTests(WebApplicationFactory<Program> fabrica)
     {
-        _dbContainer = new PostgreSqlBuilder().WithImage("postgres:16-alpine").Build();
+        _dbContainer = new PostgreSqlBuilder("postgres:16-alpine").Build();
         _fabrica = fabrica;
     }
 
@@ -43,7 +42,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
-    public void ServiciosComunes_SinImplementacionDelModuloDueno_ResuelvenLasNulas()
+    public void ServiciosComunes_SinReemplazoDelModulo_ResuelvenLasImplementacionesPorDefecto()
     {
         var fabricaConfigurada = CrearFabrica();
         using var alcance = fabricaConfigurada.Services.CreateScope();
@@ -56,7 +55,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
-    public async Task ServiciosNulos_AlUsarlos_TerminanSinError()
+    public async Task ServiciosComunes_AlUsarlos_TerminanSinError()
     {
         var fabricaConfigurada = CrearFabrica();
         using var alcance = fabricaConfigurada.Services.CreateScope();

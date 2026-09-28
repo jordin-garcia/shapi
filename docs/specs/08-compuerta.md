@@ -5,10 +5,10 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 ## 1. Contrato de entrada
 
 - **Host:** `{sub}.api.shapi.localhost` o un dominio propio verificado.
-- **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso.
-- **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (`/rastreo/{guia}` coincide con `/rastreo/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
+- **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso. Si el nombre o el valor de un parámetro de la query contiene una clave con el formato de [§2](#2-formato-de-la-clave), sola o dentro de un texto más largo, la compuerta responde 401 `clave_en_url` y no reenvía la petición, aunque también venga `X-Api-Key`. Los demás parámetros (por ejemplo, un `key` del proveedor) se reenvían. La compuerta tampoco registra la URL de destino con su query.
+- **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
 - **Cuerpo:** máximo 10 MB. Si es más grande se responde 413 `cuerpo_demasiado_grande`.
-- **Tiempo de espera del origen:** 30 segundos.
+- **Tiempo de espera del origen:** 30 segundos **en total**, desde que se reenvía la petición hasta que termina la respuesta; no es un tiempo de inactividad. Si vence antes de que el origen responda, 504 `origen_sin_respuesta`. Si la respuesta ya empezó, se corta. Dentro de esos 30 segundos, la conexión con el origen tiene 10 segundos; si no se conecta, 502 `origen_inaccesible`.
 - **Salud:** `GET /salud` solo responde cuando el `Host` es `localhost`, para no tapar una ruta `/salud` de las APIs. Con cualquier otro host, la petición pasa por la tubería.
 
 ## 2. Formato de la clave
@@ -27,6 +27,8 @@ flowchart LR
   F1 --> F2["2 · Clave<br/>X-Api-Key → hash → Redis"]
   F2 -- "ausente" --> R401a(["401 clave_ausente"])
   F2 -- "no existe, revocada o de otra API" --> R401b(["401 clave_invalida"])
+  F2 -- "en la query string" --> R401c(["401 clave_en_url"])
+  F1 -. "Redis no disponible (en cualquier filtro)" .-> R503(["503 servicio_no_disponible"])
   F2 --> F3["3 · Organización<br/>estado efectivo"]
   F3 -- "suspendida" --> R403a(["403 api_no_disponible"])
   F3 --> F4["4 · Suscripción<br/>activa o en gracia"]
@@ -43,7 +45,7 @@ flowchart LR
   F8 -- "no se pudo conectar" --> R502(["502 origen_inaccesible<br/>(se devuelve la cuota)"])
   F8 -- "pasan 30 s" --> R504(["504 origen_sin_respuesta"])
   F8 --> OK(["Respuesta del origen"])
-  OK & HIT & R404 & R401a & R401b & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R504 --> F9["9 · Medición<br/>(después de responder)"]
+  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R504 --> F9["9 · Medición<br/>(después de responder)"]
 ```
 
 ### Detalle de cada filtro
@@ -52,7 +54,7 @@ flowchart LR
 |---|---|---|---|
 | 0 | `FiltroCors` | Responde el *preflight* `OPTIONS` sin clave, con 204 y las cabeceras de [§6](#6-cors). A las demás respuestas les agrega `Access-Control-*` | `api:{id}.portal_host` |
 | 1 | `FiltroApi` | `host → api_id → api:{id}`. Exige `estado = publicada` | `api:host:{host}`, `api:{id}`, `api:{id}:rutas` |
-| 2 | `FiltroClave` | Calcula el SHA-256 de `X-Api-Key` y busca `clave:{hash}`. Exige que `api_id` coincida con la API resuelta; si no coincide, responde `clave_invalida`, porque no se aceptan claves de otra API | `clave:{hash}` |
+| 2 | `FiltroClave` | Rechaza una clave en la query string ([§1](#1-contrato-de-entrada)). Calcula el SHA-256 de `X-Api-Key` y busca `clave:{hash}`. Exige que `api_id` coincida con la API resuelta; si no coincide, responde `clave_invalida`, porque no se aceptan claves de otra API | `clave:{hash}` |
 | 3 | `FiltroOrganizacion` | Exige `estado_efectivo = activa` | `org:{id}` |
 | 4 | `FiltroSuscripcion` | Exige que `estado ∈ {activa, en_gracia}`. **No compara fechas**: los cambios de estado los hace el trabajador cada minuto (CU-16). Así, si el trabajador está caído, el servicio sigue funcionando en vez de cortarse ([RNF-04](03-requisitos.md#rnf-04)), y el reloj del modo demostración no afecta a la compuerta | `susc:{id}` |
 | 5 | `FiltroRuta` | Busca la coincidencia de método y patrón entre las rutas `expuesta = true` | `api:{id}:rutas` (ya cargado) |
@@ -97,7 +99,8 @@ Todos los rechazos de la compuerta responden con `Content-Type: application/json
 | Estado | Código | Cuándo | Cabeceras adicionales |
 |---|---|---|---|
 | 401 | `clave_ausente` | Falta `X-Api-Key` | `WWW-Authenticate: ApiKey header="X-Api-Key"` |
-| 401 | `clave_invalida` | La clave no existe, está revocada, era una clave rotada que ya venció o es de otra API | ídem |
+| 401 | `clave_invalida` | La clave no existe, está revocada, era una clave rotada que ya venció o es de otra API. También si llegan varias `X-Api-Key` | ídem |
+| 401 | `clave_en_url` | Un parámetro de la query string contiene una clave ([§1](#1-contrato-de-entrada)) | ídem |
 | 403 | `api_no_disponible` | La organización proveedora está suspendida (por falta de pago o por el administrador) | — |
 | 403 | `suscripcion_inactiva` | La suscripción del consumidor está suspendida o finalizada | — |
 | 403 | `ruta_no_permitida` | El método y la ruta no existen o están ocultos | — |
@@ -106,8 +109,9 @@ Todos los rechazos de la compuerta responden con `Content-Type: application/json
 | 429 | `limite_por_minuto` | Se pasó el límite de peticiones por minuto del plan o de la ruta | `Retry-After` (segundos para el siguiente minuto) |
 | 429 | `cuota_agotada` | Se agotó la cuota de llamadas del ciclo | `Retry-After` (segundos para que termine el ciclo) |
 | 429 | `cuota_plataforma_agotada` | El **proveedor** agotó la cuota de peticiones de su plan de plataforma | `Retry-After` |
-| 502 | `origen_inaccesible` | No se pudo conectar con el origen, o el origen apunta a una dirección prohibida | — |
-| 504 | `origen_sin_respuesta` | El origen tardó más de 30 segundos | — |
+| 502 | `origen_inaccesible` | No se pudo conectar con el origen en 10 segundos, o el origen apunta a una dirección prohibida | — |
+| 503 | `servicio_no_disponible` | Redis no está disponible: la compuerta no puede validar la petición ([RNF-04](03-requisitos.md#rnf-04)) | `Retry-After: 5` |
+| 504 | `origen_sin_respuesta` | El origen no respondió en 30 segundos (si la respuesta ya había empezado, se corta) | — |
 
 Las respuestas del **origen** se devuelven tal cual, incluidos sus errores. Las métricas las cuentan como `origen_4xx` y `origen_5xx`.
 
@@ -163,7 +167,12 @@ La **latencia de la compuerta** es la latencia total menos el tiempo de espera d
 
 ## 8. Rendimiento
 
-- Por cada petición se hacen dos viajes a Redis antes de reenviar (un *pipeline* para el contexto y el script Lua), más uno en segundo plano para la medición.
+- Por cada petición se hacen tres viajes a Redis antes de reenviar, más uno en segundo plano para la medición:
+  1. un *pipeline* con `api:host:{host}` y `clave:{hash}`;
+  2. un *pipeline* con lo que depende de esos valores: `api:{id}`, sus rutas, `org:{id}` y `susc:{id}`;
+  3. el script Lua de límites y cuotas.
+
+  Si la ruta usa caché (filtro 7), se suma la consulta de `cache:*`.
 - La compuerta **no guarda en memoria** los datos de claves, suscripciones ni organizaciones. Así una revocación o una suspensión se aplica al instante ([RF-28](03-requisitos.md#rf-28)), a costa de consultar Redis en cada petición ([ADR-22](12-decisiones.md)). Lo único que se guarda en memoria, durante 5 segundos como máximo, es `api:{id}:rutas`, junto con su `version`.
 - Hay una conexión multiplexada a Redis (StackExchange.Redis) y un `HttpClient` de YARP por destino, con *pooling* de conexiones.
 - **Pruebas de aceptación:** RNF-01 y RNF-03 se miden con k6 contra `origen-envios` en el ambiente productivo simulado. Los resultados se documentan en el manual técnico.

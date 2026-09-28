@@ -12,19 +12,22 @@ public class OrganizacionConfiguracion : IEntityTypeConfiguration<Organizacion>
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Nombre).IsRequired().HasMaxLength(120);
+        builder.ToTable(t => t.HasCheckConstraint("ck_organizacion_nombre", "char_length(nombre) >= 2"));
 
         builder.Property(x => x.Tipo)
             .IsRequired()
             .HasConversion(Conversores.TipoOrganizacion);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_organizacion_tipo",
+        builder.ToTable(t => t.HasCheckConstraint("ck_organizacion_tipo",
             "tipo IN ('plataforma','proveedor')"));
 
         builder.Property(x => x.EstadoAdmin)
             .IsRequired()
-            .HasConversion(Conversores.EstadoAdmin);
+            .HasConversion(Conversores.EstadoAdmin)
+            .HasDefaultValue(EstadoAdmin.Activa)
+            .ValueGeneratedNever();
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_organizacion_estado_admin",
+        builder.ToTable(t => t.HasCheckConstraint("ck_organizacion_estado_admin",
             "estado_admin IN ('activa','suspendida')"));
 
         builder.Property(x => x.CreadoEn).IsRequired().HasDefaultValueSql("now()");

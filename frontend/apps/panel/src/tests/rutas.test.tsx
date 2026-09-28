@@ -6,11 +6,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse, delay } from 'msw';
 import catalogo from '../../../../../docs/specs/11-interfaz.md?raw';
 import { router } from '../rutas';
+import type { components } from '@shapi/api/identidad';
 import { server } from '../../../../test/servidor';
 
-let rol = 'propietario';
+type Sesion = components['schemas']['Sesion'];
+
+let rol: Sesion['rol'] = 'propietario';
 let cliente: QueryClient;
-const respuestaSesion = () => ({
+const respuestaSesion = (): Sesion => ({
   usuario: { nombre: 'Ana', correo: 'ana@enviosxelaju.com' },
   organizacion: { id: 'org-1', nombre: 'Envíos Xelajú, S.A.' },
   rol,
@@ -23,6 +26,12 @@ const rutas = [...catalogo.matchAll(/^\| (A[0-468][\w.]*|A7[\w.]*|B[13][\w.]*) \
     id: id.replace('.', '-'),
   })));
 rutas.push({ ruta: '/', id: 'A0-1' });
+// Las pantallas ya implementadas se reconocen por su título, en lugar del texto de relleno "<ID> ·".
+const implementadas: Record<string, string> = { 'A1-1': 'Crear una cuenta', 'A1-2': 'Revise su correo', 'A1-3': 'Entrar a Shapi' };
+async function esperarPantalla(id: string) {
+  if (implementadas[id]) expect(await screen.findByRole('heading', { name: implementadas[id] })).toBeDefined();
+  else expect(await screen.findByText(new RegExp(`^${id} ·`))).toBeDefined();
+}
 
 async function abrir(ruta: string) {
   await router.navigate(ruta);
@@ -43,9 +52,9 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
   it.each(rutas)('$ruta muestra $id', async ({ ruta, id }) => {
     rol = ruta.startsWith('/admin') ? 'administrador' : 'propietario';
     await abrir(ruta);
-    expect(await screen.findByText(new RegExp(`^${id} ·`))).toBeDefined();
+    await esperarPantalla(id);
   });
-  it.each([
+  it.each<[Sesion['rol'], string]>([
     ['administrador', '/panel/apis'], ['soporte', '/panel/apis'],
     ['propietario', '/admin/casos'], ['editor', '/admin/casos'], ['lector', '/admin/casos'],
     ['soporte', '/admin/planes'], ['soporte', '/admin/pagos'], ['soporte', '/admin/cuentas'],
@@ -58,16 +67,16 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     await abrir(ruta);
     expect(await screen.findByText('No tiene permiso para ver esta página')).toBeDefined();
   });
-  it('redirige sin sesión a entrar (incluido ProblemDetails 401)', async () => {
+  it('RF-04 redirige sin sesión a entrar (incluido ProblemDetails 401)', async () => {
     server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ status: 401, title: 'Sin sesión' }, { status: 401, headers: { 'Content-Type': 'application/problem+json' } })));
     await abrir('/panel/apis');
     await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
   });
-  it('permite una página pública sin consultar la sesión', async () => {
+  it.each([['/registro', 'A1-1'], ['/verificar-correo', 'A1-2'], ['/entrar', 'A1-3']])('permite la página pública %s sin consultar la sesión', async (ruta, id) => {
     let solicitudes = 0;
     server.use(http.get('http://localhost/api/auth/sesion', () => { solicitudes++; return new HttpResponse(null, { status: 401 }); }));
-    await abrir('/registro');
-    expect(await screen.findByText(/^A1-1 ·/)).toBeDefined();
+    await abrir(ruta);
+    await esperarPantalla(id);
     expect(solicitudes).toBe(0);
   });
   it('muestra error recuperable, sin redirigir, si falla el servidor', async () => {
@@ -124,11 +133,20 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeDefined();
     expect(await screen.findByText(/^A3-1 ·/)).toBeDefined();
   });
+  it('RNF-12 · /_ui muestra la lámina de estilo sin consultar la sesión (DC-01)', async () => {
+    let solicitudes = 0;
+    server.use(http.get('http://localhost/api/auth/sesion', () => { solicitudes++; return new HttpResponse(null, { status: 401 }); }));
+    await abrir('/_ui');
+    // La lámina se carga diferida y es la página más pesada: con carga, tarda más que el segundo por omisión.
+    expect(await screen.findByText('Plano azul', {}, { timeout: 5000 })).toBeDefined();
+    expect(router.state.location.pathname).toBe('/_ui');
+    expect(solicitudes).toBe(0);
+  }, 10_000);
   it('muestra 404 para una dirección desconocida', async () => {
     await abrir('/pagina-inexistente');
     expect(await screen.findByText('Página no encontrada')).toBeDefined();
   });
-  it.each(['editor', 'lector'])('oculta opciones no permitidas al %s', async perfil => {
+  it.each<Sesion['rol']>(['editor', 'lector'])('oculta opciones no permitidas al %s', async perfil => {
     rol = perfil;
     await abrir('/panel/apis');
     await screen.findByText(/^A3-1 ·/);
