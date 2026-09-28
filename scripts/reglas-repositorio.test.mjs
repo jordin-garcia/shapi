@@ -21,7 +21,7 @@ function jobs(workflow) {
     if (nombre) {
       actual = nombre[1];
       resultado[actual] = "";
-    } else if (/^\S/.test(linea)) {
+    } else if (/^\S/.test(linea) && !linea.startsWith("#")) {
       break;
     } else if (actual) {
       resultado[actual] += linea + "\n";
@@ -65,7 +65,9 @@ test("H-107: el job frontend falla si los tipos generados no coinciden con los c
 
 test("H-108: todos los jobs de todos los workflows tienen timeout-minutes", () => {
   for (const archivo of readdirSync(WORKFLOWS).filter((a) => a.endsWith(".yml"))) {
-    for (const [nombre, texto] of Object.entries(jobs(readFileSync(join(WORKFLOWS, archivo), "utf8")))) {
+    const todos = Object.entries(jobs(readFileSync(join(WORKFLOWS, archivo), "utf8")));
+    assert.ok(todos.length > 0, `${archivo}: no se encontró ningún job`);
+    for (const [nombre, texto] of todos) {
       assert.match(texto, /^ {4}timeout-minutes: \d+$/m, `${archivo}: el job ${nombre} no tiene timeout-minutes`);
     }
   }
@@ -102,6 +104,9 @@ test("H-110: los agentes no pueden hacer push a main con ninguna variante", () =
     "git push origin main --force",
     "git push origin HEAD:main",
     "git push origin HEAD:refs/heads/main",
+    "git push origin refs/heads/main",
+    "git push origin \"main\"",
+    "git push origin 'HEAD:main'",
     "git push origin jordin/JG-01-algo:main",
     "git push -f origin HEAD:main",
     "git push origin +HEAD:main",

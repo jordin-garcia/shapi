@@ -397,7 +397,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: paso 15 de `docs/plan/auditoria-2026-09-25.md` (H-106 a H-112).
   - La CI falla si el modelo tiene cambios sin migración o si los tipos generados no coinciden con los contratos.
   - Todos los jobs tienen tiempo máximo. La acción de Claude va fijada por SHA.
-  - Los agentes ya no pueden hacer `git push` a `main` por ninguna variante.
+  - `.claude/settings.json` niega más variantes de `git push` a `main` (`HEAD:main`, `refs/heads/main`, `+main`, entre comillas, `--all` y `--mirror`). La única que ninguna regla de texto cubre es `git push origin HEAD` estando en `main`.
   - La plantilla del PR pide toda la evidencia de B7, y el `README.md` tiene las carpetas y el arranque rápido.
   - `scripts/reglas-repositorio.test.mjs` tiene 8 pruebas nuevas que leen los workflows y `.claude/settings.json`.
 - Decisiones (de Jordin, 27 sep):
