@@ -22,7 +22,7 @@ public interface IPasarelaPagos
 
 | Validación | Regla |
 |---|---|
-| Número | Tiene entre 13 y 19 dígitos y pasa el **algoritmo de Luhn**. Si no, `numero_invalido` |
+| Número | Sin contar espacios ni guiones, tiene entre 13 y 19 dígitos y pasa el **algoritmo de Luhn**. Si no, `numero_invalido` |
 | Marca (según el BIN) | `4…` → Visa · `51–55…` o `2221–2720…` → Mastercard · `34…` o `37…` → American Express. Cualquier otro → `marca_no_soportada` |
 | Vencimiento | Tiene que ser el mes actual o uno posterior, según la fecha en America/Guatemala. Si no, `tarjeta_vencida` |
 | CVV | 3 dígitos, o 4 si es American Express. Si no, `cvv_invalido` |

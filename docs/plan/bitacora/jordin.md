@@ -380,7 +380,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: se terminó EM-06 a partir del PR #14 de Emilio (protocolo §E4, paso 14 de `docs/plan/auditoria-2026-09-25.md`, H-103 a H-105 y H-119).
   - `PasarelaSimulada` reconoce las tarjetas de prueba por el número completo y guarda su comportamiento en el token, sin memoria.
   - La demora es de 300 a 800 ms por defecto. El CVV solo acepta dígitos, y el vencimiento se evalúa con el mes de Guatemala.
-  - Hay 59 casos de prueba nuevos (RF-20) en `tests/Shapi.Api.Tests/Pagos/`. Se borró `generar_pagos.py`.
+  - Hay 63 casos de prueba nuevos (RF-20) en `tests/Shapi.Api.Tests/Pagos/`. Se borró `generar_pagos.py`.
   - Las tarjetas de ejemplo de 09 §2 y de los mockups A2.2 y A5.6 no pasaban Luhn; se cambió un dígito del medio y se conservaron los últimos 4 (H-119).
 - Decisiones (de Jordin, 27 sep), agregadas a 09 §2:
   - `0002`, `0069` y `0341` llevan su comportamiento en el token, porque el Trabajador cobra las renovaciones en otro proceso.

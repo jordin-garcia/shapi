@@ -268,7 +268,7 @@ public class PasarelaSimuladaTests
     [InlineData("True")]
     public async Task RF_20_ConLaPasarelaEnFalla_TodoFallaConPasarelaNoDisponible(string valor)
     {
-        var pasarela = CrearPasarela(configuracion: new() { ["SHAPI_PASARELA_FALLA"] = valor });
+        var pasarela = CrearPasarela(configuracion: new() { ["Pagos:DemoraMs"] = "0", ["SHAPI_PASARELA_FALLA"] = valor });
 
         var tokenizacion = await pasarela.TokenizarAsync(Tarjeta("4242424242424242"));
         var cobro = await pasarela.CobrarAsync("tok_sim_00000000-0000-0000-0000-000000000000", 100m, "ref-1", esRenovacion: false);
@@ -282,8 +282,32 @@ public class PasarelaSimuladaTests
         reembolso.Error.Should().Be("pasarela_no_disponible");
     }
 
+    [Theory]
+    [InlineData("false")]
+    [InlineData("1")]
+    public async Task RF_20_ConLaFallaEnOtroValor_LaPasarelaFuncionaSinLanzarExcepciones(string valor)
+    {
+        var pasarela = CrearPasarela(configuracion: new() { ["Pagos:DemoraMs"] = "0", ["SHAPI_PASARELA_FALLA"] = valor });
+
+        var resultado = await pasarela.TokenizarAsync(Tarjeta("4242424242424242"));
+
+        resultado.Exitoso.Should().BeTrue();
+    }
+
     [Fact]
-    public async Task RF_20_SinConfigurarLaDemora_TardaEntre300y800Ms()
+    public async Task RF_20_NumeroOCvvNulos_DevuelvenSuCodigoDeErrorSinLanzarExcepciones()
+    {
+        var pasarela = CrearPasarela();
+
+        var sinNumero = await pasarela.TokenizarAsync(new DatosTarjeta { Numero = null!, MesVencimiento = "12", AnioVencimiento = "2028", Cvv = "123" });
+        var sinCvv = await pasarela.TokenizarAsync(new DatosTarjeta { Numero = "4242424242424242", MesVencimiento = "12", AnioVencimiento = "2028", Cvv = null! });
+
+        sinNumero.Error.Should().Be("numero_invalido");
+        sinCvv.Error.Should().Be("cvv_invalido");
+    }
+
+    [Fact]
+    public async Task RF_20_SinConfigurarLaDemora_EsperaDeVerdadAlMenos300Ms()
     {
         var pasarela = CrearPasarela(configuracion: []);
 
@@ -295,27 +319,40 @@ public class PasarelaSimuladaTests
     }
 
     [Fact]
-    public async Task RF_20_ConLaDemoraConfigurada_TardaEseTiempo()
+    public async Task RF_20_SinConfigurarLaDemora_CadaOperacionEsperaEntre300y800Ms()
     {
-        var pasarela = CrearPasarela(configuracion: new() { ["Pagos:DemoraMs"] = "50" });
+        var pasarela = new PasarelaQueAnotaLaDemora(new Dictionary<string, string?>());
 
-        var cronometro = Stopwatch.StartNew();
-        await pasarela.ReembolsarAsync("ch_sim_00000000-0000-0000-0000-000000000000");
-        cronometro.Stop();
+        for (var i = 0; i < 20; i++)
+        {
+            await pasarela.ReembolsarAsync("ch_sim_00000000-0000-0000-0000-000000000000");
+        }
 
-        cronometro.ElapsedMilliseconds.Should().BeInRange(45, 290);
+        pasarela.Demoras.Should().HaveCount(20)
+            .And.OnlyContain(demora => demora >= TimeSpan.FromMilliseconds(300) && demora <= TimeSpan.FromMilliseconds(800));
     }
 
     [Fact]
-    public async Task RF_20_ConLaDemoraEnCero_RespondeSinEsperar()
+    public async Task RF_20_ConLaDemoraConfigurada_EsperaEseTiempoEnLasTresOperaciones()
     {
-        var pasarela = CrearPasarela();
+        var pasarela = new PasarelaQueAnotaLaDemora(new() { ["Pagos:DemoraMs"] = "50" });
 
-        var cronometro = Stopwatch.StartNew();
+        var token = (await pasarela.TokenizarAsync(Tarjeta("4242424242424242"))).Token!;
+        await pasarela.CobrarAsync(token, 100m, "ref-1", esRenovacion: false);
         await pasarela.ReembolsarAsync("ch_sim_00000000-0000-0000-0000-000000000000");
-        cronometro.Stop();
 
-        cronometro.ElapsedMilliseconds.Should().BeLessThan(200);
+        pasarela.Demoras.Should().Equal(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(50));
+    }
+
+    [Fact]
+    public async Task RF_20_ConLaDemoraEnCero_NoEspera()
+    {
+        var pasarela = new PasarelaQueAnotaLaDemora(new() { ["Pagos:DemoraMs"] = "0" });
+
+        await pasarela.TokenizarAsync(Tarjeta("4242424242424242"));
+        await pasarela.ReembolsarAsync("ch_sim_00000000-0000-0000-0000-000000000000");
+
+        pasarela.Demoras.Should().BeEmpty();
     }
 
     // --- Utilidades ---
@@ -326,6 +363,26 @@ public class PasarelaSimuladaTests
         reloj.Ahora.Returns(ahora ?? Hoy);
         var datos = configuracion ?? new() { ["Pagos:DemoraMs"] = "0" };
         return new PasarelaSimulada(new ConfigurationBuilder().AddInMemoryCollection(datos).Build(), reloj);
+    }
+
+    // Anota la demora que pide la pasarela en lugar de esperarla.
+    private sealed class PasarelaQueAnotaLaDemora(Dictionary<string, string?> configuracion)
+        : PasarelaSimulada(new ConfigurationBuilder().AddInMemoryCollection(configuracion).Build(), RelojFijo())
+    {
+        public List<TimeSpan> Demoras { get; } = [];
+
+        protected override Task EsperarAsync(TimeSpan demora)
+        {
+            Demoras.Add(demora);
+            return Task.CompletedTask;
+        }
+    }
+
+    private static IReloj RelojFijo()
+    {
+        var reloj = Substitute.For<IReloj>();
+        reloj.Ahora.Returns(Hoy);
+        return reloj;
     }
 
     private static DatosTarjeta Tarjeta(string numero, string mes = "12", string anio = "2028", string cvv = "123") => new()

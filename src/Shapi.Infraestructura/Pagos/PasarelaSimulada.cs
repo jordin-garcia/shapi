@@ -29,7 +29,8 @@ public class PasarelaSimulada : IPasarelaPagos
     {
         // Sin Pagos:DemoraMs, la demora es al azar entre 300 y 800 ms; con un valor, es ese valor (0 en las pruebas).
         _demoraMs = configuracion.GetValue<int?>("Pagos:DemoraMs");
-        _falla = configuracion.GetValue<bool>("SHAPI_PASARELA_FALLA");
+        // Se compara como texto para que un valor mal escrito (por ejemplo, "1") no rompa cada petición.
+        _falla = string.Equals(configuracion["SHAPI_PASARELA_FALLA"], "true", StringComparison.OrdinalIgnoreCase);
         _reloj = reloj;
     }
 
@@ -41,7 +42,7 @@ public class PasarelaSimulada : IPasarelaPagos
             return new ResultadoTokenizacion { Exitoso = false, Error = "pasarela_no_disponible" };
         }
 
-        var numero = tarjeta.Numero.Replace(" ", "").Replace("-", "");
+        var numero = (tarjeta.Numero ?? "").Replace(" ", "").Replace("-", "");
         if (numero.Length is < 13 or > 19 || !numero.All(char.IsAsciiDigit) || !PasaLuhn(numero))
         {
             return new ResultadoTokenizacion { Exitoso = false, Error = "numero_invalido" };
@@ -59,7 +60,8 @@ public class PasarelaSimulada : IPasarelaPagos
         }
 
         var longitudCvv = marca == "American Express" ? 4 : 3;
-        if (tarjeta.Cvv.Length != longitudCvv || !tarjeta.Cvv.All(char.IsAsciiDigit))
+        var cvv = tarjeta.Cvv ?? "";
+        if (cvv.Length != longitudCvv || !cvv.All(char.IsAsciiDigit))
         {
             return new ResultadoTokenizacion { Exitoso = false, Error = "cvv_invalido" };
         }
@@ -114,8 +116,11 @@ public class PasarelaSimulada : IPasarelaPagos
     private Task SimularDemoraAsync()
     {
         var demora = _demoraMs ?? Random.Shared.Next(300, 801);
-        return demora > 0 ? Task.Delay(demora) : Task.CompletedTask;
+        return demora > 0 ? EsperarAsync(TimeSpan.FromMilliseconds(demora)) : Task.CompletedTask;
     }
+
+    /// <summary>Espera la demora simulada. Las pruebas la reemplazan para comprobarla sin depender de la carga de la máquina.</summary>
+    protected virtual Task EsperarAsync(TimeSpan demora) => Task.Delay(demora);
 
     private static bool PasaLuhn(string numero)
     {

@@ -55,11 +55,11 @@ Lo terminó Jordin (coordinador, protocolo §E4) el 27 de septiembre, a partir d
 
 - **Interfaz** (`src/Shapi.Aplicacion/Pagos/`): `IPasarelaPagos` con la firma de 09 §2, `DatosTarjeta` (número, mes y año de vencimiento, CVV y titular) y los resultados `ResultadoTokenizacion`, `ResultadoCobro` y `ResultadoReembolso`, con `Exitoso`, `Referencia` o `Token` y el código de `Error`. `DatosTarjeta` es una clase y no un `record`, para que su `ToString()` no muestre el número ni el CVV.
 - **`PasarelaSimulada`** (`src/Shapi.Infraestructura/Pagos/`), registrada en `PagosModulo`:
-  - valida en el orden de la tabla de 09 §2: número (13 a 19 dígitos ASCII, sin espacios ni guiones, y Luhn), marca por el BIN, vencimiento y CVV (solo dígitos: 3, o 4 si es American Express);
+  - valida en el orden de la tabla de 09 §2: número (después de quitar espacios y guiones: 13 a 19 dígitos ASCII y Luhn; un número o un CVV nulos son inválidos), marca por el BIN, vencimiento y CVV (solo dígitos: 3, o 4 si es American Express);
   - reconoce las tarjetas de prueba por el **número completo** y guarda su comportamiento en el token (`tok_sim_0002_`, `tok_sim_0069_` y `tok_sim_0341_`). No guarda nada en memoria;
   - las referencias son `ch_sim_{uuid}` y `re_sim_{uuid}`, con el UUID en minúsculas y con guiones;
-  - con `SHAPI_PASARELA_FALLA=true` (se lee de `IConfiguration`, que incluye las variables de entorno), las tres operaciones responden `pasarela_no_disponible`;
-  - la demora es al azar entre 300 y 800 ms si no se configura `Pagos:DemoraMs`; si se configura, es ese valor, y 0 la quita;
+  - con `SHAPI_PASARELA_FALLA=true` (se lee de `IConfiguration`, que incluye las variables de entorno, y se compara como texto, así que otro valor no la activa ni lanza errores), las tres operaciones responden `pasarela_no_disponible`;
+  - la demora es al azar entre 300 y 800 ms si no se configura `Pagos:DemoraMs`; si se configura, es ese valor, y 0 la quita. La espera está en `EsperarAsync` (virtual), para que las pruebas comprueben la demora pedida sin depender de la carga de la máquina;
   - no registra nada, así que nunca escribe el número completo ni el CVV (criterio 5).
 - **Correcciones sobre el PR #14:**
   - no había ninguna prueba (el último *commit* las borró);
@@ -68,7 +68,7 @@ Lo terminó Jordin (coordinador, protocolo §E4) el 27 de septiembre, a partir d
   - sin `Pagos:DemoraMs` no había demora, y el valor configurado se ignoraba;
   - el CVV aceptaba signos y espacios (`+12`);
   - se borró `generar_pagos.py`, un script suelto con una ruta local.
-- **Pruebas:** 59 casos en `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs` (RF-20, con NSubstitute para `IReloj`): cada fila de la tabla de tarjetas de prueba al contratar y al renovar, el token de las especiales con otra instancia (como el Trabajador), otras tarjetas con los mismos últimos 4, Luhn, longitudes de 12, 13, 19 y 20, las tres marcas y los límites de sus BIN, `marca_no_soportada`, vencimientos (incluido el cambio de mes en Guatemala), `cvv_invalido`, los formatos `tok_sim_`, `ch_sim_` y `re_sim_`, `pasarela_no_disponible` en las tres operaciones y la demora.
+- **Pruebas:** 63 casos en `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs` (RF-20, con NSubstitute para `IReloj`): cada fila de la tabla de tarjetas de prueba al contratar y al renovar, el token de las especiales con otra instancia (como el Trabajador), otras tarjetas con los mismos últimos 4, Luhn, longitudes de 12, 13, 19 y 20, las tres marcas y los límites de sus BIN, `marca_no_soportada`, vencimientos (incluido el cambio de mes en Guatemala), `cvv_invalido`, los formatos `tok_sim_`, `ch_sim_` y `re_sim_`, `pasarela_no_disponible` en las tres operaciones y la demora.
 - **Decisiones** (de Jordin, 27 sep), agregadas a 09 §2:
   - las tres tarjetas especiales llevan su comportamiento en el token, no solo `0341`, porque las renovaciones las cobra el Trabajador (EM-09), que es otro proceso;
   - `Pagos:DemoraMs` fija la demora; sin el valor, es al azar entre 300 y 800 ms;
