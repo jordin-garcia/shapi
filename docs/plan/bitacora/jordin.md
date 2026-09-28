@@ -375,3 +375,20 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - Para ocultar una opción de menú o proteger una sección, sigue valiendo `RequiereRol`; `area` es solo para `/panel` y `/admin`.
     - `Selector` recibe el ancho en `className` (por ejemplo, `w-full`).
     - Si una pantalla cambia el nombre o el rol del usuario, que invalide `claveSesion` para que se vea de inmediato.
+
+## 2026-09-27 · EM-06 · Pasarela de pagos simulada
+- Hecho: se terminó EM-06 a partir del PR #14 de Emilio (protocolo §E4, paso 14 de `docs/plan/auditoria-2026-09-25.md`, H-103 a H-105 y H-119).
+  - `PasarelaSimulada` reconoce las tarjetas de prueba por el número completo y guarda su comportamiento en el token, sin memoria.
+  - La demora es de 300 a 800 ms por defecto. El CVV solo acepta dígitos, y el vencimiento se evalúa con el mes de Guatemala.
+  - Hay 63 casos de prueba nuevos (RF-20) en `tests/Shapi.Api.Tests/Pagos/`. Se borró `generar_pagos.py`.
+  - Las tarjetas de ejemplo de 09 §2 y de los mockups A2.2 y A5.6 no pasaban Luhn; se cambió un dígito del medio y se conservaron los últimos 4 (H-119).
+- Decisiones (de Jordin, 27 sep), agregadas a 09 §2:
+  - `0002`, `0069` y `0341` llevan su comportamiento en el token, porque el Trabajador cobra las renovaciones en otro proceso.
+  - Sin `Pagos:DemoraMs`, la demora es al azar entre 300 y 800 ms; con un valor, es ese valor.
+  - El "mes actual" del vencimiento es el de America/Guatemala.
+  - `0341` se rechaza en las renovaciones con `fondos_insuficientes`.
+- Pendiente o aviso para otros:
+  - **Emilio:** se terminó tu EM-06 en la rama `jordin/EM-06-pasarela-de-pagos`, que parte de la tuya; tu rama no se modificó. El PR #14 queda cerrado. Cambiaron `src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs` (reescrita), `docs/plan/tareas/EM-06-pasarela-de-pagos-simulada.md` (criterio 1 y `## Resultado`), tu bitácora (nota en la entrada de EM-06), `mockups/A2/Contratacion.dc.html` y su exportación, y se agregó `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs`. Actualiza tu rama desde `main`.
+  - **EM-08 y EM-09:** la pasarela solo está registrada en la API (`PagosModulo`). EM-09 tiene que registrarla también en el Trabajador para las renovaciones. En las pruebas con `WebApplicationFactory` que cobren, fijen `Pagos:DemoraMs=0`; si no, cada operación tarda de 300 a 800 ms.
+  - **Dominique:** en `mockups/A5/Pago.dc.html` y en `mockups/a5-portal-marca-blanca.html`, la tarjeta de ejemplo ahora es `5412 7534 1203 3057` (**DC-09**, A5.6). Actualiza tu rama desde `main`.
+  - **Todos:** para probar la contratación en la demostración, usen las tarjetas de 09 §2. Las de los mockups ya pasan Luhn: `4024 0071 2284 4821` y `5412 7534 1203 3057`.

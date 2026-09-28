@@ -301,7 +301,7 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 14 · [EM-06] Terminar el PR #14: pasarela de pagos simulada
 
-- [ ] **H-103** Las pruebas obligatorias en `tests/`, con NSubstitute, nombradas con RF-20. Deben cubrir:
+- [x] **H-103** Las pruebas obligatorias en `tests/`, con NSubstitute, nombradas con RF-20. Deben cubrir:
   - cada fila de la tabla de 09 §2;
   - Luhn;
   - longitudes de 13 a 19;
@@ -310,10 +310,16 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
   - `cvv_invalido`;
   - los formatos `ch_sim_` y `re_sim_`;
   - `pasarela_no_disponible`.
-- [ ] **H-104** Detectar las tarjetas especiales por el número completo, no por los últimos 4 dígitos.
-- [ ] **H-105** Quitar `generar_pagos.py` y el resto de los hallazgos obligatorios de la revisión automática, y actualizar la rama desde `main`.
+- [x] **H-104** Detectar las tarjetas especiales por el número completo, no por los últimos 4 dígitos.
+- [x] **H-105** Quitar `generar_pagos.py` y el resto de los hallazgos obligatorios de la revisión automática, y actualizar la rama desde `main`.
 - Igual que en el paso 2 (§E4): una rama nueva, `jordin/EM-06-…`, que parte de `emilio/EM-06-pasarela-de-pagos`, un PR nuevo y se cierra el #14 con un comentario que enlaza al nuevo.
-- **❓ Decisión pendiente:** si Jordin ya le avisó a Emilio que no siga trabajando en el #14.
+- **Decidido (27 sep):** Jordin ya le avisó a Emilio que no siga trabajando en el #14.
+- [x] **H-119** (encontrado en este paso, de la especificación y de los mockups) Las tarjetas de ejemplo de 09 §2, que están en A2 y A5 (`4024 0071 2244 4821` y `5412 7534 1209 3057`), no pasan Luhn, así que la pasarela las rechazaría con `numero_invalido`. Se cambió un dígito del medio y se conservaron los últimos 4 (`4024 0071 2284 4821` y `5412 7534 1203 3057`), en 09 §2 y en los mockups.
+- **Decidido en este paso (27 sep), y agregado a 09 §2:**
+  - las tres tarjetas especiales llevan su comportamiento en el token (`tok_sim_0002_`, `tok_sim_0069_` y `tok_sim_0341_`), porque el Trabajador cobra las renovaciones en otro proceso;
+  - sin `Pagos:DemoraMs`, la demora es al azar entre 300 y 800 ms; con un valor, es ese valor;
+  - el mes actual del vencimiento es el de America/Guatemala;
+  - `0341` se rechaza en las renovaciones con `fondos_insuficientes`.
 
 ## Paso 15 · [JG-01] CI y reglas del repositorio
 
