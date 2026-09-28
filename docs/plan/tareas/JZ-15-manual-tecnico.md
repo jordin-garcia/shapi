@@ -30,7 +30,7 @@ Completar el manual técnico que exigen los lineamientos y generarlo en PDF.
 - `docs/pdf/Manual_Tecnico.pdf` (generar con `scripts/generar-pdf.mjs`)
 
 ## Criterios de aceptación
-1. Tiene: tecnologías usadas (con su versión y su justificación, en resumen), requisitos, instalación en Windows y en Linux, configuración (**todas** las variables de entorno con su descripción y su valor por defecto), despliegue en el ambiente productivo simulado (imágenes de GHCR y compose), siembra y cuentas de demostración, modo demostración y reloj, respaldo y restauración de PostgreSQL (`pg_dump`), y solución de problemas frecuentes (certificado, puertos ocupados, Docker).
+1. Tiene: tecnologías usadas (con su versión y su justificación, en resumen), requisitos, instalación en Windows y en Linux, configuración (**todas** las variables de entorno con su descripción y su valor por defecto), despliegue en el ambiente productivo simulado (imágenes de GHCR y compose), siembra y cuentas de demostración, modo demostración y reloj, respaldo y restauración de PostgreSQL (`pg_dump`), disponibilidad (RNF-06 como objetivo de diseño, con los mecanismos que lo respaldan según 03 §2, sin medición) y solución de problemas frecuentes (certificado, puertos ocupados, Docker).
 2. Cada comando del manual se ejecutó al menos una vez para comprobarlo.
 3. El PDF se genera con la carátula del proyecto.
 

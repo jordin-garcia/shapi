@@ -337,16 +337,17 @@ Todos los cambios del esquema van en una **migración nueva**, porque `Inicial` 
 
 ## Paso 16 · [JG-01] Huecos de requisitos (tareas nuevas según §C)
 
-- [ ] **H-113** Crear tareas para RNF-06 (disponibilidad del 99.5 %) y RNF-11 (publicar en menos de 5 minutos). Agregar RNF-13 a los metadatos de JG-02.
-- [ ] **H-114** `calendario.md:102` dice que las tareas P1 cubren los lineamientos obligatorios. Hoy solo los cubren tareas P2:
+- [x] **H-113** Crear tareas para RNF-06 (disponibilidad del 99.5 %) y RNF-11 (publicar en menos de 5 minutos). (RNF-06 quedó sin tarea: ver la decisión de abajo.) Agregar RNF-13 a los metadatos de JG-02.
+- [x] **H-114** `calendario.md:102` dice que las tareas P1 cubren los lineamientos obligatorios. Hoy solo los cubren tareas P2:
   - RF-06: EM-12;
   - RF-11 y RF-12: DC-14;
   - RF-36: JG-13;
   - RF-39: JZ-12;
   - RF-43: EM-12 y EM-13.
-- **❓ Decisión pendiente:**
-  - a quién se asigna cada tarea nueva;
-  - si se suben a P1 las tareas existentes o se corrige la afirmación del calendario.
+- **Decidido (27 sep):**
+  - RNF-06 no lleva tarea: queda como objetivo de diseño para un despliegue real, respaldado por JZ-06, RNF-04 y JZ-12, y no se mide en el ambiente simulado (03 §2 y §4). Se descartó una sonda de disponibilidad, porque el ambiente no corre de forma continua y la medición no cabía antes del PDF;
+  - RNF-11 → JZ-18, de José Pablo, P2, avance final. Se verifica solo con una prueba E2E cronometrada (03 §2);
+  - no se sube ninguna prioridad: `calendario.md` precisa que las P1 cubren el mínimo de cada lineamiento y nombra las P2 que completan la trazabilidad.
 
 ## Paso 17 · [JG-01] Auditoría final
 

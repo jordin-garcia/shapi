@@ -91,12 +91,12 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | <a id="rnf-03"></a>RNF-03 | Eficiencia | El sistema soportará al menos **200 peticiones por segundo** sostenidas durante 5 minutos, en el equipo de despliegue, con menos del 1 % de errores de la compuerta. |
 | <a id="rnf-04"></a>RNF-04 | Fiabilidad | La compuerta seguirá enrutando aunque la API de control, el trabajador o PostgreSQL estén fuera de servicio, siempre que Redis esté disponible. |
 | <a id="rnf-05"></a>RNF-05 | Fiabilidad | Una caída del trabajador no hará perder datos de consumo ni de facturación. Redis se configura con persistencia AOF (`appendfsync everysec`) y la consolidación es idempotente. Si Redis pierde sus datos, la caché se reconstruye desde PostgreSQL. |
-| <a id="rnf-06"></a>RNF-06 | Fiabilidad | La disponibilidad mensual objetivo del enrutamiento es del **99.5 %** en el ambiente de despliegue. |
+| <a id="rnf-06"></a>RNF-06 | Fiabilidad | La disponibilidad mensual objetivo del enrutamiento es del **99.5 %** en un despliegue real. Es un **objetivo de diseño**: el ambiente productivo simulado no corre de forma continua, así que no se mide. Lo respaldan tres mecanismos: el reinicio automático y las verificaciones de salud de los contenedores ([06 §7](06-arquitectura.md#7-despliegue)); que la compuerta siga enrutando aunque fallen la API de control, el trabajador o PostgreSQL ([RNF-04](#rnf-04)); y el estado de los componentes de B3.1 ([06 §8](06-arquitectura.md#8-observabilidad-y-estado-de-componentes)). |
 | <a id="rnf-07"></a>RNF-07 | Seguridad | Las contraseñas se guardan con **PBKDF2** (el hasher de ASP.NET Core Identity, v3). Las claves de API se guardan con **hash SHA-256** y se muestran una sola vez. Los tokens de correo y los identificadores de sesión se guardan con hash. El secreto de origen se guarda **cifrado** con Data Protection. Nunca se guardan datos completos de tarjetas. |
 | <a id="rnf-08"></a>RNF-08 | Seguridad | Ninguna consulta devolverá datos de una organización distinta a la del solicitante. Se aplica con un filtro global de EF Core por organización y se verifica con pruebas automatizadas de aislamiento. |
 | <a id="rnf-09"></a>RNF-09 | Seguridad | Todo el tráfico se servirá por **HTTPS**, con certificados que el borde emite y renueva automáticamente antes de su vencimiento (en el entorno simulado, con la autoridad certificadora interna de Caddy). HTTP redirige a HTTPS. |
 | <a id="rnf-10"></a>RNF-10 | Seguridad | La plataforma **no ejecutará código de los clientes**; solo enruta tráfico. Las URL de origen no pueden resolver a direcciones de loopback, privadas, link-local ni de la red interna de Docker. Esto se valida **al guardar la URL y al abrir cada conexión**, como protección contra SSRF. |
-| <a id="rnf-11"></a>RNF-11 | Usabilidad | Publicar una API, desde el registro hasta la primera respuesta válida, tomará **menos de 5 minutos**. |
+| <a id="rnf-11"></a>RNF-11 | Usabilidad | Publicar una API, desde el registro hasta la primera respuesta válida, tomará **menos de 5 minutos**. Se verifica con una prueba E2E cronometrada del flujo completo: registro del proveedor, publicación, plan gratuito, contratación del consumidor y primer 200 a través de la compuerta (CU-01, CU-05, CU-09, CU-11, CU-12 y CU-14). |
 | <a id="rnf-12"></a>RNF-12 | Usabilidad | Las interfaces estarán en español y funcionarán en la versión actual de Chrome, Edge y Firefox de escritorio, desde 1280 px de ancho. |
 | <a id="rnf-13"></a>RNF-13 | Mantenibilidad | Agregar una regla de validación a la compuerta consistirá en **agregar un filtro** a la tubería sin modificar los demás. La cuota de plataforma ([RF-30]) sirve de ejemplo. |
 | <a id="rnf-14"></a>RNF-14 | Portabilidad | Todo el sistema se levantará en cualquier equipo con **un solo comando** (`docker compose up`), con los datos de siembra de los mockups. |
@@ -137,6 +137,7 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | RF-40 | El proveedor abre y conversa en sus casos | ADR-29 |
 | RF-43 a RF-47 | Requisitos nuevos | ADR-16, ADR-19, ADR-24, ADR-27, ADR-11 |
 | RNF-04, RNF-05, RNF-07, RNF-09, RNF-10 | Se precisan | ADR-01, ADR-09, ADR-11, ADR-22, ADR-27 |
+| RNF-06 | Queda como objetivo de diseño para un despliegue real: no se mide en el ambiente productivo simulado | Decisión de Jordin del 27 sep (auditoría del 25 sep, H-113) |
 | RNF-15 | Requisito nuevo | ADR-31 |
 
 [RNF-02]: #rnf-02
