@@ -96,7 +96,7 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | <a id="rnf-08"></a>RNF-08 | Seguridad | Ninguna consulta devolverá datos de una organización distinta a la del solicitante. Se aplica con un filtro global de EF Core por organización y se verifica con pruebas automatizadas de aislamiento. |
 | <a id="rnf-09"></a>RNF-09 | Seguridad | Todo el tráfico se servirá por **HTTPS**, con certificados que el borde emite y renueva automáticamente antes de su vencimiento (en el entorno simulado, con la autoridad certificadora interna de Caddy). HTTP redirige a HTTPS. |
 | <a id="rnf-10"></a>RNF-10 | Seguridad | La plataforma **no ejecutará código de los clientes**; solo enruta tráfico. Las URL de origen no pueden resolver a direcciones de loopback, privadas, link-local ni de la red interna de Docker. Esto se valida **al guardar la URL y al abrir cada conexión**, como protección contra SSRF. |
-| <a id="rnf-11"></a>RNF-11 | Usabilidad | Publicar una API, desde el registro hasta la primera respuesta válida, tomará **menos de 5 minutos**. Se verifica con una prueba E2E cronometrada del flujo completo: registro del proveedor, publicación, plan gratuito, contratación del consumidor y primer 200 a través de la compuerta (CU-01, CU-05, CU-09, CU-11, CU-12 y CU-14). |
+| <a id="rnf-11"></a>RNF-11 | Usabilidad | Publicar una API, desde el registro hasta la primera respuesta válida, tomará **menos de 5 minutos**. Es un **objetivo de diseño** y no se mide. Lo respalda un flujo sin pasos manuales del personal ni esperas de aprobación (05, CU-01, CU-05, CU-09 y CU-12): el proveedor verifica su correo con un enlace, la conexión con el origen se prueba al registrar la API, publicar no necesita aprobación, un plan gratuito se activa sin pedir tarjeta ([RF-20](#rf-20)) y las claves se entregan al activarse la suscripción ([RF-26](#rf-26)). |
 | <a id="rnf-12"></a>RNF-12 | Usabilidad | Las interfaces estarán en español y funcionarán en la versión actual de Chrome, Edge y Firefox de escritorio, desde 1280 px de ancho. |
 | <a id="rnf-13"></a>RNF-13 | Mantenibilidad | Agregar una regla de validación a la compuerta consistirá en **agregar un filtro** a la tubería sin modificar los demás. La cuota de plataforma ([RF-30]) sirve de ejemplo. |
 | <a id="rnf-14"></a>RNF-14 | Portabilidad | Todo el sistema se levantará en cualquier equipo con **un solo comando** (`docker compose up`), con los datos de siembra de los mockups. |
@@ -138,6 +138,7 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | RF-43 a RF-47 | Requisitos nuevos | ADR-16, ADR-19, ADR-24, ADR-27, ADR-11 |
 | RNF-04, RNF-05, RNF-07, RNF-09, RNF-10 | Se precisan | ADR-01, ADR-09, ADR-11, ADR-22, ADR-27 |
 | RNF-06 | Queda como objetivo de diseño para un despliegue real: no se mide en el ambiente productivo simulado | Decisión de Jordin del 27 sep (auditoría del 25 sep, H-113) |
+| RNF-11 | Queda como objetivo de diseño: no se mide | Decisión de Jordin del 27 sep (auditoría del 25 sep, H-113) |
 | RNF-15 | Requisito nuevo | ADR-31 |
 
 [RNF-02]: #rnf-02

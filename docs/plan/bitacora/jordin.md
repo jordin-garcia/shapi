@@ -421,5 +421,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - JZ-18 es de José Pablo, P2, del avance final. RNF-11 se verifica solo con una prueba E2E cronometrada, sin pruebas con personas.
   - No se sube ninguna prioridad: las P1 cubren el mínimo de cada lineamiento, y las P2 EM-12, DC-14, JG-13 y JZ-12 completan la trazabilidad (EM-12 y EM-13 cubren además RF-43, que no está en la tabla). Si hay que recortarlas, Jordin lo decide y lo anota aquí.
 - Pendiente o aviso para otros:
-  - **José Pablo:** tienes una tarea nueva en el avance final, JZ-18 (prueba E2E cronometrada de la publicación, RNF-11), que reutiliza el flujo de JZ-13. Léela con `node scripts/tareas.mjs --ver JZ-18`. En el manual técnico, RNF-06 se presenta como objetivo de diseño con los mecanismos de 03 §2, sin medición: se agregó al criterio 1 de **JZ-15**.
+  - **José Pablo:** tienes una tarea nueva en el avance final, JZ-18 (prueba E2E cronometrada de la publicación, RNF-11), que reutiliza el flujo de JZ-13. Léela con `node scripts/tareas.mjs --ver JZ-18`. En el manual técnico, RNF-06 se presenta como objetivo de diseño con los mecanismos de 03 §2, sin medición: se agregó al criterio 1 de **JZ-15**. (Lo de JZ-18 se anuló el mismo día: la tarea se borró. Ver la entrada «RNF-11 como objetivo de diseño». Lo de JZ-15 sigue vigente.)
   - **Emilio, Dominique y José Pablo:** EM-12, EM-13, DC-14 y JZ-12 siguen en P2, pero ahora `calendario.md` las nombra: completan los lineamientos o RF-43. Avísenle a Jordin antes de dejarlas para después.
+
+## 2026-09-27 · JG-01 · RNF-11 como objetivo de diseño
+- Hecho: se borró JZ-18, la prueba E2E cronometrada de RNF-11 que se había creado en el PR #38. RNF-11 queda en 03 §2 como objetivo de diseño sin medición, respaldado por un flujo sin pasos manuales ni aprobaciones, y con una fila nueva en 03 §4. También se actualizaron el calendario, el paso 16 del plan de la auditoría y el `## Resultado` de JG-01.
+- Decisiones (de Jordin, 27 sep): RNF-11, igual que RNF-06, no es un lineamiento del curso y medirlo podía atrasar el avance final.
+- Pendiente o aviso para otros:
+  - **José Pablo:** JZ-18 ya no existe; no tienes que hacer la prueba cronometrada. JZ-13 no cambia. En el manual técnico (JZ-15) basta con presentar RNF-06 como objetivo de diseño, como ya dice su criterio 1.
