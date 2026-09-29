@@ -39,8 +39,15 @@ public static class Endpoints
 
         var hoy = DateOnly.FromDateTime(reloj.Ahora.ToOffset(DesfaseGuatemala).DateTime);
         hasta ??= hoy;
-        desde ??= hasta.Value.AddDays(-6);
-        if (desde > hasta || pagina - 1 > int.MaxValue / tamano)
+        if (desde is null)
+        {
+            if (hasta.Value < DateOnly.MinValue.AddDays(6))
+            {
+                return DatosInvalidos("El periodo o la paginación no son válidos.");
+            }
+            desde = hasta.Value.AddDays(-6);
+        }
+        if (desde > hasta || hasta == DateOnly.MaxValue || pagina - 1 > int.MaxValue / tamano)
         {
             return DatosInvalidos("El periodo o la paginación no son válidos.");
         }

@@ -118,6 +118,8 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
     [InlineData("?desde=2026-09-11&hasta=2026-09-10")]
     [InlineData("?pagina=0")]
     [InlineData("?tamano=101")]
+    [InlineData("?desde=9999-12-31&hasta=9999-12-31")]
+    [InlineData("?hasta=0001-01-01")]
     public async Task RF_41_ParametrosInvalidos_Responden400DatosInvalidos(string query)
     {
         // RF-41 · CA1: el contrato limita el periodo y la paginación.
