@@ -30,9 +30,9 @@ export default function PaginaA14aRecuperacion() {
     <MarcoAcceso>
 
       {enviado ? (
-        <Encabezado rotulo="Recuperación · paso 2 de 2" titulo="Revise su correo">
+        <Encabezado rotulo="Recuperación · revise su correo" titulo="Revise su correo">
           <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
-            Le enviamos un enlace para definir su contraseña. El enlace es de un solo uso y vence en <span className="font-medium text-tinta tabular-nums">60 minutos</span>.
+            Si el correo existe, le enviamos un enlace para definir una contraseña nueva. El enlace es de un solo uso y vence en <span className="font-medium text-tinta tabular-nums">60 minutos</span>.
           </p>
         </Encabezado>
       ) : (

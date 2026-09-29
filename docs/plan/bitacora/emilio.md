@@ -44,3 +44,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: La lógica de recuperación se aisló en `IServicioRecuperacion` (con parámetro de ámbito) para su reutilización en EM-05 con consumidores.
 - Pendiente o aviso para otros:
   - **Jordin:** la infraestructura de Docker local estaba caída durante mi ejecución impidiendo que `Shapi.Api.Tests` y `Shapi.Compuerta.Tests` se ejecutaran, pero `Shapi.Dominio.Tests` y todos los test de frontend pasan. Por favor revisar los test con infraestructura.
+
+## 2026-09-29 · EM-04 · Correcciones de la revisión del PR #46
+- Hecho: Se conservó y completó la corrección local del mensaje neutral de recuperación. Se agregaron pruebas del texto de CU-03, enlace vencido, errores de contraseña y reintento de sesión. La revisión independiente detectó un rechazo sin manejar después de restablecer; ahora se espera la sesión y el reintento no consume otra vez el token. La prueba falló antes del arreglo y pasa después. Revisión final en contexto limpio: LISTO.
+- Decisiones: El estado enviado usa «Recuperación · revise su correo»; «paso 2 de 2» se reserva para definir la contraseña. El comportamiento y el reintento están documentados en 11-interfaz.
+- Verificación: Plan válido (66 tareas); compilación sin errores ni advertencias; formato, lint, typecheck y build del frontend correctos; 230 pruebas de frontend pasan con `pnpm test --maxWorkers=1`. La ejecución paralela local tuvo tiempos de espera; no se cambiaron las aserciones ni sus límites. Las pruebas de integración locales encontraron un fallo de DNS al descargar imágenes de Docker Hub; el backend del commit anterior ya pasó en la CI. Se requiere confirmar también la CI del commit corregido antes de integrar.
+- Pendiente o aviso para otros: Ninguno sobre contratos; esta corrección mantiene los endpoints y sus tipos.

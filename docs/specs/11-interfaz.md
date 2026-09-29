@@ -233,8 +233,14 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 
 Ajustes al comportamiento que la implementación precisó respecto a los mockups originales.
 
+### A1.4a — Recuperación: solicitud enviada
+
+Después de enviar la solicitud, muestra «Revise su correo», con el rótulo «Recuperación · revise su correo» y el mensaje «Si el correo existe, le enviamos un enlace para definir una contraseña nueva. El enlace es de un solo uso y vence en 60 minutos.». Este estado mantiene la respuesta neutral de CU-03, paso 2; «paso 2 de 2» corresponde a A1.4b.
+
 ### A1.4b y A5.10 — Recuperación: contraseña nueva
 
 **Decisión (EM-04):** El enlace de recuperación que se envía por correo es `/restablecer?token={token}` (10 §1, `MotorPlantillasCorreo`). No incluye el correo del usuario como parámetro de la URL. Por eso, A1.4b **no muestra el correo** de la cuenta y usa el texto fijo «Defina una contraseña nueva para su cuenta.» en lugar del texto del mockup («Está definiendo la contraseña de {correo}.»).
 
 Si en el futuro se quisiera mostrar el correo enmascarado, habría que especificar y agregar un endpoint que lo devuelva a partir del token (sin consumirlo), lo cual está fuera del alcance de EM-04.
+
+Si la contraseña ya se restableció pero falla la consulta de la sesión, A1.4b muestra el error y permite reintentar esa consulta sin volver a enviar el token consumido. Si el token venció o ya se usó, ofrece «Solicitar un enlace nuevo», que lleva a `/recuperar`.

@@ -64,3 +64,8 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - **Precisión (§C):** A1.4b no muestra el correo porque el enlace solo lleva `?token=`. Usa el texto fijo "Defina una contraseña nueva para su cuenta." Documentado en `docs/specs/11-interfaz.md §Precisiones`.
 - Contrato OpenAPI actualizado: `POST /api/auth/restablecer` 400 → `DatosInvalidos` (con `errores.contrasena`). Tipos TypeScript regenerados.
 - Pruebas Vitest de las 3 pantallas y pruebas de integración backend (criterios 1-4, incluye validación contraseña=correo).
+
+### Correcciones del PR #46 (2026-09-29)
+- A1.4a confirma el envío con el texto condicional de CU-03 y reserva «paso 2 de 2» para A1.4b.
+- A1.4b espera la consulta de sesión después del restablecimiento; si falla, muestra el error y reintenta únicamente la sesión, sin consumir otra vez el token.
+- Pruebas RF-03 del mensaje neutral, enlace vencido, error por campo y recuperación tras un fallo de sesión. La prueba de este último caso falló antes del arreglo con un rechazo sin manejar y sin botón de reintento.

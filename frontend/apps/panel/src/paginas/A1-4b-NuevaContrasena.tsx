@@ -15,14 +15,18 @@ export default function PaginaA14bNuevaContrasena() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ErrorFormulario | null>(null);
   const [tokenInvalido, setTokenInvalido] = useState(false);
+  const [restablecida, setRestablecida] = useState(false);
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
     setEnviando(true);
     setError(null);
     try {
-      await restablecer(token, contrasena);
-      irAlDestino();
+      if (!restablecida) {
+        await restablecer(token, contrasena);
+        setRestablecida(true);
+      }
+      await irAlDestino();
     } catch (causa) {
       const err = interpretarError(causa);
       if (err.codigo === 'token_invalido') {
