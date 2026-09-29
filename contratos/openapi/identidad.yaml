@@ -231,7 +231,7 @@ paths:
             Set-Cookie:
               $ref: '#/components/headers/CookieSesion'
         '400':
-          $ref: '#/components/responses/CuerpoInvalido'
+          $ref: '#/components/responses/DatosInvalidos'
         '403':
           $ref: '#/components/responses/Csrf'
         '422':

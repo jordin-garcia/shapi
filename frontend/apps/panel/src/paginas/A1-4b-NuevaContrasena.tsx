@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Boton } from '@shapi/ui';
 import { AvisoError, CampoEtiquetado, Encabezado, MarcoAcceso } from '../modulos/identidad/Formularios';
 import { interpretarError, restablecer, useIrAlDestino, type ErrorFormulario } from '../modulos/identidad/useIdentidad';
@@ -7,7 +7,6 @@ import { interpretarError, restablecer, useIrAlDestino, type ErrorFormulario } f
 export default function PaginaA14bNuevaContrasena() {
   const [parametros] = useSearchParams();
   const token = parametros.get('token') ?? '';
-  const correo = parametros.get('correo') ?? 'su cuenta';
 
   const irAlDestino = useIrAlDestino();
   const formulario = useRef<HTMLFormElement>(null);
@@ -46,7 +45,7 @@ export default function PaginaA14bNuevaContrasena() {
           </p>
         </Encabezado>
         <div className="mt-8">
-          <a href="/recuperar" className="text-principal hover:underline text-[15px]">Solicitar un enlace nuevo</a>
+          <Link to="/recuperar" className="text-principal hover:underline text-[15px]">Solicitar un enlace nuevo</Link>
         </div>
       </MarcoAcceso>
     );
@@ -57,7 +56,7 @@ export default function PaginaA14bNuevaContrasena() {
 
       <Encabezado rotulo="Recuperación · paso 2 de 2" titulo="Definir la contraseña">
         <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
-          Está definiendo la contraseña de <span className="text-tinta font-medium">{correo}</span>.
+          Defina una contraseña nueva para su cuenta.
         </p>
       </Encabezado>
 

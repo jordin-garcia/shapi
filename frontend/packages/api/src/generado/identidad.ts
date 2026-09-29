@@ -633,7 +633,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            400: components["responses"]["CuerpoInvalido"];
+            400: components["responses"]["DatosInvalidos"];
             403: components["responses"]["Csrf"];
             /** @description El enlace venció o ya se usó (`token_invalido`). */
             422: {
