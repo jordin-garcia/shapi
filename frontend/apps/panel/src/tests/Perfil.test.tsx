@@ -43,8 +43,8 @@ describe('RF-04 · A8.1 Perfil', () => {
     await abrir('/panel/perfil');
     expect(await screen.findByRole('heading', { name: 'Mi perfil' })).toBeDefined();
     expect(screen.getByDisplayValue('Ana')).toBeDefined();
-    expect(screen.getByDisplayValue('ana@enviosxelaju.com')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Actualizar nombre' })).toBeDefined();
+    expect(screen.getByText('ana@enviosxelaju.com')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDefined();
   });
 
   it('permite cambiar el nombre', async () => {
@@ -53,7 +53,7 @@ describe('RF-04 · A8.1 Perfil', () => {
     const input = await screen.findByLabelText('Nombre');
     await userEvent.clear(input);
     await userEvent.type(input, 'Ana Lucía');
-    await userEvent.click(screen.getByRole('button', { name: 'Actualizar nombre' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() => expect(peticiones).toEqual([{ ruta: 'perfil', csrf: 'shapi', cuerpo: { nombre: 'Ana Lucía' } }]));
   });
 
@@ -61,8 +61,8 @@ describe('RF-04 · A8.1 Perfil', () => {
     server.use(http.post(`${API}/perfil/contrasena`, async ({ request }) => { await registrar(request, 'contrasena'); return new HttpResponse(null, { status: 200 }); }));
     await abrir('/panel/perfil');
     await userEvent.type(await screen.findByLabelText('Contraseña actual'), 'ContraActual123');
-    await userEvent.type(screen.getByLabelText('Nueva contraseña'), 'NuevaContra123');
-    await userEvent.click(screen.getByRole('button', { name: 'Actualizar contraseña' }));
-    await waitFor(() => expect(peticiones).toEqual([{ ruta: 'contrasena', csrf: 'shapi', cuerpo: { actual: 'ContraActual123', nueva: 'NuevaContra123' } }]));
+    await userEvent.type(screen.getByLabelText('Contraseña nueva'), 'NuevaContra123');
+    await userEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+    await waitFor(() => expect(peticiones).toEqual([{ ruta: 'contrasena', csrf: 'shapi', cuerpo: { contrasenaActual: 'ContraActual123', contrasenaNueva: 'NuevaContra123' } }]));
   });
 });
