@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-28
 depende_de: [DC-02, EM-01]
 requisitos: [RF-15, RF-16]
@@ -54,3 +54,11 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Pantallas del portal (DC-07 a DC-11)
+
+## Resultado
+- Se creó `IResolutorPortal` y su implementación con EF Core para resolver únicamente APIs publicadas por el host `{sub}.{dominio_base}`, antes de contar con un contexto de organización.
+- Se publicaron los endpoints anónimos `GET /api/portal/configuracion` y `GET /api/portal/logo`, con contrato OpenAPI, hosts canónicos y aislamiento de SVG mediante CSP.
+- El frontend carga la configuración, aplica `--marca-principal`, muestra logotipo o iniciales sin la marca de Shapi y presenta "API no disponible" ante un 404.
+- Se crearon los layouts público y de cuenta, todas las rutas con URL de A5 y B2 y sus páginas de relleno. Las rutas de `/cuenta/*` usan una consulta provisional a `GET /api/portal/auth/sesion` y el pie permite cerrar con `POST /api/portal/auth/salir`.
+- Las pruebas de integración cubren API publicada, despublicada e inexistente, configuración y logotipos PNG/SVG. Las pruebas de Vitest cubren marca, rutas, navegación y sesión del consumidor.
+- Decisiones: los hosts devueltos se construyen con el subdominio almacenado y `SHAPI_DOMINIO_BASE`, nunca con la cabecera recibida. A5.4b y B2.4 a B2.6 no crean rutas porque el catálogo las define como estados o diálogos sin URL propia.

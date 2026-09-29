@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: API de Control - Portal
+  version: 1.0.0
+  description: Configuración pública y logotipo del portal de marca blanca resuelto por host.
+servers:
+  - url: https://{subdominio}.shapi.localhost
+    description: Portal de una API detrás del borde
+    variables:
+      subdominio:
+        default: envios
+
+paths:
+  /api/portal/configuracion:
+    get:
+      summary: Obtiene la configuración pública del portal
+      operationId: obtenerConfiguracionPortal
+      responses:
+        '200':
+          description: Configuración de la API publicada que corresponde al host.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguracionPortal'
+        '404':
+          description: El host no corresponde a una API publicada.
+
+  /api/portal/logo:
+    get:
+      summary: Obtiene el logotipo del portal
+      operationId: obtenerLogoPortal
+      responses:
+        '200':
+          description: Logotipo configurado para el portal.
+          headers:
+            X-Content-Type-Options:
+              description: Evita que el navegador interprete un tipo distinto al declarado.
+              schema:
+                type: string
+                const: nosniff
+            Content-Security-Policy:
+              description: Para SVG se envía `sandbox`.
+              schema:
+                type: string
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: El host no corresponde a una API publicada o el portal no tiene logotipo.
+
+components:
+  schemas:
+    ConfiguracionPortal:
+      type: object
+      required:
+        - nombrePortal
+        - colorPrincipal
+        - urlLogo
+        - bienvenida
+        - nombreApi
+        - descripcionApi
+        - hostPortal
+        - hostApi
+      properties:
+        nombrePortal:
+          type: string
+          description: Nombre personalizado; si no existe, se usa el nombre de la API.
+        colorPrincipal:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          example: '#B8322A'
+        urlLogo:
+          type: [string, 'null']
+          example: /api/portal/logo
+        bienvenida:
+          type: [string, 'null']
+        nombreApi:
+          type: string
+        descripcionApi:
+          type: [string, 'null']
+        hostPortal:
+          type: string
+          example: envios.shapi.localhost
+        hostApi:
+          type: string
+          example: envios.api.shapi.localhost
