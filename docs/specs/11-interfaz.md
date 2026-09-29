@@ -83,7 +83,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A1.2 | Aviso de verificación de correo | `Verificacion.dc.html` | `/verificar-correo` | RF-02 | ✎ (peticiones, vence en 24 h, reenviar) |
 | A1.3 | Inicio de sesión | `Sesion.dc.html` | `/entrar` | RF-04 | = |
 | A1.4a | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | = |
-| A1.4b | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ✎ (se cierran las demás sesiones) |
+| A1.4b | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ✎ (se cierran las demás sesiones; el correo no se muestra — ver §Precisiones) |
 
 ### A2 · Plan de plataforma (`a2-contratacion-plan.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
@@ -130,7 +130,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A5.7 | Inicio de sesión del consumidor | `Acceso.dc.html` | `/entrar` | RF-04 | ✎ (enlace para recuperar la contraseña) |
 | A5.8 | Verificación de correo del consumidor | `Verificacion.dc.html` | `/verificar-correo` | RF-02 | ★ |
 | A5.9 | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | ★ |
-| A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ |
+| A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ (correo no visible — ver §Precisiones) |
 
 ### A6 · Administración y soporte (`a6-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
@@ -228,3 +228,13 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
   - si la verificación funciona, consulta la sesión y lleva al destino según el rol;
   - si el enlace venció o ya se usó (`token_invalido`), muestra «Enlace no válido» y un campo de correo para pedir otro, porque el enlace no trae la dirección;
   - cualquier otro error muestra «No se pudo confirmar su correo» con el mensaje. Si es de red o del servidor, ofrece «Reintentar», y si el correo ya se confirmó y solo falló la consulta de la sesión, el reintento no vuelve a enviar el token.
+
+## §Precisiones
+
+Ajustes al comportamiento que la implementación precisó respecto a los mockups originales.
+
+### A1.4b y A5.10 — Recuperación: contraseña nueva
+
+**Decisión (EM-04):** El enlace de recuperación que se envía por correo es `/restablecer?token={token}` (10 §1, `MotorPlantillasCorreo`). No incluye el correo del usuario como parámetro de la URL. Por eso, A1.4b **no muestra el correo** de la cuenta y usa el texto fijo «Defina una contraseña nueva para su cuenta.» en lugar del texto del mockup («Está definiendo la contraseña de {correo}.»).
+
+Si en el futuro se quisiera mostrar el correo enmascarado, habría que especificar y agregar un endpoint que lo devuelva a partir del token (sin consumirlo), lo cual está fuera del alcance de EM-04.
