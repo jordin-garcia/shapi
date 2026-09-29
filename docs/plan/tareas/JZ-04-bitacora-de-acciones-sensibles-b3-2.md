@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 depende_de: [EM-01, DC-02]
 requisitos: [RF-41]
 pantallas: [B3.2]
@@ -49,3 +49,10 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Escribir en la bitácora (cada módulo lo hace con `IBitacora`)
+
+## Resultado
+- Se creó `GET /api/admin/bitacora` para administradores y soporte, con filtros inclusivos por fechas de Guatemala, orden descendente, paginación y el periodo predeterminado de siete días.
+- Se implementó B3.2 con los estados poblado, vacío, carga y error, además del selector de fechas, siguiendo ambos mockups.
+- Se publicó el contrato `sistema.yaml`, se regeneraron los tipos TypeScript y se agregaron pruebas de integración, permisos, límites de fecha y Vitest.
+- Decisiones: la página predeterminada contiene 20 entradas (máximo 100); los límites de fecha que no permiten formar un intervalo completo responden `400 datos_invalidos`; el rol y la organización visibles del actor se obtienen de su membresía actual.
+- Archivos principales: `src/Shapi.Api/Bitacora/Endpoints.cs`, `src/Shapi.Aplicacion/Bitacora/ModelosBitacora.cs`, `contratos/openapi/sistema.yaml`, `frontend/apps/panel/src/paginas/B3-2-Bitacora.tsx` y las pruebas de bitácora.

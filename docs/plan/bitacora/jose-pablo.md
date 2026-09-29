@@ -31,3 +31,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-03:** `verificacion_correo` recibe `{ nombre, token }` y el enlace enviado apunta a `/verificar-correo?token=`; la pantalla ya puede consumir ese token.
   - **EM-04:** `recuperacion` recibe `{ nombre, token }` y el enlace enviado apunta a `/restablecer?token=`. Puede incluir `nombrePortal` para usarlo como remitente visible.
   - **JZ-11:** para agregar plantillas, cree el par `.html`/`.txt` en `Shapi.Infraestructura/Correo/Plantillas`; los marcadores `{{campo}}` se toman de `datos` y se escapan en HTML.
+
+## 2026-09-28 · JZ-04 · Bitácora de acciones sensibles (B3.2)
+- Hecho: se implementaron la consulta administrativa paginada, el contrato OpenAPI y B3.2 con estados poblado, vacío, carga, error y selector de fechas; se cubrieron permisos, zona horaria, orden y límites con pruebas automatizadas.
+- Decisiones: los días se interpretan en `America/Guatemala` con extremos inclusivos; el periodo predeterminado es el día actual y los seis anteriores; la página predeterminada contiene 20 entradas y admite hasta 100.
+- Pendiente o aviso para otros:
+  - **JZ-08:** las acciones `organizacion.suspendida` y `organizacion.reactivada` que registre mediante `IBitacora` aparecerán en `GET /api/admin/bitacora`; use las descripciones legibles del catálogo de `docs/specs/10-identidad-y-seguridad.md` §7.
