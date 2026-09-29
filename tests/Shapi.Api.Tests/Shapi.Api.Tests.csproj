@@ -6,6 +6,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\Shapi.Api\Shapi.Api.csproj" />
         <ProjectReference Include="..\..\src\Shapi.Trabajador\Shapi.Trabajador.csproj" />
+        <!-- La compuerta en memoria de las pruebas de la caché (JG-04). Con alias, porque también tiene una clase Program. -->
+        <ProjectReference Include="..\..\src\Shapi.Compuerta\Shapi.Compuerta.csproj" Aliases="compuerta" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />

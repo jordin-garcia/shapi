@@ -17,7 +17,9 @@ public sealed record ContextoApi(
     string? PortalHost,
     long Version)
 {
+    public const string EstadoBorrador = "borrador";
     public const string EstadoPublicada = "publicada";
+    public const string EstadoDespublicada = "despublicada";
 
     public const string CampoOrganizacionId = "organizacion_id";
     public const string CampoEstado = "estado";

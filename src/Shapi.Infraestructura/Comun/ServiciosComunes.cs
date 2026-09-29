@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,9 +12,12 @@ namespace Shapi.Infraestructura.Comun;
 
 public static class ServiciosComunes
 {
+    /// <summary>Directorio del anillo de llaves de Data Protection, compartido por la API y el trabajador (10 §3).</summary>
+    public const string VariableDirectorioLlaves = "SHAPI_DPKEYS_DIR";
+
     /// <summary>
-    /// Registra el reloj, <see cref="IColaCorreo"/>, <see cref="IBitacora"/>
-    /// e <see cref="IPublicadorCache"/>. El DbContext se registra siempre;
+    /// Registra el reloj, <see cref="IColaCorreo"/>, <see cref="IBitacora"/> e <see cref="IProtectorSecretoOrigen"/>.
+    /// <see cref="IPublicadorCache"/> lo registra <c>AgregarCacheRedis</c> (JG-04). El DbContext se registra siempre;
     /// si falta SHAPI_POSTGRES_CADENA no explota al arrancar (solo al usarse).
     /// </summary>
     public static IServiceCollection AgregarServiciosComunes(this IServiceCollection services, IConfiguration configuration)
@@ -25,7 +29,16 @@ public static class ServiciosComunes
         services.AddScoped<IColaCorreo, ColaCorreoBaseDatos>();
         services.AddScoped<IBitacora, BitacoraBaseDatos>();
 
-        services.AddSingleton<IPublicadorCache, PublicadorCacheNulo>();
+        // Mismo nombre de aplicación y mismo directorio en la API y en el trabajador, para que el trabajador descifre
+        // los secretos que cifró la API (10 §3).
+        var dataProtection = services.AddDataProtection().SetApplicationName("Shapi");
+        var directorioLlaves = configuration[VariableDirectorioLlaves];
+        if (!string.IsNullOrWhiteSpace(directorioLlaves))
+        {
+            dataProtection.PersistKeysToFileSystem(new DirectoryInfo(directorioLlaves));
+        }
+
+        services.AddSingleton<IProtectorSecretoOrigen, ProtectorSecretoOrigen>();
 
         services.TryAddScoped<IContextoOrganizacion, ContextoOrganizacionNulo>();
 
