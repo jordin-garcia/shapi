@@ -16,10 +16,11 @@ Shapi es una plataforma como servicio para publicar APIs, controlar quién las u
 
 3. **Solo implementa tareas de esa persona** y solo las que estén disponibles, es decir, sin dependencias pendientes. Para verlas, ejecuta `node scripts/tareas.mjs --persona <clave>`.
    **Excepción: el coordinador (`jordin`)** está autorizado de forma permanente a corregir, terminar o modificar el trabajo de cualquier persona (código, pruebas, contratos, tareas, bitácoras, documentación y sus PR abiertos). No necesita preguntar antes. Lo hace según `docs/plan/protocolo.md` §E. La excepción cubre solo quién edita qué: el resto de "Preguntar antes" y "Nunca" sigue vigente, incluido no hacer *push* a la rama de otra persona, ni forzado ni normal (protocolo §E4).
+4. **Sigue el calendario.** Cada tarea pendiente tiene el día en que debe integrarse (`programada`, en `docs/plan/calendario.md` §"Calendario por día"). Entre las disponibles, haz primero las atrasadas y luego la del día; `--persona` y `--siguiente` ya las dan en ese orden. Una tarea se puede adelantar si ya está disponible.
 
 ## Pedidos habituales del usuario
 
-- **"¿Qué me toca?" / "Revisa el plan"**: ejecuta `node scripts/tareas.mjs --persona <clave>`, lee los archivos de las tareas disponibles y resúmelas: qué hace cada una, su prioridad, su avance y de quién depende lo que está en espera. Incluye los avisos que los demás le dejaron en sus bitácoras (`docs/plan/protocolo.md` §A, paso 5). Recomienda la siguiente. **No implementes nada todavía.**
+- **"¿Qué me toca?" / "Revisa el plan"**: ejecuta `node scripts/tareas.mjs --hoy <clave>` y `node scripts/tareas.mjs --persona <clave>`, lee los archivos de las tareas disponibles y resúmelas: qué hace cada una, su prioridad, su fecha programada y de quién depende lo que está en espera. Empieza por lo atrasado y lo de hoy, y di quién lo espera. Incluye los avisos que los demás le dejaron en sus bitácoras (`docs/plan/protocolo.md` §A, paso 5). Recomienda la siguiente según el calendario. **No implementes nada todavía.**
 - **"Implementa <ID>"** o **"continúa"**: sigue la sección B de `docs/plan/protocolo.md` de principio a fin, hasta que el *pull request* quede integrado en `main`, **sin volver a preguntarle al usuario**, salvo en los casos de "Preguntar antes" o si necesitas algo a lo que no puedes acceder.
 - **"Audita <ID>"** o **"audita lo integrado"** (solo el coordinador): sigue `docs/plan/protocolo.md` §E2 y detente al presentar los hallazgos. **"Corrige los hallazgos"**, **"continúa la auditoría"** o "continúa" mientras la sesión corrige un plan de auditoría: §E3, un paso a la vez.
 
@@ -29,7 +30,8 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 
 | Qué | Comando |
 |---|---|
-| Tareas | `node scripts/tareas.mjs --persona <clave>` · `--ver <ID>` · `--validar` |
+| Tareas | `node scripts/tareas.mjs --persona <clave>` · `--hoy [<clave>]` · `--ver <ID>` · `--validar` |
+| Calendario por día | `node scripts/tareas.mjs --calendario` (para reescribirlo en `docs/plan/calendario.md` tras cambiar fechas: `--calendario --escribir`) |
 | Infraestructura local | `docker compose --env-file .env -f infra/compose.yml up -d` · `docker compose --env-file .env -f infra/compose.yml down` |
 | Backend: compilar | `dotnet build Shapi.slnx` |
 | Backend: pruebas | `dotnet test Shapi.slnx` (usa Docker por Testcontainers). Si en Windows falla con errores de Docker, repite con `dotnet test Shapi.slnx -m:1`, que corre un proyecto a la vez |

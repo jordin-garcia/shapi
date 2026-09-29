@@ -6,6 +6,7 @@ responsable: José Pablo Zúñiga
 avance: 3
 prioridad: P1
 estado: pendiente
+programada: 2026-10-12
 depende_de: [EM-04]
 requisitos: [RF-42]
 pantallas: [A6.5]

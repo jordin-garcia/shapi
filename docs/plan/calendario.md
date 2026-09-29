@@ -20,6 +20,50 @@
 
 ---
 
+## Calendario por día
+
+Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el día en que el calendario espera que se integre. Es la única fuente de las fechas; la tabla de abajo se genera a partir de ellas.
+
+- **Es una meta, no una restricción.** Si una tarea ya está disponible, se puede adelantar. Lo que sí se respeta siempre son `depende_de` y `no_antes_de`.
+- **Qué me toca hoy:** `node scripts/tareas.mjs --hoy <persona>` muestra la tarea del día, las atrasadas (con quién las espera) y la siguiente. `--persona` y `--siguiente` ordenan por esta fecha, así que "continúa" toma la que dice el calendario.
+- **Aviso diario:** a las 07:00 (Guatemala), el issue "Tablero del plan" menciona a quien tiene una tarea programada ese día o una atrasada. A quien no tiene nada, no lo menciona.
+- **Una tarea atrasada** es la que no está hecha y su fecha ya pasó. Se marca con ⏰.
+- **Reprogramar:** solo Jordin, con un PR que cambie `programada` en los archivos de las tareas y ejecute `node scripts/tareas.mjs --calendario --escribir`. La CI (`--validar`) rechaza una fecha anterior a la de una dependencia pendiente o a `no_antes_de`, y una tabla que no coincida con los archivos.
+- Los días de convergencia (jueves 8 y 22) los demás ensayan el guion y corrigen errores; los días de entrega son los del cuadro de arriba.
+- Las tablas de cada avance, más abajo, dicen a qué entrega pertenece cada tarea. El día exacto, incluidas las que se adelantan a un avance anterior para repartir la carga (JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14), es el de esta tabla.
+
+<!-- calendario:inicio (lo genera node scripts/tareas.mjs --calendario --escribir; no lo edites a mano) -->
+
+| Día | Jordin | Emilio | Dominique | José Pablo |
+|---|---|---|---|---|
+| Lun 28 sep | **JG-04** Publicador de configuración en Redis y resincronización | **EM-04** Recuperación de contraseña y Mi perfil (A1.4a, A1.4b y A8.1) | **DC-03** Estructura del portal de marca blanca | — |
+| Mar 29 sep | **JG-07** Servicio de claves: emisión, rotación y revocación (backend) | — | **DC-04** Registrar una API y lista de APIs (A3.1 y A3.2) | **JZ-06** Imágenes Docker, ambiente productivo simulado y publicación en GHCR |
+| Mié 30 sep | **JG-05** Compuerta: organización, suscripción, ruta, secreto, SSRF y CORS | **EM-05** Identidad del consumidor (backend del portal) | — | — |
+| Jue 1 oct | — | **EM-07** Planes de API (A4.1) | **DC-05** Especificación OpenAPI y rutas expuestas (A3.3 y A3.4) | **JZ-07** Pruebas de extremo a extremo y herramienta de capturas |
+| Vie 2 oct | **JG-06** Compuerta: límites por minuto, cuotas y cabeceras (Lua) | — | **DC-08** Pantallas de acceso del consumidor (A5.3, A5.3b y A5.7 a A5.10) | — |
+| Sáb 3 oct | — | **EM-08** Contratación de un plan de API (backend) | — | **JZ-05** Siembra de demostración |
+| Dom 4 oct | **JG-09** Medición en la compuerta y consolidación del consumo | — | **DC-06** Configuración por ruta y publicación (A3.5) | — |
+| Lun 5 oct | — | **EM-09** Suscripción de plataforma: contratar y cambiar de plan (A2 y B1.4) | — | **JZ-11** Plantillas de correo completas |
+| Mar 6 oct | — | — | **DC-07** Portal público: inicio y documentación (A5.0, A5.1 y A5.5) | — |
+| Mié 7 oct | — | **EM-12** Miembros e invitaciones (A4.2 y A8.2) | **DC-09** Planes y contratación en el portal (A5.4, A5.6 y A5.4b) | **JZ-10** Casos de soporte (A6.4, A6.4b, A7.1 y A7.2) |
+| Jue 8 oct | **JG-08** Convergencia del Avance 2 | — | — | — |
+| Sáb 10 oct | **JG-11** Consumo, latencia y errores por API (B1.1) | **EM-10** Cierre de ciclo: renovación, gracia, suspensión y fin de la Prueba | **DC-11** Suscripción y claves del consumidor (B2.3 a B2.6) | **JZ-08** Administración de organizaciones (A6.2 y A6.2b) |
+| Lun 12 oct | **JG-10** Pantalla de claves del proveedor (A4.3 y A4.3b) | **EM-11** Historial de pagos (B1.3 y la API de B2.2) | **DC-10** Consola de pruebas del portal (A5.2) | **JZ-09** Cuentas de administración y soporte (A6.5) |
+| Mié 14 oct | **JG-12** Consumo del ciclo para el consumidor (B2.1) | **EM-13** Límites del plan de plataforma y cambio de plan del consumidor | **DC-14** Dominio propio, DNS simulado y secreto de origen (A3.6) | **JZ-12** Estado de los componentes (B3.1) |
+| Vie 16 oct | **JG-13** Consumo y facturación por consumidor (B1.2) | **EM-14** Administración: planes de plataforma y pagos (A6.1 y A6.3) | **DC-13** Pagos y cambio de plan del consumidor (B2.2 y B2.7) | — |
+| Sáb 17 oct | — | — | — | **JZ-14** Pruebas de carga (RNF-01 y RNF-03) |
+| Dom 18 oct | — | **EM-15** Invitar consumidores (B1.5) | **DC-15** Sitio público: inicio de Shapi (A0.1) | — |
+| Mar 20 oct | — | — | **DC-12** Personalización del portal (A3.7) | — |
+| Jue 22 oct | **JG-14** Convergencia del Avance 3 | — | — | — |
+| Sáb 24 oct | **JG-16** Generador de PDF y documentos de requisitos y de diseño | **EM-16** Pruebas de aislamiento entre organizaciones y de permisos | **DC-16** Revisión visual contra los mockups | **JZ-13** Pruebas E2E de los flujos principales |
+| Lun 26 oct | **JG-15** Caché de respuestas en la compuerta | — | — | **JZ-15** Manual técnico |
+| Mar 27 oct | — | — | — | **JZ-16** Manual de usuario |
+| Jue 29 oct | **JG-17** Convergencia final y congelamiento del código | — | — | — |
+
+<!-- calendario:fin -->
+
+---
+
 ## Avance 1 · 23 al 25 de septiembre · "El esqueleto funciona"
 
 | Tarea | Persona | Qué deja listo |
@@ -107,5 +151,5 @@
    - JZ-12: RF-39 (estado de los componentes).
 
    EM-12 y EM-13 cubren además RF-43 (límites del plan de plataforma), que no está en esa tabla.
-3. En cada convergencia (JG-08, JG-14, JG-17), Jordin revisa la carga de cada persona y reprioriza.
+3. En cada convergencia (JG-08, JG-14, JG-17), Jordin revisa la carga de cada persona, reprioriza y reprograma las fechas (`programada`) de lo atrasado. Si una tarea atrasada detiene a otras, puede reprogramarla antes, en cualquier día.
 4. Si alguien no va a poder avanzar en una semana, avisa al grupo. Jordin puede reasignar una tarea mediante un PR que cambie en su archivo `persona` y `responsable` y agregue la línea `reasignada: si`. El ID **no cambia**, para no romper las dependencias.

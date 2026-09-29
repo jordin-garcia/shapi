@@ -6,6 +6,7 @@ responsable: Emilio Méndez
 avance: final
 prioridad: P1
 estado: pendiente
+programada: 2026-10-24
 depende_de: [EM-14, EM-12]
 no_antes_de: 2026-10-24
 requisitos: [RNF-08, RF-07]

@@ -66,7 +66,7 @@ Si no puedes responder en ese momento, pídele: "Marca la tarea como bloqueada c
 | **Dominique Contreras** | DC | Sistema de diseño, estructura del panel y del portal, publicación de APIs (A3), portal de marca blanca (A5) y cuenta del consumidor (B2) |
 | **José Pablo Zúñiga** | JZ | Infraestructura (Docker, Caddy), orígenes de demostración, siembra, correo, bitácora, administración y soporte (A6, A7, B3), E2E, pruebas de carga y manuales |
 
-Estado del plan en cualquier momento: `node scripts/tareas.mjs` (resumen del equipo) o `node scripts/tareas.mjs --persona <jordin|emilio|dominique|jose-pablo>`.
+Estado del plan en cualquier momento: `node scripts/tareas.mjs` (resumen del equipo) o `node scripts/tareas.mjs --persona <jordin|emilio|dominique|jose-pablo>`. Qué te toca hoy según el calendario: `node scripts/tareas.mjs --hoy <tu-clave>`; además, cada mañana a las 07:00 el issue "Tablero del plan" te menciona si tienes una tarea programada ese día o una atrasada.
 
 ## Reglas de oro
 

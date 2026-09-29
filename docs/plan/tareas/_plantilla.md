@@ -6,6 +6,7 @@ responsable: Nombre Apellido
 avance: 1 | 2 | 3 | final
 prioridad: P1 | P2 | P3
 estado: pendiente
+programada: AAAA-MM-DD
 depende_de: []
 requisitos: [RF-00]
 pantallas: []

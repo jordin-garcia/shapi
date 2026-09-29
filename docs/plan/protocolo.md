@@ -15,7 +15,7 @@ Este es el procedimiento **obligatorio** para cualquier agente (Claude Code, Cod
    git pull --ff-only
    ```
    Si hay cambios locales sin guardar, **no los descartes**: díselo a la persona y pregúntale qué hacer.
-3. **Lista sus tareas**: `node scripts/tareas.mjs --persona <clave>`.
+3. **Lista sus tareas**: `node scripts/tareas.mjs --hoy <clave>` (lo de hoy, lo atrasado y quién lo espera) y `node scripts/tareas.mjs --persona <clave>` (todas, ordenadas por su fecha programada).
 4. **Lee el archivo** de cada tarea **disponible** y las últimas 3 entradas de `docs/plan/bitacora/<persona>.md`.
 5. **Busca los avisos que le dejaron los demás.** En las bitácoras de las otras personas (`docs/plan/bitacora/*.md`), revisa las líneas de "Pendiente o aviso para otros" dirigidas a esta persona. Se reconocen porque empiezan en negrita con:
    - un ID de sus tareas (`**EM-03:**`, o también `**JG-04 y EM-03:**`);
@@ -24,17 +24,18 @@ Este es el procedimiento **obligatorio** para cualquier agente (Claude Code, Cod
 
    Puedes usar la herramienta de búsqueda de tu harness, o `grep -n "\*\*.*\(EM-\|Emilio\|Todos\)" docs/plan/bitacora/*.md` cambiando el prefijo y el nombre. Quédate con los avisos de tareas que todavía no están hechas.
 6. **Responde** con:
-   - las tareas disponibles, en el orden que da el script: ID, título y un resumen de 1 o 2 líneas de lo que hará;
+   - primero lo atrasado (⏰) y lo programado para hoy, con quién lo espera;
+   - las tareas disponibles, en el orden que da el script (por fecha programada): ID, título, fecha y un resumen de 1 o 2 líneas de lo que hará;
    - las tareas en espera y de quién dependen, por si la persona quiere avisarle a un compañero;
    - los avisos que le dejaron los demás (paso 5), indicando quién lo dejó y en qué tarea;
-   - la siguiente tarea recomendada.
+   - la siguiente tarea recomendada: la primera disponible según el calendario (`docs/plan/calendario.md` §"Calendario por día").
 7. **No implementes nada** hasta que te lo pidan.
 
 ---
 
 ## B. Implementar una tarea ("implementa <ID>" o "continúa")
 
-Si la persona dice "continúa" o "la siguiente", toma la primera disponible con `node scripts/tareas.mjs --siguiente <clave>`. Excepción: si el coordinador dice "continúa la auditoría" o "siguiente paso de la auditoría", o si la sesión ya está corrigiendo un plan de auditoría, se sigue §E3.
+Si la persona dice "continúa" o "la siguiente", toma la primera disponible con `node scripts/tareas.mjs --siguiente <clave>`, que sigue el calendario: primero las atrasadas y luego la de fecha programada más cercana. Excepción: si el coordinador dice "continúa la auditoría" o "siguiente paso de la auditoría", o si la sesión ya está corrigiendo un plan de auditoría, se sigue §E3.
 
 Desde aquí trabaja **sin pedir confirmación** en cada paso. Solo te detienes en los casos de §C.
 
@@ -128,7 +129,7 @@ gh pr checks --watch
 ### B12. Terminar
 - Ejecuta `git switch main && git pull --ff-only`.
 - Dale a la persona un resumen breve: qué se hizo, el enlace al PR, la evidencia y las decisiones tomadas.
-- Muéstrale sus próximas tareas disponibles con `node scripts/tareas.mjs --persona <clave>`.
+- Muéstrale lo que le toca después con `node scripts/tareas.mjs --hoy <clave>` y sus tareas disponibles con `node scripts/tareas.mjs --persona <clave>`.
 - Si pidió que continuaras con varias tareas, sigue con la siguiente.
 
 ---
@@ -149,6 +150,7 @@ gh pr checks --watch
 **Crear una tarea nueva**, por un error ajeno o por algo que falta:
 - Copia `docs/plan/tareas/_plantilla.md` a `docs/plan/tareas/<PREFIJO>-<siguiente número libre de esa persona>-<descripcion>.md`.
 - Complétala con la persona responsable según la tabla de propiedad, `avance` y `prioridad`, y agrégala en tu PR.
+- Ponle `programada`: el primer día libre de esa persona después de las fechas de sus dependencias pendientes. Ejecuta `node scripts/tareas.mjs --calendario --escribir` para actualizar `docs/plan/calendario.md`; si no, `--validar` falla. Jordin la reacomoda en la siguiente convergencia si hace falta.
 - En la bitácora, anota que la creaste.
 
 ---

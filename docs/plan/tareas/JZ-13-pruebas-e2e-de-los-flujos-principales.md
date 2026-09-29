@@ -6,6 +6,7 @@ responsable: José Pablo Zúñiga
 avance: final
 prioridad: P1
 estado: pendiente
+programada: 2026-10-24
 depende_de: [JZ-07]
 no_antes_de: 2026-10-22
 requisitos: [RNF-15]

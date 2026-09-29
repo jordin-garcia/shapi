@@ -472,3 +472,14 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones (de Jordin, 28 sep): Jordin agregó la regla a mano, porque el modo automático no deja que un agente edite sus propios permisos.
 - Pendiente o aviso para otros:
   - **Todos:** sus agentes ya no pueden integrar un PR con `--admin`. Si `revision-claude` da un falso positivo, avísenle a Jordin (B11). Abran una sesión nueva de Claude Code para que tome la regla.
+
+## 2026-09-28 · JG-03 · Calendario diario y recordatorio en el tablero
+- Hecho:
+  - Cada tarea pendiente tiene `programada: AAAA-MM-DD`, el día del calendario en que se integra. La tabla por día está en `docs/plan/calendario.md` y se genera con `node scripts/tareas.mjs --calendario --escribir`.
+  - `node scripts/tareas.mjs --hoy <clave>` muestra lo de hoy, lo atrasado y quién lo espera; `--persona` y `--siguiente` ordenan por fecha.
+  - El issue "Tablero del plan" publica cada día a las 07:00 las "Tareas del día" y menciona solo a quien tiene algo ese día o algo atrasado.
+- Decisiones (de Jordin, 28 sep): el campo se llama `programada`; el aviso menciona solo a quien tiene algo; va como `[JG-03]`; las fechas son las del calendario acordado hoy.
+- Pendiente o aviso para otros:
+  - **Todos:** su agente ya sigue el calendario: "¿qué me toca?" empieza por lo de hoy y lo atrasado, y "continúa" toma la tarea de fecha más cercana. Si una tarea ya está disponible, se puede adelantar. Las fechas solo las cambia Jordin; si no van a llegar, avísenle.
+  - **Emilio, Dominique y José Pablo:** hoy (lunes 28) les tocan EM-04 y DC-03; José Pablo empieza mañana con JZ-06. Revisen su columna en `docs/plan/calendario.md` §"Calendario por día".
+  - **Todos:** si crean una tarea nueva (protocolo §C), pónganle `programada` y ejecuten `node scripts/tareas.mjs --calendario --escribir`, o `--validar` falla en la CI.
