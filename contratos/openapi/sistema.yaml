@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: API de Control - Sistema
+  version: 1.0.0
+  description: Estado de los componentes y bitácora de acciones sensibles.
+servers:
+  - url: https://shapi.localhost
+    description: Panel de administración detrás del borde
+
+paths:
+  /api/admin/bitacora:
+    get:
+      summary: Consulta la bitácora de acciones sensibles
+      description: |
+        Devuelve las acciones de la más reciente a la más antigua. Las fechas son días de
+        America/Guatemala y ambos extremos son inclusivos. Sin fechas consulta hoy y los
+        seis días anteriores.
+      operationId: consultarBitacora
+      security:
+        - cookieSesion: []
+      parameters:
+        - name: desde
+          in: query
+          description: Primer día incluido, en America/Guatemala.
+          schema:
+            type: string
+            format: date
+        - name: hasta
+          in: query
+          description: Último día incluido, en America/Guatemala.
+          schema:
+            type: string
+            format: date
+        - name: pagina
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: tamano
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Página de acciones sensibles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaBitacora'
+        '400':
+          description: Fechas o paginación inválidas (`datos_invalidos`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '401':
+          description: No hay una sesión vigente.
+        '403':
+          description: La sesión no pertenece a un administrador ni a soporte.
+
+components:
+  securitySchemes:
+    cookieSesion:
+      type: apiKey
+      in: cookie
+      name: shapi_sesion
+
+  schemas:
+    PaginaBitacora:
+      type: object
+      required: [elementos, total]
+      properties:
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntradaBitacora'
+        total:
+          type: integer
+          minimum: 0
+
+    EntradaBitacora:
+      type: object
+      required: [fecha, actor, accion, descripcion]
+      properties:
+        fecha:
+          type: string
+          format: date-time
+        actor:
+          $ref: '#/components/schemas/ActorBitacora'
+        accion:
+          type: string
+          example: organizacion.suspendida
+        descripcion:
+          type: string
+          example: Suspendió la organización Datos Chapines, S.A.
+
+    ActorBitacora:
+      type: object
+      required: [nombre, rol, organizacion]
+      properties:
+        nombre:
+          type: string
+        rol:
+          type: string
+          description: Rol del actor en minúsculas; `consumidor` y `sistema` identifican esos tipos de actor.
+        organizacion:
+          type: [string, 'null']
+
+    Problema:
+      type: object
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+          const: datos_invalidos
+        errores:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

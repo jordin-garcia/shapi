@@ -1,3 +1,5 @@
+using Shapi.Api.Bitacora;
+
 namespace Shapi.Api.Modulos;
 
 /// <summary>Registro del módulo Bitacora. Solo lo edita su dueño (convenciones §2).</summary>
@@ -10,6 +12,7 @@ public static class BitacoraModulo
 
     public static WebApplication MapearModuloBitacora(this WebApplication app)
     {
+        app.MapearEndpointsBitacora();
         return app;
     }
 }

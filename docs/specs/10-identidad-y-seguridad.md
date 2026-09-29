@@ -98,6 +98,8 @@ Los correos de los consumidores llevan la marca del portal: el nombre, el color 
 
 La bitácora ([RF-41](03-requisitos.md#rf-41)) registra las acciones que cambian **el acceso, el cobro o el estado** de una organización. Cada entrada guarda el actor, la organización, la acción, el objetivo, una descripción que se puede leer (la que muestra B3.2) y la IP.
 
+B3.2 consulta la bitácora con permiso de administrador o soporte. `desde` y `hasta` son días calendario de `America/Guatemala`, ambos inclusivos; si se omiten, el periodo comprende el día actual y los seis anteriores. Los resultados se ordenan del más reciente al más antiguo y se paginan desde la página 1, con tamaño predeterminado de 20 y máximo de 100. Un periodo o una paginación inválidos responden `400 datos_invalidos`.
+
 | Acción (`accion`) | Descripción de ejemplo |
 |---|---|
 | `organizacion.suspendida` / `organizacion.reactivada` | Suspendió la organización Datos Chapines, S.A. |
