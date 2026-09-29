@@ -55,7 +55,8 @@ test("JG-03: un cuerpo sin estado (issue recién creado) cuenta como primera eje
 
 test("JG-03: el cuerpo conserva el estado en un comentario HTML", () => {
   const plan = [...planInicial(), tarea("JZ-02", "jose-pablo", "bloqueada", { bloqueo: "falta la cuenta de correo" })];
-  const { cuerpo } = generar(plan, "", "2026-09-23", 7);
+  const { cuerpo: primera } = generar(plan, "", "2026-09-23", 7);
+  const { cuerpo } = generar(plan, primera, "2026-09-23", 7);
   assert.match(cuerpo, /<!-- estado-tablero: \{.*\} -->\n$/);
   assert.deepEqual(leerEstado(cuerpo), {
     disponibles: ["DC-04", "JG-02"],
@@ -223,7 +224,8 @@ test("JG-03: el recordatorio dice qué falta si la tarea del día todavía no se
     tarea("JG-05", "jordin", "en_espera", { programada: "2026-09-30", depende_de: ["DC-04"], faltan: ["DC-04"] }),
     tarea("JZ-02", "jose-pablo", "bloqueada", { programada: "2026-09-30", bloqueo: "falta la cuenta de correo." }),
   ];
-  const { avisos } = generar(plan, "", "2026-09-30", 8);
+  const { cuerpo: anterior } = generar(plan, "", "2026-09-30", 6);
+  const { avisos } = generar(plan, anterior, "2026-09-30", 8);
   assert.match(avisos, /- @jordin-garcia: hoy te toca \*\*JG-05\*\* \(Título JG-05\)\. Todavía espera a DC-04 \(Dominique Contreras\)\./);
   assert.match(avisos, /- @PabloZ7-425: hoy te toca \*\*JZ-02\*\* \(Título JZ-02\)\. Está bloqueada: falta la cuenta de correo\./);
   assert.match(avisos, /- @Dom-cs13: ⏰ \*\*DC-04\*\* .* La esperan: Jordin García \(JG-05\)\./);
@@ -245,6 +247,15 @@ test("JG-03: el recordatorio sale una vez al día, desde las 07:00", () => {
   assert.match(manana.avisos, /\*\*Tareas del día\*\* \(mié 30 sep\)/);
 });
 
+test("JG-03: la primera ejecución no publica el recordatorio; sale en la siguiente", () => {
+  const primera = generar(planDelDia(), "Generando el tablero…", "2026-09-29", 9);
+  assert.equal(primera.avisos, "");
+  assert.equal(leerEstado(primera.cuerpo).recordatorio, null);
+
+  const segunda = generar(planDelDia(), primera.cuerpo, "2026-09-29", 9);
+  assert.match(segunda.avisos, /^\*\*Tareas del día\*\* \(mar 29 sep\)/);
+});
+
 test("JG-03: antes de las 07:00 no hay recordatorio, pero sí novedades", () => {
   const { cuerpo: anterior } = generar(planInicial(), "", "2026-09-29", 5);
   const plan = planInicial();
@@ -258,7 +269,8 @@ test("JG-03: antes de las 07:00 no hay recordatorio, pero sí novedades", () => 
 
 test("JG-03: si nadie tiene nada programado no se comenta, y el día cuenta como avisado", () => {
   const plan = [tarea("JG-08", "jordin", "en_espera", { programada: "2026-10-08", no_antes_de: "2026-10-08" })];
-  const { cuerpo, avisos } = generar(plan, "", "2026-10-02", 7);
+  const { cuerpo: anterior } = generar(plan, "", "2026-10-02", 6);
+  const { cuerpo, avisos } = generar(plan, anterior, "2026-10-02", 7);
   assert.equal(avisos, "");
   assert.equal(leerEstado(cuerpo).recordatorio, "2026-10-02");
 });

@@ -150,7 +150,7 @@ gh pr checks --watch
 **Crear una tarea nueva**, por un error ajeno o por algo que falta:
 - Copia `docs/plan/tareas/_plantilla.md` a `docs/plan/tareas/<PREFIJO>-<siguiente número libre de esa persona>-<descripcion>.md`.
 - Complétala con la persona responsable según la tabla de propiedad, `avance` y `prioridad`, y agrégala en tu PR.
-- Ponle `programada`: el primer día libre de esa persona después de las fechas de sus dependencias pendientes. Ejecuta `node scripts/tareas.mjs --calendario --escribir` para actualizar `docs/plan/calendario.md`; si no, `--validar` falla. Jordin la reacomoda en la siguiente convergencia si hace falta.
+- Ponle `programada`: el primer día libre de esa persona después de las fechas de sus dependencias pendientes y no antes de su `no_antes_de`, si tiene. Ejecuta `node scripts/tareas.mjs --calendario --escribir` para actualizar `docs/plan/calendario.md`; si no, `--validar` falla. Jordin la reacomoda en la siguiente convergencia si hace falta.
 - En la bitácora, anota que la creaste.
 
 ---

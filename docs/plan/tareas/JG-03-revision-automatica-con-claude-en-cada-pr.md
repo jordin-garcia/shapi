@@ -53,7 +53,7 @@ Dos automatizaciones de GitHub para el equipo:
 ### Tablero del plan
 6. `.github/workflows/tablero-plan.yml` se ejecuta en tres casos:
    - en cada `push` a `main`;
-   - una vez al día, a las 07:00 de Guatemala (`cron: "0 13 * * *"`), para las tareas que se desbloquean por fecha (`no_antes_de`);
+   - una vez al día, a las 07:00 de Guatemala (`cron: "0 13 * * *"`), para las tareas que se desbloquean por fecha (`no_antes_de`) y, desde el 28 sep, para el recordatorio del día (criterio 14);
    - a mano, con `workflow_dispatch`.
 
    Usa `GITHUB_TOKEN` con permisos mínimos (`contents: read` e `issues: write`) y un `concurrency` único **sin** `cancel-in-progress`, para que no se pierdan avisos.
@@ -213,11 +213,12 @@ Jordin pidió que los agentes y el equipo sigan un calendario por día para cump
     - menciona solo a quien tiene una tarea no hecha programada para hoy o atrasada; primero las atrasadas;
     - dice si la tarea todavía espera a alguien o está bloqueada, y quién de las otras personas la espera;
     - sale una sola vez al día: el día se guarda en el estado del issue (`recordatorio`). Si nadie tiene nada, no se comenta;
-    - va en el mismo comentario que las novedades, antes de ellas.
+    - va en el mismo comentario que las novedades, antes de ellas;
+    - como las novedades, no sale en la primera ejecución, sin estado anterior (criterio 8), sino en la siguiente.
 15. **El cuerpo del tablero** muestra una sección "Hoy" con lo de cada persona y la fecha programada de cada tarea (⏰ si está atrasada), sin menciones.
 16. `AGENTS.md`, `protocolo.md` (§A, §B, §C y B12), `calendario.md`, `README.md` del plan, la plantilla y `prompts/convergencia.md` explican el calendario y cómo reprogramarlo.
 
-**Pruebas:** 8 en `scripts/tareas.test.mjs` (validación de `programada`, orden, atrasadas, `fechaCorta`, la tabla, el reemplazo entre marcas y el plan real) y 7 en `scripts/tablero.test.mjs` (a quién menciona el recordatorio, qué dice si la tarea espera o está bloqueada, una vez al día desde las 07:00, nada antes de esa hora, sin comentario si nadie tiene nada, un solo comentario con las novedades y la sección "Hoy" del cuerpo). Se ajustaron 2 pruebas existentes por el campo nuevo del estado y del JSON.
+**Pruebas:** 8 en `scripts/tareas.test.mjs` (validación de `programada`, orden, atrasadas, `fechaCorta`, la tabla, el reemplazo entre marcas con LF y CRLF y el plan real) y 8 en `scripts/tablero.test.mjs` (a quién menciona el recordatorio, qué dice si la tarea espera o está bloqueada, una vez al día desde las 07:00, nada antes de esa hora, nada en la primera ejecución, sin comentario si nadie tiene nada, un solo comentario con las novedades y la sección "Hoy" del cuerpo). Se ajustaron 2 pruebas existentes por el campo nuevo del estado y del JSON.
 
 **Resultado:**
 - 52 tareas con `programada`, del 28 sep al 29 oct. Adelantan tareas de un avance posterior para repartir la carga: JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14.

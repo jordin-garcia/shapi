@@ -114,6 +114,11 @@ test("JG-03: reemplazarCalendario cambia solo el bloque entre las marcas", () =>
   const texto = `# Calendario\n\n${inicio}\nviejo\n<!-- calendario:fin -->\n\nfin\n`;
   assert.equal(reemplazarCalendario(texto, "| a |"), `# Calendario\n\n${inicio}\n\n| a |\n\n<!-- calendario:fin -->\n\nfin\n`);
   assert.equal(reemplazarCalendario("sin marcas", "| a |"), null);
+  // Con CRLF, el bloque generado también usa CRLF.
+  const crlf = texto.replaceAll("\n", "\r\n");
+  assert.equal(reemplazarCalendario(crlf, "| a |\n| b |"), `# Calendario\r\n\r\n${inicio}\r\n\r\n| a |\r\n| b |\r\n\r\n<!-- calendario:fin -->\r\n\r\nfin\r\n`);
+  // Una marca de fin citada antes de la de inicio no cuenta.
+  assert.equal(reemplazarCalendario(`<!-- calendario:fin -->\n${inicio}\n`, "| a |"), null);
 });
 
 test("JG-03: el plan real tiene fechas válidas y calendario.md coincide con ellas", () => {

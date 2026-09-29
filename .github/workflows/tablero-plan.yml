@@ -1,5 +1,6 @@
 # Tablero del plan (JG-03): mantiene el issue fijo "Tablero del plan" con el estado de todas las tareas
 # y menciona al dueño de cada tarea que queda disponible, y al coordinador si una tarea se bloquea.
+# Una vez al día, desde las 07:00, recuerda la tarea programada del día y las atrasadas a quien las tenga.
 # La lógica está en scripts/tablero.mjs; el estado anterior se guarda en el propio cuerpo del issue.
 name: Tablero del plan
 
@@ -7,7 +8,7 @@ on:
   push:
     branches: [main]
   schedule:
-    # 07:00 en Guatemala (UTC-6), para las tareas que se desbloquean por fecha (no_antes_de).
+    # 07:00 en Guatemala (UTC-6): recordatorio del día (programada) y tareas que se desbloquean por fecha (no_antes_de).
     - cron: "0 13 * * *"
   workflow_dispatch:
 
@@ -28,7 +29,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      # Las fechas de no_antes_de se comparan con el día de Guatemala, no con el de UTC.
+      # Las fechas de no_antes_de y programada, y la hora del recordatorio, se toman de Guatemala, no de UTC.
       TZ: America/Guatemala
     steps:
       - uses: actions/checkout@v7

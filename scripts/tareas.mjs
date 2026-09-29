@@ -247,7 +247,7 @@ export function tablaCalendario(tareas) {
 // Devuelve el texto de calendario.md con el bloque generado reemplazado, o null si faltan las marcas.
 export function reemplazarCalendario(texto, tabla) {
   const i = texto.indexOf(INICIO_CALENDARIO);
-  const f = texto.indexOf(FIN_CALENDARIO);
+  const f = i < 0 ? -1 : texto.indexOf(FIN_CALENDARIO, i);
   if (i < 0 || f < i) return null;
   const salto = texto.includes("\r\n") ? "\r\n" : "\n";
   return texto.slice(0, i) + [INICIO_CALENDARIO, "", ...tabla.split("\n"), "", ""].join(salto) + texto.slice(f);

@@ -176,9 +176,10 @@ function cuerpo(tareas, estado, fecha) {
 
 // tareas: arreglo con la forma de `tareas.mjs --json`. Devuelve el cuerpo nuevo del issue y el comentario de avisos.
 // El comentario junta el recordatorio del día (una vez al día, desde HORA_RECORDATORIO) y las novedades.
+// Como las novedades, en la primera ejecución (sin estado anterior) no sale: esa solo crea el tablero y no menciona a nadie.
 export function generar(tareas, cuerpoAnterior, fecha = hoy(), hora = new Date().getHours()) {
   const anterior = leerEstado(cuerpoAnterior);
-  const tocaRecordatorio = hora >= HORA_RECORDATORIO && anterior?.recordatorio !== fecha;
+  const tocaRecordatorio = Boolean(anterior) && hora >= HORA_RECORDATORIO && anterior.recordatorio !== fecha;
   const estado = estadoActual(tareas, tocaRecordatorio ? fecha : (anterior?.recordatorio ?? null));
   const partes = [tocaRecordatorio ? recordatorio(tareas, fecha) : "", avisos(tareas, anterior, fecha)].filter(Boolean);
   return {
