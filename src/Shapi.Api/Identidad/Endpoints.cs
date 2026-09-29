@@ -36,10 +36,17 @@ public static class Endpoints
         grupo.MapPost("/verificar-correo", VerificarCorreo).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         grupo.MapPost("/reenviar-verificacion", ReenviarVerificacion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         grupo.MapPost("/entrar", IniciarSesion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
+        grupo.MapPost("/recuperar", SolicitarRecuperacion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
+        grupo.MapPost("/restablecer", RestablecerContrasena).AllowAnonymous();
         // salir y sesion no reciben credenciales y el panel consulta la sesión en cada carga, así que no llevan el límite.
         // salir es público: con la sesión vencida también tiene que borrar la cookie.
         grupo.MapPost("/salir", CerrarSesion).AllowAnonymous();
         grupo.MapGet("/sesion", ObtenerSesion).RequireAuthorization();
+
+        var grupoPerfil = app.MapGroup("/api/perfil").RequireAuthorization();
+        grupoPerfil.MapGet("/", ObtenerPerfil);
+        grupoPerfil.MapPut("/", EditarPerfil);
+        grupoPerfil.MapPost("/contrasena", CambiarContrasena);
 
         return app;
     }
@@ -353,6 +360,106 @@ public static class Endpoints
 
     private static IResult TokenInvalido() =>
         Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.TokenInvalido, "El enlace venció o ya se usó.");
+
+    // EM-04
+    private static async Task<IResult> SolicitarRecuperacion(
+        [FromBody] PeticionRecuperar peticion,
+        [FromServices] IServicioRecuperacion servicio,
+        CancellationToken cancelacion)
+    {
+        if (!string.IsNullOrWhiteSpace(peticion.Correo))
+        {
+            await servicio.Solicitar(peticion.Correo, AmbitoSesion.Personal, cancelacion: cancelacion);
+        }
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> RestablecerContrasena(
+        [FromBody] PeticionRestablecer peticion,
+        [FromServices] IServicioRecuperacion servicio,
+        [FromServices] ShapiDbContext db,
+        [FromServices] IReloj reloj,
+        HttpContext contexto,
+        CancellationToken cancelacion)
+    {
+        var resultado = await servicio.Restablecer(peticion.Token ?? "", peticion.Contrasena ?? "", cancelacion);
+        if (resultado is null)
+        {
+            return TokenInvalido();
+        }
+
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == resultado.UsuarioId, cancelacion);
+        await IniciarSesionPersonal(db, contexto, usuario, reloj.Ahora, cancelacion);
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> ObtenerPerfil(
+        ClaimsPrincipal usuarioActual,
+        [FromServices] ShapiDbContext db,
+        CancellationToken cancelacion)
+    {
+        var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == usuarioId, cancelacion);
+        return TypedResults.Ok(new { nombre = usuario.Nombre });
+    }
+
+    private static async Task<IResult> EditarPerfil(
+        [FromBody] PeticionPerfil peticion,
+        ClaimsPrincipal usuarioActual,
+        [FromServices] ShapiDbContext db,
+        [FromServices] IReloj reloj,
+        CancellationToken cancelacion)
+    {
+        if (string.IsNullOrWhiteSpace(peticion.Nombre))
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "El nombre es obligatorio.");
+
+        var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var ahora = reloj.Ahora;
+        await db.Set<Usuario>().IgnoreQueryFilters()
+            .Where(u => u.Id == usuarioId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nombre, peticion.Nombre.Trim()).SetProperty(u => u.ActualizadoEn, ahora), cancelacion);
+        
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> CambiarContrasena(
+        [FromBody] PeticionCambiarContrasena peticion,
+        ClaimsPrincipal usuarioActual,
+        HttpContext contexto,
+        [FromServices] ShapiDbContext db,
+        [FromServices] IPasswordHasher<Usuario> hasher,
+        [FromServices] IReloj reloj,
+        CancellationToken cancelacion)
+    {
+        var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == usuarioId, cancelacion);
+
+        if (string.IsNullOrWhiteSpace(peticion.ContrasenaActual) || string.IsNullOrWhiteSpace(peticion.ContrasenaNueva))
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Ambas contraseñas son obligatorias.");
+
+        var resultado = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena!, peticion.ContrasenaActual);
+        if (resultado == PasswordVerificationResult.Failed)
+            return CredencialesInvalidas();
+
+        var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva);
+        usuario.DefinirHashContrasena(hashNuevo);
+        
+        var ahora = reloj.Ahora;
+
+        // Revocar sesiones excepto la actual
+        var hashActual = string.Empty;
+        if (contexto.Request.Cookies.TryGetValue(PersonalAutenticacionOpciones.Cookie, out var valorCookie) && !string.IsNullOrEmpty(valorCookie))
+        {
+            hashActual = SeguridadTokens.HashearToken(valorCookie);
+        }
+
+        await db.Set<Sesion>().IgnoreQueryFilters()
+            .Where(s => s.UsuarioId == usuario.Id && s.RevocadaEn == null && s.HashIdentificador != hashActual)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevocadaEn, ahora).SetProperty(x => x.ActualizadoEn, ahora), cancelacion);
+
+        await db.SaveChangesAsync(cancelacion);
+        return TypedResults.Ok();
+    }
 }
 
 public record PeticionVerificacion(string? Token);
@@ -361,3 +468,7 @@ public record PeticionEntrar(string? Correo, string? Contrasena);
 public record UsuarioSesion(string Nombre, string Correo);
 public record OrganizacionSesion(Guid Id, string Nombre);
 public record RespuestaSesion(UsuarioSesion Usuario, OrganizacionSesion Organizacion, string Rol, bool CorreoVerificado, string Destino);
+public record PeticionRecuperar(string? Correo);
+public record PeticionRestablecer(string? Token, string? Contrasena);
+public record PeticionPerfil(string? Nombre);
+public record PeticionCambiarContrasena(string? ContrasenaActual, string? ContrasenaNueva);

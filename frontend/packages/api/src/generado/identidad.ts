@@ -125,6 +125,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/recuperar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicita un enlace de recuperación
+         * @description Genera y encola un correo con el token de recuperación si la cuenta existe. Responde siempre 200 exista o no.
+         *     Límite de 10 por minuto por IP.
+         */
+        post: operations["solicitarRecuperacion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/restablecer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restablece la contraseña
+         * @description Cambia la contraseña utilizando el token de un solo uso. Si es exitoso, inicia sesión y revoca todas
+         *     las sesiones previas.
+         */
+        post: operations["restablecerContrasena"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/perfil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Devuelve los datos del perfil
+         * @description Devuelve el nombre del usuario autenticado.
+         */
+        get: operations["obtenerPerfil"];
+        /**
+         * Edita el nombre del perfil
+         * @description Actualiza el nombre del usuario.
+         */
+        put: operations["editarPerfil"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/perfil/contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambia la contraseña actual
+         * @description Valida la contraseña actual y si es correcta, establece la nueva y revoca todas las demás sesiones.
+         */
+        post: operations["cambiarContrasena"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -187,6 +273,25 @@ export interface components {
             errores?: {
                 [key: string]: string[];
             };
+        };
+        /** @description Si falta `correo`, responde 200 sin hacer nada. */
+        PeticionRecuperar: {
+            /** Format: email */
+            correo?: string;
+        };
+        PeticionRestablecer: {
+            token: string;
+            contrasena: string;
+        };
+        Perfil: {
+            nombre: string;
+        };
+        PeticionPerfil: {
+            nombre: string;
+        };
+        PeticionCambiarContrasena: {
+            contrasenaActual: string;
+            contrasenaNueva: string;
         };
     };
     responses: {
@@ -474,6 +579,156 @@ export interface operations {
                 };
             };
             401: components["responses"]["SinSesion"];
+        };
+    };
+    solicitarRecuperacion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionRecuperar"];
+            };
+        };
+        responses: {
+            /** @description Solicitud recibida. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["CuerpoInvalido"];
+            403: components["responses"]["Csrf"];
+            429: components["responses"]["DemasiadasPeticiones"];
+        };
+    };
+    restablecerContrasena: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionRestablecer"];
+            };
+        };
+        responses: {
+            /** @description Contraseña restablecida y sesión iniciada. */
+            200: {
+                headers: {
+                    "Set-Cookie": components["headers"]["CookieSesion"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["CuerpoInvalido"];
+            403: components["responses"]["Csrf"];
+            /** @description El enlace venció o ya se usó (`token_invalido`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    obtenerPerfil: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Perfil devuelto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Perfil"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+        };
+    };
+    editarPerfil: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionPerfil"];
+            };
+        };
+        responses: {
+            /** @description Nombre actualizado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["DatosInvalidos"];
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["Csrf"];
+        };
+    };
+    cambiarContrasena: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionCambiarContrasena"];
+            };
+        };
+        responses: {
+            /** @description Contraseña cambiada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["DatosInvalidos"];
+            /** @description Sin sesión o la contraseña actual es incorrecta (`credenciales_invalidas`). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            403: components["responses"]["Csrf"];
         };
     };
 }

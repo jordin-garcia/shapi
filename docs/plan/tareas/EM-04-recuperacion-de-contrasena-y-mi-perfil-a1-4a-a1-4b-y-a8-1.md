@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-28
 depende_de: [EM-03]
 requisitos: [RF-03, RF-04]

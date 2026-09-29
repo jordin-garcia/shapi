@@ -184,6 +184,132 @@ paths:
         '401':
           $ref: '#/components/responses/SinSesion'
 
+  /api/auth/recuperar:
+    post:
+      summary: Solicita un enlace de recuperación
+      description: |
+        Genera y encola un correo con el token de recuperación si la cuenta existe. Responde siempre 200 exista o no.
+        Límite de 10 por minuto por IP.
+      operationId: solicitarRecuperacion
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionRecuperar'
+      responses:
+        '200':
+          description: Solicitud recibida.
+        '400':
+          $ref: '#/components/responses/CuerpoInvalido'
+        '403':
+          $ref: '#/components/responses/Csrf'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+
+  /api/auth/restablecer:
+    post:
+      summary: Restablece la contraseña
+      description: |
+        Cambia la contraseña utilizando el token de un solo uso. Si es exitoso, inicia sesión y revoca todas
+        las sesiones previas.
+      operationId: restablecerContrasena
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionRestablecer'
+      responses:
+        '200':
+          description: Contraseña restablecida y sesión iniciada.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/CookieSesion'
+        '400':
+          $ref: '#/components/responses/CuerpoInvalido'
+        '403':
+          $ref: '#/components/responses/Csrf'
+        '422':
+          description: El enlace venció o ya se usó (`token_invalido`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+
+  /api/perfil:
+    get:
+      summary: Devuelve los datos del perfil
+      description: Devuelve el nombre del usuario autenticado.
+      operationId: obtenerPerfil
+      security:
+        - cookieSesion: []
+      responses:
+        '200':
+          description: Perfil devuelto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Perfil'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+    put:
+      summary: Edita el nombre del perfil
+      description: Actualiza el nombre del usuario.
+      operationId: editarPerfil
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionPerfil'
+      responses:
+        '200':
+          description: Nombre actualizado.
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/Csrf'
+
+  /api/perfil/contrasena:
+    post:
+      summary: Cambia la contraseña actual
+      description: Valida la contraseña actual y si es correcta, establece la nueva y revoca todas las demás sesiones.
+      operationId: cambiarContrasena
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionCambiarContrasena'
+      responses:
+        '200':
+          description: Contraseña cambiada.
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          description: Sin sesión o la contraseña actual es incorrecta (`credenciales_invalidas`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '403':
+          $ref: '#/components/responses/Csrf'
+
 components:
   securitySchemes:
     cookieSesion:
@@ -368,3 +494,49 @@ components:
             type: array
             items:
               type: string
+    
+    PeticionRecuperar:
+      type: object
+      description: Si falta `correo`, responde 200 sin hacer nada.
+      properties:
+        correo:
+          type: string
+          format: email
+
+    PeticionRestablecer:
+      type: object
+      required: [token, contrasena]
+      properties:
+        token:
+          type: string
+        contrasena:
+          type: string
+          minLength: 10
+          maxLength: 128
+
+    Perfil:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+
+    PeticionPerfil:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+
+    PeticionCambiarContrasena:
+      type: object
+      required: [contrasenaActual, contrasenaNueva]
+      properties:
+        contrasenaActual:
+          type: string
+        contrasenaNueva:
+          type: string
+          minLength: 10
+          maxLength: 128
