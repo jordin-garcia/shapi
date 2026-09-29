@@ -382,8 +382,19 @@ public static class Endpoints
         HttpContext contexto,
         CancellationToken cancelacion)
     {
+        // Obtener el correo asociado al token para validar la política completa (10 §1) antes de consumirlo.
+        string? correoDelToken = null;
+        if (!string.IsNullOrWhiteSpace(peticion.Token))
+        {
+            var hash = SeguridadTokens.HashearToken(peticion.Token);
+            correoDelToken = await db.Set<Token>().IgnoreQueryFilters()
+                .Where(t => t.HashToken == hash && t.Tipo == TipoToken.Recuperacion)
+                .Select(t => t.Correo)
+                .FirstOrDefaultAsync(cancelacion);
+        }
+
         // Validar la política de contraseña (10 §1) antes de consumir el token.
-        var erroresContrasena = ValidarContrasena(peticion.Contrasena);
+        var erroresContrasena = ValidarContrasena(peticion.Contrasena, correoDelToken);
         if (erroresContrasena is not null)
         {
             return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
@@ -458,7 +469,7 @@ public static class Endpoints
                 new Dictionary<string, string[]> { ["contrasenaActual"] = ["La contraseña actual es obligatoria."] });
         }
 
-        var erroresNueva = ValidarContrasena(peticion.ContrasenaNueva);
+        var erroresNueva = ValidarContrasena(peticion.ContrasenaNueva, usuario.Correo);
         if (erroresNueva is not null)
         {
             return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
@@ -491,8 +502,8 @@ public static class Endpoints
         return TypedResults.Ok();
     }
 
-    /// <summary>Valida la política de contraseña de 10 §1 (10-128 caracteres). Retorna el mensaje de error o null si es válida.</summary>
-    private static string? ValidarContrasena(string? contrasena)
+    /// <summary>Valida la política de contraseña de 10 §1 (10-128 caracteres, distinta del correo). Retorna el mensaje de error o null si es válida.</summary>
+    private static string? ValidarContrasena(string? contrasena, string? correo = null)
     {
         if (string.IsNullOrWhiteSpace(contrasena))
         {
@@ -507,6 +518,11 @@ public static class Endpoints
         if (contrasena.Length > ValidadorRegistroProveedor.LargoMaximoContrasena)
         {
             return $"La contraseña debe tener entre {ValidadorRegistroProveedor.LargoMinimoContrasena} y {ValidadorRegistroProveedor.LargoMaximoContrasena} caracteres.";
+        }
+
+        if (correo is not null && string.Equals(contrasena.Trim(), correo.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return "La contraseña no puede ser igual al correo.";
         }
 
         return null;

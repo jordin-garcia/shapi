@@ -167,6 +167,26 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
         Assert.Null(entidadToken.UsadoEn);
     }
 
+    [Fact]
+    public async Task RF_03_Restablecer_ContrasenaIgualAlCorreo_Responde400SinConsumirToken()
+    {
+        // 10 §1: la contraseña no puede ser igual al correo
+        await RegistrarYVerificar(CorreoAna);
+        await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna });
+        var token = await TokenDelUltimoCorreo(CorreoAna, "recuperacion");
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/auth/restablecer", new { token, contrasena = CorreoAna });
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("contrasena", out var _correoErr));
+        // El token NO fue consumido
+        await using var db = Db(out var scope);
+        using var scope2 = scope;
+        var entidadToken = await db.Set<Token>().IgnoreQueryFilters()
+            .SingleAsync(t => t.Tipo == TipoToken.Recuperacion);
+        Assert.Null(entidadToken.UsadoEn);
+    }
+
     // ---------- RF-04 · Perfil ----------
 
     [Fact]
@@ -266,6 +286,20 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
 
         var respuesta = await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
             new { contrasenaActual = ContrasenaValida, contrasenaNueva }, cookie);
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("contrasenaNueva", out _));
+    }
+
+    [Fact]
+    public async Task RF_04_CambiarContrasena_ContrasenaNuevaIgualAlCorreo_Responde400ConErrorContrasenaNueva()
+    {
+        // 10 §1: la contraseña no puede ser igual al correo
+        await RegistrarYVerificar(CorreoAna);
+        var cookie = CookieDeSesion(await Entrar(CorreoAna, ContrasenaValida));
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+            new { contrasenaActual = ContrasenaValida, contrasenaNueva = CorreoAna }, cookie);
 
         var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
         Assert.True(problema.GetProperty("errores").TryGetProperty("contrasenaNueva", out _));
