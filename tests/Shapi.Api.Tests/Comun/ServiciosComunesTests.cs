@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Shapi.Aplicacion.Comun;
+using Shapi.Infraestructura.Cache;
 using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Persistencia;
 using Testcontainers.PostgreSql;
@@ -11,7 +12,8 @@ using Testcontainers.PostgreSql;
 namespace Shapi.Api.Tests.Comun;
 
 // Criterio 7 de JG-01: implementaciones por defecto, reemplazables por el módulo dueño.
-// EM-01 reemplazó la cola de correo y la bitácora nulas por las que escriben en la base de datos.
+// EM-01 reemplazó la cola de correo y la bitácora nulas por las que escriben en la base de datos, y JG-04 el publicador
+// nulo por el que escribe en Redis.
 public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _fabrica;
@@ -38,6 +40,9 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
         return _fabrica.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("SHAPI_POSTGRES_CADENA", _dbContainer.GetConnectionString());
+
+            // Sin Redis: el publicador no debe lanzar aunque Redis no responda (criterio 3 de JG-04).
+            builder.UseSetting("SHAPI_REDIS", "127.0.0.1:1,connectTimeout=100");
         });
     }
 
@@ -51,7 +56,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
         servicios.GetRequiredService<IReloj>().Should().BeOfType<RelojSistema>();
         servicios.GetRequiredService<IColaCorreo>().Should().BeOfType<Shapi.Infraestructura.Correo.ColaCorreoBaseDatos>();
         servicios.GetRequiredService<IBitacora>().Should().BeOfType<Shapi.Infraestructura.Bitacora.BitacoraBaseDatos>();
-        servicios.GetRequiredService<IPublicadorCache>().Should().BeOfType<PublicadorCacheNulo>();
+        servicios.GetRequiredService<IPublicadorCache>().Should().BeOfType<PublicadorCacheRedis>();
     }
 
     [Fact]

@@ -55,7 +55,7 @@ public sealed class EntornoCompuerta : IAsyncLifetime
     public HttpClient Cliente(string host) =>
         Fabrica.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri($"http://{host}") });
 
-    /// <summary>Escribe en Redis una API con su host, como lo hará el publicador de JG-04.</summary>
+    /// <summary>Escribe en Redis una API con su host, como lo hace el publicador de la API de control (JG-04).</summary>
     public async Task<ContextoApi> SembrarApiAsync(
         string host, string estado = ContextoApi.EstadoPublicada, string urlOrigen = UrlOrigen)
     {

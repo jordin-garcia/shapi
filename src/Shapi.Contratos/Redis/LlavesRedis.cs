@@ -17,6 +17,12 @@ public static class LlavesRedis
     /// <summary>Desplazamiento del reloj del modo demostración (09 §9).</summary>
     public const string DemoRelojDesplazamiento = "demo:reloj:desplazamiento";
 
+    /// <summary>
+    /// Los patrones de las llaves de configuración que reescribe la resincronización (07 §4). No incluyen los
+    /// contadores (<c>cuota:*</c>, <c>rl:*</c>, <c>dia:*</c>, <c>met:*</c> ni <c>cache:*</c>).
+    /// </summary>
+    public static readonly IReadOnlyList<string> PatronesConfiguracion = ["api:*", "clave:*", "susc:*", "org:*"];
+
     /// <summary><c>api:host:{host}</c>. El host se normaliza a minúsculas.</summary>
     public static string ApiPorHost(string host) => $"api:host:{host.ToLowerInvariant()}";
 

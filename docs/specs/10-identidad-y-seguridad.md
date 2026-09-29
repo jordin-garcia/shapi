@@ -44,7 +44,7 @@ Los enlaces enviados por correo llevan a la pantalla del ámbito de la cuenta. P
 | Contraseña | PBKDF2 (Identity v3) | Nunca |
 | Clave de API | SHA-256 en hex + prefijo + últimos 4 | Completa **una sola vez**. Después, `shp_prod_••••7c2e` |
 | Token de correo y sesión | SHA-256. El token de un correo va además en claro en `correo_saliente.datos` solo mientras el correo está `pendiente`, y se borra al quedar `enviado` o `fallido` | Nunca (solo viaja en el enlace o en la cookie) |
-| Secreto de origen | Cifrado con **ASP.NET Data Protection**. El anillo de llaves persiste en el volumen `dpkeys`, compartido por la API y el trabajador. En Redis va en claro, porque Redis solo es accesible desde la red interna | Completo **una sola vez**, al generarlo o regenerarlo |
+| Secreto de origen | Cifrado con **ASP.NET Data Protection** (`IProtectorSecretoOrigen`, propósito `Shapi.SecretoOrigen`). El anillo de llaves persiste en el directorio `SHAPI_DPKEYS_DIR` (el volumen `dpkeys`), compartido por la API y el trabajador con el mismo nombre de aplicación, `Shapi`, para que el trabajador descifre lo que cifró la API al resincronizar. En Redis va en claro, porque Redis solo es accesible desde la red interna | Completo **una sola vez**, al generarlo o regenerarlo |
 | Tarjeta | Solo el token de la pasarela, la marca, los últimos 4, el titular y el vencimiento | La marca y los últimos 4 |
 | Credenciales de infraestructura | Variables de entorno en `.env`, que no se versiona. En el repositorio va un `.env.example` | — |
 
