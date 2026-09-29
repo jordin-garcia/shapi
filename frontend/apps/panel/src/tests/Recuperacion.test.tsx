@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,8 +9,6 @@ import { router } from '../rutas';
 import { server } from '../../../../test/servidor';
 
 const API = 'http://localhost/api/auth';
-const problema = (status: number, codigo: string, title: string, errores?: Record<string, string[]>) =>
-  HttpResponse.json({ type: 'about:blank', title, status, codigo, errores }, { status, headers: { 'Content-Type': 'application/problem+json' } });
 
 let cliente: QueryClient;
 let conSesion = false;
