@@ -50,3 +50,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-02:** el frontend consume la forma real de `GET /api/auth/sesion` (`usuario`, `organizacion`, `rol`, `correoVerificado`, `destino`) y `POST /api/auth/salir` con respuesta 200. El botón de salida limpia la caché solo después de revocar la sesión o recibir 401.
   - **EM-17:** se creó esta tarea para publicar el contrato OpenAPI de Identidad y reemplazar el tipo provisional sin modificar archivos propiedad de Emilio desde DC-02.
   - **DC-04:** el selector consume `GET /api/apis`, admite endpoint pendiente (404/501) y distingue errores recuperables de servidor/red.
+
+## 2026-09-28 · DC-03 · Estructura del portal de marca blanca
+- Hecho: resolución de APIs publicadas por host; endpoints públicos de configuración y logo; contrato y tipos generados; marca dinámica; layouts público y de cuenta; rutas de A5/B2 con páginas de relleno; guardia provisional de sesión; pruebas backend y frontend.
+- Decisiones: los hosts canónicos salen del subdominio persistido y `SHAPI_DOMINIO_BASE`; el nombre de la API respalda al nombre opcional del portal; los estados y diálogos sin URL del catálogo no crean rutas propias.
+- Pendiente o aviso para otros:
+  - **EM-05:** `IResolutorPortal.Resolver(host)` devuelve `ApiId`, `OrganizacionId`, `NombreOrganizacion`, `Subdominio`, marca y hosts canónicos. El módulo provisional espera que `GET /api/portal/auth/sesion` responda `{ consumidor: { nombre, nombreEmpresa }, correoVerificado }` y usa `POST /api/portal/auth/salir`; reemplázalo por los tipos generados al publicar `identidad.yaml`.
+  - **Emilio:** se agregó `/api/portal/configuracion` y `/api/portal/logo` a la lista de endpoints anónimos en `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs`; actualiza cualquier rama abierta desde `main`.
+  - **DC-07 a DC-11 y JG-12:** ya están disponibles la configuración de marca, los layouts y las rutas del portal para reemplazar cada página de relleno.
