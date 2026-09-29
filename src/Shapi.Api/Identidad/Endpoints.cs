@@ -382,7 +382,15 @@ public static class Endpoints
         HttpContext contexto,
         CancellationToken cancelacion)
     {
-        var resultado = await servicio.Restablecer(peticion.Token ?? "", peticion.Contrasena ?? "", cancelacion);
+        // Validar la política de contraseña (10 §1) antes de consumir el token.
+        var erroresContrasena = ValidarContrasena(peticion.Contrasena);
+        if (erroresContrasena is not null)
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasena"] = [erroresContrasena] });
+        }
+
+        var resultado = await servicio.Restablecer(peticion.Token ?? "", peticion.Contrasena!, cancelacion);
         if (resultado is null)
         {
             return TokenInvalido();
@@ -410,16 +418,24 @@ public static class Endpoints
         [FromServices] IReloj reloj,
         CancellationToken cancelacion)
     {
-        if (string.IsNullOrWhiteSpace(peticion.Nombre))
+        var nombreTrim = peticion.Nombre?.Trim();
+        if (string.IsNullOrWhiteSpace(nombreTrim))
         {
-            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "El nombre es obligatorio.");
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "El nombre es obligatorio.",
+                new Dictionary<string, string[]> { ["nombre"] = ["Escriba su nombre."] });
+        }
+
+        if (nombreTrim.Length > 120)
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["nombre"] = ["El nombre no puede tener más de 120 caracteres."] });
         }
 
         var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var ahora = reloj.Ahora;
         await db.Set<Usuario>().IgnoreQueryFilters()
             .Where(u => u.Id == usuarioId)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nombre, peticion.Nombre.Trim()).SetProperty(u => u.ActualizadoEn, ahora), cancelacion);
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nombre, nombreTrim).SetProperty(u => u.ActualizadoEn, ahora), cancelacion);
 
         return TypedResults.Ok();
     }
@@ -436,9 +452,17 @@ public static class Endpoints
         var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == usuarioId, cancelacion);
 
-        if (string.IsNullOrWhiteSpace(peticion.ContrasenaActual) || string.IsNullOrWhiteSpace(peticion.ContrasenaNueva))
+        if (string.IsNullOrWhiteSpace(peticion.ContrasenaActual))
         {
-            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Ambas contraseñas son obligatorias.");
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasenaActual"] = ["La contraseña actual es obligatoria."] });
+        }
+
+        var erroresNueva = ValidarContrasena(peticion.ContrasenaNueva);
+        if (erroresNueva is not null)
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasenaNueva"] = [erroresNueva] });
         }
 
         var resultado = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena!, peticion.ContrasenaActual);
@@ -447,7 +471,7 @@ public static class Endpoints
             return CredencialesInvalidas();
         }
 
-        var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva);
+        var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva!);
         usuario.DefinirHashContrasena(hashNuevo);
 
         var ahora = reloj.Ahora;
@@ -465,6 +489,27 @@ public static class Endpoints
 
         await db.SaveChangesAsync(cancelacion);
         return TypedResults.Ok();
+    }
+
+    /// <summary>Valida la política de contraseña de 10 §1 (10-128 caracteres). Retorna el mensaje de error o null si es válida.</summary>
+    private static string? ValidarContrasena(string? contrasena)
+    {
+        if (string.IsNullOrWhiteSpace(contrasena))
+        {
+            return "Escriba una contraseña.";
+        }
+
+        if (contrasena.Length < ValidadorRegistroProveedor.LargoMinimoContrasena)
+        {
+            return $"La contraseña debe tener entre {ValidadorRegistroProveedor.LargoMinimoContrasena} y {ValidadorRegistroProveedor.LargoMaximoContrasena} caracteres.";
+        }
+
+        if (contrasena.Length > ValidadorRegistroProveedor.LargoMaximoContrasena)
+        {
+            return $"La contraseña debe tener entre {ValidadorRegistroProveedor.LargoMinimoContrasena} y {ValidadorRegistroProveedor.LargoMaximoContrasena} caracteres.";
+        }
+
+        return null;
     }
 }
 

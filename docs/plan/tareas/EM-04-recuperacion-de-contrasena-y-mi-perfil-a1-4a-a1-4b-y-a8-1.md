@@ -53,3 +53,12 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Consumidores (EM-05)
+
+## Resultado
+- `POST /api/auth/recuperar` responde 200 exista o no la cuenta; si existe, encola `recuperacion` con un token de 60 minutos en formato hash.
+- `POST /api/auth/restablecer` valida la política de contraseña antes de consumir el token, marca el token como usado dentro de una transacción, revoca todas las sesiones e inicia una nueva.
+- `GET /api/perfil` y `PUT /api/perfil` (nombre, máx. 120 chars con `errores.nombre`).
+- `POST /api/perfil/contrasena` valida la política (10-128 chars), verifica la contraseña actual y revoca las demás sesiones (mantiene la activa).
+- La lógica de recuperación está en `IServicioRecuperacion` con parámetro `ambito` para reutilización en EM-05.
+- A1.4a, A1.4b y A8.1 implementadas según mockups. A1.4b muestra enlace a `/recuperar` cuando el token es inválido o está vencido.
+- Pruebas Vitest de las 3 pantallas y pruebas de integración backend (criterios 1-3).

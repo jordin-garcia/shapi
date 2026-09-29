@@ -15,6 +15,7 @@ export default function PaginaA14bNuevaContrasena() {
   const [contrasena, setContrasena] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ErrorFormulario | null>(null);
+  const [tokenInvalido, setTokenInvalido] = useState(false);
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
@@ -24,12 +25,32 @@ export default function PaginaA14bNuevaContrasena() {
       await restablecer(token, contrasena);
       irAlDestino();
     } catch (causa) {
-      setError(interpretarError(causa));
+      const err = interpretarError(causa);
+      if (err.codigo === 'token_invalido') {
+        setTokenInvalido(true);
+      } else {
+        setError(err);
+      }
       setEnviando(false);
     }
   }
 
   const errorContrasena = error?.errores?.contrasena?.[0];
+
+  if (tokenInvalido) {
+    return (
+      <MarcoAcceso>
+        <Encabezado rotulo="Recuperación · enlace no válido" titulo="El enlace ya no sirve">
+          <p className="text-[15px] leading-[1.55] text-tinta-suave m-0">
+            El enlace venció o ya se usó. Puede solicitar uno nuevo.
+          </p>
+        </Encabezado>
+        <div className="mt-8">
+          <a href="/recuperar" className="text-principal hover:underline text-[15px]">Solicitar un enlace nuevo</a>
+        </div>
+      </MarcoAcceso>
+    );
+  }
 
   return (
     <MarcoAcceso>
