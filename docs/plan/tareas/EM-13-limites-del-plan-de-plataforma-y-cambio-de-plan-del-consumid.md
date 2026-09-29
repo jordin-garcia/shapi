@@ -6,6 +6,7 @@ responsable: Emilio Méndez
 avance: 3
 prioridad: P2
 estado: pendiente
+programada: 2026-10-14
 depende_de: [EM-10, DC-04]
 requisitos: [RF-43, RF-25]
 pantallas: []

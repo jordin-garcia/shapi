@@ -6,6 +6,7 @@ responsable: Dominique Contreras
 avance: final
 prioridad: P2
 estado: pendiente
+programada: 2026-10-24
 depende_de: [DC-11]
 no_antes_de: 2026-10-24
 requisitos: [RNF-12]

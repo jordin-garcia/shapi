@@ -6,6 +6,7 @@ responsable: José Pablo Zúñiga
 avance: 2
 prioridad: P1
 estado: pendiente
+programada: 2026-10-01
 depende_de: [EM-03, JZ-03, JZ-06]
 requisitos: [RNF-15]
 pantallas: []

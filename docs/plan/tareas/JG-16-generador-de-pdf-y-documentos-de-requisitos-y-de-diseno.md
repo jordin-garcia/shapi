@@ -6,6 +6,7 @@ responsable: Jordin García
 avance: final
 prioridad: P1
 estado: pendiente
+programada: 2026-10-24
 depende_de: []
 no_antes_de: 2026-10-24
 requisitos: []

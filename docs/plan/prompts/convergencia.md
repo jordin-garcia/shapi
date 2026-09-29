@@ -15,8 +15,9 @@
    - ponle un ID con el siguiente número libre de esa persona;
    - dale la prioridad que corresponda: P1 si el guion de demostración no funciona sin ella.
 6. Si una persona tiene más tareas pendientes de las que puede hacer antes de la siguiente entrega (unas 4 por semana), baja a P3 las de menor valor y anótalo.
-7. Escribe un informe en `docs/plan/convergencia/<AAAA-MM-DD>.md` con la tabla de requisitos (✅/⚠️/❌), el resultado del guion y las tareas creadas.
-8. Cierra tu tarea de convergencia con el protocolo normal. El PR incluye el informe y las tareas nuevas.
+7. **Reprograma el calendario.** Revisa `node scripts/tareas.mjs --hoy`: por cada tarea atrasada o nueva, cambia su `programada` (y la de las que dependen de ella) para que la siguiente entrega siga siendo alcanzable. Luego ejecuta `node scripts/tareas.mjs --calendario --escribir` y `node scripts/tareas.mjs --validar`.
+8. Escribe un informe en `docs/plan/convergencia/<AAAA-MM-DD>.md` con la tabla de requisitos (✅/⚠️/❌), el resultado del guion, las tareas creadas y las fechas que cambiaste.
+9. Cierra tu tarea de convergencia con el protocolo normal. El PR incluye el informe y las tareas nuevas.
 
 ## Reglas
 - No implementes nada: solo evalúa y crea tareas.

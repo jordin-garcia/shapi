@@ -53,7 +53,7 @@ Dos automatizaciones de GitHub para el equipo:
 ### Tablero del plan
 6. `.github/workflows/tablero-plan.yml` se ejecuta en tres casos:
    - en cada `push` a `main`;
-   - una vez al día, a las 07:00 de Guatemala (`cron: "0 13 * * *"`), para las tareas que se desbloquean por fecha (`no_antes_de`);
+   - una vez al día, a las 07:00 de Guatemala (`cron: "0 13 * * *"`), para las tareas que se desbloquean por fecha (`no_antes_de`) y, desde el 28 sep, para el recordatorio del día (criterio 14);
    - a mano, con `workflow_dispatch`.
 
    Usa `GITHUB_TOKEN` con permisos mínimos (`contents: read` e `issues: write`) y un `concurrency` único **sin** `cancel-in-progress`, para que no se pierdan avisos.
@@ -191,3 +191,39 @@ gh issue list --label tablero             # debe existir un solo issue, fijado
 ### Correcciones de la auditoría (2026-09-28)
 
 - **H-151:** `.claude/settings.json` niega `gh pr merge *--admin*` a los agentes, así que solo Jordin, desde su terminal, integra un falso positivo del check (criterio 5 y B11). El modo automático no deja que un agente edite sus propios permisos, así que Jordin agregó la regla a mano el 28 sep. Una prueba de `reglas-repositorio.test.mjs` comprueba que `--admin` está negado y que el *auto-merge* normal sigue permitido.
+
+### Calendario diario (2026-09-28)
+
+Jordin pidió que los agentes y el equipo sigan un calendario por día para cumplir las entregas. Sus decisiones del 28 sep: el campo se llama `programada`, el aviso diario menciona solo a quien tiene algo ese día o algo atrasado, el cambio va como `[JG-03]` y las fechas son las del calendario que acordó ese día (JG-04, EM-04 y DC-03 el lunes 28).
+
+**Criterios de aceptación:**
+
+12. **Campo `programada: AAAA-MM-DD`** en cada tarea no hecha: el día en que el calendario espera que se integre. Es una meta, no una restricción: `depende_de` y `no_antes_de` siguen decidiendo si se puede empezar. `--validar` rechaza:
+    - una tarea no hecha sin `programada`, o con otro formato;
+    - una fecha anterior a `no_antes_de`;
+    - una fecha igual o anterior a la de una dependencia que todavía no está hecha (se empieza, como pronto, el día siguiente);
+    - un `docs/plan/calendario.md` cuya tabla por día no coincida con las fechas de los archivos.
+13. **`scripts/tareas.mjs` sigue el calendario:**
+    - ordena por `programada` (las tareas sin fecha van al final), así que `--persona`, `--siguiente` y "continúa" toman primero lo atrasado y luego lo más cercano;
+    - marca como **atrasada** (⏰) toda tarea no hecha cuya fecha ya pasó;
+    - `--hoy [persona]` muestra, por persona, lo programado para hoy, lo atrasado, quién de las otras personas lo espera y la tarea siguiente;
+    - `--calendario` imprime la tabla por día (una columna por persona) y `--calendario --escribir` la reescribe entre las marcas de `docs/plan/calendario.md`;
+    - `--json` agrega `programada`.
+14. **Recordatorio diario en el tablero.** En la primera ejecución del día a partir de las 07:00 de Guatemala (la del cron), el comentario del tablero empieza con "Tareas del día":
+    - menciona solo a quien tiene una tarea no hecha programada para hoy o atrasada; primero las atrasadas;
+    - dice si la tarea todavía espera a alguien o está bloqueada, y quién de las otras personas la espera;
+    - sale una sola vez al día: el día se guarda en el estado del issue (`recordatorio`). Si nadie tiene nada, no se comenta;
+    - va en el mismo comentario que las novedades, antes de ellas;
+    - como las novedades, no sale en la primera ejecución, sin estado anterior (criterio 8), sino en la siguiente.
+15. **El cuerpo del tablero** muestra una sección "Hoy" con lo de cada persona y la fecha programada de cada tarea (⏰ si está atrasada), sin menciones.
+16. `AGENTS.md`, `protocolo.md` (§A, §B, §C y B12), `calendario.md`, `README.md` del plan, la plantilla y `prompts/convergencia.md` explican el calendario y cómo reprogramarlo.
+
+**Pruebas:** 8 en `scripts/tareas.test.mjs` (validación de `programada`, orden, atrasadas, `fechaCorta`, la tabla, el reemplazo entre marcas con LF y CRLF y el plan real) y 8 en `scripts/tablero.test.mjs` (a quién menciona el recordatorio, qué dice si la tarea espera o está bloqueada, una vez al día desde las 07:00, nada antes de esa hora, nada en la primera ejecución, sin comentario si nadie tiene nada, un solo comentario con las novedades y la sección "Hoy" del cuerpo). Se ajustaron 2 pruebas existentes por el campo nuevo del estado y del JSON.
+
+**Resultado:**
+- 52 tareas con `programada`, del 28 sep al 29 oct. Adelantan tareas de un avance posterior para repartir la carga: JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14.
+- `generar(tareas, cuerpoAnterior, fecha, hora)` recibe la hora para poder probarla; el workflow no cambió: ya corría a las 07:00 con `TZ=America/Guatemala`.
+- **Decisiones:**
+  - El recordatorio espera a las 07:00 para no marcar como atrasada, pasada la medianoche, una tarea que alguien está por integrar.
+  - "La esperan" nombra solo a otras personas; las dependencias propias ya se ven en la tarea siguiente.
+  - Las tareas hechas conservan su `programada` y siguen en la tabla por día, para que la tabla no cambie cada vez que se integra algo.

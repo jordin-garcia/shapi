@@ -6,6 +6,7 @@ responsable: Jordin García
 avance: 3
 prioridad: P1
 estado: pendiente
+programada: 2026-10-04
 depende_de: [JG-06, EM-01]
 requisitos: [RF-33, RF-34, RNF-05]
 pantallas: []

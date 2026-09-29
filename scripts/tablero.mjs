@@ -1,21 +1,26 @@
 #!/usr/bin/env node
-// Genera el issue "Tablero del plan" y los avisos de tareas recién disponibles o bloqueadas (JG-03).
+// Genera el issue "Tablero del plan", el recordatorio del día (tareas programadas y atrasadas)
+// y los avisos de tareas recién disponibles o bloqueadas (JG-03).
 // Lo ejecuta .github/workflows/tablero-plan.yml; no usa dependencias.
 //
 // Uso:
 //   node scripts/tablero.mjs <cuerpo-anterior.md> <cuerpo-nuevo.md> <avisos.md>
 //
 // Lee el cuerpo actual del issue (puede no existir), escribe el cuerpo nuevo y el texto
-// del comentario de avisos, que queda vacío si no hay novedades.
+// del comentario de avisos, que queda vacío si no hay nada que avisar.
 // El estado de la ejecución anterior se guarda en el propio cuerpo del issue:
-//   <!-- estado-tablero: {"disponibles":[...],"hechas":[...],"bloqueadas":[...]} -->
+//   <!-- estado-tablero: {"disponibles":[...],"hechas":[...],"bloqueadas":[...],"recordatorio":"AAAA-MM-DD"} -->
+// "recordatorio" es el último día en que se publicó el recordatorio, para publicarlo una sola vez al día.
 
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { AVANCES, PERSONAS, aJson, cargar, clasificar, hoy } from "./tareas.mjs";
+import { AVANCES, PERSONAS, aJson, cargar, clasificar, fechaCorta, hoy, laEsperan } from "./tareas.mjs";
 
 const COORDINADOR = "jordin";
+// El recordatorio sale en la primera ejecución del día a partir de esta hora (la del cron de tablero-plan.yml),
+// para no marcar como atrasada, pasada la medianoche, una tarea que alguien está por integrar.
+export const HORA_RECORDATORIO = 7;
 const MARCA_ESTADO = /<!-- estado-tablero: (\{.*?\}) -->/s;
 
 // Estado guardado en el cuerpo del issue, o null si no hay (primera ejecución).
@@ -24,19 +29,57 @@ export function leerEstado(cuerpo) {
   if (!m) return null;
   try {
     const e = JSON.parse(m[1]);
-    return { disponibles: e.disponibles ?? [], hechas: e.hechas ?? [], bloqueadas: e.bloqueadas ?? [] };
+    return { disponibles: e.disponibles ?? [], hechas: e.hechas ?? [], bloqueadas: e.bloqueadas ?? [], recordatorio: e.recordatorio ?? null };
   } catch {
     return null;
   }
 }
 
-function estadoActual(tareas) {
+function estadoActual(tareas, recordatorio) {
   const ids = (filtro) => tareas.filter(filtro).map((t) => t.id).sort();
   return {
     disponibles: ids((t) => t.situacion === "disponible"),
     hechas: ids((t) => t.estado === "hecha"),
     bloqueadas: ids((t) => t.situacion === "bloqueada"),
+    recordatorio,
   };
+}
+
+// Por qué todavía no se puede empezar una tarea: "espera a DC-04 (Dominique Contreras)".
+function motivoEspera(t, porId, fecha) {
+  const motivos = [];
+  if (t.faltan?.length) motivos.push("espera a " + t.faltan.map((d) => `${d} (${PERSONAS[porId[d]?.persona]?.nombre ?? "?"})`).join(", "));
+  if (t.no_antes_de && t.no_antes_de > fecha) motivos.push(`no antes del ${t.no_antes_de}`);
+  return motivos.join("; ");
+}
+
+// Recordatorio del día: a cada persona, su tarea programada para hoy y las atrasadas.
+// Solo menciona a quien tiene algo; si nadie tiene nada, devuelve "".
+function recordatorio(tareas, fecha) {
+  const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
+  const detalle = (t) => {
+    const partes = [];
+    if (t.situacion === "bloqueada") partes.push(`Está bloqueada: ${sinPunto(t.bloqueo)}.`);
+    else if (t.situacion === "en_espera") partes.push(`Todavía ${motivoEspera(t, porId, fecha)}.`);
+    const esperan = laEsperan(t, tareas);
+    if (esperan) partes.push(`La esperan: ${esperan}.`);
+    return partes.length ? " " + partes.join(" ") : "";
+  };
+  const lineas = [`**Tareas del día** (${fechaCorta(fecha)})`];
+  for (const [clave, p] of Object.entries(PERSONAS)) {
+    const pendientes = tareas.filter((t) => t.persona === clave && t.estado !== "hecha" && t.programada && t.programada <= fecha);
+    if (!pendientes.length) continue;
+    const mencion = `@${p.github}`;
+    lineas.push("", `**${p.nombre}**`);
+    // Primero las atrasadas: son las que están deteniendo a los demás.
+    for (const t of pendientes.filter((x) => x.programada < fecha)) {
+      lineas.push(`- ${mencion}: ⏰ **${t.id}** (${t.titulo}) está atrasada: estaba programada para el ${fechaCorta(t.programada)}.${detalle(t)}`);
+    }
+    for (const t of pendientes.filter((x) => x.programada === fecha)) {
+      lineas.push(`- ${mencion}: hoy te toca **${t.id}** (${t.titulo}).${detalle(t)}`);
+    }
+  }
+  return lineas.length > 1 ? lineas.join("\n") + "\n" : "";
 }
 
 // "JG-02" · "JG-04 y DC-04" · "JG-04, DC-04 y EM-01"
@@ -90,21 +133,27 @@ function avisos(tareas, anterior, fecha) {
 
 function cuerpo(tareas, estado, fecha) {
   const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
-  const item = (t) => `- ${t.id} · ${t.prioridad} · ${t.titulo}`;
-  const espera = (t) => {
-    const motivos = [];
-    if (t.faltan?.length) motivos.push("espera a " + t.faltan.map((d) => `${d} (${PERSONAS[porId[d]?.persona]?.nombre ?? "?"})`).join(", "));
-    if (t.no_antes_de && t.no_antes_de > fecha) motivos.push(`no antes del ${t.no_antes_de}`);
-    return `${item(t)} — ${motivos.join("; ")}`;
+  const cuando = (t) => {
+    if (!t.programada || t.estado === "hecha") return "";
+    return t.programada < fecha ? ` · ⏰ atrasada (${fechaCorta(t.programada)})` : ` · ${fechaCorta(t.programada)}`;
   };
+  const item = (t) => `- ${t.id} · ${t.prioridad}${cuando(t)} · ${t.titulo}`;
+  const espera = (t) => `${item(t)} — ${motivoEspera(t, porId, fecha)}`;
 
   // Sin @ en el cuerpo: las menciones van solo en el comentario de avisos.
   const lineas = [
     "# Tablero del plan",
     "",
     "> Se actualiza solo en cada integración a `main` y cada día a las 07:00 (Guatemala). No lo edites a mano: se reemplaza en cada ejecución.",
-    `> Última actualización: ${fecha}. Detalle de tus tareas: \`node scripts/tareas.mjs --persona <clave>\`.`,
+    `> Última actualización: ${fecha}. Detalle de tus tareas: \`node scripts/tareas.mjs --persona <clave>\`. Qué te toca hoy: \`node scripts/tareas.mjs --hoy <clave>\`.`,
   ];
+
+  lineas.push("", `## Hoy (${fechaCorta(fecha)})`, "");
+  for (const [clave, p] of Object.entries(PERSONAS)) {
+    const pendientes = tareas.filter((t) => t.persona === clave && t.estado !== "hecha" && t.programada && t.programada <= fecha);
+    const ids = pendientes.map((t) => (t.programada < fecha ? `⏰ ${t.id} (atrasada)` : t.id));
+    lineas.push(`- ${p.nombre}: ${ids.length ? ids.join(", ") : "nada programado"}`);
+  }
   for (const [clave, p] of Object.entries(PERSONAS)) {
     const mias = tareas.filter((t) => t.persona === clave);
     const de = (s) => mias.filter((t) => t.situacion === s);
@@ -126,11 +175,16 @@ function cuerpo(tareas, estado, fecha) {
 }
 
 // tareas: arreglo con la forma de `tareas.mjs --json`. Devuelve el cuerpo nuevo del issue y el comentario de avisos.
-export function generar(tareas, cuerpoAnterior, fecha = hoy()) {
-  const estado = estadoActual(tareas);
+// El comentario junta el recordatorio del día (una vez al día, desde HORA_RECORDATORIO) y las novedades.
+// Como las novedades, en la primera ejecución (sin estado anterior) no sale: esa solo crea el tablero y no menciona a nadie.
+export function generar(tareas, cuerpoAnterior, fecha = hoy(), hora = new Date().getHours()) {
+  const anterior = leerEstado(cuerpoAnterior);
+  const tocaRecordatorio = Boolean(anterior) && hora >= HORA_RECORDATORIO && anterior.recordatorio !== fecha;
+  const estado = estadoActual(tareas, tocaRecordatorio ? fecha : (anterior?.recordatorio ?? null));
+  const partes = [tocaRecordatorio ? recordatorio(tareas, fecha) : "", avisos(tareas, anterior, fecha)].filter(Boolean);
   return {
     cuerpo: cuerpo(tareas, estado, fecha),
-    avisos: avisos(tareas, leerEstado(cuerpoAnterior), fecha),
+    avisos: partes.join("\n"),
   };
 }
 

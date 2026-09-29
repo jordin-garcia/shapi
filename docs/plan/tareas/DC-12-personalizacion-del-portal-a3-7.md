@@ -6,6 +6,7 @@ responsable: Dominique Contreras
 avance: 3
 prioridad: P2
 estado: pendiente
+programada: 2026-10-20
 depende_de: [DC-07]
 requisitos: [RF-15]
 pantallas: [A3.7]

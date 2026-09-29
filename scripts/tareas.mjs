@@ -5,7 +5,10 @@
 // Uso:
 //   node scripts/tareas.mjs                     resumen de todo el equipo
 //   node scripts/tareas.mjs --persona emilio    tareas de una persona (disponibles, bloqueadas, hechas)
-//   node scripts/tareas.mjs --siguiente emilio  solo el ID de la siguiente tarea disponible
+//   node scripts/tareas.mjs --siguiente emilio  solo el ID de la siguiente tarea disponible (la de fecha programada más cercana)
+//   node scripts/tareas.mjs --hoy [emilio]      qué le toca hoy a cada persona (o a una), qué tiene atrasado y qué sigue
+//   node scripts/tareas.mjs --calendario        el calendario por día, en Markdown (el de docs/plan/calendario.md)
+//   node scripts/tareas.mjs --calendario --escribir   reescribe ese calendario en docs/plan/calendario.md
 //   node scripts/tareas.mjs --ver EM-02         verifica si una tarea se puede empezar
 //   node scripts/tareas.mjs --validar           valida el formato de todas las tareas (se usa en la CI)
 //   node scripts/tareas.mjs --json              todas las tareas con su situación, en JSON (lo usa scripts/tablero.mjs)
@@ -13,24 +16,34 @@
 //
 // Personas válidas: jordin, emilio, dominique, jose-pablo
 
-import { readdirSync, readFileSync, realpathSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(RAIZ, "docs", "plan", "tareas");
+const CALENDARIO = join(RAIZ, "docs", "plan", "calendario.md");
 
 export const PERSONAS = {
-  jordin: { nombre: "Jordin García", prefijo: "JG", github: "jordin-garcia" },
-  emilio: { nombre: "Emilio Méndez", prefijo: "EM", github: "MiloDou" },
-  dominique: { nombre: "Dominique Contreras", prefijo: "DC", github: "Dom-cs13" },
-  "jose-pablo": { nombre: "José Pablo Zúñiga", prefijo: "JZ", github: "PabloZ7-425" },
+  jordin: { nombre: "Jordin García", corto: "Jordin", prefijo: "JG", github: "jordin-garcia" },
+  emilio: { nombre: "Emilio Méndez", corto: "Emilio", prefijo: "EM", github: "MiloDou" },
+  dominique: { nombre: "Dominique Contreras", corto: "Dominique", prefijo: "DC", github: "Dom-cs13" },
+  "jose-pablo": { nombre: "José Pablo Zúñiga", corto: "José Pablo", prefijo: "JZ", github: "PabloZ7-425" },
 };
 const ESTADOS = ["pendiente", "hecha", "bloqueada"];
 export const AVANCES = ["1", "2", "3", "final"];
 const PRIORIDADES = ["P1", "P2", "P3"];
 const ORDEN_AVANCE = { 1: 1, 2: 2, 3: 3, final: 4 };
 const CAMPOS = ["id", "titulo", "persona", "responsable", "avance", "prioridad", "estado", "depende_de"];
+const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+// "2026-09-29" → "mar 29 sep". Se calcula en UTC para que el día de la semana no dependa de la zona horaria.
+export function fechaCorta(fecha) {
+  const [a, m, d] = fecha.split("-").map(Number);
+  return `${DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]} ${d} ${MESES[m - 1]}`;
+}
 
 function parsearFrontmatter(texto, archivo) {
   const m = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -68,7 +81,7 @@ export function cargar() {
   return { tareas, errores };
 }
 
-function validar(tareas, erroresIniciales) {
+export function validar(tareas, erroresIniciales = []) {
   const errores = [...erroresIniciales];
   const ids = new Map();
   for (const t of tareas) {
@@ -84,16 +97,24 @@ function validar(tareas, erroresIniciales) {
     if (!PRIORIDADES.includes(t.prioridad)) errores.push(`${t.archivo}: prioridad "${t.prioridad}" no válida (${PRIORIDADES.join(", ")})`);
     if (!Array.isArray(t.depende_de)) errores.push(`${t.archivo}: depende_de debe ser una lista, por ejemplo [JG-01, EM-01] o []`);
     if (t.estado === "bloqueada" && !t.bloqueo) errores.push(`${t.archivo}: una tarea bloqueada debe explicar el motivo en el campo "bloqueo"`);
-    if (t.no_antes_de && !/^\d{4}-\d{2}-\d{2}$/.test(t.no_antes_de)) errores.push(`${t.archivo}: no_antes_de debe tener el formato AAAA-MM-DD`);
+    if (t.no_antes_de && !FORMATO_FECHA.test(t.no_antes_de)) errores.push(`${t.archivo}: no_antes_de debe tener el formato AAAA-MM-DD`);
+    if (t.programada !== undefined && !FORMATO_FECHA.test(t.programada)) errores.push(`${t.archivo}: programada debe tener el formato AAAA-MM-DD`);
+    else if (t.programada === undefined && t.estado !== "hecha") errores.push(`${t.archivo}: falta el campo "programada" (el día del calendario en que se hace la tarea, AAAA-MM-DD)`);
+    else if (t.programada && t.no_antes_de && t.programada < t.no_antes_de) errores.push(`${t.archivo}: programada (${t.programada}) es antes de no_antes_de (${t.no_antes_de})`);
   }
+  const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
   for (const t of tareas) {
     for (const d of t.depende_de || []) {
       if (!ids.has(d)) errores.push(`${t.archivo}: depende de ${d}, que no existe`);
       if (d === t.id) errores.push(`${t.archivo}: depende de sí misma`);
+      // Una tarea se programa, como pronto, el día siguiente al de cada dependencia que aún no está hecha.
+      const dep = porId[d];
+      if (dep && dep.estado !== "hecha" && t.programada && dep.programada && t.programada <= dep.programada) {
+        errores.push(`${t.archivo}: programada (${t.programada}) debe ser después de la de su dependencia ${d} (${dep.programada})`);
+      }
     }
   }
   // detectar ciclos
-  const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
   const visitando = new Set(), listo = new Set();
   const dfs = (id, camino) => {
     if (listo.has(id) || !porId[id]) return;
@@ -118,20 +139,28 @@ export function clasificar(tareas) {
     const faltan = (t.depende_de || []).filter((d) => porId[d]?.estado !== "hecha");
     t.faltan = faltan;
     t.esperaFecha = t.no_antes_de && t.no_antes_de > fecha;
+    t.atrasada = t.estado !== "hecha" && Boolean(t.programada) && t.programada < fecha;
     if (t.estado === "hecha") t.situacion = "hecha";
     else if (t.estado === "bloqueada") t.situacion = "bloqueada";
     else if (faltan.length || t.esperaFecha) t.situacion = "en_espera";
     else t.situacion = "disponible";
   }
+  // Primero la fecha del calendario; las tareas sin fecha (las hechas antes de que existiera) van al final.
   const orden = (a, b) =>
+    (a.programada ?? "9999").localeCompare(b.programada ?? "9999") ||
     ORDEN_AVANCE[a.avance] - ORDEN_AVANCE[b.avance] ||
     a.prioridad.localeCompare(b.prioridad) ||
     a.id.localeCompare(b.id, undefined, { numeric: true });
   return tareas.sort(orden);
 }
 
+function cuando(t) {
+  if (!t.programada || t.estado === "hecha") return "";
+  return t.atrasada ? ` · ⏰ atrasada (programada: ${fechaCorta(t.programada)})` : ` · programada: ${fechaCorta(t.programada)}`;
+}
+
 function linea(t, porId) {
-  const base = `  ${t.id.padEnd(6)} [Avance ${String(t.avance).padEnd(5)} ${t.prioridad}] ${t.titulo}`;
+  const base = `  ${t.id.padEnd(6)} [Avance ${String(t.avance).padEnd(5)} ${t.prioridad}] ${t.titulo}${cuando(t)}`;
   if (t.situacion === "en_espera") {
     const motivos = [];
     if (t.faltan.length) motivos.push("espera a " + t.faltan.map((d) => `${d} (${PERSONAS[porId[d]?.persona]?.nombre ?? "?"})`).join(", "));
@@ -158,6 +187,70 @@ function mostrarPersona(persona, tareas) {
   console.log(`\nHECHAS:`);
   console.log(grupos.hecha.length ? grupos.hecha.map((t) => `  ${t.id} ${t.titulo}`).join("\n") : "  (ninguna)");
   if (grupos.disponible[0]) console.log(`\nSiguiente recomendada: ${grupos.disponible[0].id} → ${grupos.disponible[0].archivo}`);
+}
+
+// Tareas pendientes de otras personas que esperan a t: "Emilio Méndez (EM-08), Dominique Contreras (DC-09)".
+export function laEsperan(t, tareas) {
+  const porPersona = new Map();
+  for (const x of tareas) {
+    if (x.estado === "hecha" || x.persona === t.persona || !(x.depende_de || []).includes(t.id)) continue;
+    porPersona.set(x.persona, [...(porPersona.get(x.persona) ?? []), x.id]);
+  }
+  return [...porPersona].map(([p, ids]) => `${PERSONAS[p]?.nombre ?? p} (${ids.join(", ")})`).join(", ");
+}
+
+function mostrarHoy(tareas, persona) {
+  if (persona && !PERSONAS[persona]) { console.error(`Persona desconocida "${persona}". Use: ${Object.keys(PERSONAS).join(", ")}`); process.exit(2); }
+  const fecha = hoy();
+  const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
+  const describir = (t) => {
+    const esperan = laEsperan(t, tareas);
+    return linea(t, porId) + (esperan ? `\n         ↳ la esperan: ${esperan}` : "");
+  };
+  console.log(`\nCalendario de hoy, ${fechaCorta(fecha)} (${fecha})`);
+  for (const [clave, p] of Object.entries(PERSONAS)) {
+    if (persona && clave !== persona) continue;
+    const pendientes = tareas.filter((t) => t.persona === clave && t.estado !== "hecha" && t.programada);
+    const deHoy = pendientes.filter((t) => t.programada === fecha);
+    const atrasadas = pendientes.filter((t) => t.atrasada);
+    const proxima = pendientes.find((t) => t.programada > fecha);
+    console.log(`\n${p.nombre}`);
+    console.log(`  HOY:${deHoy.length ? "" : " nada programado"}`);
+    for (const t of deHoy) console.log(describir(t));
+    if (atrasadas.length) { console.log(`  ATRASADAS:`); for (const t of atrasadas) console.log(describir(t)); }
+    console.log(`  DESPUÉS: ${proxima ? `${proxima.id} (${proxima.titulo}), el ${fechaCorta(proxima.programada)}` : "nada programado"}`);
+  }
+}
+
+const INICIO_CALENDARIO = "<!-- calendario:inicio (lo genera node scripts/tareas.mjs --calendario --escribir; no lo edites a mano) -->";
+const FIN_CALENDARIO = "<!-- calendario:fin -->";
+
+// Tabla Markdown con una fila por día programado y una columna por persona.
+export function tablaCalendario(tareas) {
+  const claves = Object.keys(PERSONAS);
+  const dias = [...new Set(tareas.filter((t) => t.programada).map((t) => t.programada))].sort();
+  const lineas = [`| Día | ${claves.map((c) => PERSONAS[c].corto).join(" | ")} |`, `|---|${claves.map(() => "---").join("|")}|`];
+  for (const dia of dias) {
+    const celdas = claves.map((c) =>
+      tareas
+        .filter((t) => t.programada === dia && t.persona === c)
+        .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+        .map((t) => `**${t.id}** ${t.titulo}`)
+        .join("<br>") || "—",
+    );
+    const corta = fechaCorta(dia);
+    lineas.push(`| ${corta[0].toUpperCase()}${corta.slice(1)} | ${celdas.join(" | ")} |`);
+  }
+  return lineas.join("\n");
+}
+
+// Devuelve el texto de calendario.md con el bloque generado reemplazado, o null si faltan las marcas.
+export function reemplazarCalendario(texto, tabla) {
+  const i = texto.indexOf(INICIO_CALENDARIO);
+  const f = i < 0 ? -1 : texto.indexOf(FIN_CALENDARIO, i);
+  if (i < 0 || f < i) return null;
+  const salto = texto.includes("\r\n") ? "\r\n" : "\n";
+  return texto.slice(0, i) + [INICIO_CALENDARIO, "", ...tabla.split("\n"), "", ""].join(salto) + texto.slice(f);
 }
 
 function resumen(tareas) {
@@ -206,6 +299,7 @@ export function aJson(t) {
     situacion: t.situacion,
     faltan: t.faltan,
     no_antes_de: t.no_antes_de || null,
+    programada: t.programada || null,
     bloqueo: t.bloqueo || null,
   };
 }
@@ -220,6 +314,10 @@ if (esPrincipal) {
   const errores = validar(tareas, erroresCarga);
 
   if (args[0] === "--validar") {
+    const actual = readFileSync(CALENDARIO, "utf8");
+    const esperado = reemplazarCalendario(actual, tablaCalendario(tareas));
+    if (esperado === null) errores.push("docs/plan/calendario.md: faltan las marcas del calendario por día");
+    else if (esperado !== actual) errores.push("docs/plan/calendario.md: el calendario por día no coincide con las fechas programadas de las tareas (corra node scripts/tareas.mjs --calendario --escribir)");
     if (errores.length) { console.error("El plan tiene errores:\n- " + errores.join("\n- ")); process.exit(1); }
     console.log(`Plan válido: ${tareas.length} tareas.`);
     process.exit(0);
@@ -240,6 +338,16 @@ if (esPrincipal) {
 
   if (args[0] === "--json") console.log(JSON.stringify(tareas.map(aJson), null, 2));
   else if (args[0] === "--persona" && args[1]) mostrarPersona(args[1], tareas);
+  else if (args[0] === "--hoy") mostrarHoy(tareas, args[1]);
+  else if (args[0] === "--calendario") {
+    const tabla = tablaCalendario(tareas);
+    if (args[1] === "--escribir") {
+      const nuevo = reemplazarCalendario(readFileSync(CALENDARIO, "utf8"), tabla);
+      if (nuevo === null) { console.error("docs/plan/calendario.md no tiene las marcas del calendario por día."); process.exit(1); }
+      writeFileSync(CALENDARIO, nuevo);
+      console.log("Calendario por día actualizado en docs/plan/calendario.md.");
+    } else console.log(tabla);
+  }
   else if (args[0] === "--siguiente" && args[1]) {
     const t = tareas.find((x) => x.persona === args[1] && x.situacion === "disponible");
     console.log(t ? t.id : "NINGUNA");
