@@ -4,11 +4,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Shapi.Aplicacion.Identidad;
 using Shapi.Aplicacion.Comun;
+using Shapi.Aplicacion.Identidad;
 using Shapi.Dominio.Identidad;
-using Shapi.Infraestructura.Persistencia;
 using Shapi.Infraestructura.Identidad;
+using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Api.Identidad;
 
@@ -32,11 +32,11 @@ public class ServicioRecuperacion : IServicioRecuperacion
     }
 
     public async Task Solicitar(
-        string correo, 
-        AmbitoSesion ambito, 
-        string? hostPortal = null, 
-        string? nombrePortal = null, 
-        string? colorPortal = null, 
+        string correo,
+        AmbitoSesion ambito,
+        string? hostPortal = null,
+        string? nombrePortal = null,
+        string? colorPortal = null,
         bool logoPortal = false,
         CancellationToken cancelacion = default)
     {
@@ -50,7 +50,11 @@ public class ServicioRecuperacion : IServicioRecuperacion
         if (ambito == AmbitoSesion.Personal)
         {
             var usuario = await _db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == correo, cancelacion);
-            if (usuario is null || usuario.Estado == EstadoCuenta.Desactivado) return;
+            if (usuario is null || usuario.Estado == EstadoCuenta.Desactivado)
+            {
+                return;
+            }
+
             usuarioId = usuario.Id;
             nombre = usuario.Nombre;
         }
@@ -65,7 +69,7 @@ public class ServicioRecuperacion : IServicioRecuperacion
         var token = Token.Recuperacion(hash, usuarioId, consumidorId, organizacionId, correo, ahora);
         _db.Add(token);
 
-        var datosCorreo = ambito == AmbitoSesion.Personal 
+        var datosCorreo = ambito == AmbitoSesion.Personal
             ? (object)new { nombre, token = valorToken }
             : new { nombre, token = valorToken, hostPortal, nombrePortal, colorPortal, logoPortal = logoPortal ? "true" : null };
 
@@ -74,8 +78,8 @@ public class ServicioRecuperacion : IServicioRecuperacion
     }
 
     public async Task<RecuperacionExitosa?> Restablecer(
-        string token, 
-        string nuevaContrasena, 
+        string token,
+        string nuevaContrasena,
         CancellationToken cancelacion = default)
     {
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(nuevaContrasena))
@@ -85,7 +89,7 @@ public class ServicioRecuperacion : IServicioRecuperacion
 
         var hash = SeguridadTokens.HashearToken(token);
         var ahora = _reloj.Ahora;
-        
+
         var entidadToken = await _db.Set<Token>().IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.HashToken == hash && t.Tipo == TipoToken.Recuperacion, cancelacion);
 
@@ -118,7 +122,7 @@ public class ServicioRecuperacion : IServicioRecuperacion
 
             var hashContrasena = _hasherUsuario.HashPassword(usuario, nuevaContrasena);
             usuario.DefinirHashContrasena(hashContrasena);
-            
+
             // Revocar sesiones existentes
             await _db.Set<Sesion>().IgnoreQueryFilters()
                 .Where(s => s.UsuarioId == usuario.Id && s.RevocadaEn == null)

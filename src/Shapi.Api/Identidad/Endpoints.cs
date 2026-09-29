@@ -411,14 +411,16 @@ public static class Endpoints
         CancellationToken cancelacion)
     {
         if (string.IsNullOrWhiteSpace(peticion.Nombre))
+        {
             return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "El nombre es obligatorio.");
+        }
 
         var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var ahora = reloj.Ahora;
         await db.Set<Usuario>().IgnoreQueryFilters()
             .Where(u => u.Id == usuarioId)
             .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nombre, peticion.Nombre.Trim()).SetProperty(u => u.ActualizadoEn, ahora), cancelacion);
-        
+
         return TypedResults.Ok();
     }
 
@@ -435,15 +437,19 @@ public static class Endpoints
         var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == usuarioId, cancelacion);
 
         if (string.IsNullOrWhiteSpace(peticion.ContrasenaActual) || string.IsNullOrWhiteSpace(peticion.ContrasenaNueva))
+        {
             return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Ambas contraseñas son obligatorias.");
+        }
 
         var resultado = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena!, peticion.ContrasenaActual);
         if (resultado == PasswordVerificationResult.Failed)
+        {
             return CredencialesInvalidas();
+        }
 
         var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva);
         usuario.DefinirHashContrasena(hashNuevo);
-        
+
         var ahora = reloj.Ahora;
 
         // Revocar sesiones excepto la actual
