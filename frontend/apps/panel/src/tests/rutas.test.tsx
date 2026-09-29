@@ -31,6 +31,9 @@ const implementadas: Record<string, string> = {
   'A1-1': 'Crear una cuenta',
   'A1-2': 'Revise su correo',
   'A1-3': 'Entrar a Shapi',
+  'A1-4a': 'Recuperar la contraseña',
+  'A1-4b': 'Definir la contraseña',
+  'A8-1': 'Mi perfil',
   'B3-2': 'Bitácora de acciones sensibles',
 };
 async function esperarPantalla(id: string) {

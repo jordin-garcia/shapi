@@ -31,6 +31,8 @@ public static class IdentidadModulo
         services.AddHttpContextAccessor();
         services.AddScoped<IContextoOrganizacion, ContextoOrganizacionHttp>();
         services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
+        services.AddScoped<IPasswordHasher<Consumidor>, PasswordHasher<Consumidor>>();
+        services.AddScoped<IServicioRecuperacion, ServicioRecuperacion>();
         services.AddScoped<IValidator<RegistroProveedor>, ValidadorRegistroProveedor>();
         services.AgregarPoliticasShapi();
 

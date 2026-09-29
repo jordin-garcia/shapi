@@ -36,10 +36,17 @@ public static class Endpoints
         grupo.MapPost("/verificar-correo", VerificarCorreo).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         grupo.MapPost("/reenviar-verificacion", ReenviarVerificacion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         grupo.MapPost("/entrar", IniciarSesion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
+        grupo.MapPost("/recuperar", SolicitarRecuperacion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
+        grupo.MapPost("/restablecer", RestablecerContrasena).AllowAnonymous();
         // salir y sesion no reciben credenciales y el panel consulta la sesión en cada carga, así que no llevan el límite.
         // salir es público: con la sesión vencida también tiene que borrar la cookie.
         grupo.MapPost("/salir", CerrarSesion).AllowAnonymous();
         grupo.MapGet("/sesion", ObtenerSesion).RequireAuthorization();
+
+        var grupoPerfil = app.MapGroup("/api/perfil").RequireAuthorization();
+        grupoPerfil.MapGet("/", ObtenerPerfil);
+        grupoPerfil.MapPut("/", EditarPerfil);
+        grupoPerfil.MapPost("/contrasena", CambiarContrasena);
 
         return app;
     }
@@ -353,6 +360,173 @@ public static class Endpoints
 
     private static IResult TokenInvalido() =>
         Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.TokenInvalido, "El enlace venció o ya se usó.");
+
+    // EM-04
+    private static async Task<IResult> SolicitarRecuperacion(
+        [FromBody] PeticionRecuperar peticion,
+        [FromServices] IServicioRecuperacion servicio,
+        CancellationToken cancelacion)
+    {
+        if (!string.IsNullOrWhiteSpace(peticion.Correo))
+        {
+            await servicio.Solicitar(peticion.Correo, AmbitoSesion.Personal, cancelacion: cancelacion);
+        }
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> RestablecerContrasena(
+        [FromBody] PeticionRestablecer peticion,
+        [FromServices] IServicioRecuperacion servicio,
+        [FromServices] ShapiDbContext db,
+        [FromServices] IReloj reloj,
+        HttpContext contexto,
+        CancellationToken cancelacion)
+    {
+        // Obtener el correo asociado al token para validar la política completa (10 §1) antes de consumirlo.
+        string? correoDelToken = null;
+        if (!string.IsNullOrWhiteSpace(peticion.Token))
+        {
+            var hash = SeguridadTokens.HashearToken(peticion.Token);
+            correoDelToken = await db.Set<Token>().IgnoreQueryFilters()
+                .Where(t => t.HashToken == hash && t.Tipo == TipoToken.Recuperacion)
+                .Select(t => t.Correo)
+                .FirstOrDefaultAsync(cancelacion);
+        }
+
+        // Validar la política de contraseña (10 §1) antes de consumir el token.
+        var erroresContrasena = ValidarContrasena(peticion.Contrasena, correoDelToken);
+        if (erroresContrasena is not null)
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasena"] = [erroresContrasena] });
+        }
+
+        var resultado = await servicio.Restablecer(peticion.Token ?? "", peticion.Contrasena!, cancelacion);
+        if (resultado is null)
+        {
+            return TokenInvalido();
+        }
+
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == resultado.UsuarioId, cancelacion);
+        await IniciarSesionPersonal(db, contexto, usuario, reloj.Ahora, cancelacion);
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> ObtenerPerfil(
+        ClaimsPrincipal usuarioActual,
+        [FromServices] ShapiDbContext db,
+        CancellationToken cancelacion)
+    {
+        var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == usuarioId, cancelacion);
+        return TypedResults.Ok(new { nombre = usuario.Nombre });
+    }
+
+    private static async Task<IResult> EditarPerfil(
+        [FromBody] PeticionPerfil peticion,
+        ClaimsPrincipal usuarioActual,
+        [FromServices] ShapiDbContext db,
+        [FromServices] IReloj reloj,
+        CancellationToken cancelacion)
+    {
+        var nombreTrim = peticion.Nombre?.Trim();
+        if (string.IsNullOrWhiteSpace(nombreTrim))
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "El nombre es obligatorio.",
+                new Dictionary<string, string[]> { ["nombre"] = ["Escriba su nombre."] });
+        }
+
+        if (nombreTrim.Length > 120)
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["nombre"] = ["El nombre no puede tener más de 120 caracteres."] });
+        }
+
+        var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var ahora = reloj.Ahora;
+        await db.Set<Usuario>().IgnoreQueryFilters()
+            .Where(u => u.Id == usuarioId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nombre, nombreTrim).SetProperty(u => u.ActualizadoEn, ahora), cancelacion);
+
+        return TypedResults.Ok();
+    }
+
+    private static async Task<IResult> CambiarContrasena(
+        [FromBody] PeticionCambiarContrasena peticion,
+        ClaimsPrincipal usuarioActual,
+        HttpContext contexto,
+        [FromServices] ShapiDbContext db,
+        [FromServices] IPasswordHasher<Usuario> hasher,
+        [FromServices] IReloj reloj,
+        CancellationToken cancelacion)
+    {
+        var usuarioId = Guid.Parse(usuarioActual.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == usuarioId, cancelacion);
+
+        if (string.IsNullOrWhiteSpace(peticion.ContrasenaActual))
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasenaActual"] = ["La contraseña actual es obligatoria."] });
+        }
+
+        var erroresNueva = ValidarContrasena(peticion.ContrasenaNueva, usuario.Correo);
+        if (erroresNueva is not null)
+        {
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasenaNueva"] = [erroresNueva] });
+        }
+
+        var resultado = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena!, peticion.ContrasenaActual);
+        if (resultado == PasswordVerificationResult.Failed)
+        {
+            return CredencialesInvalidas();
+        }
+
+        var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva!);
+        usuario.DefinirHashContrasena(hashNuevo);
+
+        var ahora = reloj.Ahora;
+
+        // Revocar sesiones excepto la actual
+        var hashActual = string.Empty;
+        if (contexto.Request.Cookies.TryGetValue(PersonalAutenticacionOpciones.Cookie, out var valorCookie) && !string.IsNullOrEmpty(valorCookie))
+        {
+            hashActual = SeguridadTokens.HashearToken(valorCookie);
+        }
+
+        await db.Set<Sesion>().IgnoreQueryFilters()
+            .Where(s => s.UsuarioId == usuario.Id && s.RevocadaEn == null && s.HashIdentificador != hashActual)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevocadaEn, ahora).SetProperty(x => x.ActualizadoEn, ahora), cancelacion);
+
+        await db.SaveChangesAsync(cancelacion);
+        return TypedResults.Ok();
+    }
+
+    /// <summary>Valida la política de contraseña de 10 §1 (10-128 caracteres, distinta del correo). Retorna el mensaje de error o null si es válida.</summary>
+    private static string? ValidarContrasena(string? contrasena, string? correo = null)
+    {
+        if (string.IsNullOrWhiteSpace(contrasena))
+        {
+            return "Escriba una contraseña.";
+        }
+
+        if (contrasena.Length < ValidadorRegistroProveedor.LargoMinimoContrasena)
+        {
+            return $"La contraseña debe tener entre {ValidadorRegistroProveedor.LargoMinimoContrasena} y {ValidadorRegistroProveedor.LargoMaximoContrasena} caracteres.";
+        }
+
+        if (contrasena.Length > ValidadorRegistroProveedor.LargoMaximoContrasena)
+        {
+            return $"La contraseña debe tener entre {ValidadorRegistroProveedor.LargoMinimoContrasena} y {ValidadorRegistroProveedor.LargoMaximoContrasena} caracteres.";
+        }
+
+        if (correo is not null && string.Equals(contrasena.Trim(), correo.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return "La contraseña no puede ser igual al correo.";
+        }
+
+        return null;
+    }
 }
 
 public record PeticionVerificacion(string? Token);
@@ -361,3 +535,7 @@ public record PeticionEntrar(string? Correo, string? Contrasena);
 public record UsuarioSesion(string Nombre, string Correo);
 public record OrganizacionSesion(Guid Id, string Nombre);
 public record RespuestaSesion(UsuarioSesion Usuario, OrganizacionSesion Organizacion, string Rol, bool CorreoVerificado, string Destino);
+public record PeticionRecuperar(string? Correo);
+public record PeticionRestablecer(string? Token, string? Contrasena);
+public record PeticionPerfil(string? Nombre);
+public record PeticionCambiarContrasena(string? ContrasenaActual, string? ContrasenaNueva);

@@ -31,5 +31,18 @@ public class Token
         ExpiraEn = ahora + VigenciaVerificacionCorreo,
     };
 
+    /// <summary>Enlace de recuperación de contraseña de un usuario o consumidor. Solo se guarda el hash del valor del enlace.</summary>
+    public static Token Recuperacion(string hashToken, Guid? usuarioId, Guid? consumidorId, Guid? organizacionId, string correo, DateTimeOffset ahora) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Tipo = TipoToken.Recuperacion,
+        HashToken = hashToken,
+        UsuarioId = usuarioId,
+        ConsumidorId = consumidorId,
+        OrganizacionId = organizacionId,
+        Correo = correo,
+        ExpiraEn = ahora + TimeSpan.FromMinutes(60),
+    };
+
     public bool EsValido(DateTimeOffset ahora) => UsadoEn is null && ExpiraEn > ahora;
 }

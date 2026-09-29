@@ -52,6 +52,28 @@ export async function reenviarVerificacion(correo: string) {
   comprobar(await clienteIdentidad.POST('/api/auth/reenviar-verificacion', { params: csrf, body: { correo } }));
 }
 
+export async function recuperar(correo: string) {
+  comprobar(await clienteIdentidad.POST('/api/auth/recuperar', { params: csrf, body: { correo } }));
+}
+
+export async function restablecer(token: string, contrasena: string) {
+  comprobar(await clienteIdentidad.POST('/api/auth/restablecer', { params: csrf, body: { token, contrasena } }));
+}
+
+export async function consultarPerfil() {
+  const { data, error } = await clienteIdentidad.GET('/api/perfil');
+  if (error) throw new Error('No se pudo cargar el perfil');
+  return data;
+}
+
+export async function editarPerfil(nombre: string) {
+  comprobar(await clienteIdentidad.PUT('/api/perfil', { params: csrf, body: { nombre } }));
+}
+
+export async function cambiarContrasena(contrasenaActual: string, contrasenaNueva: string) {
+  comprobar(await clienteIdentidad.POST('/api/perfil/contrasena', { params: csrf, body: { contrasenaActual, contrasenaNueva } }));
+}
+
 /**
  * Después de entrar o de verificar el correo, consulta la sesión recién creada y lleva a su destino según el rol
  * (10 §1). La respuesta queda en la caché, así que el guardia de rutas no vuelve a pedirla.
