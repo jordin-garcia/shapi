@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-28
 depende_de: [JG-02, EM-01]
 requisitos: [RNF-02, RNF-04, RNF-05]
@@ -57,3 +57,30 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Fuera de alcance
 - Invalidar la caché de respuestas (JG-15)
 - Los casos de uso que llaman al publicador (los hacen los dueños de cada módulo)
+
+## Resultado
+
+**Qué se hizo**
+- `PublicadorCacheRedis` reemplaza a `PublicadorCacheNulo`. Lee el estado actual de PostgreSQL, sin el filtro por organización, y escribe en Redis:
+  - `api:{id}` con `DEL` y luego `HSET` en una transacción, con la `version` siguiente;
+  - `api:{id}:rutas`, con todas las rutas;
+  - `api:host:{sub}.api.{dominio_base}` y el dominio propio verificado;
+  - `clave:{sha256}` con `EXPIREAT` si está rotada, y la borra si está revocada;
+  - `susc:{id}`, que borra si la suscripción está finalizada;
+  - `org:{id}` con el estado efectivo, la cuota y el ciclo de plataforma.
+- Si Redis falla, el publicador reintenta 3 veces (200 ms, 500 ms y 1 s), registra el error y no lanza (criterio 3). La conexión usa `BacklogPolicy.FailFast`, para que los reintentos no alarguen la respuesta HTTP, y `IncludeDetailInExceptions = false`, para que los errores no lleven el hash de una clave.
+- `ResincronizarCache` y `TrabajoResincronizacion` corren en el trabajador, al arrancar y cada 5 minutos. Reescriben toda la configuración y borran las llaves de configuración que sobran. No tocan los contadores.
+- Contratos nuevos en `Shapi.Contratos/Redis`: `ContextoSuscripcion`, `ContextoOrganizacion` y `RutaCache`, con JSON en snake_case, más `LlavesRedis.PatronesConfiguracion`. `Aplicacion/Cache/ArmadoCache` arma los DTO y calcula el estado efectivo.
+- `IProtectorSecretoOrigen` usa ASP.NET Data Protection con el propósito `Shapi.SecretoOrigen`, el nombre de aplicación `Shapi` y las llaves en `SHAPI_DPKEYS_DIR`. Se registra en `AgregarServiciosComunes`. Por eso `Shapi.Infraestructura` usa el marco compartido `Microsoft.AspNetCore.App` (no es un paquete NuGet nuevo) y deja de referenciar `Microsoft.Extensions.Identity.Core`, que ya viene incluido.
+- Se eliminó `sembrar-demo` de la compuerta, con su prueba.
+
+**Decisiones**
+- El `EXPIREAT` de una clave rotada se traslada a la hora real: hora real + (`expira_en` − `IReloj.Ahora`). En el modo demostración, el reloj adelantado haría que la clave rotada funcionara 24 h más los días adelantados. Quedó en 07 §4.
+- `api:{id}:rutas` es un arreglo JSON, como dice 07 §4. La "`version` incrementada" del criterio 1 es la de `api:{id}`, que se escribe en la misma transacción que las rutas. Para que la versión solo suba aunque publiquen dos procesos a la vez, la transacción lleva una condición sobre la versión leída.
+- `PublicarSuscripcion` de una suscripción de plataforma publica `org:{id}`, porque su estado cambia el estado efectivo.
+- La resincronización también borra las llaves de configuración sobrantes. Sin eso, una clave cuya revocación falló en Redis seguiría funcionando. Lee las llaves existentes con `SCAN` antes de leer PostgreSQL, para no borrar una llave publicada durante la resincronización, y al final corrige las claves que cambiaron mientras tanto.
+- Si el secreto de una API no se puede descifrar, la API no se publica y se registra el error. La resincronización tampoco borra lo que ya está en Redis de esa API, para no cortar su tráfico si el trabajador no comparte el anillo de llaves (hallazgo de la revisión en contexto limpio).
+- La conexión a Redis de la API y del trabajador espera 1 s por comando como máximo (`AsyncTimeout`/`SyncTimeout`), para que los reintentos no alarguen la respuesta HTTP si Redis se cuelga.
+- `Shapi.Api.Tests` referencia `Shapi.Compuerta` con el alias `compuerta`, para la prueba del criterio 5. El `Program` del trabajador se declara `internal`: con el marco de ASP.NET Core, .NET 10 lo haría público y chocaría con el de la API.
+
+**Archivos principales:** `src/Shapi.Infraestructura/Cache/{PublicadorCacheRedis,EscritorCacheRedis,LectorCacheBaseDatos,ReintentosRedis,ServiciosCache}.cs`, `src/Shapi.Trabajador/Resincronizacion/**`, `src/Shapi.Aplicacion/Cache/ArmadoCache.cs`, `src/Shapi.Contratos/Redis/{ContextoSuscripcion,ContextoOrganizacion,RutaCache}.cs`, `src/Shapi.Infraestructura/Comun/ProtectorSecretoOrigen.cs` y `tests/Shapi.Api.Tests/Cache/**`.
