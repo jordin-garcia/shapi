@@ -39,6 +39,8 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros: La variable `SHAPI_PASARELA_FALLA` permite simular una caída total de la pasarela y `Pagos:DemoraMs` añade un tiempo de espera.
 - (Corregido por el coordinador el 27 sep, auditoría H-103 a H-105: la tarea la terminó Jordin en el PR que reemplaza al #14. Ya no hay diccionario en memoria: las tarjetas especiales se reconocen por el número completo y las tres llevan su comportamiento en el token (`tok_sim_0002_`, `tok_sim_0069_` y `tok_sim_0341_`). Sin `Pagos:DemoraMs`, la demora es al azar entre 300 y 800 ms; con un valor, es ese valor.)
 
-## 2026-09-29
-
-- Implementé EM-04: Recuperación de contraseña y Mi perfil. Backend con token de recuperación y frontend con hooks de identidad y componentes de la UI terminados.
+## 2026-09-29 · EM-04 · Recuperación de contraseña y Mi perfil (A1.4a, A1.4b y A8.1)
+- Hecho: Se implementó la recuperación de contraseña (`POST /api/auth/recuperar` y `restablecer`), la edición de perfil y contraseña (`GET/PUT /api/perfil`, `POST /api/perfil/contrasena`). El backend genera tokens de un solo uso de 60 minutos, y revoca otras sesiones al cambiar contraseña. Se crearon las interfaces A1-4a, A1-4b y A8-1 en el frontend con Vitest probando las interacciones. Todo ajustado a los mockups.
+- Decisiones: La lógica de recuperación se aisló en `IServicioRecuperacion` (con parámetro de ámbito) para su reutilización en EM-05 con consumidores.
+- Pendiente o aviso para otros:
+  - **Jordin:** la infraestructura de Docker local estaba caída durante mi ejecución impidiendo que `Shapi.Api.Tests` y `Shapi.Compuerta.Tests` se ejecutaran, pero `Shapi.Dominio.Tests` y todos los test de frontend pasan. Por favor revisar los test con infraestructura.
