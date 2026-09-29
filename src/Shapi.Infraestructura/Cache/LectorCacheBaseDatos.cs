@@ -18,6 +18,12 @@ namespace Shapi.Infraestructura.Cache;
 public sealed record ApiCache(ContextoApi Contexto, IReadOnlyList<RutaCache> Rutas, IReadOnlyList<string> Hosts);
 
 /// <summary>
+/// Las APIs publicadas que se pueden publicar, y las que no porque su secreto no se descifra (<see cref="SinSecreto"/>,
+/// con sus hosts). De estas últimas no se reescribe nada, pero tampoco se borra lo que ya publicó la API de control.
+/// </summary>
+public sealed record ApisPublicadas(IReadOnlyList<ApiCache> Apis, IReadOnlyList<(Guid ApiId, IReadOnlyList<string> Hosts)> SinSecreto);
+
+/// <summary>
 /// Lo que se publica de una clave. <see cref="Contexto"/> es <c>null</c> si la clave no debe estar en Redis
 /// (revocada o con la rotación vencida); <see cref="ExpiraEn"/> tiene valor si está rotada.
 /// </summary>
@@ -57,10 +63,11 @@ public sealed class LectorCacheBaseDatos(
     }
 
     /// <summary>
-    /// Las APIs publicadas (07 §4). Una API cuyo secreto no se puede descifrar se registra como error y se omite:
-    /// publicarla sin su secreto haría que el origen rechace el tráfico, o que lo acepte sin validarlo.
+    /// Las APIs publicadas (07 §4). Una API cuyo secreto no se puede descifrar (por ejemplo, porque este proceso no
+    /// comparte el anillo de llaves) se registra como error y va en <see cref="ApisPublicadas.SinSecreto"/>: publicarla
+    /// sin su secreto haría que el origen rechace el tráfico, o que lo acepte sin validarlo.
     /// </summary>
-    public async Task<IReadOnlyList<ApiCache>> ApisPublicadasAsync(CancellationToken cancelacion)
+    public async Task<ApisPublicadas> ApisPublicadasAsync(CancellationToken cancelacion)
     {
         var apis = await Sin<Api>().Where(a => a.Estado == EstadoApi.Publicada).ToListAsync(cancelacion);
         var ids = apis.Select(a => a.Id).ToList();
@@ -69,19 +76,24 @@ public sealed class LectorCacheBaseDatos(
             .ToDictionary(d => d.ApiId);
 
         var resultado = new List<ApiCache>();
+        var sinSecreto = new List<(Guid, IReadOnlyList<string>)>();
         foreach (var api in apis)
         {
+            var dominio = dominios.GetValueOrDefault(api.Id);
             try
             {
-                resultado.Add(Armar(api, rutas[api.Id], dominios.GetValueOrDefault(api.Id)));
+                resultado.Add(Armar(api, rutas[api.Id], dominio));
             }
             catch (CryptographicException)
             {
-                registro.LogError("No se pudo descifrar el secreto de origen de la API {ApiId}; no se publica", api.Id);
+                registro.LogError(
+                    "No se pudo descifrar el secreto de origen de la API {ApiId}; se conserva lo que ya está en Redis. "
+                    + "Revise que la API y el trabajador compartan SHAPI_DPKEYS_DIR", api.Id);
+                sinSecreto.Add((api.Id, ArmadoCache.Hosts(api, dominio, _dominioBase)));
             }
         }
 
-        return resultado;
+        return new ApisPublicadas(resultado, sinSecreto);
     }
 
     // ---------- Claves ----------

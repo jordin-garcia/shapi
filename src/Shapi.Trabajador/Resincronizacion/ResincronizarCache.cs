@@ -19,12 +19,13 @@ public sealed class ResincronizarCache(
     public async Task EjecutarAsync(CancellationToken cancelacion)
     {
         // 1. Las llaves de configuración que ya existen, leídas ANTES que PostgreSQL. Así, una llave que otro proceso
-        //    publique durante la resincronización nunca se toma por sobrante: o no se vio aquí, o su commit fue anterior
-        //    a la lectura de PostgreSQL y está entre las que se escriben.
+        //    crea durante la resincronización nunca se toma por sobrante: o no se vio aquí, o su commit fue anterior
+        //    a la lectura de PostgreSQL y está entre las que se escriben. Queda una ventana conocida (07 §4): lo que
+        //    cambia entre la lectura de PostgreSQL y la escritura se corrige en el siguiente ciclo, salvo las claves (paso 4).
         var existentes = await LlavesDeConfiguracionAsync(cancelacion);
 
         // 2. Lo que debe haber, según PostgreSQL.
-        var apis = await lector.ApisPublicadasAsync(cancelacion);
+        var (apis, sinSecreto) = await lector.ApisPublicadasAsync(cancelacion);
         var claves = await lector.ClavesVigentesAsync(cancelacion);
         var suscripciones = await lector.SuscripcionesVigentesAsync(cancelacion);
         var organizaciones = await lector.OrganizacionesAsync(cancelacion);
@@ -37,6 +38,14 @@ public sealed class ResincronizarCache(
             escritas.Add(LlavesRedis.Api(api.Contexto.ApiId));
             escritas.Add(LlavesRedis.RutasApi(api.Contexto.ApiId));
             escritas.UnionWith(api.Hosts.Select(LlavesRedis.ApiPorHost));
+        }
+
+        // Una API publicada cuyo secreto no se pudo descifrar no se reescribe, pero sus llaves tampoco son sobrantes.
+        foreach (var (apiId, hosts) in sinSecreto)
+        {
+            escritas.Add(LlavesRedis.Api(apiId));
+            escritas.Add(LlavesRedis.RutasApi(apiId));
+            escritas.UnionWith(hosts.Select(LlavesRedis.ApiPorHost));
         }
 
         foreach (var clave in claves)

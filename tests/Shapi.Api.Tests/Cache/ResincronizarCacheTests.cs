@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -95,6 +96,29 @@ public sealed class ResincronizarCacheTests(PostgresPersistencia postgres, Redis
         (await Redis.KeyExistsAsync(LlavesRedis.Suscripcion(datos.SuscripcionFinalizada))).Should().BeFalse();
         (await Redis.KeyExistsAsync(LlavesRedis.Api(datos.ApiBorrador))).Should().BeFalse();
         (await Redis.KeyExistsAsync(Llave(ClaveActiva))).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RNF_04_Resincronizar_SecretoQueNoSePuedeDescifrar_ConservaLoQuePublicoLaApi()
+    {
+        // RNF-04: si el trabajador no comparte el anillo de llaves, no debe dejar la API en 404 cada 5 minutos.
+        var datos = await SembrarAsync();
+        using (var alcance = Servicios.CreateScope())
+        {
+            await Publicador(alcance).PublicarApi(datos.Api);
+        }
+
+        var otroAnillo = new EphemeralDataProtectionProvider().CreateProtector("Shapi.SecretoOrigen");
+        await Ejecutar($"UPDATE api SET secreto_origen_cifrado = '{otroAnillo.Protect("shps_otro")}' WHERE id = '{datos.Api}'");
+
+        await ResincronizarAsync();
+
+        (await Redis.HashGetAsync(LlavesRedis.Api(datos.Api), ContextoApi.CampoSecreto)).ToString()
+            .Should().Be("shps_secretoDeOrigenDePrueba0001");
+        (await Redis.KeyExistsAsync(LlavesRedis.RutasApi(datos.Api))).Should().BeTrue();
+        (await Redis.KeyExistsAsync(LlavesRedis.ApiPorHost("envios.api.shapi.localhost"))).Should().BeTrue();
+        (await Redis.KeyExistsAsync(LlavesRedis.ApiPorHost("api.envios-xelaju.localhost"))).Should().BeTrue();
+        Registros.Entradas.Should().Contain(e => e.Nivel == LogLevel.Error && e.Texto.Contains(datos.Api.ToString(), StringComparison.Ordinal));
     }
 
     [Fact]

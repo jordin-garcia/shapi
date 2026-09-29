@@ -30,6 +30,10 @@ public static class ServiciosCache
             opciones.AbortOnConnectFail = false;
             opciones.BacklogPolicy = BacklogPolicy.FailFast;
             opciones.IncludeDetailInExceptions = false;
+
+            // Si Redis se cuelga sin cortar la conexión, cada intento espera a lo más 1 s (y no 5 s).
+            opciones.AsyncTimeout = 1000;
+            opciones.SyncTimeout = 1000;
             return ConnectionMultiplexer.Connect(opciones);
         });
 
