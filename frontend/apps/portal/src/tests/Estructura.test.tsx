@@ -78,7 +78,10 @@ describe('RF-15 · marca dinámica del portal', () => {
   });
 
   it('muestra API no disponible cuando la configuración responde 404', async () => {
-    server.use(http.get('http://localhost/api/portal/configuracion', () => new HttpResponse(null, { status: 404 })));
+    server.use(http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json(
+      { status: 404, title: 'Not Found' },
+      { status: 404, headers: { 'Content-Type': 'application/problem+json' } },
+    )));
 
     montar('/');
 
