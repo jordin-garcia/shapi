@@ -483,3 +483,24 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Todos:** su agente ya sigue el calendario: "¿qué me toca?" empieza por lo de hoy y lo atrasado, y "continúa" toma la tarea de fecha más cercana. Si una tarea ya está disponible, se puede adelantar. Las fechas solo las cambia Jordin; si no van a llegar, avísenle.
   - **Emilio, Dominique y José Pablo:** hoy (lunes 28) les tocan EM-04 y DC-03; José Pablo empieza mañana con JZ-06. Revisen su columna en `docs/plan/calendario.md` §"Calendario por día".
   - **Todos:** si crean una tarea nueva (protocolo §C), pónganle `programada` y ejecuten `node scripts/tareas.mjs --calendario --escribir`, o `--validar` falla en la CI.
+
+## 2026-09-28 · JG-04 · Publicador de configuración en Redis y resincronización
+- Hecho:
+  - `PublicadorCacheRedis` reemplaza al publicador nulo. Lee PostgreSQL y escribe `api:*`, `clave:*`, `susc:*` y `org:*` (07 §4).
+  - Si Redis falla, reintenta 3 veces, registra el error y no lanza.
+  - El trabajador resincroniza Redis al arrancar y cada 5 minutos, borra las llaves de configuración que sobran y no toca los contadores.
+  - `IProtectorSecretoOrigen` usa Data Protection con el propósito `Shapi.SecretoOrigen` y las llaves en `SHAPI_DPKEYS_DIR`.
+  - Se eliminó `sembrar-demo` de la compuerta.
+- Decisiones (del agente, locales y reversibles, protocolo §C; Jordin las revisa en el PR):
+  - El `EXPIREAT` de una clave rotada se traslada a la hora real, para que el reloj del modo demostración no la alargue.
+  - La resincronización borra las llaves sobrantes.
+  - `PublicarSuscripcion` de una suscripción de plataforma publica la organización.
+  - Todo quedó en 07 §4 y en 10 §3.
+- Pendiente o aviso para otros:
+  - **Todos:** `IPublicadorCache` ahora es *scoped* y escribe en Redis de verdad. Llámenlo **después** del `SaveChanges`/*commit*, nunca dentro de la transacción. No lanza si Redis falla, así que no lo envuelvan en `try`. Siempre publica el estado actual de la base de datos: basta con pasarle el ID.
+  - **DC-04:** cifren el secreto de origen con `IProtectorSecretoOrigen.Cifrar` (ya registrado en `AgregarServiciosComunes`). No registren Data Protection de nuevo: el trabajador usa el mismo nombre de aplicación y el mismo directorio para descifrarlo.
+  - **DC-06 y DC-14:** llamen a `PublicarApi(apiId)` al publicar, al despublicar, al cambiar rutas de una API publicada, al regenerar el secreto y al verificar o quitar el dominio propio. Si se quita un dominio, la resincronización borra su host en 5 minutos como máximo.
+  - **EM-07, EM-09 y JZ-08:** llamen a `PublicarSuscripcion(id)` en cada cambio de estado o de plan de una suscripción, y a `PublicarOrganizacion(id)` al suspender o reactivar una organización. Para la de plataforma basta `PublicarSuscripcion`, que publica `org:{id}`.
+  - **JZ-05:** al sembrar APIs, cifren el secreto con `IProtectorSecretoOrigen` y, al terminar, ejecuten `ResincronizarCache.EjecutarAsync` (se registra con `AgregarResincronizacion`). El `sembrar-demo` de la compuerta ya no existe.
+  - **JZ-06:** la API y el trabajador deben montar el mismo volumen `dpkeys` con el mismo `SHAPI_DPKEYS_DIR`. Sin eso, el trabajador no descifra los secretos y la resincronización omite esas APIs (lo registra como error).
+  - **JG-05 y JG-07:** lean `susc:` y `org:` con `ContextoSuscripcion.DesdeCampos` y `ContextoOrganizacion.DesdeCampos`, y las rutas con `RutaCache.Deserializar`. Una `susc:` que no existe equivale a una suscripción inactiva. JG-07 publica con `PublicarClave`, `ExpirarClave` y `EliminarClave`.

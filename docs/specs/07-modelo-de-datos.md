@@ -703,11 +703,11 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 | Llave | Tipo | Contenido | Escribe | Lee |
 |---|---|---|---|---|
 | `api:host:{host}` | string | `api_id`. Es el host de la API (`envios.api.shapi.localhost`) o el dominio propio verificado | API de control | Compuerta |
-| `api:{api_id}` | hash | `organizacion_id`, `estado`, `url_origen`, `secreto` (en claro, porque Redis solo es accesible desde la red interna), `portal_host`, `version` | API de control | Compuerta |
-| `api:{api_id}:rutas` | string (JSON) | Arreglo de `{ruta_id, metodo, patron, expuesta, limite_minuto, cache_segundos, peso}` | API de control | Compuerta |
-| `clave:{sha256}` | hash | `clave_id`, `suscripcion_id`, `api_id`, `organizacion_id`, `consumidor_id`, `tipo`. Cuando la clave está rotada, la llave tiene `EXPIREAT` | API de control | Compuerta |
-| `susc:{suscripcion_id}` | hash | `plan_id`, `plan_nombre`, `estado`, `inicio` (epoch), `fin` (epoch), `cuota_llamadas`, `limite_minuto` | API de control y trabajador | Compuerta |
-| `org:{organizacion_id}` | hash | `estado_efectivo`, `cuota_peticiones`, `ciclo_inicio` (epoch), `ciclo_fin` | API de control y trabajador | Compuerta |
+| `api:{api_id}` | hash | `organizacion_id`, `estado`, `url_origen`, `secreto` (en claro, porque Redis solo es accesible desde la red interna), `portal_host` (`{sub}.{dominio_base}`), `version` (sube en 1 con cada publicación, también en la resincronización) | API de control | Compuerta |
+| `api:{api_id}:rutas` | string (JSON) | Arreglo de `{ruta_id, metodo, patron, expuesta, limite_minuto, cache_segundos, peso}` con todas las rutas, también las ocultas. Se escribe en la misma transacción que `api:{api_id}` | API de control | Compuerta |
+| `clave:{sha256}` | hash | `clave_id`, `suscripcion_id`, `api_id`, `organizacion_id`, `consumidor_id`, `tipo`. Cuando la clave está rotada, la llave tiene `EXPIREAT`. Como `expira_en` está en la hora de `IReloj`, que el modo demostración adelanta, y Redis usa la hora real, el instante se traslada: hora real + (`expira_en` − `IReloj.Ahora`). Una clave revocada no tiene llave | API de control | Compuerta |
+| `susc:{suscripcion_id}` | hash | `plan_id`, `plan_nombre`, `estado`, `inicio` (epoch), `fin` (epoch), `cuota_llamadas`, `limite_minuto`. Solo las suscripciones de API sin finalizar: al finalizar, la llave se borra. La suscripción de plataforma no tiene llave propia: su estado va en `org:{id}` | API de control y trabajador | Compuerta |
+| `org:{organizacion_id}` | hash | `estado_efectivo`, `cuota_peticiones`, `ciclo_inicio` (epoch), `ciclo_fin`. Los tres últimos salen de la suscripción de plataforma sin finalizar; si no hay ninguna (la organización de la plataforma), no se escriben | API de control y trabajador | Compuerta |
 | `cuota:susc:{suscripcion_id}:{inicio}` | string (int) | Llamadas consumidas en el ciclo. TTL = `fin + 8 días` | Compuerta | Compuerta y API (B2.1) |
 | `cuota:org:{organizacion_id}:{inicio}` | string (int) | Peticiones del ciclo de plataforma. TTL = `fin + 8 días` | Compuerta | Compuerta y API (avisos de RF-43) |
 | `rl:s:{suscripcion_id}:{minuto_epoch}` | string (int) | Peticiones en ese minuto. TTL 120 s | Compuerta | Compuerta |
@@ -722,7 +722,9 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 
 **Normalización de las llaves:** los UUID van en minúsculas con guiones, el `{host}` en minúsculas y el `{sha256}` de la clave en hex minúsculas. En `cache:`, el hash se calcula sobre el método en mayúsculas seguido del camino y de la query tal como llega (con su `?` inicial), en UTF-8. Las fechas `{aaaammdd}` son el día en la zona America/Guatemala, el mismo que se guarda en `consumo_diario.fecha`.
 
-**Resincronización:** cada 5 minutos, y al arrancar, el trabajador recalcula desde PostgreSQL todas las llaves de configuración (`api:*`, `clave:*`, `susc:*` y `org:*`) de las APIs publicadas y las reescribe. Los contadores no se tocan. Si Redis se vació, la compuerta vuelve a funcionar en cuanto termina la resincronización.
+**Escritura:** cada hash se reemplaza completo, con `DEL` y luego `HSET` en una misma transacción, para que no quede un campo viejo (por ejemplo, un secreto borrado). Si Redis falla después del *commit* en PostgreSQL, el publicador reintenta 3 veces con espera (200 ms, 500 ms y 1 s), registra el error y no revierte ni hace fallar la operación de negocio: la resincronización la corrige ([06 §5.2](06-arquitectura.md#52-contratacion-de-un-plan-de-api)).
+
+**Resincronización:** cada 5 minutos, y al arrancar, el trabajador recalcula desde PostgreSQL todas las llaves de configuración (`api:*`, `clave:*`, `susc:*` y `org:*`) y las reescribe: las APIs publicadas, las claves activas y las rotadas vigentes, las suscripciones de API sin finalizar y todas las organizaciones. Los contadores no se tocan. Si Redis se vació, la compuerta vuelve a funcionar en cuanto termina la resincronización. También borra las llaves de configuración que ya no corresponden (una clave revocada o un dominio propio quitado mientras Redis fallaba, una API despublicada, una suscripción finalizada). Para no borrar una llave que otro proceso publique durante la resincronización, las llaves existentes se leen con `SCAN` **antes** de leer PostgreSQL. Al final vuelve a leer las claves que escribió, y corrige las que se revocaron o rotaron mientras tanto.
 
 ## 5. Máquinas de estado de las entidades
 
