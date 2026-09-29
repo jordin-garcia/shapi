@@ -27,7 +27,12 @@ const rutas = [...catalogo.matchAll(/^\| (A[0-468][\w.]*|A7[\w.]*|B[13][\w.]*) \
   })));
 rutas.push({ ruta: '/', id: 'A0-1' });
 // Las pantallas ya implementadas se reconocen por su título, en lugar del texto de relleno "<ID> ·".
-const implementadas: Record<string, string> = { 'A1-1': 'Crear una cuenta', 'A1-2': 'Revise su correo', 'A1-3': 'Entrar a Shapi' };
+const implementadas: Record<string, string> = {
+  'A1-1': 'Crear una cuenta',
+  'A1-2': 'Revise su correo',
+  'A1-3': 'Entrar a Shapi',
+  'B3-2': 'Bitácora de acciones sensibles',
+};
 async function esperarPantalla(id: string) {
   if (implementadas[id]) expect(await screen.findByRole('heading', { name: implementadas[id] })).toBeDefined();
   else expect(await screen.findByText(new RegExp(`^${id} ·`))).toBeDefined();
@@ -44,6 +49,7 @@ beforeEach(() => {
   server.use(
     http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())),
     http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'Envíos Xelajú' }, { id: 'api-2', nombre: 'Agro Precios' }], total: 2 })),
+    http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
   );
 });
 afterEach(() => { cleanup(); cliente.clear(); });
