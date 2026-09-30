@@ -26,7 +26,6 @@
 
 https://shapi.localhost {
 	import cabeceras_seguras
-	import cabeceras_frontend
 	import ocultar_interno
 
 	handle /api/* {
@@ -34,6 +33,7 @@ https://shapi.localhost {
 	}
 
 	handle {
+		import cabeceras_frontend
 		root * /srv/panel
 		try_files {path} /index.html
 		file_server
@@ -42,7 +42,6 @@ https://shapi.localhost {
 
 https://*.shapi.localhost {
 	import cabeceras_seguras
-	import cabeceras_frontend
 	import ocultar_interno
 
 	handle /api/portal/* {
@@ -52,6 +51,7 @@ https://*.shapi.localhost {
 	}
 
 	handle {
+		import cabeceras_frontend
 		root * /srv/portal
 		try_files {path} /index.html
 		file_server

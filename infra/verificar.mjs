@@ -534,11 +534,16 @@ if (produccionActiva) {
 
   const portal = await solicitar("https://envios.shapi.localhost/");
   assert.equal(portal.statusCode, 200, `El portal respondió ${portal.statusCode}`);
+  assert.match(portal.headers["content-security-policy"] ?? "", /default-src 'self'/);
 
   const apiPorBorde = await solicitar("https://shapi.localhost/api/auth/sesion");
   assert.ok(
     [200, 401].includes(apiPorBorde.statusCode),
     `La API por el borde respondió ${apiPorBorde.statusCode}`,
+  );
+  assert.ok(
+    !(apiPorBorde.headers["content-security-policy"] ?? "").includes("default-src 'self'"),
+    "Caddy no debe reemplazar la CSP propia de las respuestas de la API",
   );
 
   const apiSinSiembra = await solicitar("https://envios.api.shapi.localhost/");
@@ -578,7 +583,23 @@ if (produccionActiva) {
         destino,
         `${url} no llegó a ${destino}`,
       );
+      if (url === "https://envios.shapi.localhost/api/portal/prueba") {
+        assert.equal(
+          respuesta.headers["x-shapi-prueba-host"],
+          "envios.shapi.localhost",
+          "La API del portal debe recibir el Host original",
+        );
+      }
     }
+
+    const internoDominioPropio = await solicitar(
+      "https://api.enviosxelaju.localhost/interno/tls/autorizar?domain=x.localhost",
+    );
+    assert.equal(
+      internoDominioPropio.statusCode,
+      404,
+      "/interno/* debe permanecer privado en dominios propios",
+    );
 
     const websocket = await solicitarUpgrade("https://shapi.localhost/@vite/client");
     assert.equal(websocket.statusCode, 101);
