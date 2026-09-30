@@ -36,7 +36,11 @@ public static class IdentidadModulo
         services.AddScoped<IValidator<RegistroProveedor>, ValidadorRegistroProveedor>();
         services.AgregarPoliticasShapi();
 
-        services.AddAuthentication(PersonalAutenticacionOpciones.Esquema)
+        services.AddAuthentication(EsquemaAutenticacionPortal.Esquema)
+            .AddPolicyScheme(EsquemaAutenticacionPortal.Esquema, null, opciones => opciones.ForwardDefaultSelector = contexto =>
+                contexto.Request.Cookies.ContainsKey(ConsumidorAutenticacionOpciones.Cookie)
+                    ? ConsumidorAutenticacionOpciones.Esquema
+                    : PersonalAutenticacionOpciones.Esquema)
             .AddScheme<PersonalAutenticacionOpciones, PersonalAutenticacionHandler>(PersonalAutenticacionOpciones.Esquema, null)
             .AddScheme<ConsumidorAutenticacionOpciones, ConsumidorAutenticacionHandler>(ConsumidorAutenticacionOpciones.Esquema, null);
 

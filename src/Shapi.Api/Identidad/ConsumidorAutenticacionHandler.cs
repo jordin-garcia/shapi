@@ -17,6 +17,12 @@ public sealed class ConsumidorAutenticacionOpciones : AuthenticationSchemeOption
     public const string Cookie = "portal_sesion";
 }
 
+/// <summary>Elige el ámbito de sesión según la cookie que presenta el navegador.</summary>
+public static class EsquemaAutenticacionPortal
+{
+    public const string Esquema = "SesionShapi";
+}
+
 /// <summary>Autentica sesiones de consumidor y las vincula al host y organización actuales.</summary>
 public sealed class ConsumidorAutenticacionHandler(
     IOptionsMonitor<ConsumidorAutenticacionOpciones> options,

@@ -82,6 +82,24 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     }
 
     [Fact]
+    public async Task RF_05_SesionDePortal_AutorizaClavesEnSuHostYSeRechazaEnOtro()
+    {
+        await InsertarApi("claves-portal");
+        await InsertarApi("claves-otro");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "claves-portal.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@claves.test", contrasena = "ContrasenaValida123" });
+        var token = await TokenCorreo("ana@claves.test", "claves-portal.shapi.localhost");
+        var verificar = await Enviar(HttpMethod.Post, "/api/portal/auth/verificar-correo", "claves-portal.shapi.localhost", new { token });
+        var cookie = Cookie(verificar, "portal_sesion");
+
+        var clavesPropias = await Enviar(HttpMethod.Get, "/api/portal/claves", "claves-portal.shapi.localhost", cookie: cookie);
+        var clavesOtroPortal = await Enviar(HttpMethod.Get, "/api/portal/claves", "claves-otro.shapi.localhost", cookie: cookie);
+
+        Assert.Equal(HttpStatusCode.OK, clavesPropias.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, clavesOtroPortal.StatusCode);
+    }
+
+    [Fact]
     public async Task RF_05_InvitacionValida_CreaConsumidorVerificadoYAbreSesion()
     {
         var organizacionId = await InsertarApi("invitado");
