@@ -134,8 +134,11 @@ public static class EndpointsPortal
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM consumidor WHERE id = {consumidor.Id} FOR UPDATE", ct);
         var ahora = reloj.Ahora;
-        var recientes = await db.Set<Token>().IgnoreQueryFilters().CountAsync(t => t.ConsumidorId == consumidor.Id && t.Tipo == TipoToken.VerificacionCorreo && t.CreadoEn > ahora.AddHours(-1), ct);
-        if (recientes >= 3)
+        var haceUnaHora = ahora.AddHours(-1);
+        var enlacesRecientes = await db.Set<Token>().IgnoreQueryFilters()
+            .CountAsync(t => t.ConsumidorId == consumidor.Id && t.Tipo == TipoToken.VerificacionCorreo && t.CreadoEn > haceUnaHora, ct);
+        var reenviosRecientes = enlacesRecientes - (consumidor.CreadoEn > haceUnaHora ? 1 : 0);
+        if (reenviosRecientes >= 3)
         {
             return TypedResults.Ok();
         }
@@ -166,6 +169,7 @@ public static class EndpointsPortal
         if (consumidor is null)
         {
             hasher.VerifyHashedPassword(ConsumidorFicticio, HashFicticio, p.Contrasena);
+            await RegistrarIntentoFallido(db, Guid.Empty, reloj.Ahora, ct);
             return CredencialesInvalidas();
         }
         var ahora = reloj.Ahora;
@@ -174,7 +178,8 @@ public static class EndpointsPortal
             return Problemas.Crear(423, CodigosError.CuentaBloqueada, "La cuenta está bloqueada por intentos fallidos. Intente de nuevo en 15 minutos.");
         }
 
-        if (hasher.VerifyHashedPassword(consumidor, consumidor.HashContrasena, p.Contrasena) == PasswordVerificationResult.Failed)
+        var verificacion = hasher.VerifyHashedPassword(consumidor, consumidor.HashContrasena, p.Contrasena);
+        if (verificacion == PasswordVerificationResult.Failed)
         {
             await db.Set<Consumidor>().IgnoreQueryFilters().Where(c => c.Id == consumidor.Id).ExecuteUpdateAsync(s => s
                 .SetProperty(c => c.BloqueadoHasta, c => c.IntentosFallidos + 1 >= Consumidor.IntentosAntesDeBloquear ? ahora.Add(Consumidor.DuracionBloqueo) : c.BloqueadoHasta)
@@ -185,6 +190,11 @@ public static class EndpointsPortal
         if (consumidor.Estado != EstadoCuenta.Activo)
         {
             return Problemas.Crear(403, CodigosError.CuentaDesactivada, "Cuenta desactivada.");
+        }
+
+        if (verificacion == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            consumidor.DefinirHashContrasena(hasher.HashPassword(consumidor, p.Contrasena));
         }
 
         consumidor.RegistrarInicioExitoso();
@@ -330,7 +340,9 @@ public static class EndpointsPortal
     }
 
     private static Task<Token?> BuscarInvitacion(ShapiDbContext db, string valor, Guid organizacionId, DateTimeOffset ahora, CancellationToken ct) =>
-        db.Set<Token>().IgnoreQueryFilters().FirstOrDefaultAsync(t => t.HashToken == SeguridadTokens.HashearToken(valor) && t.Tipo == TipoToken.InvitacionConsumidor && t.OrganizacionId == organizacionId && t.ConsumidorId == null && t.EsValido(ahora), ct);
+        db.Set<Token>().IgnoreQueryFilters().FirstOrDefaultAsync(t => t.HashToken == SeguridadTokens.HashearToken(valor)
+            && t.Tipo == TipoToken.InvitacionConsumidor && t.OrganizacionId == organizacionId && t.ConsumidorId == null
+            && t.UsadoEn == null && t.ExpiraEn > ahora, ct);
 
     private static async Task<PortalResuelto?> Resolver(IResolutorPortal resolver, HttpContext http, CancellationToken ct) => await resolver.Resolver(http.Request.Host.Host, ct);
 
@@ -343,6 +355,15 @@ public static class EndpointsPortal
         await db.SaveChangesAsync(ct);
         var opciones = OpcionesCookie(); opciones.Expires = sesion.ExpiraEn;
         http.Response.Cookies.Append(ConsumidorAutenticacionOpciones.Cookie, valor, opciones);
+    }
+
+    private static Task<int> RegistrarIntentoFallido(ShapiDbContext db, Guid consumidorId, DateTimeOffset ahora, CancellationToken ct)
+    {
+        var bloqueo = ahora + Consumidor.DuracionBloqueo;
+        return db.Set<Consumidor>().IgnoreQueryFilters().Where(c => c.Id == consumidorId).ExecuteUpdateAsync(s => s
+            .SetProperty(c => c.BloqueadoHasta, c => c.IntentosFallidos + 1 >= Consumidor.IntentosAntesDeBloquear ? bloqueo : c.BloqueadoHasta)
+            .SetProperty(c => c.IntentosFallidos, c => c.IntentosFallidos + 1 >= Consumidor.IntentosAntesDeBloquear ? 0 : c.IntentosFallidos + 1)
+            .SetProperty(c => c.ActualizadoEn, ahora), ct);
     }
 
     private static CookieOptions OpcionesCookie() => new() { HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/" };

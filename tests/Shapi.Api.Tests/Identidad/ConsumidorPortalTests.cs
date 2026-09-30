@@ -182,6 +182,83 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.Equal("demasiadas_peticiones", (await limitada.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
     }
 
+    [Fact]
+    public async Task RF_04_SesionPersonal_NoAutenticaUnaSesionDelPortal()
+    {
+        await InsertarApi("sesion-personal");
+        var valorCookie = SeguridadTokens.GenerarToken();
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            var usuario = new Usuario("Persona del panel", "persona@shapi.test");
+            db.Add(usuario);
+            db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valorCookie), usuario.Id, "shapi.localhost", null, null, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-personal.shapi.localhost", cookie: $"portal_sesion={valorCookie}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_03_RestablecerEnElPortal_CambiaContrasenaRevocaSesionesYRechazaTokenDeOtraOrganizacion()
+    {
+        var organizacionUno = await InsertarApi("recuperacion-uno");
+        await InsertarApi("recuperacion-dos");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "recuperacion-uno.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda Uno", correo = "ana@recuperacion.test", contrasena = "ContrasenaOriginal123" });
+        Guid consumidorId;
+        Guid sesionId;
+        var tokenValor = SeguridadTokens.GenerarToken();
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            var consumidor = await db.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.Correo == "ana@recuperacion.test");
+            consumidorId = consumidor.Id;
+            db.Add(Token.Recuperacion(SeguridadTokens.HashearToken(tokenValor), null, consumidor.Id, organizacionUno, consumidor.Correo, DateTimeOffset.UtcNow));
+            var sesion = Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(SeguridadTokens.GenerarToken()), consumidor.Id,
+                "recuperacion-uno.shapi.localhost", null, null, DateTimeOffset.UtcNow);
+            sesionId = sesion.Id;
+            db.Add(sesion);
+            await db.SaveChangesAsync();
+        }
+
+        var otraOrganizacion = await Enviar(HttpMethod.Post, "/api/portal/auth/restablecer", "recuperacion-dos.shapi.localhost",
+            new { token = tokenValor, contrasena = "NuevaContrasena456" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, otraOrganizacion.StatusCode);
+        var restablecer = await Enviar(HttpMethod.Post, "/api/portal/auth/restablecer", "recuperacion-uno.shapi.localhost",
+            new { token = tokenValor, contrasena = "NuevaContrasena456" });
+        Assert.Equal(HttpStatusCode.OK, restablecer.StatusCode);
+        Assert.Contains(restablecer.Headers.GetValues("Set-Cookie"), c => c.StartsWith("portal_sesion=", StringComparison.Ordinal));
+
+        await using var lectura = _fabrica.Services.CreateAsyncScope();
+        var contexto = lectura.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var consumidorActual = await contexto.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.Id == consumidorId);
+        Assert.Equal(Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success,
+            new Microsoft.AspNetCore.Identity.PasswordHasher<Consumidor>().VerifyHashedPassword(consumidorActual, consumidorActual.HashContrasena, "NuevaContrasena456"));
+        Assert.NotNull((await contexto.Set<Sesion>().IgnoreQueryFilters().SingleAsync(s => s.Id == sesionId)).RevocadaEn);
+        Assert.NotNull(await contexto.Set<Token>().IgnoreQueryFilters().Where(t => t.Tipo == TipoToken.Recuperacion && t.HashToken == SeguridadTokens.HashearToken(tokenValor))
+            .Select(t => t.UsadoEn).SingleAsync());
+    }
+
+    [Fact]
+    public async Task RF_02_ReenviarVerificacion_TresReenviosNoCuentanElCorreoInicial()
+    {
+        await InsertarApi("reenvio");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "reenvio.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@reenvio.test", contrasena = "ContrasenaValida123" });
+        for (var i = 0; i < 3; i++)
+        {
+            var respuesta = await Enviar(HttpMethod.Post, "/api/portal/auth/reenviar-verificacion", "reenvio.shapi.localhost", new { correo = "ana@reenvio.test" });
+            Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        }
+        await Enviar(HttpMethod.Post, "/api/portal/auth/reenviar-verificacion", "reenvio.shapi.localhost", new { correo = "ana@reenvio.test" });
+        await using var alcance = _fabrica.Services.CreateAsyncScope();
+        var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        Assert.Equal(4, await db.Set<CorreoSaliente>().IgnoreQueryFilters().CountAsync(c => c.Destinatario == "ana@reenvio.test" && c.Plantilla == "verificacion_correo"));
+    }
+
     private async Task<Guid> InsertarApi(string subdominio)
     {
         await using var conexion = new NpgsqlConnection(_cadena);
@@ -205,11 +282,21 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     {
         await using var alcance = _fabrica.Services.CreateAsyncScope();
         var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
-        var correoSalida = await db.Set<CorreoSaliente>().IgnoreQueryFilters().OrderByDescending(c => c.CreadoEn).FirstAsync(c => c.Destinatario == correo);
-        using var json = JsonDocument.Parse(correoSalida.Datos);
-        Assert.Equal(host, json.RootElement.GetProperty("hostPortal").GetString());
-        Assert.Equal("API de prueba", json.RootElement.GetProperty("nombrePortal").GetString());
-        return json.RootElement.GetProperty("token").GetString()!;
+        var mensajes = await db.Set<CorreoSaliente>().IgnoreQueryFilters().Where(c => c.Destinatario == correo && c.Plantilla == "verificacion_correo")
+            .Select(c => c.Datos).ToListAsync();
+        foreach (var datos in mensajes)
+        {
+            using var json = JsonDocument.Parse(datos);
+            if (json.RootElement.GetProperty("hostPortal").GetString() != host)
+            {
+                continue;
+            }
+
+            Assert.Equal("API de prueba", json.RootElement.GetProperty("nombrePortal").GetString());
+            return json.RootElement.GetProperty("token").GetString()!;
+        }
+
+        throw new Xunit.Sdk.XunitException($"No se encontró correo para {host}.");
     }
 
     private Task<HttpResponseMessage> Enviar(HttpMethod metodo, string ruta, string host, object? cuerpo = null, string? cookie = null)
