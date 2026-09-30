@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-29
 depende_de: [DC-02, EM-02]
 requisitos: [RF-08, RF-14, RF-47, RNF-10]
@@ -61,3 +61,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - Especificación y rutas (DC-05)
 - Publicar (DC-06)
 - Límite de APIs del plan (EM-13)
+
+## Resultado
+- Se implementaron `POST /api/apis` y `GET /api/apis` con autorización por rol, aislamiento por organización, contrato OpenAPI completo y bitácora transaccional `api.registrada`.
+- El registro valida el subdominio y la URL de origen, bloquea SSRF después de resolver DNS, evita reenlaces durante la prueba HTTP y cifra el secreto `shps_` con Data Protection antes de persistirlo.
+- A3.1 y A3.2 reproducen los estados de lista, lista vacía, formulario, conexión y entrega única del secreto; al confirmar, A3.2 dirige a la especificación de la API creada.
+- Se agregaron pruebas unitarias, de integración y de interfaz. Pasaron compilación y formato .NET, 711 pruebas .NET, lint, tipos, 236 pruebas frontend y las compilaciones del panel y portal.

@@ -33,6 +33,8 @@ const implementadas: Record<string, string> = {
   'A1-3': 'Entrar a Shapi',
   'A1-4a': 'Recuperar la contraseña',
   'A1-4b': 'Definir la contraseña',
+  'A3-1': 'APIs de la organización',
+  'A3-2': 'Registrar una API',
   'A8-1': 'Mi perfil',
   'B3-2': 'Bitácora de acciones sensibles',
 };
@@ -51,7 +53,15 @@ beforeEach(() => {
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   server.use(
     http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())),
-    http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'Envíos Xelajú' }, { id: 'api-2', nombre: 'Agro Precios' }], total: 2 })),
+    http.get('http://localhost/api/apis', () => HttpResponse.json({
+      elementos: [
+        { id: 'api-1', nombre: 'Envíos Xelajú', subdominio: 'envios', estado: 'publicada' },
+        { id: 'api-2', nombre: 'Agro Precios', subdominio: 'agro', estado: 'borrador' },
+      ],
+      total: 2,
+      planNombre: 'Producto',
+      maxApis: 10,
+    })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
   );
 });
@@ -95,7 +105,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     expect(router.state.location.pathname).toBe('/panel/apis');
     server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())));
     await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
-    expect(await screen.findByText(/^A3-1 ·/)).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'APIs de la organización' })).toBeDefined();
   });
   it('selecciona desde la lista y conserva el ID en los enlaces', async () => {
     await abrir('/panel/apis');
@@ -140,7 +150,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
     }));
     await abrir('/panel/apis');
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeDefined();
-    expect(await screen.findByText(/^A3-1 ·/)).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'APIs de la organización' })).toBeDefined();
   });
   it('RNF-12 · /_ui muestra la lámina de estilo sin consultar la sesión (DC-01)', async () => {
     let solicitudes = 0;
@@ -158,7 +168,7 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
   it.each<Sesion['rol']>(['editor', 'lector'])('oculta opciones no permitidas al %s', async perfil => {
     rol = perfil;
     await abrir('/panel/apis');
-    await screen.findByText(/^A3-1 ·/);
+    await screen.findByRole('heading', { name: 'APIs de la organización' });
     expect(screen.queryByRole('link', { name: 'Miembros y roles' })).toBeNull();
     if (perfil === 'editor') {
       expect(screen.queryByRole('link', { name: 'Historial de pagos' })).toBeNull();

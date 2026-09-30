@@ -2,27 +2,233 @@ openapi: 3.1.0
 info:
   title: API de Control - APIs
   version: 1.0.0
+  description: |
+    Registro y consulta de las APIs de una organización (DC-04).
+    La sesión viaja en la cookie `shapi_sesion` y los métodos no seguros exigen
+    `X-Requested-With: shapi`.
+servers:
+  - url: https://shapi.localhost
+
 paths:
   /api/apis:
     get:
       summary: Lista las APIs de la organización
+      operationId: listarApis
+      security:
+        - cookieSesion: []
       responses:
-        "200":
-          description: OK
+        '200':
+          description: APIs visibles para la organización de la sesión y límites de su plan.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  elementos:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          format: uuid
-                        nombre:
-                          type: string
-                  total:
-                    type: integer
+                $ref: '#/components/schemas/ListaApis'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+    post:
+      summary: Registra una API
+      description: |
+        Valida el subdominio y la URL contra SSRF, prueba el origen con un GET de hasta
+        cinco segundos y, si responde con cualquier código HTTP, guarda la API en borrador.
+        El secreto de origen se devuelve en claro solo en esta respuesta.
+      operationId: registrarApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionRegistroApi'
+      responses:
+        '201':
+          description: API registrada; el secreto no se vuelve a mostrar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiRegistrada'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermisoOCsrf'
+        '409':
+          description: El subdominio ya pertenece a otra API (`subdominio_ocupado`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+        '422':
+          description: El origen está prohibido (`origen_no_permitido`) o no respondió (`origen_inaccesible`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+
+components:
+  securitySchemes:
+    cookieSesion:
+      type: apiKey
+      in: cookie
+      name: shapi_sesion
+
+  parameters:
+    XRequestedWith:
+      name: X-Requested-With
+      in: header
+      required: true
+      description: Protección CSRF; el cliente del frontend la agrega siempre.
+      schema:
+        type: string
+        const: shapi
+
+  responses:
+    DatosInvalidos:
+      description: Datos inválidos (`datos_invalidos`), con errores por campo.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+    SinSesion:
+      description: No hay una sesión vigente.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              status:
+                type: integer
+    SinPermiso:
+      description: La sesión no tiene permiso para consultar APIs.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              status:
+                type: integer
+    SinPermisoOCsrf:
+      description: La sesión no puede configurar APIs o falló la protección CSRF (`csrf`).
+      content:
+        application/problem+json:
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/ProblemaEstandar'
+              - $ref: '#/components/schemas/Problema'
+
+  schemas:
+    ProblemaEstandar:
+      type: object
+      description: ProblemDetails estándar, sin código de negocio.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+
+    PeticionRegistroApi:
+      type: object
+      required: [nombre, urlOrigen, subdominio]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+        urlOrigen:
+          type: string
+          format: uri
+        subdominio:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$'
+
+    ApiResumen:
+      type: object
+      required: [id, nombre, subdominio, estado]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        subdominio:
+          type: string
+        estado:
+          type: string
+          enum: [borrador, publicada, despublicada]
+
+    ListaApis:
+      type: object
+      required: [elementos, total, planNombre, maxApis]
+      properties:
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiResumen'
+        total:
+          type: integer
+          minimum: 0
+        planNombre:
+          type: string
+        maxApis:
+          description: Nulo para los planes sin límite de APIs.
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+
+    ApiRegistrada:
+      type: object
+      required: [id, nombre, subdominio, estado, secretoOrigen, conexionMilisegundos]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        subdominio:
+          type: string
+        estado:
+          type: string
+          const: borrador
+        secretoOrigen:
+          type: string
+          pattern: '^shps_[A-Za-z0-9]{32}$'
+          description: Se muestra una sola vez.
+        conexionMilisegundos:
+          type: integer
+          minimum: 0
+
+    Problema:
+      type: object
+      description: ProblemDetails de la API de control.
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+          enum: [datos_invalidos, csrf, subdominio_ocupado, origen_no_permitido, origen_inaccesible]
+        detalle:
+          type: object
+          additionalProperties: true
+        errores:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
