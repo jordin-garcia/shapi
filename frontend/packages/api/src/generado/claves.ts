@@ -96,7 +96,8 @@ export interface paths {
          * Rota una clave propia (B2.4 y B2.5)
          * @description Emite una clave nueva activa del mismo tipo y deja la anterior `rotada`, funcionando 24 horas más (`EXPIREAT`
          *     en Redis). Devuelve la clave nueva completa (única vez) y la anterior enmascarada, con la hora a la que deja de
-         *     funcionar. Queda en la bitácora (`clave.rotada`).
+         *     funcionar. Queda en la bitácora (`clave.rotada`). Si otra clave rotada del mismo tipo sigue dentro de sus 24
+         *     horas, deja de funcionar en ese momento: nunca coexisten más de dos claves del mismo tipo (RF-27).
          */
         post: operations["rotarClave"];
         delete?: never;

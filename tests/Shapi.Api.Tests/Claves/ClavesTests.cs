@@ -194,6 +194,31 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
     }
 
     [Fact]
+    public async Task RF_27_RotarOtraVezAntesDe24Horas_LaPrimeraRotadaDejaDeFuncionar()
+    {
+        // RF-27: durante las 24 horas coexisten como máximo dos claves del mismo tipo (y B2.5: "puede rotarla otra vez").
+        var e = await CrearEscenario();
+        var primera = (await EmitirClavesParaSuscripcion(e))[0];
+        using var rotar1 = await Portal(HttpMethod.Post, $"/api/portal/claves/{primera.Id}/rotar", e);
+        var segunda = (await rotar1.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Reloj.Ahora = Reloj.Ahora.AddHours(2);
+
+        using var rotar2 = await Portal(HttpMethod.Post, $"/api/portal/claves/{segunda}/rotar", e);
+
+        rotar2.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Fila($"SELECT estado, expira_en FROM clave WHERE id = '{primera.Id}'"))
+            .Should().Equal("rotada", Reloj.Ahora.UtcDateTime);
+        (await Redis.KeyExistsAsync(LlavesRedis.Clave(ContextoClave.CalcularHash(primera.Clave)))).Should().BeFalse();
+        (await Escalar<long>($"""
+            SELECT count(*) FROM clave
+            WHERE tipo = 'produccion' AND (estado = 'activa' OR estado = 'rotada' AND expira_en > '{Reloj.Ahora:O}')
+            """)).Should().Be(2);
+        using var listar = await Portal(HttpMethod.Get, "/api/portal/claves", e);
+        Resumen(await listar.Content.ReadFromJsonAsync<JsonElement>()).Select(c => (c.Tipo, c.Estado))
+            .Should().Equal(("produccion", "activa"), ("produccion", "rotada"), ("pruebas", "activa"));
+    }
+
+    [Fact]
     public async Task RF_27_Rotar_DosALaVez_SoloUnaRota()
     {
         // RF-27: durante las 24 horas coexisten como máximo dos claves del mismo tipo.

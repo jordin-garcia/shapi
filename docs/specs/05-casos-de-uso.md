@@ -226,9 +226,9 @@ Formato: **Actor**, **Precondiciones**, **Flujo principal**, **Flujos alternos**
   3. La clave nueva se muestra una sola vez (B2.5).
 - **Flujo principal (revocar):**
   1. El actor pulsa "Revocar" y confirma (A4.3b o B2.6).
-  2. El sistema marca la clave como `revocada`, la elimina de Redis y, si la revocó el proveedor, lo registra en la bitácora.
+  2. El sistema marca la clave como `revocada`, la elimina de Redis y lo registra en la bitácora (`clave.revocada_por_consumidor` o `clave.revocada_por_proveedor`).
   3. A partir de ese momento, la compuerta responde 401.
-- **Flujos alternos:** si la clave está revocada, el consumidor puede pulsar "Emitir una clave nueva", que se muestra una sola vez. Solo se emite si la suscripción no tiene otra clave activa de ese tipo; si la tiene, responde 409 `clave_activa_existente`. Rotar una clave que no está activa (ya rotada o revocada) responde 422 `clave_no_rotable`. Revocar una clave ya revocada no cambia nada.
+- **Flujos alternos:** si la clave está revocada, el consumidor puede pulsar "Emitir una clave nueva", que se muestra una sola vez. Solo se emite si la suscripción no tiene otra clave activa de ese tipo; si la tiene, responde 409 `clave_activa_existente`. Rotar una clave que no está activa (ya rotada o revocada) responde 422 `clave_no_rotable`. Si al rotar hay otra clave rotada del mismo tipo que sigue dentro de sus 24 horas, esa deja de funcionar en ese momento, para que no coexistan más de dos claves del mismo tipo (RF-27). Revocar una clave ya revocada no cambia nada.
 - **Qué claves se muestran** (A4.3 y B2.3): las activas, las rotadas mientras duran sus 24 horas y, por cada tipo sin clave activa, la última revocada, para que se vea que se puede emitir otra. No se muestran las de suscripciones finalizadas. Van primero las de producción y luego las de pruebas; dentro de cada tipo, activa, rotada y revocada. A4.3 agrupa por consumidor, en el orden en que contrataron.
 - **Bitácora** (10 §7): la rotación y las dos revocaciones quedan registradas, con los textos "Boutique Cayalá rotó su clave de producción en la API de Cotización de Envíos", "Boutique Cayalá revocó su clave de producción en la API de Cotización de Envíos" y "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos".
 - **Requisitos:** RF-26, RF-27, RF-28 · **Pantallas:** A4.3, A4.3b, B2.3 a B2.6.

@@ -110,10 +110,27 @@ public sealed class ServicioClaves(
             return ErroresClaves.NoRotable;
         }
 
-        var (nueva, enClaro) = clave.Rotar(reloj.Ahora);
+        // RF-27: como máximo dos claves vigentes del mismo tipo. Si la anterior rotada sigue dentro de sus 24 horas, deja
+        // de funcionar ahora; solo se cambia su expira_en, así que una revocación simultánea de esa clave no se pierde.
+        var ahora = reloj.Ahora;
+        var rotadasVigentes = await db.Set<Clave>()
+            .Where(c => c.SuscripcionId == clave.SuscripcionId && c.Tipo == clave.Tipo && c.Id != clave.Id
+                && c.Estado == EstadoClave.Rotada && c.ExpiraEn > ahora)
+            .ToListAsync(cancelacion);
+        foreach (var rotada in rotadasVigentes)
+        {
+            rotada.TerminarRotacion(ahora);
+        }
+
+        var (nueva, enClaro) = clave.Rotar(ahora);
         db.Add(nueva);
         await RegistrarAccionDelConsumidor(consumidor, clave, AccionesBitacora.ClaveRotada, "rotó", cancelacion);
         await transaccion.CommitAsync(cancelacion);
+
+        foreach (var rotada in rotadasVigentes)
+        {
+            await publicador.EliminarClave(rotada.HashSha256, cancelacion);
+        }
 
         await publicador.PublicarClave(nueva.Id, cancelacion);
         await publicador.ExpirarClave(clave.HashSha256, clave.ExpiraEn!.Value, cancelacion);

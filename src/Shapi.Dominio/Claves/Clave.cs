@@ -59,6 +59,24 @@ public class Clave
         return Emitir(SuscripcionId, Tipo);
     }
 
+    /// <summary>
+    /// Adelanta el fin de una clave rotada a <paramref name="ahora"/>. Se usa al rotar otra vez antes de que pasen sus
+    /// 24 horas, para que no coexistan más de dos claves del mismo tipo (RF-27).
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Si la clave no está rotada.</exception>
+    public void TerminarRotacion(DateTimeOffset ahora)
+    {
+        if (Estado != EstadoClave.Rotada)
+        {
+            throw new InvalidOperationException($"Solo se termina la rotación de una clave rotada; esta está {Estado}.");
+        }
+
+        if (ExpiraEn > ahora)
+        {
+            ExpiraEn = ahora;
+        }
+    }
+
     /// <summary>Revoca una clave activa o rotada (RF-28). Devuelve <c>false</c> si ya estaba revocada.</summary>
     public bool Revocar(RevocadaPor por, DateTimeOffset ahora)
     {

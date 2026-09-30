@@ -108,6 +108,28 @@ public class ClaveTests
         revocada.Invoking(c => c.Rotar(Ahora)).Should().Throw<InvalidOperationException>();
     }
 
+    [Fact]
+    public void RF_27_TerminarRotacion_LaRotadaDejaDeSerVigenteAhora()
+    {
+        // RF-27: como máximo dos claves del mismo tipo; la rotada anterior termina al rotar otra vez.
+        var (clave, _) = Clave.Emitir(Guid.NewGuid(), TipoClave.Produccion);
+        clave.Rotar(Ahora);
+
+        clave.TerminarRotacion(Ahora.AddHours(2));
+
+        clave.Estado.Should().Be(EstadoClave.Rotada);
+        clave.ExpiraEn.Should().Be(Ahora.AddHours(2));
+        clave.EsVigente(Ahora.AddHours(2)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void RF_27_TerminarRotacion_ClaveActiva_NoSePuede()
+    {
+        var (clave, _) = Clave.Emitir(Guid.NewGuid(), TipoClave.Produccion);
+
+        clave.Invoking(c => c.TerminarRotacion(Ahora)).Should().Throw<InvalidOperationException>();
+    }
+
     // ---------- Revocación (RF-28) ----------
 
     [Theory]

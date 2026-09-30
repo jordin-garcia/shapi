@@ -74,17 +74,17 @@ public static class Endpoints
         IServicioClaves claves,
         CancellationToken cancelacion)
     {
+        var consumidor = await ConsumidorDelHost(http, resolutor, cancelacion);
+        if (consumidor is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         var validacion = await validador.ValidateAsync(cuerpo, cancelacion);
         if (!validacion.IsValid)
         {
             return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
                 "Revise los datos enviados.", validacion.ToDictionary());
-        }
-
-        var consumidor = await ConsumidorDelHost(http, resolutor, cancelacion);
-        if (consumidor is null)
-        {
-            return TypedResults.NotFound();
         }
 
         var tipo = cuerpo.Tipo == ContextoClave.TipoProduccion ? TipoClave.Produccion : TipoClave.Pruebas;
