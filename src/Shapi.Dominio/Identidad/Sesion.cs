@@ -41,6 +41,21 @@ public class Sesion
         ExpiraEn = ahora + DuracionMaxima,
     };
 
+    /// <summary>Sesión del consumidor, limitada al host del portal actual.</summary>
+    public static Sesion IniciarConsumidor(string hashIdentificador, Guid consumidorId, string host, IPAddress? ip, string? agenteUsuario, DateTimeOffset ahora) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Ambito = AmbitoSesion.Consumidor,
+        ConsumidorId = consumidorId,
+        HashIdentificador = hashIdentificador,
+        Host = host,
+        Ip = ip,
+        AgenteUsuario = agenteUsuario,
+        CreadaEn = ahora,
+        UltimoUsoEn = ahora,
+        ExpiraEn = ahora + DuracionMaxima,
+    };
+
     /// <summary>Vigente si no se revocó, no pasó la duración máxima y no lleva más de <paramref name="inactividad"/> sin usarse.</summary>
     public bool EstaVigente(DateTimeOffset ahora, TimeSpan inactividad) =>
         RevocadaEn is null && ExpiraEn > ahora && UltimoUsoEn + inactividad > ahora;

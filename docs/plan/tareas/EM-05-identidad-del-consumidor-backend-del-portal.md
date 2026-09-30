@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-30
 depende_de: [EM-04, DC-03]
 requisitos: [RF-02, RF-03, RF-04, RF-05]
@@ -29,6 +29,7 @@ Implementar la autenticación del ámbito `consumidor`: registro en el portal de
 ## Archivos que creas o modificas
 - `src/*/Identidad/**` (modificar)
 - `contratos/openapi/identidad.yaml` (modificar: `/api/portal/auth/*`)
+- `frontend/packages/api/src/generado/identidad.ts` (regenerado desde el contrato; reemplaza los tipos provisionales de DC-03)
 - `tests/*/Identidad/**`
 
 ## Criterios de aceptación
@@ -54,3 +55,10 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Fuera de alcance
 - Pantallas del portal (DC-08)
 - Envío de invitaciones desde el panel (EM-15)
+
+## Resultado
+- Se implementó autenticación del consumidor por portal: registro aislado por organización, verificación, reenvío, inicio y cierre de sesión, consulta de sesión, recuperación de contraseña y aceptación de invitaciones.
+- Las cookies `portal_sesion` quedan limitadas por host; la autenticación valida ámbito, organización y host. Se agregaron bloqueo tras cinco fallos y límite de diez peticiones por minuto por IP.
+- Se amplió el servicio de recuperación para distinguir tokens personales y de consumidores, se actualizó el contrato OpenAPI y se regeneraron sus tipos TypeScript.
+- Decisiones: las rutas de invitación reciben el mismo limitador que registro y acceso porque aceptan tokens; restablecer conserva el alcance de límite del flujo personal. La marca del correo usa `PortalResuelto` y el host canónico que resuelve `IResolutorPortal`.
+- Archivos principales: `EndpointsPortal.cs`, `ConsumidorAutenticacionHandler.cs`, `ServicioRecuperacion.cs`, `identidad.yaml` y `ConsumidorPortalTests.cs`.

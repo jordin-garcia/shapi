@@ -3,8 +3,8 @@ info:
   title: API de Control - Identidad
   version: 1.0.0
   description: |
-    Registro, verificación de correo e inicio y cierre de sesión del personal (EM-02).
-    La sesión viaja en la cookie `shapi_sesion` (HttpOnly, Secure, SameSite=Lax, Path=/).
+    Identidad del personal (EM-02/EM-04) y autenticación del consumidor en portales (EM-05).
+    La sesión del personal viaja en `shapi_sesion`; la del consumidor en `portal_sesion`, limitada al host del portal.
     Todo método distinto de GET exige la cabecera `X-Requested-With: shapi`; si falta, responde 403 `csrf` (10 §1).
     Los errores siguen ProblemDetails con `codigo` (convenciones §5). Un cuerpo que no es un JSON válido responde
     400 `datos_invalidos`, sin `errores`.
@@ -241,6 +241,146 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problema'
 
+  /api/portal/auth/registro:
+    post:
+      summary: Registra un consumidor en el portal actual
+      description: Crea el consumidor dentro de la organización resuelta por el host. El correo es único por organización. Encola una verificación con la marca del portal y el host canónico `{sub}.{dominio_base}`.
+      operationId: registrarConsumidor
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionRegistroConsumidor' }
+      responses:
+        '200': { description: Cuenta creada y correo encolado. }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '403': { $ref: '#/components/responses/Csrf' }
+        '404': { description: El portal no está disponible. }
+        '409': { description: Correo ya registrado en esta organización. }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
+  /api/portal/auth/verificar-correo:
+    post:
+      summary: Verifica el correo del consumidor
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionVerificacion' }
+      responses:
+        '200': { description: Correo verificado e inicio de sesión en el portal. }
+        '403': { $ref: '#/components/responses/Csrf' }
+        '422': { description: Token vencido, usado o de otra organización. }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
+  /api/portal/auth/reenviar-verificacion:
+    post:
+      summary: Reenvía la verificación de correo
+      description: Responde siempre 200 y limita los reenvíos a 3 por consumidor en una hora.
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionReenviar' }
+      responses:
+        '200': { description: Solicitud recibida. }
+        '403': { $ref: '#/components/responses/Csrf' }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
+  /api/portal/auth/entrar:
+    post:
+      summary: Inicia sesión del consumidor
+      description: Crea una cookie `portal_sesion` limitada al host actual. Tras 5 intentos fallidos bloquea la cuenta por 15 minutos.
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionEntrar' }
+      responses:
+        '200': { description: Sesión iniciada. }
+        '401': { description: Credenciales incorrectas. }
+        '423': { description: Cuenta bloqueada. }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
+  /api/portal/auth/salir:
+    post:
+      summary: Cierra sesión del consumidor
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      responses:
+        '200': { description: Sesión revocada y cookie borrada. }
+        '403': { $ref: '#/components/responses/Csrf' }
+
+  /api/portal/auth/sesion:
+    get:
+      summary: Devuelve la cuenta y verificación del consumidor
+      security: [{ cookiePortalSesion: [] }]
+      responses:
+        '200':
+          description: Sesión vigente para el host y organización actuales.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SesionConsumidor' }
+        '401': { $ref: '#/components/responses/SinSesion' }
+
+  /api/portal/auth/recuperar:
+    post:
+      summary: Solicita la recuperación de la cuenta del portal
+      description: Responde 200 exista o no el correo. El mensaje usa marca y host del portal.
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionRecuperar' }
+      responses:
+        '200': { description: Solicitud recibida. }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
+  /api/portal/auth/restablecer:
+    post:
+      summary: Restablece la contraseña del consumidor
+      parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionRestablecer' }
+      responses:
+        '200': { description: Contraseña restablecida; sesiones anteriores revocadas. }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '422': { description: Token inválido o vencido. }
+
+  /api/portal/auth/invitacion/{token}:
+    get:
+      summary: Consulta el correo de la invitación
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Invitación vigente, con el correo invitado. }
+        '422': { description: Invitación vencida, usada o de otra organización. }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
+  /api/portal/auth/invitacion/{token}/aceptar:
+    post:
+      summary: Acepta una invitación al portal
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PeticionAceptarInvitacion' }
+      responses:
+        '200': { description: Consumidor creado con correo verificado y sesión iniciada. }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '422': { description: Invitación vencida, usada o de otra organización. }
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
+
   /api/perfil:
     get:
       summary: Devuelve los datos del perfil
@@ -316,6 +456,10 @@ components:
       type: apiKey
       in: cookie
       name: shapi_sesion
+    cookiePortalSesion:
+      type: apiKey
+      in: cookie
+      name: portal_sesion
 
   parameters:
     XRequestedWith:
@@ -406,6 +550,33 @@ components:
           minLength: 10
           maxLength: 128
           description: No puede ser igual al correo.
+
+    PeticionRegistroConsumidor:
+      type: object
+      required: [nombre, nombreEmpresa, correo, contrasena]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 120 }
+        nombreEmpresa: { type: string, minLength: 2, maxLength: 120 }
+        correo: { type: string, format: email, maxLength: 254 }
+        contrasena: { type: string, minLength: 10, maxLength: 128, description: No puede ser igual al correo. }
+    PeticionAceptarInvitacion:
+      type: object
+      required: [nombre, nombreEmpresa, contrasena]
+      properties:
+        nombre: { type: string, maxLength: 120 }
+        nombreEmpresa: { type: string, maxLength: 120 }
+        contrasena: { type: string, minLength: 10, maxLength: 128 }
+    SesionConsumidor:
+      type: object
+      required: [consumidor, correoVerificado]
+      properties:
+        consumidor:
+          type: object
+          required: [nombre, nombreEmpresa]
+          properties:
+            nombre: { type: string }
+            nombreEmpresa: { type: string }
+        correoVerificado: { type: boolean }
 
     PeticionVerificacion:
       type: object
