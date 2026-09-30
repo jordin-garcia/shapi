@@ -61,8 +61,9 @@ public static class CodigosError
     public const string PublicacionIncompleta = "publicacion_incompleta";
     public const string LogoInvalido = "logo_invalido";
 
-    // Claves (rotación, 06 §5.4)
+    // Claves (rotación, 06 §5.4; emisión, 05 CU-13)
     public const string ClaveNoRotable = "clave_no_rotable";
+    public const string ClaveActivaExistente = "clave_activa_existente";
 
     // Soporte
     public const string CasoCerrado = "caso_cerrado";
