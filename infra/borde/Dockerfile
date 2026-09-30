@@ -10,8 +10,7 @@ COPY frontend/packages/ui/package.json packages/ui/package.json
 RUN pnpm config set fetch-retries 5 \
     && pnpm config set fetch-timeout 120000 \
     && pnpm install --frozen-lockfile \
-    && test -f node_modules/.pnpm/lightningcss-linux-x64-musl@1.32.0/node_modules/lightningcss-linux-x64-musl/lightningcss.linux-x64-musl.node \
-    && test -f node_modules/.pnpm/@rolldown+binding-linux-x64-musl@1.2.9/node_modules/@rolldown/binding-linux-x64-musl/rolldown-binding.linux-x64-musl.node
+    && node -e "Promise.all([import('vite'), import('@tailwindcss/vite')]).then(() => console.log('Binarios nativos cargados'))"
 
 COPY frontend/ ./
 RUN pnpm build
