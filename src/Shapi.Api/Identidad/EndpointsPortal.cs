@@ -303,7 +303,7 @@ public static class EndpointsPortal
             errores["nombre"] = ["Escriba un nombre de hasta 120 caracteres."];
         }
 
-        if (string.IsNullOrWhiteSpace(p.NombreEmpresa) || p.NombreEmpresa.Trim().Length > 120)
+        if (string.IsNullOrWhiteSpace(p.NombreEmpresa) || p.NombreEmpresa.Trim().Length is < 2 or > 120)
         {
             errores["nombreEmpresa"] = ["Escriba el nombre de su empresa."];
         }
@@ -424,7 +424,7 @@ public static class EndpointsPortal
     private static IResult DatosInvalidos(IDictionary<string, string[]> errores) => Problemas.Crear(400, CodigosError.DatosInvalidos, "Revise los datos del formulario.", errores);
     private static IResult TokenInvalido() => Problemas.Crear(422, CodigosError.TokenInvalido, "El enlace venció o ya se usó.");
     private static IResult CredencialesInvalidas() => Problemas.Crear(401, CodigosError.CredencialesInvalidas, "El correo o la contraseña no son correctos.");
-    private static IResult PortalNoDisponible() => Problemas.Crear(404, "recurso_no_encontrado", "Portal no disponible.");
+    private static IResult PortalNoDisponible() => TypedResults.NotFound();
     private static readonly Consumidor ConsumidorFicticio = new(Guid.Empty, "ficticio", "ficticio", "ficticio@shapi.invalid", "x");
     private static readonly string HashFicticio = new PasswordHasher<Consumidor>().HashPassword(ConsumidorFicticio, SeguridadTokens.GenerarToken());
 

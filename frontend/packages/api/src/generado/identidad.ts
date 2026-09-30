@@ -220,7 +220,23 @@ export interface paths {
                     };
                     content?: never;
                 };
-                403: components["responses"]["Csrf"];
+                400: components["responses"]["CuerpoInvalido"];
+                /** @description Falta CSRF o la cuenta está desactivada. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Token vencido */
                 422: {
                     headers: {
@@ -319,19 +335,40 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Credenciales incorrectas. */
+                400: components["responses"]["CuerpoInvalido"];
+                /** @description Credenciales incorrectas (`credenciales_invalidas`). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Falta CSRF o la cuenta está desactivada. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Portal no disponible. */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Cuenta bloqueada. */
+                /** @description Cuenta bloqueada (`cuenta_bloqueada`). */
                 423: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
                 };
                 429: components["responses"]["DemasiadasPeticiones"];
             };
@@ -407,6 +444,13 @@ export interface paths {
                     };
                 };
                 401: components["responses"]["SinSesion"];
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         put?: never;
@@ -453,6 +497,7 @@ export interface paths {
                     };
                     content?: never;
                 };
+                403: components["responses"]["Csrf"];
                 429: components["responses"]["DemasiadasPeticiones"];
             };
         };
@@ -496,6 +541,14 @@ export interface paths {
                     content?: never;
                 };
                 400: components["responses"]["DatosInvalidos"];
+                403: components["responses"]["Csrf"];
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Token inválido o vencido. */
                 422: {
                     headers: {
@@ -519,34 +572,7 @@ export interface paths {
             cookie?: never;
         };
         /** Consulta el correo de la invitación */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    token: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Invitación vigente */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Invitación vencida */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                429: components["responses"]["DemasiadasPeticiones"];
-            };
-        };
+        get: operations["consultarInvitacionConsumidor"];
         put?: never;
         post?: never;
         delete?: never;
@@ -591,6 +617,23 @@ export interface paths {
                     content?: never;
                 };
                 400: components["responses"]["DatosInvalidos"];
+                403: components["responses"]["Csrf"];
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Ya existe una cuenta con ese correo en la organización (`correo_ya_registrado`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
                 /** @description Invitación vencida */
                 422: {
                     headers: {
@@ -1131,15 +1174,57 @@ export interface operations {
             };
             400: components["responses"]["DatosInvalidos"];
             403: components["responses"]["Csrf"];
-            /** @description El portal no está disponible. */
+            /** @description Portal no disponible. */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Correo ya registrado en esta organización. */
+            /** @description Correo ya registrado en esta organización (`correo_ya_registrado`). */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            429: components["responses"]["DemasiadasPeticiones"];
+        };
+    };
+    consultarInvitacionConsumidor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitación vigente y correo invitado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        correo: string;
+                    };
+                };
+            };
+            /** @description Portal no disponible. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitación vencida */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -256,8 +256,12 @@ paths:
         '200': { description: Cuenta creada y correo encolado. }
         '400': { $ref: '#/components/responses/DatosInvalidos' }
         '403': { $ref: '#/components/responses/Csrf' }
-        '404': { description: El portal no está disponible. }
-        '409': { description: Correo ya registrado en esta organización. }
+        '404': { description: Portal no disponible. }
+        '409':
+          description: Correo ya registrado en esta organización (`correo_ya_registrado`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/portal/auth/verificar-correo:
@@ -271,7 +275,13 @@ paths:
             schema: { $ref: '#/components/schemas/PeticionVerificacion' }
       responses:
         '200': { description: Correo verificado e inicio de sesión en el portal. }
-        '403': { $ref: '#/components/responses/Csrf' }
+        '400': { $ref: '#/components/responses/CuerpoInvalido' }
+        '403':
+          description: Falta CSRF o la cuenta está desactivada.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '404': { description: Portal no disponible. }
         '422': { description: Token vencido, usado o de otra organización. }
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
@@ -302,8 +312,23 @@ paths:
             schema: { $ref: '#/components/schemas/PeticionEntrar' }
       responses:
         '200': { description: Sesión iniciada. }
-        '401': { description: Credenciales incorrectas. }
-        '423': { description: Cuenta bloqueada. }
+        '400': { $ref: '#/components/responses/CuerpoInvalido' }
+        '401':
+          description: Credenciales incorrectas (`credenciales_invalidas`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '403':
+          description: Falta CSRF o la cuenta está desactivada.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '404': { description: Portal no disponible. }
+        '423':
+          description: Cuenta bloqueada (`cuenta_bloqueada`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/portal/auth/salir:
@@ -325,6 +350,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/SesionConsumidor' }
         '401': { $ref: '#/components/responses/SinSesion' }
+        '404': { description: Portal no disponible. }
 
   /api/portal/auth/recuperar:
     post:
@@ -338,6 +364,7 @@ paths:
             schema: { $ref: '#/components/schemas/PeticionRecuperar' }
       responses:
         '200': { description: Solicitud recibida. }
+        '403': { $ref: '#/components/responses/Csrf' }
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/portal/auth/restablecer:
@@ -352,15 +379,27 @@ paths:
       responses:
         '200': { description: Contraseña restablecida; sesiones anteriores revocadas. }
         '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '403': { $ref: '#/components/responses/Csrf' }
+        '404': { description: Portal no disponible. }
         '422': { description: Token inválido o vencido. }
 
   /api/portal/auth/invitacion/{token}:
     get:
       summary: Consulta el correo de la invitación
+      operationId: consultarInvitacionConsumidor
       parameters:
         - { name: token, in: path, required: true, schema: { type: string } }
       responses:
-        '200': { description: Invitación vigente, con el correo invitado. }
+        '200':
+          description: Invitación vigente y correo invitado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [correo]
+                properties:
+                  correo: { type: string, format: email }
+        '404': { description: Portal no disponible. }
         '422': { description: Invitación vencida, usada o de otra organización. }
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
@@ -378,6 +417,13 @@ paths:
       responses:
         '200': { description: Consumidor creado con correo verificado y sesión iniciada. }
         '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '403': { $ref: '#/components/responses/Csrf' }
+        '404': { description: Portal no disponible. }
+        '409':
+          description: Ya existe una cuenta con ese correo en la organización (`correo_ya_registrado`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
         '422': { description: Invitación vencida, usada o de otra organización. }
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
@@ -564,7 +610,7 @@ components:
       required: [nombre, nombreEmpresa, contrasena]
       properties:
         nombre: { type: string, maxLength: 120 }
-        nombreEmpresa: { type: string, maxLength: 120 }
+        nombreEmpresa: { type: string, minLength: 2, maxLength: 120 }
         contrasena: { type: string, minLength: 10, maxLength: 128 }
     SesionConsumidor:
       type: object

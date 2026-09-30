@@ -55,8 +55,9 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     public async Task RF_05_MismoCorreoEnDosOrganizaciones_SePermiteYLaSesionQuedaAisladaPorHost()
     {
         // RF-05, RNF-08: la unicidad corresponde a (organizacion, correo) y la cookie solo sirve en el host original.
-        await InsertarApi("uno");
+        var organizacionUno = await InsertarApi("uno");
         await InsertarApi("dos");
+        await InsertarApiEnOrganizacion("uno-alterno", organizacionUno);
         var registroUno = await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "uno.shapi.localhost",
             new { nombre = "Ana", nombreEmpresa = "Tienda Uno", correo = "ana@tienda.test", contrasena = "ContrasenaValida123" });
         var registroDos = await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "dos.shapi.localhost",
@@ -73,6 +74,8 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.True((await sesionMismoHost.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("correoVerificado").GetBoolean());
         var sesionOtroHost = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "dos.shapi.localhost", cookie: cookie);
         Assert.Equal(HttpStatusCode.Unauthorized, sesionOtroHost.StatusCode);
+        var sesionOtroPortalMismaOrganizacion = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "uno-alterno.shapi.localhost", cookie: cookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, sesionOtroPortalMismaOrganizacion.StatusCode);
 
         var inicio = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "dos.shapi.localhost", new { correo = "ana@tienda.test", contrasena = "OtraContrasena456" });
         Assert.Equal(HttpStatusCode.OK, inicio.StatusCode);
@@ -259,6 +262,28 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.Equal(4, await db.Set<CorreoSaliente>().IgnoreQueryFilters().CountAsync(c => c.Destinatario == "ana@reenvio.test" && c.Plantilla == "verificacion_correo"));
     }
 
+    [Fact]
+    public async Task RF_05_InvitacionVencidaODeOtraOrganizacion_Responde422()
+    {
+        var organizacion = await InsertarApi("invitacion-duena");
+        await InsertarApi("invitacion-ajena");
+        var vencida = SeguridadTokens.GenerarToken();
+        var vigente = SeguridadTokens.GenerarToken();
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            db.AddRange(
+                Token.InvitacionConsumidor(SeguridadTokens.HashearToken(vencida), organizacion, "vencida@tienda.test", DateTimeOffset.UtcNow.AddDays(-8)),
+                Token.InvitacionConsumidor(SeguridadTokens.HashearToken(vigente), organizacion, "ajena@tienda.test", DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        var expirada = await Enviar(HttpMethod.Get, $"/api/portal/auth/invitacion/{vencida}", "invitacion-duena.shapi.localhost");
+        var otraOrganizacion = await Enviar(HttpMethod.Get, $"/api/portal/auth/invitacion/{vigente}", "invitacion-ajena.shapi.localhost");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, expirada.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, otraOrganizacion.StatusCode);
+    }
+
     private async Task<Guid> InsertarApi(string subdominio)
     {
         await using var conexion = new NpgsqlConnection(_cadena);
@@ -276,6 +301,20 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         comando.Parameters.AddWithValue("nombre", $"Organización {subdominio}");
         comando.Parameters.AddWithValue("sub", subdominio);
         return (Guid)(await comando.ExecuteScalarAsync())!;
+    }
+
+    private async Task InsertarApiEnOrganizacion(string subdominio, Guid organizacionId)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            INSERT INTO api (id, organizacion_id, nombre, subdominio, url_origen, estado, portal_color, secreto_origen_cifrado)
+            VALUES (gen_random_uuid(), @organizacion, 'API secundaria', @sub, 'https://origen.ejemplo.com', 'publicada', '#3B6FF0', 'secreto')
+            """;
+        comando.Parameters.AddWithValue("organizacion", organizacionId);
+        comando.Parameters.AddWithValue("sub", subdominio);
+        await comando.ExecuteNonQueryAsync();
     }
 
     private async Task<string> TokenCorreo(string correo, string host)
