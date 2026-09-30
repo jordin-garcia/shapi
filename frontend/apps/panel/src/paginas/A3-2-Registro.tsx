@@ -92,7 +92,7 @@ export default function PaginaA32Registro() {
 
       {registrada && <div className="mt-6 flex flex-col gap-4">
         <Aviso estado="exito">
-          <p>Conexión probada: su servidor respondió en <span className="tabular-nums">{registrada.conexionMilisegundos} ms</span>. Shapi probó la conexión antes de guardar.</p>
+          <p>Conexión probada: su servidor respondió en <span className="tabular-nums">{registrada.conexionMilisegundos} ms</span>. Shapi prueba la conexión antes de guardar.</p>
         </Aviso>
         <div className="rounded-base border border-borde bg-fondo p-4">
           <p className="text-[13px] font-semibold text-tinta">Secreto de origen</p>

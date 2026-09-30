@@ -44,7 +44,7 @@ describe('RF-14 · A3.1 Lista de APIs', () => {
 
     expect(await screen.findByRole('heading', { name: 'APIs de la organización' })).toBeDefined();
     expect(screen.getByText('Publicación')).toBeDefined();
-    expect(screen.getByText(/Usa 2 de 10 APIs de su plan Producto/)).toBeDefined();
+    expect(document.body.textContent).toContain('Usa 2 de 10 APIs de su plan Producto');
     expect(screen.getByRole('link', { name: 'Registrar una API' }).getAttribute('href')).toBe('/panel/apis/nueva');
     expect(screen.getAllByRole('columnheader').map(celda => celda.textContent)).toEqual(['API', 'Subdominio', 'Estado', 'Acción']);
     expect(screen.getByRole('link', { name: 'API de Cotización de Envíos' }).getAttribute('href')).toBe('/panel/apis/api-1/especificacion');
@@ -125,7 +125,7 @@ describe('RF-08 y RF-47 · A3.2 Registro de API', () => {
     await userEvent.type(screen.getByLabelText('Subdominio'), 'envios');
     await userEvent.click(screen.getByRole('button', { name: 'Registrar y continuar' }));
 
-    expect((await screen.findByRole('status')).textContent).toContain('Conexión probada: su servidor respondió en 142 ms');
+    expect((await screen.findByRole('status')).textContent).toContain('Conexión probada: su servidor respondió en 142 ms. Shapi prueba la conexión antes de guardar.');
     expect(screen.getByText('shps_0123456789ABCDEFGHIJKLMNOPQRSTUV')).toBeDefined();
     expect(cuerpo).toEqual({
       nombre: 'API de Cotización de Envíos',

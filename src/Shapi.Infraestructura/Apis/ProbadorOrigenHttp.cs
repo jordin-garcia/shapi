@@ -18,6 +18,7 @@ public sealed class ProbadorOrigenHttp : IProbadorOrigen
         using var handler = new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
+            UseProxy = false,
             ConnectCallback = (contexto, token) => Conectar(origen.Direcciones, contexto.DnsEndPoint.Port, token),
         };
         using var cliente = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };

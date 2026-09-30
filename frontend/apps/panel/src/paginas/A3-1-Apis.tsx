@@ -28,8 +28,8 @@ export default function PaginaA31Apis() {
 
   const { elementos, total, planNombre, maxApis } = consulta.data;
   const uso = maxApis == null
-    ? `Usa ${total} APIs de su plan ${planNombre}, sin límite de APIs.`
-    : `Usa ${total} de ${maxApis} APIs de su plan ${planNombre}.`;
+    ? <>Usa {total} APIs de su plan {planNombre}, sin límite de APIs.</>
+    : <>Usa <span className="font-medium text-tinta tabular-nums">{total} de {maxApis}</span> APIs de su plan {planNombre}.</>;
 
   return <div>
     <div className="flex items-end justify-between gap-6">
@@ -39,7 +39,7 @@ export default function PaginaA31Apis() {
         <p className="text-[15px] leading-[1.55] text-tinta-suave">
           {elementos.length === 0
             ? <>Publique o despublique cada API. Para configurarla, entre a su nombre. {maxApis == null ? `Su plan ${planNombre} no limita la cantidad de APIs.` : <>Su plan {planNombre} incluye <span className="font-medium text-tinta tabular-nums">{maxApis}</span> {maxApis === 1 ? 'API' : 'APIs'}.</>}</>
-            : <>Publique o despublique cada API. Para configurarla, entre a su nombre. <span className="font-medium text-tinta tabular-nums">{uso}</span></>}
+            : <>Publique o despublique cada API. Para configurarla, entre a su nombre. {uso}</>}
         </p>
       </div>
       {elementos.length > 0 && <EnlaceRegistro />}
