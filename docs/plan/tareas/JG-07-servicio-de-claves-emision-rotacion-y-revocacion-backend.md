@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-29
 depende_de: [JG-04]
 requisitos: [RF-26, RF-27, RF-28, RNF-07]
@@ -61,3 +61,32 @@ dotnet format Shapi.slnx --verify-no-changes
 - Pantalla A4.3 (JG-10)
 - Pantallas B2.3 a B2.6 (DC-11)
 - Contratación (EM-08)
+
+## Resultado
+
+**Qué se hizo**
+- Dominio: `GeneradorClave` genera `shp_prod_`/`shp_prueba_` + 26 caracteres base62 con `RandomNumberGenerator.GetString`, sin sesgo, y calcula el SHA-256 en hex minúsculas, igual que `ContextoClave.CalcularHash` de la compuerta. `Clave` tiene `Emitir`, `Rotar` (la anterior queda `rotada` con `expira_en = ahora + 24 h`), `Revocar` (desde `activa` o `rotada`), `Enmascarada` y `EsVigente`.
+- `IServicioClaves` (en `Shapi.Aplicacion/Claves`) y `ServicioClaves` (en `Shapi.Infraestructura/Claves`):
+  - `EmitirClavesParaSuscripcion(suscripcionId)` emite la clave de producción y la de pruebas, solo de los tipos que no tienen una activa. Guarda, publica con `PublicarClave` y devuelve las claves completas una sola vez. Es lo que llama la contratación (EM-08).
+  - `Emitir`, `Rotar`, `RevocarPropia` (portal), `ClavesDeApi` y `RevocarDeConsumidor` (panel), y `ClavesDelConsumidor`.
+  - Primero se confirma en PostgreSQL y después se publica en Redis. La rotación usa `PublicarClave` para la clave nueva y `ExpirarClave` para la anterior; la revocación, `EliminarClave`.
+- Endpoints, según `contratos/openapi/claves.yaml`:
+  - `GET /api/apis/{apiId}/claves`, paginado por consumidor (`Permiso.VerClaves`);
+  - `POST /api/apis/{apiId}/claves/{id}/revocar` (`Permiso.RevocarClaves`);
+  - `GET /api/portal/claves` (`Permiso.ConsumidorVerCuenta`);
+  - `POST /api/portal/claves/emitir`, `/{id}/rotar` y `/{id}/revocar` (`Permiso.ConsumidorAdministrarClaves`).
+- Bitácora: `clave.rotada`, `clave.revocada_por_consumidor` y `clave.revocada_por_proveedor`, con los textos de 10 §7, el objetivo `clave` y la IP. Se guardan en la misma transacción que el cambio de la clave.
+- Nuevo código de error: `clave_activa_existente` (409).
+- Tipos TS generados: `frontend/packages/api/src/generado/claves.ts`.
+
+**Decisiones**
+- La sesión del consumidor todavía no existe (EM-05). Los endpoints del portal esperan en la sesión el consumidor (`ClaimTypes.NameIdentifier`), su organización (`PoliticasAutorizacion.ClaimOrganizacion`) y el ámbito `Consumidor`. Además resuelven la API con el host (`IResolutorPortal`): si la organización de la sesión no es la del host, responden 404. Quedó en 10 §2. Las pruebas simulan esa sesión con un esquema de autenticación de prueba (`SesionConsumidorDePrueba`).
+- En el portal solo se administran las claves de la API del host. Una clave de otra API de la misma organización responde 404.
+- Qué claves se listan y en qué orden: las activas, las rotadas mientras duran sus 24 horas y, por cada tipo sin clave activa, la última revocada (como Tienda Sololá en A4.3). No se listan las de suscripciones finalizadas. Primero producción y luego pruebas; dentro de cada tipo, activa, rotada y revocada. A4.3 ordena a los consumidores por la fecha en que contrataron. Quedó en 05 CU-13.
+- Emitir con otra clave activa del mismo tipo responde 409 `clave_activa_existente`. Emitir sin una suscripción sin finalizar en la API del portal responde 404. Rotar una clave revocada también responde 422 `clave_no_rotable`, igual que una rotada. Revocar una clave ya revocada responde 200 sin cambiar nada ni registrar otra entrada en la bitácora. Quedó en 05 CU-13.
+- Si al rotar hay otra clave rotada del mismo tipo que sigue dentro de sus 24 horas, esa deja de funcionar en ese momento: su `expira_en` pasa a ser la hora actual y se borra de Redis. Así nunca coexisten más de dos claves del mismo tipo (RF-27), y el consumidor puede volver a rotar si pierde la clave nueva, como dice B2.5. Es un hallazgo de la revisión en contexto limpio y quedó en 05 CU-13.
+- Rotar y revocar bloquean la fila de la clave (`SELECT … FOR UPDATE`) dentro de la transacción. Así, dos rotaciones simultáneas o una rotación y una revocación no pueden dejar dos claves activas ni revivir una revocada.
+- `EmitirClavesParaSuscripcion` respeta el filtro global por organización (10 §2): se llama dentro del contexto de la organización de la suscripción (la petición del consumidor que contrata). Si la suscripción no existe, es de otra organización o está finalizada, lanza `InvalidOperationException`, porque es un error de programación de quien la llama.
+- El texto de la bitácora dice "en la API de Cotización de Envíos" con el nombre de la API. Si el nombre no empieza con "API", se le antepone "API".
+
+**Archivos principales:** `src/Shapi.Dominio/Claves/{Clave,GeneradorClave}.cs`, `src/Shapi.Aplicacion/Claves/**`, `src/Shapi.Infraestructura/Claves/ServicioClaves.cs`, `src/Shapi.Api/Claves/Endpoints.cs`, `src/Shapi.Api/Modulos/ClavesModulo.cs`, `contratos/openapi/claves.yaml`, `tests/Shapi.Dominio.Tests/Claves/ClaveTests.cs` y `tests/Shapi.Api.Tests/Claves/ClavesTests.cs`.

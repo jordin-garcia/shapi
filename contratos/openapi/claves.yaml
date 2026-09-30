@@ -1,0 +1,394 @@
+openapi: 3.1.0
+info:
+  title: API de Control - Claves
+  version: 1.0.0
+  description: |
+    Claves de API de los consumidores (JG-07): listado enmascarado, emisión, rotación y revocación (RF-26 a RF-28, CU-13).
+    Una clave completa solo aparece en la respuesta de la emisión y de la rotación, una sola vez (ADR-01). En las demás
+    respuestas va enmascarada: `shp_prod_••••7c2e`.
+    Los endpoints de `/api/apis/{apiId}/claves` son del panel (sesión del personal, `shapi_sesion`). Los de
+    `/api/portal/claves` son del portal: la API se resuelve con el host y la sesión debe ser de un consumidor de esa
+    organización (10 §2).
+    Todo método distinto de GET exige la cabecera `X-Requested-With: shapi`; si falta, responde 403 `csrf` (10 §1).
+    Los errores siguen ProblemDetails con `codigo` (convenciones §5). Una clave, una API o una suscripción de otra
+    organización o de otro consumidor responde 404, igual que una que no existe (04 §4).
+    Qué claves se listan: las activas, las rotadas mientras duran sus 24 horas y, por cada tipo sin clave activa, la
+    última revocada (para que el consumidor sepa que puede emitir otra). No se listan las de suscripciones finalizadas.
+    Orden: primero producción y luego pruebas; dentro de cada tipo, activa, rotada y revocada.
+servers:
+  - url: https://shapi.localhost
+    description: Panel del proveedor detrás del borde
+  - url: https://{subdominio}.shapi.localhost
+    description: Portal de una API detrás del borde
+    variables:
+      subdominio:
+        default: envios
+
+paths:
+  /api/apis/{apiId}/claves:
+    get:
+      summary: Lista las claves de los consumidores de una API (A4.3)
+      description: |
+        Las claves enmascaradas, agrupadas por consumidor, con el plan, el tipo y el estado. Se pagina por consumidor
+        (una suscripción sin finalizar por consumidor), en el orden en que contrataron. Propietario, editor o lector.
+      operationId: listarClavesDeApi
+      security:
+        - cookieSesionPersonal: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - name: pagina
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: tamano
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Una página de consumidores con sus claves.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaClavesDeApi'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          description: El rol no puede ver las claves.
+        '404':
+          description: La API no existe o es de otra organización.
+
+  /api/apis/{apiId}/claves/{claveId}/revocar:
+    post:
+      summary: Revoca la clave de un consumidor (A4.3b)
+      description: |
+        Deja la clave `revocada`, con `revocadaPor: proveedor`, y la borra de Redis: la compuerta responde 401
+        `clave_invalida` en menos de 10 segundos. Queda en la bitácora (`clave.revocada_por_proveedor`). Revocar una
+        clave ya revocada no cambia nada y responde igual. Propietario o editor.
+      operationId: revocarClaveDeConsumidor
+      security:
+        - cookieSesionPersonal: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - $ref: '#/components/parameters/ClaveId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '200':
+          description: La clave revocada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clave'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          description: El rol no puede revocar claves, o falta `X-Requested-With` (`csrf`).
+        '404':
+          description: La clave no es de un consumidor de esta API o no existe.
+
+  /api/portal/claves:
+    get:
+      summary: Lista las claves del consumidor en la API del portal (B2.3)
+      description: Las claves enmascaradas de su suscripción sin finalizar. Sin suscripción, la lista está vacía.
+      operationId: listarClavesDelConsumidor
+      security:
+        - cookieSesionPortal: []
+      responses:
+        '200':
+          description: Las claves del consumidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClavesDelConsumidor'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          description: La sesión no es de un consumidor.
+        '404':
+          description: El host no corresponde a una API publicada o la sesión es de otra organización.
+
+  /api/portal/claves/emitir:
+    post:
+      summary: Emite una clave nueva de un tipo (CU-13, flujo alterno)
+      description: |
+        Solo si la suscripción no tiene otra clave activa de ese tipo (por ejemplo, después de revocarla). La clave
+        completa se devuelve una sola vez.
+      operationId: emitirClave
+      security:
+        - cookieSesionPortal: []
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionEmitirClave'
+      responses:
+        '201':
+          description: La clave nueva, completa (única vez).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaveEmitida'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          description: La sesión no es de un consumidor, o falta `X-Requested-With` (`csrf`).
+        '404':
+          description: El consumidor no tiene una suscripción sin finalizar en esta API.
+        '409':
+          description: Ya hay una clave activa de ese tipo (`clave_activa_existente`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+
+  /api/portal/claves/{claveId}/rotar:
+    post:
+      summary: Rota una clave propia (B2.4 y B2.5)
+      description: |
+        Emite una clave nueva activa del mismo tipo y deja la anterior `rotada`, funcionando 24 horas más (`EXPIREAT`
+        en Redis). Devuelve la clave nueva completa (única vez) y la anterior enmascarada, con la hora a la que deja de
+        funcionar. Queda en la bitácora (`clave.rotada`). Si otra clave rotada del mismo tipo sigue dentro de sus 24
+        horas, deja de funcionar en ese momento: nunca coexisten más de dos claves del mismo tipo (RF-27).
+      operationId: rotarClave
+      security:
+        - cookieSesionPortal: []
+      parameters:
+        - $ref: '#/components/parameters/ClaveId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '200':
+          description: La clave nueva y la anterior.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaveRotada'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          description: La sesión no es de un consumidor, o falta `X-Requested-With` (`csrf`).
+        '404':
+          description: La clave no es del consumidor o no existe.
+        '422':
+          description: La clave no está activa (ya rotada o revocada) (`clave_no_rotable`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+
+  /api/portal/claves/{claveId}/revocar:
+    post:
+      summary: Revoca una clave propia (B2.6)
+      description: |
+        Deja la clave `revocada`, con `revocadaPor: consumidor`, y la borra de Redis: la compuerta responde 401
+        `clave_invalida` en menos de 10 segundos. Queda en la bitácora (`clave.revocada_por_consumidor`). Revocar una
+        clave ya revocada no cambia nada y responde igual.
+      operationId: revocarClavePropia
+      security:
+        - cookieSesionPortal: []
+      parameters:
+        - $ref: '#/components/parameters/ClaveId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '200':
+          description: La clave revocada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clave'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          description: La sesión no es de un consumidor, o falta `X-Requested-With` (`csrf`).
+        '404':
+          description: La clave no es del consumidor o no existe.
+
+components:
+  securitySchemes:
+    cookieSesionPersonal:
+      type: apiKey
+      in: cookie
+      name: shapi_sesion
+    cookieSesionPortal:
+      type: apiKey
+      in: cookie
+      name: portal_sesion
+
+  parameters:
+    ApiId:
+      name: apiId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ClaveId:
+      name: claveId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    XRequestedWith:
+      name: X-Requested-With
+      in: header
+      required: true
+      description: Protección CSRF (10 §1). El cliente del frontend la agrega siempre.
+      schema:
+        type: string
+        const: shapi
+
+  responses:
+    DatosInvalidos:
+      description: Datos inválidos (`datos_invalidos`), con los errores por campo.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+    SinSesion:
+      description: No hay una sesión vigente. Es un ProblemDetails estándar, sin `codigo`.
+
+  schemas:
+    TipoClave:
+      type: string
+      enum: [produccion, pruebas]
+    EstadoClave:
+      type: string
+      enum: [activa, rotada, revocada]
+
+    Clave:
+      type: object
+      description: Una clave enmascarada.
+      required: [id, tipo, claveEnmascarada, estado, expiraEn, revocadaEn]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tipo:
+          $ref: '#/components/schemas/TipoClave'
+        claveEnmascarada:
+          type: string
+          example: shp_prod_••••7c2e
+        estado:
+          $ref: '#/components/schemas/EstadoClave'
+        expiraEn:
+          type: [string, 'null']
+          format: date-time
+          description: En una clave rotada, la hora a la que deja de funcionar.
+        revocadaEn:
+          type: [string, 'null']
+          format: date-time
+
+    ClaveEmitida:
+      type: object
+      description: Una clave recién emitida. `clave` es la clave completa y no se vuelve a mostrar.
+      required: [id, tipo, clave, claveEnmascarada, estado]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tipo:
+          $ref: '#/components/schemas/TipoClave'
+        clave:
+          type: string
+          example: shp_prod_9Hk2wQ7rTz4Lb8Nc1Vx6Pm3Ds0
+        claveEnmascarada:
+          type: string
+          example: shp_prod_••••s0e5
+        estado:
+          type: string
+          const: activa
+
+    ClaveRotada:
+      allOf:
+        - $ref: '#/components/schemas/ClaveEmitida'
+        - type: object
+          required: [anterior]
+          properties:
+            anterior:
+              $ref: '#/components/schemas/Clave'
+
+    PeticionEmitirClave:
+      type: object
+      required: [tipo]
+      properties:
+        tipo:
+          $ref: '#/components/schemas/TipoClave'
+
+    ClavesDelConsumidor:
+      type: object
+      required: [elementos]
+      properties:
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Clave'
+
+    ClavesDeConsumidorDeApi:
+      type: object
+      description: Un consumidor de la API, con su plan y sus claves (una fila de A4.3).
+      required: [consumidorId, consumidor, plan, claves]
+      properties:
+        consumidorId:
+          type: string
+          format: uuid
+        consumidor:
+          type: string
+          description: El nombre de la empresa del consumidor.
+          example: Mercadito Antigua
+        plan:
+          type: string
+          example: Comercio
+        claves:
+          type: array
+          items:
+            $ref: '#/components/schemas/Clave'
+
+    PaginaClavesDeApi:
+      type: object
+      required: [elementos, total]
+      properties:
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClavesDeConsumidorDeApi'
+        total:
+          type: integer
+          description: Cuántos consumidores con suscripción sin finalizar tiene la API.
+
+    Problema:
+      type: object
+      description: ProblemDetails de la API de control (convenciones §5).
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+          enum:
+            - datos_invalidos
+            - clave_no_rotable
+            - clave_activa_existente
+            - csrf
+        errores:
+          type: object
+          description: Solo en 400. Mensajes por campo, con el nombre del campo en camelCase.
+          additionalProperties:
+            type: array
+            items:
+              type: string

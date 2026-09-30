@@ -58,6 +58,7 @@ public partial class CodigosErrorTests
     [InlineData("publicacion_incompleta")]
     [InlineData("logo_invalido")]
     [InlineData("clave_no_rotable")]
+    [InlineData("clave_activa_existente")]
     [InlineData("csrf")]
     [InlineData("datos_invalidos")]
     [InlineData("demasiadas_peticiones")]
