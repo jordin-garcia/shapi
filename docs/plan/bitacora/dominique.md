@@ -58,3 +58,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-05:** `IResolutorPortal.Resolver(host)` devuelve `ApiId`, `OrganizacionId`, `NombreOrganizacion`, `Subdominio`, marca y hosts canónicos. El módulo provisional espera que `GET /api/portal/auth/sesion` responda `{ consumidor: { nombre, nombreEmpresa }, correoVerificado }` y usa `POST /api/portal/auth/salir`; reemplázalo por los tipos generados al publicar `identidad.yaml`.
   - **Emilio:** se agregó `/api/portal/configuracion` y `/api/portal/logo` a la lista de endpoints anónimos en `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs`; actualiza cualquier rama abierta desde `main`.
   - **DC-07 a DC-11 y JG-12:** ya están disponibles la configuración de marca, los layouts y las rutas del portal para reemplazar cada página de relleno.
+
+## 2026-09-29 · DC-04 · Registrar una API y lista de APIs (A3.1 y A3.2)
+- Hecho: registro y listado de APIs por organización; validación contra SSRF y prueba de conexión sin redirecciones; secreto de origen cifrado y mostrado una sola vez; contrato OpenAPI y tipos TypeScript; pantallas A3.1/A3.2 y pruebas unitarias, de integración y Vitest.
+- Decisiones: la conexión usa las direcciones ya validadas para impedir reenlaces DNS; API y entrada `api.registrada` se guardan en la misma transacción; un borrador no se publica en Redis. Se modificó el archivo enrutado existente `A3-2-Registro.tsx`, cuyo nombre difiere del indicado por la tarea.
+- Pendiente o aviso para otros:
+  - **DC-05:** el registro dirige a `/panel/apis/:id/especificacion`; ya están disponibles el identificador y el secreto de origen cifrado.
+  - **DC-06:** la lista muestra la acción visual Publicar/Despublicar, pero su comportamiento sigue fuera de DC-04.
+  - **EM-13:** `GET /api/apis` ya devuelve `total`, `planNombre` y `maxApis`; el registro todavía no aplica el límite del plan.
+  - **JG-05:** `ValidadorDireccionOrigen` devuelve la URI y direcciones resueltas válidas para reutilizar la misma política SSRF sin volver a resolver DNS.
