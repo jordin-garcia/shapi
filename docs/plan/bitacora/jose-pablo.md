@@ -37,3 +37,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: los días se interpretan en `America/Guatemala` con extremos inclusivos; el periodo predeterminado es el día actual y los seis anteriores; la página predeterminada contiene 20 entradas y admite hasta 100.
 - Pendiente o aviso para otros:
   - **JZ-08:** las acciones `organizacion.suspendida` y `organizacion.reactivada` que registre mediante `IBitacora` aparecerán en `GET /api/admin/bitacora`; use las descripciones legibles del catálogo de `docs/specs/10-identidad-y-seguridad.md` §7.
+
+## 2026-09-29 · JZ-06 · Imágenes Docker, ambiente productivo simulado y publicación en GHCR
+- Hecho: se crearon imágenes multi-stage para API, compuerta, trabajador y borde; Compose productivo con migraciones, salud, persistencia, llaves compartidas y puertos internos cerrados; Caddy productivo con frontends compilados, CSP y enrutamiento interno; publicación de `latest` y SHA en GHCR; verificación automatizada y documentación operativa.
+- Decisiones: el borde reemplaza los volúmenes de desarrollo con `!override`; la instalación del frontend comprueba los binarios nativos de Alpine; el workflow construye en PR, verifica Compose desde cero y publica únicamente al llegar a `main`.
+- Pendiente o aviso para otros:
+  - **JZ-05:** el trabajador y el ambiente productivo ya están listos para agregar y ejecutar `sembrar-demo`; conserve el volumen compartido `dpkeys` y el comando documentado en `docs/manual-tecnico.md`.
+  - **JZ-07:** puede usar `infra/compose.prod.yml` y `node infra/verificar.mjs` como base del entorno E2E y de la herramienta de capturas.
+  - **JZ-12:** el trabajador queda sin healthcheck HTTP, como exige 06 §8; agregue su latido `salud:trabajador` sin exponer un puerto nuevo.

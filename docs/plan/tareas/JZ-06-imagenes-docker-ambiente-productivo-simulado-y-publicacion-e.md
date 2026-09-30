@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-29
 depende_de: [JZ-01, JG-02, DC-02]
 requisitos: [RNF-14, RNF-09]
@@ -56,3 +56,34 @@ node scripts/tareas.mjs --validar
 
 ## Fuera de alcance
 - Servidor público (el presupuesto es Q 0)
+
+## Resultado
+
+- Se crearon imágenes multi-stage para la API, la compuerta y el trabajador, y
+  una imagen de borde que compila y sirve ambos frontends con Caddy.
+- `infra/compose.prod.yml` agrega los procesos de Shapi, elimina los puertos de
+  desarrollo, comparte las llaves de Data Protection y configura migraciones,
+  salud, persistencia y reinicio automático.
+- El Caddyfile productivo enruta por nombres de servicio, sirve las SPA con
+  fallback a `index.html`, aplica la CSP y mantiene privados los endpoints
+  `/interno/*`.
+- El workflow `publicar-imagenes.yml` construye las cuatro imágenes en cada PR,
+  verifica el ambiente completo desde cero y, al llegar a `main`, publica las
+  etiquetas `latest` y SHA en GHCR.
+- `infra/verificar.mjs` valida tanto desarrollo como producción. En producción
+  comprueba los servicios, los puertos publicados, HTTPS, CSP, enrutamiento,
+  ausencia de siembra y que la API de control no exponga su puerto.
+- El manual técnico documenta cómo levantar, sembrar, consultar registros y
+  apagar el ambiente productivo simulado.
+
+### Decisiones tomadas
+
+- El montaje del Caddyfile de desarrollo se reemplaza con `!override`, para que
+  producción use el archivo incluido en la imagen y conserve únicamente el
+  volumen persistente de certificados.
+- La capa de frontend aumenta los reintentos de descarga y exige los binarios
+  nativos de Alpine antes de compilar, porque pnpm considera opcionales esos
+  paquetes y una descarga interrumpida podía producir una imagen incompleta.
+- El verificador usa TLS 1.2 en sus solicitudes locales para evitar una
+  incompatibilidad de negociación entre Node 25 para Windows y Caddy 2.10; el
+  servidor continúa admitiendo TLS 1.3 para los clientes normales.

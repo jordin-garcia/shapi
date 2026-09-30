@@ -1,0 +1,123 @@
+services:
+  postgres:
+    restart: unless-stopped
+    ports: !reset []
+
+  redis:
+    restart: unless-stopped
+    ports: !reset []
+
+  mailpit:
+    restart: unless-stopped
+    ports: !reset []
+
+  origen-envios:
+    restart: unless-stopped
+    ports: !reset []
+
+  origen-agro:
+    restart: unless-stopped
+    ports: !reset []
+
+  api:
+    image: ghcr.io/jordin-garcia/shapi-api:latest
+    build:
+      context: ..
+      dockerfile: src/Shapi.Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      SHAPI_APLICAR_MIGRACIONES: "true"
+      SHAPI_DOMINIO_BASE: ${SHAPI_DOMINIO_BASE:-shapi.localhost}
+      SHAPI_MODO_DEMO: ${SHAPI_MODO_DEMO:-true}
+      SHAPI_POSTGRES_CADENA: Host=postgres;Port=5432;Database=${SHAPI_POSTGRES_BASE_DATOS:-shapi};Username=${SHAPI_POSTGRES_USUARIO:-shapi};Password=${SHAPI_POSTGRES_CONTRASENA:-shapi_desarrollo}
+      SHAPI_REDIS: redis:6379
+      SHAPI_REDES_BORDE: ${SHAPI_REDES_BORDE:-}
+      SHAPI_DNS_MODO: ${SHAPI_DNS_MODO:-simulado}
+      SHAPI_ORIGENES_PERMITIDOS: origen-envios:8080,origen-agro:8080
+      SHAPI_DPKEYS_DIR: /var/lib/shapi/dpkeys
+      SHAPI_ADMIN_CORREO: ${SHAPI_ADMIN_CORREO:-}
+      SHAPI_ADMIN_NOMBRE: ${SHAPI_ADMIN_NOMBRE:-}
+      SHAPI_ADMIN_CONTRASENA: ${SHAPI_ADMIN_CONTRASENA:-}
+      SHAPI_PASARELA_FALLA: ${SHAPI_PASARELA_FALLA:-false}
+    volumes:
+      - dpkeys:/var/lib/shapi/dpkeys
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/salud"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+
+  compuerta:
+    image: ghcr.io/jordin-garcia/shapi-compuerta:latest
+    build:
+      context: ..
+      dockerfile: src/Shapi.Compuerta/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      SHAPI_REDIS: redis:6379
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/salud"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  trabajador:
+    image: ghcr.io/jordin-garcia/shapi-trabajador:latest
+    build:
+      context: ..
+      dockerfile: src/Shapi.Trabajador/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      SHAPI_DOMINIO_BASE: ${SHAPI_DOMINIO_BASE:-shapi.localhost}
+      SHAPI_MODO_DEMO: ${SHAPI_MODO_DEMO:-true}
+      SHAPI_POSTGRES_CADENA: Host=postgres;Port=5432;Database=${SHAPI_POSTGRES_BASE_DATOS:-shapi};Username=${SHAPI_POSTGRES_USUARIO:-shapi};Password=${SHAPI_POSTGRES_CONTRASENA:-shapi_desarrollo}
+      SHAPI_REDIS: redis:6379
+      SHAPI_SMTP_HOST: mailpit
+      SHAPI_SMTP_PUERTO: 1025
+      SHAPI_SMTP_USUARIO: ${SHAPI_SMTP_USUARIO:-}
+      SHAPI_SMTP_CONTRASENA: ${SHAPI_SMTP_CONTRASENA:-}
+      SHAPI_SMTP_TLS: "false"
+      SHAPI_DPKEYS_DIR: /var/lib/shapi/dpkeys
+    volumes:
+      - dpkeys:/var/lib/shapi/dpkeys
+
+  borde:
+    image: ghcr.io/jordin-garcia/shapi-borde:latest
+    build:
+      context: ..
+      dockerfile: infra/borde/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      compuerta:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    volumes: !override
+      - caddydata:/data
+
+volumes:
+  dpkeys:
