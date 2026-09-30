@@ -155,3 +155,60 @@ docker compose --env-file .env -f infra/compose.yml down -v
 ```
 
 Después de `down -v` deberá volver a importar la raíz de Caddy.
+
+## Ambiente productivo simulado
+
+Este ambiente ejecuta la API de control, la compuerta, el trabajador y los dos
+frontends dentro de contenedores en configuración `Release`. Antes de levantarlo,
+copie `.env.example` a `.env` y cambie las credenciales de administración y de
+PostgreSQL. El archivo `.env` no se confirma en Git.
+
+### Levantar y verificar
+
+Desde la raíz del repositorio, construya las imágenes y levante todo el ambiente:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build
+node infra/verificar.mjs
+```
+
+La verificación espera que API, compuerta, borde, PostgreSQL, Redis, Mailpit y
+los dos orígenes estén sanos. El trabajador no expone HTTP y permanece en estado
+`running`; JZ-12 agregará su latido `salud:trabajador` en Redis. Solamente los
+puertos 80 y 443 del borde quedan publicados, ambos en `127.0.0.1`.
+
+La API aplica las migraciones al iniciar. La API y el trabajador comparten el
+volumen `dpkeys`, que conserva las llaves con las que se protegen los secretos de
+origen.
+
+### Sembrar la demostración
+
+Cuando JZ-05 esté integrada, cargue los datos de demostración con:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo
+```
+
+### Consultar registros
+
+Muestre los registros estructurados de todos los procesos con:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs -f
+```
+
+También puede agregar al final el nombre de un servicio, por ejemplo `api`,
+`compuerta` o `trabajador`.
+
+### Apagar
+
+Detenga el ambiente sin borrar los datos persistentes:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml down
+```
+
+Las imágenes publicadas por la integración continua se llaman
+`ghcr.io/jordin-garcia/shapi-{api,compuerta,trabajador,borde}`. Compose usa la
+etiqueta `latest`; la opción `--build` permite construir el mismo contenido
+localmente.

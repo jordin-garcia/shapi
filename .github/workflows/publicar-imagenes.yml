@@ -1,0 +1,72 @@
+name: Publicar imágenes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publicar:
+    name: publicar-${{ matrix.nombre }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: api
+            dockerfile: src/Shapi.Api/Dockerfile
+          - nombre: compuerta
+            dockerfile: src/Shapi.Compuerta/Dockerfile
+          - nombre: trabajador
+            dockerfile: src/Shapi.Trabajador/Dockerfile
+          - nombre: borde
+            dockerfile: infra/borde/Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - if: github.event_name == 'push'
+        # v4.6.0; fijada por SHA porque recibe GITHUB_TOKEN (H-109).
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/jordin-garcia/shapi-${{ matrix.nombre }}:latest
+            ghcr.io/jordin-garcia/shapi-${{ matrix.nombre }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.nombre }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.nombre }}
+
+  verificar-ambiente:
+    if: github.event_name == 'pull_request'
+    needs: publicar
+    name: ambiente-productivo
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Preparar configuración local
+        run: cp .env.example .env
+      - name: Levantar desde cero
+        run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build
+      - name: Verificar ambiente
+        run: node infra/verificar.mjs
+      - name: Mostrar registros si falla
+        if: failure()
+        run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs
+      - name: Apagar y borrar los datos efímeros
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml down -v
