@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.Features;
 using Shapi.Compuerta.Contexto;
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Reenvio;
@@ -23,10 +24,15 @@ public sealed class TuberiaCompuerta(
         "Shapi no puede atender su petición en este momento. Intente de nuevo en unos segundos.",
         new Dictionary<string, string> { ["Retry-After"] = "5" });
 
-    private readonly IFiltroCompuerta[] _filtros = [.. filtros];
-
     /// <summary>El cuerpo más grande que se acepta (08 §1): 10 MB.</summary>
     public const long LimiteCuerpo = 10 * 1024 * 1024;
+
+    private readonly IFiltroCompuerta[] _filtros = [.. filtros];
+
+    /// <summary>08 §1 y §4. Lo usa también el reenvío, si el cuerpo sin <c>Content-Length</c> pasa del límite.</summary>
+    public static ResultadoFiltro CuerpoDemasiadoGrande { get; } = ResultadoFiltro.Rechazar(
+        StatusCodes.Status413PayloadTooLarge, CodigosError.CuerpoDemasiadoGrande,
+        "El cuerpo de la petición pesa más de 10 MB.");
 
     /// <summary>
     /// El orden de los filtros, definido solo aquí. Agregar una regla es agregar su clase y una línea (RNF-13).
@@ -43,6 +49,19 @@ public sealed class TuberiaCompuerta(
 
     public async Task ProcesarAsync(HttpContext http)
     {
+        // Un cuerpo que anuncia más de 10 MB se rechaza sin ir a Redis. Uno que no lo anuncia (chunked) se corta al
+        // pasar el límite, mientras se reenvía.
+        if (http.Request.ContentLength > LimiteCuerpo)
+        {
+            await RespuestaError.EscribirAsync(http, CuerpoDemasiadoGrande);
+            return;
+        }
+
+        if (http.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limite)
+        {
+            limite.MaxRequestBodySize = LimiteCuerpo;
+        }
+
         var contexto = new ContextoPeticion(http);
         var resultado = await EvaluarAsync(contexto);
         if (!resultado.Continua)

@@ -70,8 +70,13 @@ public sealed class EntornoCompuerta : IAsyncLifetime
     /// <summary>Un cliente que llama a la compuerta con el host de la API.</summary>
     public HttpClient Cliente(string host) => Cliente(Fabrica, host);
 
+    /// <summary>Sin seguir redirecciones: las pruebas ven la respuesta de la compuerta tal cual.</summary>
     public static HttpClient Cliente(WebApplicationFactory<Program> fabrica, string host) =>
-        fabrica.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri($"http://{host}") });
+        fabrica.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri($"http://{host}"),
+            AllowAutoRedirect = false,
+        });
 
     public static RutaCache Ruta(string metodo, string patron, bool expuesta = true) =>
         new(Guid.NewGuid(), metodo, patron, expuesta, null, 0, 1);

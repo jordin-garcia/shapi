@@ -1,4 +1,3 @@
-using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Rutas;
 using Shapi.Contratos.Redis;
 using StackExchange.Redis;
@@ -28,12 +27,12 @@ public sealed class LectorContexto(IConnectionMultiplexer redis, CacheRutas cach
         primero.Execute();
         await Task.WhenAll(Pendientes(apiIdLeida, claveLeida));
 
-        if (!Guid.TryParse(apiIdLeida.Result.ToString(), out var apiId))
+        if (!Guid.TryParse((await apiIdLeida).ToString(), out var apiId))
         {
             return;
         }
 
-        contexto.Clave = claveLeida is null ? null : ContextoClave.DesdeCampos(claveLeida.Result.ACampos());
+        contexto.Clave = claveLeida is null ? null : ContextoClave.DesdeCampos((await claveLeida).ACampos());
 
         // org y susc solo se leen con una clave de esta API: con otra, FiltroClave la rechaza.
         var clave = contexto.Clave is { } leida && leida.ApiId == apiId ? leida : null;
@@ -50,7 +49,7 @@ public sealed class LectorContexto(IConnectionMultiplexer redis, CacheRutas cach
         segundo.Execute();
         await Task.WhenAll(Pendientes(apiLeida, rutasLeidas, organizacionLeida, suscripcionLeida));
 
-        var api = ContextoApi.DesdeCampos(apiId, apiLeida.Result.ACampos());
+        var api = ContextoApi.DesdeCampos(apiId, (await apiLeida).ACampos());
         if (api is null)
         {
             return;
@@ -59,7 +58,7 @@ public sealed class LectorContexto(IConnectionMultiplexer redis, CacheRutas cach
         contexto.Api = api;
         if (rutasLeidas is not null)
         {
-            contexto.Rutas = cacheRutas.Guardar(apiId, api.Version, rutasLeidas.Result);
+            contexto.Rutas = cacheRutas.Guardar(apiId, api.Version, await rutasLeidas);
         }
         else if (rutasEnMemoria!.Version == api.Version)
         {
@@ -72,8 +71,8 @@ public sealed class LectorContexto(IConnectionMultiplexer redis, CacheRutas cach
 
         if (clave is not null)
         {
-            contexto.Organizacion = ContextoOrganizacion.DesdeCampos(clave.OrganizacionId, organizacionLeida!.Result.ACampos());
-            contexto.Suscripcion = ContextoSuscripcion.DesdeCampos(clave.SuscripcionId, suscripcionLeida!.Result.ACampos());
+            contexto.Organizacion = ContextoOrganizacion.DesdeCampos(clave.OrganizacionId, (await organizacionLeida!).ACampos());
+            contexto.Suscripcion = ContextoSuscripcion.DesdeCampos(clave.SuscripcionId, (await suscripcionLeida!).ACampos());
         }
     }
 

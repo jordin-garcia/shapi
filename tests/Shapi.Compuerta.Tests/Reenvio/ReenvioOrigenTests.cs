@@ -155,13 +155,28 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
     [Fact]
     public async Task RF_31_Cuerpo_SinContentLengthYDeMasDeDiezMegabytes_Responde413()
     {
-        // Criterio 6: un cuerpo por partes (chunked) no anuncia su tamaño; se corta al pasar el límite.
-        var (host, clave) = await SembrarAsync(EntornoCompuerta.UrlOrigen);
-        using var cliente = entorno.Cliente(host);
+        // Criterio 6: un cuerpo por partes (chunked) no anuncia su tamaño; Kestrel lo corta al pasar el límite.
+        // TestServer no aplica MaxRequestBodySize, así que la compuerta y el origen corren en Kestrel de verdad.
+        await using var origen = await OrigenReal.IniciarAsync(async http =>
+        {
+            await http.Request.Body.CopyToAsync(Stream.Null, http.RequestAborted);
+            http.Response.StatusCode = StatusCodes.Status200OK;
+        });
+        var (host, clave) = await SembrarAsync($"http://localhost:{origen.Puerto}");
+        using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
+        {
+            web.UseSetting("SHAPI_REDIS", entorno.CadenaRedis);
+            web.UseSetting("SHAPI_MODO_DEMO", "true");
+            web.UseSetting("SHAPI_ORIGENES_PERMITIDOS", $"localhost:{origen.Puerto}");
+        });
+        fabrica.UseKestrel(0);
+        fabrica.StartServer();
+        using var cliente = fabrica.CreateClient();
         using var peticion = new HttpRequestMessage(HttpMethod.Post, "/cotizaciones")
         {
             Content = new StreamContent(new FlujoSinLongitud((10 * 1024 * 1024) + 1)),
         };
+        peticion.Headers.Host = host;
         peticion.Headers.Add("X-Api-Key", clave);
         peticion.Headers.TransferEncodingChunked = true;
 

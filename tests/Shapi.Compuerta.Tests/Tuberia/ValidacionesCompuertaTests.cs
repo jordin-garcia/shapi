@@ -259,6 +259,7 @@ public class ValidacionesCompuertaTests(EntornoCompuerta entorno) : IClassFixtur
             EntornoCompuerta.Ruta("GET", "/rastreo"),
             EntornoCompuerta.Ruta("DELETE", "/guias/{numero}", expuesta: false),
         ]);
+        entorno.Origen.Olvidar();
         using var cliente = entorno.Cliente(host);
         using var peticion = Preflight(OrigenPortal);
 

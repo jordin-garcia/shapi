@@ -7,7 +7,7 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 - **Host:** `{sub}.api.shapi.localhost` o un dominio propio verificado.
 - **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso. Si el nombre o el valor de un parámetro de la query contiene una clave con el formato de [§2](#2-formato-de-la-clave), sola o dentro de un texto más largo, la compuerta responde 401 `clave_en_url` y no reenvía la petición, aunque también venga `X-Api-Key`. Los demás parámetros (por ejemplo, un `key` del proveedor) se reenvían. La compuerta tampoco registra la URL de destino con su query.
 - **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
-- **Cuerpo:** máximo 10 MB. Si es más grande se responde 413 `cuerpo_demasiado_grande`.
+- **Cuerpo:** máximo 10 MB (10 × 1024 × 1024 bytes). Si es más grande se responde 413 `cuerpo_demasiado_grande`. Si el `Content-Length` lo anuncia, se rechaza antes de leer Redis; si no lo anuncia (cuerpo por partes), se corta al pasar el límite mientras se reenvía.
 - **Tiempo de espera del origen:** 30 segundos **en total**, desde que se reenvía la petición hasta que termina la respuesta; no es un tiempo de inactividad. Si vence antes de que el origen responda, 504 `origen_sin_respuesta`. Si la respuesta ya empezó, se corta. Dentro de esos 30 segundos, la conexión con el origen tiene 10 segundos; si no se conecta, 502 `origen_inaccesible`.
 - **Salud:** `GET /salud` solo responde cuando el `Host` es `localhost`, para no tapar una ruta `/salud` de las APIs. Con cualquier otro host, la petición pasa por la tubería.
 
@@ -52,15 +52,15 @@ flowchart LR
 
 | # | Filtro | Qué hace | Datos que usa (Redis) |
 |---|---|---|---|
-| 0 | `FiltroCors` | Responde el *preflight* `OPTIONS` sin clave, con 204 y las cabeceras de [§6](#6-cors). A las demás respuestas les agrega `Access-Control-*` | `api:{id}.portal_host` |
+| 0 | `FiltroCors` | Responde el *preflight* (`OPTIONS` con `Origin` y `Access-Control-Request-Method`) sin clave, con 204 y las cabeceras de [§6](#6-cors). A las demás respuestas les agrega `Access-Control-*`. Si el host no tiene una API publicada, el *preflight* sigue y el filtro 1 responde 404 | `api:{id}.portal_host` |
 | 1 | `FiltroApi` | `host → api_id → api:{id}`. Exige `estado = publicada` | `api:host:{host}`, `api:{id}`, `api:{id}:rutas` |
 | 2 | `FiltroClave` | Rechaza una clave en la query string ([§1](#1-contrato-de-entrada)). Calcula el SHA-256 de `X-Api-Key` y busca `clave:{hash}`. Exige que `api_id` coincida con la API resuelta; si no coincide, responde `clave_invalida`, porque no se aceptan claves de otra API | `clave:{hash}` |
-| 3 | `FiltroOrganizacion` | Exige `estado_efectivo = activa` | `org:{id}` |
-| 4 | `FiltroSuscripcion` | Exige que `estado ∈ {activa, en_gracia}`. **No compara fechas**: los cambios de estado los hace el trabajador cada minuto (CU-16). Así, si el trabajador está caído, el servicio sigue funcionando en vez de cortarse ([RNF-04](03-requisitos.md#rnf-04)), y el reloj del modo demostración no afecta a la compuerta | `susc:{id}` |
-| 5 | `FiltroRuta` | Busca la coincidencia de método y patrón entre las rutas `expuesta = true` | `api:{id}:rutas` (ya cargado) |
+| 3 | `FiltroOrganizacion` | Exige `estado_efectivo = activa`. Si `org:{id}` no está en Redis, el estado no se puede comprobar y también se rechaza | `org:{id}` |
+| 4 | `FiltroSuscripcion` | Exige que `estado ∈ {activa, en_gracia}`. Una suscripción finalizada no tiene `susc:{id}` ([07 §4](07-modelo-de-datos.md#4-estructura-de-las-llaves-en-redis)), así que una llave ausente se rechaza igual. **No compara fechas**: los cambios de estado los hace el trabajador cada minuto (CU-16). Así, si el trabajador está caído, el servicio sigue funcionando en vez de cortarse ([RNF-04](03-requisitos.md#rnf-04)), y el reloj del modo demostración no afecta a la compuerta | `susc:{id}` |
+| 5 | `FiltroRuta` | Busca, entre todas las rutas del método, la que mejor coincide con el camino según la regla de especificidad de [§1](#1-contrato-de-entrada), y exige que esté `expuesta = true`. Si la que gana está oculta, se rechaza aunque un patrón más general esté expuesto: ocultar `/guias/recientes` no sirve si `/guias/{numero}` la deja pasar ([RF-10](03-requisitos.md#rf-10)). En un empate total gana la oculta | `api:{id}:rutas` (ya cargado) |
 | 6 | `FiltroLimitesYCuotas` | Ejecuta el script Lua `evaluar_limites.lua` (ver abajo). Con la clave de pruebas usa los límites fijos de [RF-45](03-requisitos.md#rf-45) y no toca las cuotas | `rl:*`, `cuota:*` |
 | 7 | `FiltroCache` | Solo aplica a GET con `cache_segundos > 0`. Si encuentra `cache:…`, responde desde ahí; si no, marca la respuesta para guardarla si el origen devuelve 200 | `cache:*` |
-| 8 | Reenvío (YARP) | Destino = `url_origen` + el camino y la query. Quita `X-Api-Key` y las cabeceras `X-Shapi-*` que haya puesto el cliente. Agrega `X-Shapi-Consumidor: {consumidor_id}`, `X-Shapi-Entorno: produccion\|pruebas`, `X-Shapi-Secreto: {secreto}` y `X-Forwarded-For/Proto/Host`. Usa un `SocketsHttpHandler.ConnectCallback` que **rechaza direcciones internas** ([RNF-10](03-requisitos.md#rnf-10)) | `api:{id}.url_origen`, `.secreto` |
+| 8 | Reenvío (YARP) | Destino = `url_origen` + el camino y la query. Quita `X-Api-Key` y las cabeceras `X-Shapi-*` que haya puesto el cliente. Agrega `X-Shapi-Consumidor: {consumidor_id}`, `X-Shapi-Entorno: produccion\|pruebas`, `X-Shapi-Secreto: {secreto}` (si la API lo tiene) y `X-Forwarded-For/Proto/Host` ([§5](#5-cabeceras)). Usa un `SocketsHttpHandler.ConnectCallback` que **rechaza direcciones internas** y se conecta a una de las direcciones ya validadas ([RNF-10](03-requisitos.md#rnf-10), [10 §4](10-identidad-y-seguridad.md#4-proteccion-del-origen-ssrf)) | `api:{id}.url_origen`, `.secreto` |
 | 9 | `MedicionMiddleware` | Siempre se ejecuta y va **al final**. Incrementa `met:{…}` en un *pipeline* sin esperar la respuesta de Redis (*fire-and-forget*) y agrega la llave a `met:pendientes` | `met:*` |
 
 ### Script `evaluar_limites.lua`
@@ -130,15 +130,21 @@ Las respuestas del **origen** se devuelven tal cual, incluidos sus errores. Las 
 | `X-Cuota-Reinicio` | Fecha ISO 8601 en que termina el ciclo |
 | `X-Shapi-Cache` | `HIT` o `MISS` (solo en las rutas con caché) |
 
-**Hacia el origen:** `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` y `X-Forwarded-*`. **Nunca** se envían `X-Api-Key` ni las cookies del portal. El `Host` que recibe el origen es el de `url_origen`, no el de la API en Shapi. El host original viaja en `X-Forwarded-Host`. Si el cliente manda `X-Shapi-Consumidor` o `X-Shapi-Entorno`, la compuerta reemplaza sus valores.
+**Hacia el origen:** `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` y `X-Forwarded-*`. **Nunca** se envían `X-Api-Key` ni las cookies de sesión de Shapi: de la cabecera `Cookie` se quitan `shapi_sesion` y `portal_sesion`, y las demás cookies pasan. El `Host` que recibe el origen es el de `url_origen`, no el de la API en Shapi. El host original viaja en `X-Forwarded-Host`. Cualquier `X-Shapi-*` que mande el cliente se quita, así que no puede cambiar el consumidor, el entorno ni el secreto.
+
+- `X-Forwarded-For`: la cadena que haya llegado, más la IP de quien se conectó a la compuerta.
+- `X-Forwarded-Proto`: el que mande el borde (Caddy), que le habla a la compuerta por `http`; si no llega `http` o `https`, el esquema de la conexión.
+- `X-Forwarded-Host`: el `Host` con que llegó la petición.
 
 ## 6. CORS
 
-- `Access-Control-Allow-Origin`: solo el host del portal de esa API (`https://{sub}.shapi.localhost`). Las peticiones sin `Origin`, que son las de servidor a servidor, pasan sin restricción.
-- `Access-Control-Allow-Methods`: los de las rutas expuestas.
-- `Access-Control-Allow-Headers`: `X-Api-Key, Content-Type, Accept`.
-- `Access-Control-Expose-Headers`: todas las de [§5](#5-cabeceras).
-- `Access-Control-Max-Age: 600`.
+- `Access-Control-Allow-Origin`: solo el host del portal de esa API (`https://{sub}.shapi.localhost`). Se acepta un `Origin` cuyo host es el `portal_host` de la API, con `http` o `https` y cualquier puerto, y se devuelve tal como llegó. Las peticiones sin `Origin`, que son las de servidor a servidor, pasan sin restricción. Las de otro origen pasan, pero sin las cabeceras de CORS.
+- `Access-Control-Allow-Methods`: los de las rutas expuestas (solo en el *preflight*).
+- `Access-Control-Allow-Headers`: `X-Api-Key, Content-Type, Accept` (solo en el *preflight*).
+- `Access-Control-Expose-Headers`: todas las de [§5](#5-cabeceras) (en las demás respuestas).
+- `Access-Control-Max-Age: 600` (solo en el *preflight*).
+- El *preflight* de otro origen también recibe 204, sin esas cabeceras.
+- Las cabeceras se agregan a todas las respuestas, también a los rechazos de [§4](#4-contrato-de-errores), para que el portal pueda leer el error. Las `Access-Control-*` que mande el origen se quitan: el origen no puede abrir el CORS a otros sitios. Toda respuesta a una petición con `Origin` lleva `Vary: Origin`.
 
 ## 7. Medición y consolidación
 
@@ -172,7 +178,7 @@ La **latencia de la compuerta** es la latencia total menos el tiempo de espera d
   2. un *pipeline* con lo que depende de esos valores: `api:{id}`, sus rutas, `org:{id}` y `susc:{id}`;
   3. el script Lua de límites y cuotas.
 
-  Si la ruta usa caché (filtro 7), se suma la consulta de `cache:*`.
-- La compuerta **no guarda en memoria** los datos de claves, suscripciones ni organizaciones. Así una revocación o una suspensión se aplica al instante ([RF-28](03-requisitos.md#rf-28)), a costa de consultar Redis en cada petición ([ADR-22](12-decisiones.md)). Lo único que se guarda en memoria, durante 5 segundos como máximo, es `api:{id}:rutas`, junto con su `version`.
+  Si la ruta usa caché (filtro 7), se suma la consulta de `cache:*`. `org:{id}` y `susc:{id}` solo se piden si la clave existe y es de esa API; `org:{id}` es el `organizacion_id` de la clave, que es el de la API.
+- La compuerta **no guarda en memoria** los datos de claves, suscripciones ni organizaciones. Así una revocación o una suspensión se aplica al instante ([RF-28](03-requisitos.md#rf-28)), a costa de consultar Redis en cada petición ([ADR-22](12-decisiones.md)). Lo único que se guarda en memoria, durante 5 segundos como máximo, es `api:{id}:rutas`, junto con su `version`. Mientras las rutas están en memoria, el segundo *pipeline* no las pide. Si la `version` de `api:{id}` ya no es la de las rutas en memoria, se vuelven a pedir en un viaje más: solo pasa en la primera petición después de una publicación.
 - Hay una conexión multiplexada a Redis (StackExchange.Redis) y un solo invocador HTTP de YARP (`HttpMessageInvoker` con `SocketsHttpHandler`), que agrupa las conexiones por destino (*pooling*).
 - **Pruebas de aceptación:** RNF-01 y RNF-03 se miden con k6 contra `origen-envios` en el ambiente productivo simulado. Los resultados se documentan en el manual técnico.
