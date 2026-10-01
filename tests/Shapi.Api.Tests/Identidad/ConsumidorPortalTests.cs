@@ -162,6 +162,11 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.Null(token.UsuarioId);
         Assert.NotNull(token.ConsumidorId);
         Assert.Equal(organizacionId, token.OrganizacionId);
+        var correoRecuperacion = await contexto.Set<CorreoSaliente>().IgnoreQueryFilters()
+            .SingleAsync(c => c.Destinatario == "misma@correo.test" && c.Plantilla == "recuperacion");
+        using var datosCorreo = JsonDocument.Parse(correoRecuperacion.Datos);
+        Assert.Equal("API de prueba", datosCorreo.RootElement.GetProperty("nombrePortal").GetString());
+        Assert.Equal("recuperar.shapi.localhost", datosCorreo.RootElement.GetProperty("hostPortal").GetString());
     }
 
     [Fact]
