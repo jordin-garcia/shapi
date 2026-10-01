@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Shapi.Compuerta.Reenvio;
 using Shapi.Compuerta.Tests.Soporte;
+using Shapi.Contratos.Red;
 using Shapi.Contratos.Redis;
 
 namespace Shapi.Compuerta.Tests.Reenvio;
@@ -31,7 +33,9 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
     public void RF_31_Invocador_UsaLaConfiguracionDelCliente()
     {
         // 08 §1 y §8: sin proxy ni redirecciones ni cookies, con el tiempo de conexión y un pool por destino.
-        using var manejador = ReenvioOrigen.CrearManejador(TiemposOrigen.PorDefecto);
+        // Criterio 5 de JG-05: cada conexión pasa por el ConnectCallback que valida la dirección (RNF-10).
+        var conexion = new ConexionOrigen(new ValidadorDireccionOrigen(), new ProteccionOrigen(false, []));
+        using var manejador = ReenvioOrigen.CrearManejador(TiemposOrigen.PorDefecto, conexion);
 
         manejador.ConnectTimeout.Should().Be(TimeSpan.FromSeconds(10));
         manejador.UseProxy.Should().BeFalse();
@@ -39,13 +43,14 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
         manejador.UseCookies.Should().BeFalse();
         manejador.AutomaticDecompression.Should().Be(DecompressionMethods.None);
         manejador.EnableMultipleHttp2Connections.Should().BeTrue();
+        manejador.ConnectCallback.Should().NotBeNull();
     }
 
     [Fact]
     public async Task RF_31_InvocadorReal_OrigenQueNoAceptaConexiones_Responde502()
     {
-        // Con el cliente real de YARP (sin el origen en memoria): un puerto cerrado responde 502. JG-05 lo traduce
-        // a origen_inaccesible (08 §4).
+        // Con el cliente real de YARP (sin el origen en memoria): 502 origen_inaccesible (08 §4). Desde JG-05,
+        // 127.0.0.1 además es una dirección prohibida (RNF-10).
         using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
             web.UseSetting("SHAPI_REDIS", entorno.CadenaRedis));
         var (host, clave) = await SembrarAsync("http://127.0.0.1:1");
@@ -55,13 +60,13 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
 
         var respuesta = await cliente.SendAsync(peticion);
 
-        respuesta.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        await VerificarErrorAsync(respuesta, HttpStatusCode.BadGateway, "origen_inaccesible");
     }
 
     [Fact]
     public async Task RF_31_TiempoTotal_OrigenQueNoResponde_Responde504()
     {
-        // 08 §1 y §3: si el origen no responde a tiempo, 504. JG-05 lo traduce a origen_sin_respuesta.
+        // 08 §1 y §3, criterio 6 de JG-05: si el origen no responde a tiempo, 504 origen_sin_respuesta.
         using var fabrica = FabricaConTiempoTotal(TimeSpan.FromMilliseconds(500));
         var (host, clave) = await SembrarAsync(EntornoCompuerta.UrlOrigen);
         entorno.Origen.Responder = async http => await Task.Delay(TimeSpan.FromSeconds(5), http.RequestAborted);
@@ -74,7 +79,7 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
 
             var respuesta = await cliente.SendAsync(peticion);
 
-            respuesta.StatusCode.Should().Be(HttpStatusCode.GatewayTimeout);
+            await VerificarErrorAsync(respuesta, HttpStatusCode.GatewayTimeout, "origen_sin_respuesta");
         }
         finally
         {
@@ -128,6 +133,71 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
         }
     }
 
+    [Fact]
+    public async Task RF_31_Cuerpo_ContentLengthDeMasDeDiezMegabytes_Responde413SinReenviar()
+    {
+        // Criterio 6 y 08 §1
+        var (host, clave) = await SembrarAsync(EntornoCompuerta.UrlOrigen);
+        entorno.Origen.Olvidar();
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Post, "/cotizaciones")
+        {
+            Content = new ByteArrayContent(new byte[(10 * 1024 * 1024) + 1]),
+        };
+        peticion.Headers.Add("X-Api-Key", clave);
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.RequestEntityTooLarge, "cuerpo_demasiado_grande");
+        entorno.Origen.Ultima.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RF_31_Cuerpo_SinContentLengthYDeMasDeDiezMegabytes_Responde413()
+    {
+        // Criterio 6: un cuerpo por partes (chunked) no anuncia su tamaño; se corta al pasar el límite.
+        var (host, clave) = await SembrarAsync(EntornoCompuerta.UrlOrigen);
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Post, "/cotizaciones")
+        {
+            Content = new StreamContent(new FlujoSinLongitud((10 * 1024 * 1024) + 1)),
+        };
+        peticion.Headers.Add("X-Api-Key", clave);
+        peticion.Headers.TransferEncodingChunked = true;
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.RequestEntityTooLarge, "cuerpo_demasiado_grande");
+    }
+
+    [Fact]
+    public async Task RF_31_Cuerpo_DeExactamenteDiezMegabytes_SeReenvia()
+    {
+        // Criterio 6: el límite es "más de 10 MB".
+        var (host, clave) = await SembrarAsync(EntornoCompuerta.UrlOrigen);
+        using var cliente = entorno.Cliente(host);
+        using var peticion = new HttpRequestMessage(HttpMethod.Post, "/cotizaciones")
+        {
+            Content = new ByteArrayContent(new byte[10 * 1024 * 1024]),
+        };
+        peticion.Headers.Add("X-Api-Key", clave);
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    private static async Task VerificarErrorAsync(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
+    {
+        respuesta.StatusCode.Should().Be(estado);
+        respuesta.Content.Headers.ContentType!.ToString().Should().Be("application/json; charset=utf-8");
+        using var documento = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        var error = documento.RootElement.GetProperty("error");
+        error.GetProperty("codigo").GetString().Should().Be(codigo);
+        error.GetProperty("estado").GetInt32().Should().Be((int)estado);
+        error.GetProperty("mensaje").GetString().Should().NotBeNullOrWhiteSpace();
+    }
+
     private WebApplicationFactory<Program> FabricaConTiempoTotal(TimeSpan total) =>
         entorno.Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
             servicios.AddSingleton(new TiemposOrigen(total, TiemposOrigen.PorDefecto.Conexion))));
@@ -139,5 +209,43 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
         var clave = $"shp_prod_{Guid.NewGuid():N}"[..35];
         await entorno.SembrarClaveAsync(api, ContextoClave.CalcularHash(clave));
         return (host, clave);
+    }
+
+    /// <summary>Un flujo que no se puede medir, para que el cliente lo mande por partes.</summary>
+    private sealed class FlujoSinLongitud(long longitud) : Stream
+    {
+        private long _restante = longitud;
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var leidos = (int)Math.Min(count, _restante);
+            Array.Clear(buffer, offset, leidos);
+            _restante -= leidos;
+            return leidos;
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

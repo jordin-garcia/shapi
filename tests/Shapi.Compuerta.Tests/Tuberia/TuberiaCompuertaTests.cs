@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
+using Shapi.Compuerta.Contexto;
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Reenvio;
 
@@ -15,6 +16,7 @@ public class TuberiaCompuertaTests
         var registro = new List<string>();
         var reenvio = new ReenvioRegistrado(registro);
         var tuberia = new TuberiaCompuerta(
+            new LectorSinDatos(),
             [
                 new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar),
                 new FiltroDePrueba("segundo", registro, ResultadoFiltro.Rechazar(403, "prueba_rechazo", "Rechazado.")),
@@ -38,6 +40,7 @@ public class TuberiaCompuertaTests
     {
         var registro = new List<string>();
         var tuberia = new TuberiaCompuerta(
+            new LectorSinDatos(),
             [
                 new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar),
                 new FiltroDePrueba("segundo", registro, ResultadoFiltro.Continuar),
@@ -56,6 +59,7 @@ public class TuberiaCompuertaTests
         var rechazo = ResultadoFiltro.Rechazar(401, "clave_ausente", "Falta la clave.",
             new Dictionary<string, string> { ["WWW-Authenticate"] = "ApiKey header=\"X-Api-Key\"" });
         var tuberia = new TuberiaCompuerta(
+            new LectorSinDatos(),
             [new FiltroDePrueba("unico", [], rechazo)], new ReenvioRegistrado([]), NullLogger<TuberiaCompuerta>.Instance);
         var http = NuevoContexto();
 
@@ -67,10 +71,60 @@ public class TuberiaCompuertaTests
     }
 
     [Fact]
-    public void RNF_13_Orden_DefinidoEnUnSoloLugar_ApiLuegoClave()
+    public async Task RNF_13_Procesar_FiltroQueRespondeSinError_EscribeElEstadoSinCuerpoNiReenvia()
     {
-        // 08 §3: filtros 1 y 2. Agregar una regla es agregar una clase y una línea (RNF-13).
-        TuberiaCompuerta.Orden.Should().Equal(typeof(FiltroApi), typeof(FiltroClave));
+        // Criterio 7 de JG-05: el preflight de CORS se contesta con 204 y sin el JSON de error.
+        var registro = new List<string>();
+        var tuberia = new TuberiaCompuerta(new LectorSinDatos(),
+            [new FiltroDePrueba("cors", registro, ResultadoFiltro.Responder(204))], new ReenvioRegistrado(registro),
+            NullLogger<TuberiaCompuerta>.Instance);
+        var http = NuevoContexto();
+
+        await tuberia.ProcesarAsync(http);
+
+        registro.Should().Equal("cors");
+        http.Response.StatusCode.Should().Be(204);
+        http.Response.Body.Length.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RNF_13_Procesar_LeeElContextoAntesDeLosFiltros()
+    {
+        // Criterio 9 de JG-05: los filtros ya no van a Redis; el lector deja los datos en el contexto.
+        var registro = new List<string>();
+        var tuberia = new TuberiaCompuerta(new LectorSinDatos(registro),
+            [new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar)], new ReenvioRegistrado(registro),
+            NullLogger<TuberiaCompuerta>.Instance);
+
+        await tuberia.ProcesarAsync(NuevoContexto());
+
+        registro.Should().Equal("lector", "primero", "reenvio");
+    }
+
+    [Fact]
+    public async Task RF_31_Procesar_ContentLengthDeMasDeDiezMegabytes_Responde413SinLeerRedis()
+    {
+        // Criterio 6 de JG-05 y 08 §1
+        var registro = new List<string>();
+        var tuberia = new TuberiaCompuerta(new LectorSinDatos(registro),
+            [new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar)], new ReenvioRegistrado(registro),
+            NullLogger<TuberiaCompuerta>.Instance);
+        var http = NuevoContexto();
+        http.Request.ContentLength = TuberiaCompuerta.LimiteCuerpo + 1;
+
+        await tuberia.ProcesarAsync(http);
+
+        registro.Should().BeEmpty();
+        http.Response.StatusCode.Should().Be(413);
+        (await LeerErrorAsync(http)).GetProperty("codigo").GetString().Should().Be("cuerpo_demasiado_grande");
+    }
+
+    [Fact]
+    public void RNF_13_Orden_DefinidoEnUnSoloLugar()
+    {
+        // 08 §3: filtros 0 a 5. Agregar una regla es agregar una clase y una línea (RNF-13).
+        TuberiaCompuerta.Orden.Should().Equal(typeof(FiltroCors), typeof(FiltroApi), typeof(FiltroClave),
+            typeof(FiltroOrganizacion), typeof(FiltroSuscripcion), typeof(FiltroRuta));
         TuberiaCompuerta.Orden.Should().OnlyContain(t => typeof(IFiltroCompuerta).IsAssignableFrom(t));
     }
 
@@ -94,6 +148,15 @@ public class TuberiaCompuertaTests
         {
             registro.Add(nombre);
             return ValueTask.FromResult(resultado);
+        }
+    }
+
+    private sealed class LectorSinDatos(List<string>? registro = null) : ILectorContexto
+    {
+        public Task LeerAsync(ContextoPeticion contexto)
+        {
+            registro?.Add("lector");
+            return Task.CompletedTask;
         }
     }
 

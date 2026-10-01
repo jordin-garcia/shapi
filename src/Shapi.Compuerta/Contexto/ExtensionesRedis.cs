@@ -1,6 +1,6 @@
 using StackExchange.Redis;
 
-namespace Shapi.Compuerta.Filtros;
+namespace Shapi.Compuerta.Contexto;
 
 internal static class ExtensionesRedis
 {

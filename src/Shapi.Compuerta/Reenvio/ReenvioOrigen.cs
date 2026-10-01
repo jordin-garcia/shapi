@@ -25,7 +25,7 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
 
         // Si el origen falla, YARP responde 502 o 504 sin cuerpo; JG-05 los traduce al contrato de errores.
         var error = await reenviador.SendAsync(http, api.UrlOrigen, invocador, _configuracion,
-            new TransformadorOrigen(clave), tiempoTotal.Token);
+            new TransformadorOrigen(api, clave), tiempoTotal.Token);
 
         if (error != ForwarderError.None && tiempoTotal.IsCancellationRequested
             && !http.RequestAborted.IsCancellationRequested && !http.Response.HasStarted)
@@ -34,14 +34,17 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
         }
     }
 
-    public static HttpMessageInvoker CrearInvocador(TiemposOrigen tiempos) => new(CrearManejador(tiempos));
+    public static HttpMessageInvoker CrearInvocador(TiemposOrigen tiempos, ConexionOrigen conexion) =>
+        new(CrearManejador(tiempos, conexion));
 
     /// <summary>
     /// El cliente de YARP. <see cref="SocketsHttpHandler"/> mantiene un pool de conexiones por destino (08 §8).
-    /// Si no conecta en <see cref="TiemposOrigen.Conexion"/>, YARP responde 502 (08 §1).
+    /// Si no conecta en <see cref="TiemposOrigen.Conexion"/>, YARP responde 502 (08 §1). Cada conexión pasa por
+    /// <see cref="ConexionOrigen"/>, que rechaza las direcciones internas (RNF-10).
     /// </summary>
-    public static SocketsHttpHandler CrearManejador(TiemposOrigen tiempos) => new()
+    public static SocketsHttpHandler CrearManejador(TiemposOrigen tiempos, ConexionOrigen conexion) => new()
     {
+        ConnectCallback = conexion.ConectarAsync,
         UseProxy = false,
         AllowAutoRedirect = false,
         AutomaticDecompression = DecompressionMethods.None,

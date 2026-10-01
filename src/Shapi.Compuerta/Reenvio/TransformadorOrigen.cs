@@ -4,12 +4,13 @@ using Yarp.ReverseProxy.Forwarder;
 namespace Shapi.Compuerta.Reenvio;
 
 /// <summary>Las cabeceras hacia el origen (08 §5, RF-31).</summary>
-internal sealed class TransformadorOrigen(ContextoClave clave) : HttpTransformer
+internal sealed class TransformadorOrigen(ContextoApi api, ContextoClave clave) : HttpTransformer
 {
     public override async ValueTask TransformRequestAsync(HttpContext httpContext, HttpRequestMessage proxyRequest,
         string destinationPrefix, CancellationToken cancellationToken)
     {
         await base.TransformRequestAsync(httpContext, proxyRequest, destinationPrefix, cancellationToken);
+        _ = api;
 
         // El origen recibe el host de url_origen, no el de la API en Shapi.
         proxyRequest.Headers.Host = null;

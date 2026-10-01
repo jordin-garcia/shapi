@@ -17,7 +17,7 @@ public static class ApisModulo
             var configuracion = sp.GetRequiredService<IConfiguration>();
             var modoDemo = bool.TryParse(configuracion["SHAPI_MODO_DEMO"], out var valor) && valor;
             var permitidos = (configuracion["SHAPI_ORIGENES_PERMITIDOS"]
-                    ?? "localhost:5101,localhost:5102,origen-envios:8080,origen-agro:8080")
+                    ?? ValidadorDireccionOrigen.OrigenesPermitidosPorDefecto)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             return new ConfiguracionProteccionOrigen(modoDemo, permitidos);
         });

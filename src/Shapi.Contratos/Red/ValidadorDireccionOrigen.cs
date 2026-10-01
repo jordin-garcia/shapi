@@ -36,6 +36,12 @@ public sealed record ResultadoValidacionDireccionOrigen(
 /// </summary>
 public sealed class ValidadorDireccionOrigen
 {
+    /// <summary>
+    /// <c>SHAPI_ORIGENES_PERMITIDOS</c> por defecto (10 §4, punto 3): los orígenes de demostración en desarrollo y en
+    /// el ambiente productivo simulado. La usan la API de control y la compuerta.
+    /// </summary>
+    public const string OrigenesPermitidosPorDefecto = "localhost:5101,localhost:5102,origen-envios:8080,origen-agro:8080";
+
     private readonly Func<string, CancellationToken, Task<IPAddress[]>> _resolver;
 
     public ValidadorDireccionOrigen()

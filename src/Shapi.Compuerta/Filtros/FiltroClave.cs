@@ -1,17 +1,15 @@
 using System.Text.RegularExpressions;
 using Microsoft.Net.Http.Headers;
 using Shapi.Contratos;
-using Shapi.Contratos.Redis;
-using StackExchange.Redis;
 
 namespace Shapi.Compuerta.Filtros;
 
 /// <summary>
-/// Filtro 2 (08 §3): calcula el SHA-256 de <c>X-Api-Key</c> y busca <c>clave:{hash}</c>. La clave debe ser de la
-/// API que resolvió <see cref="FiltroApi"/>. La clave en claro nunca se guarda ni se registra (RF-29).
-/// Una clave en la query string se rechaza sin reenviar, aunque también venga la cabecera (08 §1).
+/// Filtro 2 (08 §3): la clave de <c>X-Api-Key</c>, que <c>ILectorContexto</c> buscó por su SHA-256 en
+/// <c>clave:{hash}</c>, debe ser de la API que resolvió <see cref="FiltroApi"/>. La clave en claro nunca se guarda ni
+/// se registra (RF-29). Una clave en la query string se rechaza sin reenviar, aunque también venga la cabecera (08 §1).
 /// </summary>
-public sealed partial class FiltroClave(IConnectionMultiplexer redis) : IFiltroCompuerta
+public sealed partial class FiltroClave : IFiltroCompuerta
 {
     private static readonly Dictionary<string, string> CabecerasAutenticacion = new()
     {
@@ -30,7 +28,9 @@ public sealed partial class FiltroClave(IConnectionMultiplexer redis) : IFiltroC
         StatusCodes.Status401Unauthorized, CodigosError.ClaveInvalida,
         "La clave de acceso no es válida para esta API.", CabecerasAutenticacion);
 
-    public async ValueTask<ResultadoFiltro> EvaluarAsync(ContextoPeticion contexto)
+    public ValueTask<ResultadoFiltro> EvaluarAsync(ContextoPeticion contexto) => ValueTask.FromResult(Evaluar(contexto));
+
+    private static ResultadoFiltro Evaluar(ContextoPeticion contexto)
     {
         var api = contexto.Api ?? throw new InvalidOperationException("FiltroClave debe ir después de FiltroApi.");
         if (TieneClaveEnLaQuery(contexto.Http.Request.Query))
@@ -44,19 +44,13 @@ public sealed partial class FiltroClave(IConnectionMultiplexer redis) : IFiltroC
             return Ausente;
         }
 
-        if (valores.Count > 1)
+        // Con varias X-Api-Key, el lector no buscó ninguna.
+        var clave = contexto.Clave;
+        if (valores.Count > 1 || clave is null || clave.ApiId != api.ApiId || clave.OrganizacionId != api.OrganizacionId)
         {
             return Invalida;
         }
 
-        var campos = await redis.GetDatabase().HashGetAllAsync(LlavesRedis.Clave(ContextoClave.CalcularHash(valores[0]!)));
-        var clave = ContextoClave.DesdeCampos(campos.ACampos());
-        if (clave is null || clave.ApiId != api.ApiId)
-        {
-            return Invalida;
-        }
-
-        contexto.Clave = clave;
         return ResultadoFiltro.Continuar;
     }
 
