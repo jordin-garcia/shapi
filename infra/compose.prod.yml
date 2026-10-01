@@ -68,6 +68,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       SHAPI_REDIS: redis:6379
+      # Los orígenes de demostración están en la red de Docker: sin esto, la protección contra SSRF los rechaza.
+      SHAPI_MODO_DEMO: ${SHAPI_MODO_DEMO:-true}
+      SHAPI_ORIGENES_PERMITIDOS: origen-envios:8080,origen-agro:8080
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/salud"]
       interval: 5s

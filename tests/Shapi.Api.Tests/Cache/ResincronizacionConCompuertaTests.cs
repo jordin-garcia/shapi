@@ -45,14 +45,17 @@ public sealed class ResincronizacionConCompuertaTests(PostgresPersistencia postg
     [Fact]
     public async Task RF_14_Compuerta_ApiDespublicadaYPublicada_Responde404()
     {
-        // RF-14: PublicarApi deja estado=despublicada y la compuerta responde 404.
-        var api = await SembrarAsync();
+        // RF-14: PublicarApi deja estado=despublicada y la compuerta responde 404. Desde JG-05 la compuerta también
+        // exige org:{id} y susc:{id} (filtros 3 y 4 de 08 §3).
+        var (api, organizacion, suscripcion) = await SembrarAsync();
         await using var compuerta = CrearCompuerta(new OrigenEnMemoria());
         using var cliente = Cliente(compuerta);
         using (var alcance = Servicios.CreateScope())
         {
             await Publicador(alcance).PublicarApi(api);
             await Publicador(alcance).PublicarClave(await Escalar<Guid>("SELECT id FROM clave"));
+            await Publicador(alcance).PublicarOrganizacion(organizacion);
+            await Publicador(alcance).PublicarSuscripcion(suscripcion);
         }
 
         (await LlamarAsync(cliente)).Codigo.Should().Be(HttpStatusCode.OK);
@@ -91,7 +94,7 @@ public sealed class ResincronizacionConCompuertaTests(PostgresPersistencia postg
         await alcance.ServiceProvider.GetRequiredService<ResincronizarCache>().EjecutarAsync(CancellationToken.None);
     }
 
-    private async Task<Guid> SembrarAsync()
+    private async Task<(Guid Api, Guid Organizacion, Guid Suscripcion)> SembrarAsync()
     {
         var organizacion = await NuevaOrganizacion();
         var api = await NuevaApiPublicada(organizacion, secreto: Secreto, urlOrigen: "http://origen.prueba");
@@ -100,7 +103,7 @@ public sealed class ResincronizacionConCompuertaTests(PostgresPersistencia postg
         var suscripcion = await NuevaSuscripcionApiEn(await NuevoConsumidor(organizacion), api, plan, "activa",
             Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
         await NuevaClaveCon(suscripcion, Clave);
-        return api;
+        return (api, organizacion, suscripcion);
     }
 
     /// <summary>El origen del proveedor: responde 200 y cuenta las peticiones que le llegan.</summary>

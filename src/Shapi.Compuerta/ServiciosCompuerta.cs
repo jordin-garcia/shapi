@@ -1,5 +1,8 @@
+using Shapi.Compuerta.Contexto;
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Reenvio;
+using Shapi.Compuerta.Rutas;
+using Shapi.Contratos.Red;
 using StackExchange.Redis;
 
 namespace Shapi.Compuerta;
@@ -29,8 +32,16 @@ public static class ServiciosCompuerta
         // (08 §1). Solo se conservan sus advertencias y errores.
         services.AddLogging(registros => registros.AddFilter("Yarp.ReverseProxy.Forwarder.HttpForwarder", LogLevel.Warning));
         services.AddSingleton(TiemposOrigen.PorDefecto);
-        services.AddSingleton(sp => ReenvioOrigen.CrearInvocador(sp.GetRequiredService<TiemposOrigen>()));
+        services.AddSingleton<ValidadorDireccionOrigen>();
+        services.AddSingleton(sp => ProteccionOrigen.DesdeConfiguracion(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton<ConexionOrigen>();
+        services.AddSingleton(sp => ReenvioOrigen.CrearInvocador(
+            sp.GetRequiredService<TiemposOrigen>(), sp.GetRequiredService<ConexionOrigen>()));
         services.AddSingleton<IReenvioOrigen, ReenvioOrigen>();
+
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<CacheRutas>();
+        services.AddSingleton<ILectorContexto, LectorContexto>();
 
         foreach (var filtro in TuberiaCompuerta.Orden)
         {
@@ -38,6 +49,7 @@ public static class ServiciosCompuerta
         }
 
         services.AddSingleton(sp => new TuberiaCompuerta(
+            sp.GetRequiredService<ILectorContexto>(),
             TuberiaCompuerta.Orden.Select(filtro => (IFiltroCompuerta)sp.GetRequiredService(filtro)),
             sp.GetRequiredService<IReenvioOrigen>(),
             sp.GetRequiredService<ILogger<TuberiaCompuerta>>()));

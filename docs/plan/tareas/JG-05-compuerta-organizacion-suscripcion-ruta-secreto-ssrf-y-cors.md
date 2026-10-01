@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-09-30
 depende_de: [JG-04, DC-04]
 requisitos: [RF-29, RF-31, RF-47, RNF-10]
@@ -58,3 +58,27 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Fuera de alcance
 - Límites y cuotas (JG-06)
 - Caché de respuestas (JG-15)
+
+## Resultado
+
+**Qué se hizo**
+- `LectorContexto` (`ILectorContexto`) lee de Redis el contexto de cada petición antes de los filtros, en dos *pipelines* (criterio 9): primero `api:host:{host}` y `clave:{hash}`, y después `api:{id}`, `api:{id}:rutas`, `org:{id}` y `susc:{id}`. Lo deja en `ContextoPeticion` (`Api`, `Rutas`, `Clave`, `Organizacion`, `Suscripcion`). Los filtros ya no van a Redis: cada uno comprueba lo suyo. Una caída de Redis en el lector sigue respondiendo 503.
+- `CacheRutas` guarda las rutas de cada API 5 segundos como máximo, con la `version` de `api:{id}`. Mientras están en memoria, el segundo *pipeline* no las pide. Si la `version` cambió, se vuelven a leer en un viaje más; solo pasa en la primera petición después de publicar.
+- `PatronRuta` y `TablaRutas` comparan con la sintaxis de OpenAPI (`/guias/{numero}`, también segmentos mixtos como `{nombre}.json`) y aplican la regla de especificidad de 08 §1.
+- Filtros nuevos, en este orden en `TuberiaCompuerta.Orden`: `FiltroCors` (0), `FiltroOrganizacion` (3), `FiltroSuscripcion` (4) y `FiltroRuta` (5). `FiltroRuta` deja la ruta en `ContextoPeticion.Ruta`. `ResultadoFiltro.Responder(estado)` contesta sin cuerpo y sin reenviar (el *preflight*).
+- `ConexionOrigen` es el `ConnectCallback`: valida cada conexión con `ValidadorDireccionOrigen` y se conecta a una de las direcciones ya validadas. Una prueba con un resolver falso confirma que la conexión no vuelve a resolver el nombre (*DNS rebinding*). `ProteccionOrigen` lee `SHAPI_MODO_DEMO` y `SHAPI_ORIGENES_PERMITIDOS`. La lista por defecto quedó en `ValidadorDireccionOrigen.OrigenesPermitidosPorDefecto`, que también usa `ApisModulo`.
+- `TransformadorOrigen` quita `X-Api-Key`, cualquier `X-Shapi-*` del cliente y las cookies `shapi_sesion` y `portal_sesion`. Agrega `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` (si la API tiene) y `X-Forwarded-For/Proto/Host`.
+- `ReenvioOrigen` traduce los fallos de YARP al contrato de errores: 502 `origen_inaccesible`, 504 `origen_sin_respuesta` y 413 `cuerpo_demasiado_grande`. La tubería rechaza con 413 un `Content-Length` de más de 10 MB antes de leer Redis, y fija `MaxRequestBodySize` para los cuerpos por partes.
+- `infra/compose.prod.yml` pasa `SHAPI_MODO_DEMO` y `SHAPI_ORIGENES_PERMITIDOS` a la compuerta. Sin eso, la protección contra SSRF rechazaría `origen-envios` y `origen-agro`, que están en la red de Docker.
+
+**Decisiones** (quedaron en 08 §1, §3, §5, §6 y §8)
+- `FiltroRuta` busca entre **todas** las rutas del método, expuestas y ocultas, y exige que la que gana esté expuesta. Si una ruta oculta es más específica que una expuesta (`/guias/recientes` frente a `/guias/{numero}`), se rechaza. En un empate total gana la oculta (RF-10: solo las expuestas pasan).
+- Si `org:{id}` no está en Redis, se responde `api_no_disponible`: el estado no se puede comprobar. Una `susc:{id}` ausente es una suscripción finalizada: `suscripcion_inactiva`.
+- `org:{id}` se lee con el `organizacion_id` de la clave, que es el de la API. `FiltroClave` exige además que coincida con el de la API.
+- CORS: se acepta un `Origin` cuyo host es el `portal_host`, con `http` o `https` y cualquier puerto, y se devuelve tal cual. El *preflight* es un `OPTIONS` con `Origin` y `Access-Control-Request-Method`. El de otro origen recibe 204 sin cabeceras, y el de un host sin API publicada sigue hasta el 404. Las cabeceras se ponen en todas las respuestas, también en los rechazos, para que el portal pueda leer el error. Las `Access-Control-*` del origen se quitan, y toda respuesta a una petición con `Origin` lleva `Vary: Origin`.
+- `X-Forwarded-For` agrega la IP de la conexión a la cadena que llegó. `X-Forwarded-Proto` conserva el que manda el borde (Caddy le habla a la compuerta por `http`); si no llega uno válido, se usa el esquema de la conexión.
+- Los segmentos literales de los patrones no distinguen mayúsculas. Si las distinguieran, `/guias/RECIENTES` se saltaría una ruta oculta `/guias/recientes` cuando el origen tampoco las distingue (hallazgo opcional de la revisión en contexto limpio).
+- El 413 de un `Content-Length` de más de 10 MB y el 503 de Redis no disponible salen antes de conocer la API, así que no llevan cabeceras de CORS.
+- El límite del cuerpo es 10 × 1024 × 1024 bytes.
+
+**Archivos principales:** `src/Shapi.Compuerta/Contexto/{ILectorContexto,LectorContexto}.cs`, `src/Shapi.Compuerta/Rutas/{PatronRuta,TablaRutas,CacheRutas}.cs`, `src/Shapi.Compuerta/Filtros/{FiltroCors,FiltroOrganizacion,FiltroSuscripcion,FiltroRuta}.cs`, `src/Shapi.Compuerta/Reenvio/{ConexionOrigen,ProteccionOrigen,TransformadorOrigen,ReenvioOrigen}.cs`, `src/Shapi.Compuerta/TuberiaCompuerta.cs` y `tests/Shapi.Compuerta.Tests/**`.
