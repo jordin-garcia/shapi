@@ -6,7 +6,7 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 
 - **Host:** `{sub}.api.shapi.localhost` o un dominio propio verificado.
 - **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso. Si el nombre o el valor de un parámetro de la query contiene una clave con el formato de [§2](#2-formato-de-la-clave), sola o dentro de un texto más largo, la compuerta responde 401 `clave_en_url` y no reenvía la petición, aunque también venga `X-Api-Key`. Los demás parámetros (por ejemplo, un `key` del proveedor) se reenvían. La compuerta tampoco registra la URL de destino con su query.
-- **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros.
+- **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros. Los segmentos literales no distinguen mayúsculas, porque muchos orígenes tampoco las distinguen: así `/guias/RECIENTES` no se salta una ruta oculta `/guias/recientes`.
 - **Cuerpo:** máximo 10 MB (10 × 1024 × 1024 bytes). Si es más grande se responde 413 `cuerpo_demasiado_grande`. Si el `Content-Length` lo anuncia, se rechaza antes de leer Redis; si no lo anuncia (cuerpo por partes), se corta al pasar el límite mientras se reenvía.
 - **Tiempo de espera del origen:** 30 segundos **en total**, desde que se reenvía la petición hasta que termina la respuesta; no es un tiempo de inactividad. Si vence antes de que el origen responda, 504 `origen_sin_respuesta`. Si la respuesta ya empezó, se corta. Dentro de esos 30 segundos, la conexión con el origen tiene 10 segundos; si no se conecta, 502 `origen_inaccesible`.
 - **Salud:** `GET /salud` solo responde cuando el `Host` es `localhost`, para no tapar una ruta `/salud` de las APIs. Con cualquier otro host, la petición pasa por la tubería.
@@ -144,7 +144,7 @@ Las respuestas del **origen** se devuelven tal cual, incluidos sus errores. Las 
 - `Access-Control-Expose-Headers`: todas las de [§5](#5-cabeceras) (en las demás respuestas).
 - `Access-Control-Max-Age: 600` (solo en el *preflight*).
 - El *preflight* de otro origen también recibe 204, sin esas cabeceras.
-- Las cabeceras se agregan a todas las respuestas, también a los rechazos de [§4](#4-contrato-de-errores), para que el portal pueda leer el error. Las `Access-Control-*` que mande el origen se quitan: el origen no puede abrir el CORS a otros sitios. Toda respuesta a una petición con `Origin` lleva `Vary: Origin`.
+- Las cabeceras se agregan a todas las respuestas, también a los rechazos de [§4](#4-contrato-de-errores), para que el portal pueda leer el error. Hay dos excepciones, porque salen antes de conocer la API: el 413 de un `Content-Length` de más de 10 MB y el 503 de Redis no disponible. Las `Access-Control-*` que mande el origen se quitan: el origen no puede abrir el CORS a otros sitios. Toda respuesta a una petición con `Origin` lleva `Vary: Origin`.
 
 ## 7. Medición y consolidación
 

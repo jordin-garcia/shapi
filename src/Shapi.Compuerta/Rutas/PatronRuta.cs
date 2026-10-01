@@ -6,7 +6,8 @@ namespace Shapi.Compuerta.Rutas;
 /// <summary>
 /// Un patrón de ruta en sintaxis OpenAPI (<c>/guias/{numero}</c>), comparado segmento por segmento (08 §1). Un
 /// parámetro coincide con un segmento no vacío; un segmento puede mezclar texto y parámetros
-/// (<c>{nombre}.json</c>). Los literales distinguen mayúsculas, como los caminos de HTTP.
+/// (<c>{nombre}.json</c>). Los literales <b>no</b> distinguen mayúsculas: muchos orígenes (ASP.NET Core, por ejemplo)
+/// tampoco las distinguen, y así <c>/guias/RECIENTES</c> no se salta una ruta oculta <c>/guias/recientes</c> (RF-10).
 /// </summary>
 public sealed class PatronRuta
 {
@@ -124,7 +125,8 @@ public sealed class PatronRuta
 
             expresion.Append('$');
             return new Segmento(null,
-                new Regex(expresion.ToString(), RegexOptions.CultureInvariant | RegexOptions.Singleline, TiempoMaximo),
+                new Regex(expresion.ToString(),
+                    RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.IgnoreCase, TiempoMaximo),
                 parametros);
         }
 
@@ -132,7 +134,7 @@ public sealed class PatronRuta
         {
             if (Literal is not null)
             {
-                return string.Equals(parte, Literal, StringComparison.Ordinal);
+                return string.Equals(parte, Literal, StringComparison.OrdinalIgnoreCase);
             }
 
             try

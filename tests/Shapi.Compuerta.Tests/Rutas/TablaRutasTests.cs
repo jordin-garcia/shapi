@@ -14,7 +14,8 @@ public class TablaRutasTests
     [InlineData("/guias/{numero}", "/guias/GT123/eventos", false)]
     [InlineData("/guias/{numero}/eventos", "/guias/GT123/eventos", true)]
     [InlineData("/guias", "/guias", true)]
-    [InlineData("/guias", "/Guias", false)]
+    [InlineData("/guias", "/Guias", true)]
+    [InlineData("/archivos/{nombre}.json", "/archivos/reporte.JSON", true)]
     [InlineData("/guias", "/guias/", false)]
     [InlineData("/", "/", true)]
     [InlineData("/archivos/{nombre}.json", "/archivos/reporte.json", true)]
@@ -71,6 +72,18 @@ public class TablaRutasTests
         var tabla = TablaRutas.Crear([EntornoCompuerta.Ruta("GET", "/guias/{numero}"), oculta]);
 
         tabla.Buscar("GET", "/guias/recientes").Should().Be(oculta);
+    }
+
+    [Fact]
+    public void RF_29_Buscar_OcultaConOtrasMayusculas_DevuelveLaOcultaParaQueSeRechace()
+    {
+        // RF-10 (hallazgo de la revisión): si el origen no distingue mayúsculas, /guias/RECIENTES llega a la ruta
+        // oculta /guias/recientes; por eso la compuerta tampoco las distingue al comparar.
+        var oculta = EntornoCompuerta.Ruta("GET", "/guias/recientes", expuesta: false);
+        var tabla = TablaRutas.Crear([EntornoCompuerta.Ruta("GET", "/guias/{numero}"), oculta]);
+
+        tabla.Buscar("GET", "/guias/RECIENTES").Should().Be(oculta);
+        tabla.Buscar("GET", "/Guias/Recientes").Should().Be(oculta);
     }
 
     [Fact]

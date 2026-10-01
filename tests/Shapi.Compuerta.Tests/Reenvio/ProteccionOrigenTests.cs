@@ -3,7 +3,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Shapi.Compuerta.Tests.Soporte;
+using Shapi.Contratos.Red;
 using Shapi.Contratos.Redis;
 
 namespace Shapi.Compuerta.Tests.Reenvio;
@@ -88,6 +91,38 @@ public class ProteccionOrigenTests(EntornoCompuerta entorno) : IClassFixture<Ent
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.Found);
         respuesta.Headers.Location.Should().Be(new Uri("http://169.254.169.254/latest/meta-data"));
+    }
+
+    [Fact]
+    public async Task RNF_10_Conexion_UsaLaDireccionYaValidadaSinVolverAResolver()
+    {
+        // 10 §4, punto 4 (DNS rebinding): rebind.prueba no existe en el DNS real; solo el resolver del validador lo
+        // traduce a 127.0.0.1. Si la conexión volviera a resolver el nombre, fallaría.
+        using var fabrica = Fabrica(modoDemo: true, permitidos: $"rebind.prueba:{_origen.Puerto}").WithWebHostBuilder(web =>
+            web.ConfigureTestServices(servicios => servicios.AddSingleton(new ValidadorDireccionOrigen((host, _) =>
+                Task.FromResult(host == "rebind.prueba" ? [IPAddress.Loopback] : Array.Empty<IPAddress>())))));
+        var host = await SembrarAsync($"http://rebind.prueba:{_origen.Puerto}");
+
+        var respuesta = await EnviarAsync(fabrica, host);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        _origen.Peticiones.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RNF_10_Conexion_SiElValidadorRechazaLaDireccion_NoSeConecta()
+    {
+        // 10 §4, puntos 2 y 4: el nombre resuelve a una dirección interna en el validador; no se conecta aunque el
+        // DNS real diera otra cosa.
+        using var fabrica = Fabrica(modoDemo: false, permitidos: null).WithWebHostBuilder(web =>
+            web.ConfigureTestServices(servicios => servicios.AddSingleton(new ValidadorDireccionOrigen((_, _) =>
+                Task.FromResult(new[] { IPAddress.Parse("10.0.0.5") })))));
+        var host = await SembrarAsync($"http://rebind.prueba:{_origen.Puerto}");
+
+        var respuesta = await EnviarAsync(fabrica, host);
+
+        await VerificarErrorAsync(respuesta, HttpStatusCode.BadGateway, "origen_inaccesible");
+        _origen.Peticiones.Should().Be(0);
     }
 
     [Fact]
