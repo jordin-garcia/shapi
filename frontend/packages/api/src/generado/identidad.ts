@@ -167,6 +167,489 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/auth/registro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra un consumidor en el portal actual
+         * @description Crea el consumidor dentro de la organización resuelta por el host. El correo es único por organización. Encola una verificación con la marca del portal y el host canónico `{sub}.{dominio_base}`.
+         */
+        post: operations["registrarConsumidor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/verificar-correo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verifica el correo del consumidor */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeticionVerificacion"];
+                };
+            };
+            responses: {
+                /** @description Correo verificado e inicio de sesión en el portal. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["CuerpoInvalido"];
+                /** @description Falta CSRF o la cuenta está desactivada. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Token vencido */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["DemasiadasPeticiones"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/reenviar-verificacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reenvía la verificación de correo
+         * @description Responde siempre 200 y limita los reenvíos a 3 por consumidor en una hora.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeticionReenviar"];
+                };
+            };
+            responses: {
+                /** @description Solicitud recibida. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Csrf"];
+                429: components["responses"]["DemasiadasPeticiones"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/entrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inicia sesión del consumidor
+         * @description Crea una cookie `portal_sesion` limitada al host actual. Tras 5 intentos fallidos bloquea la cuenta por 15 minutos.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeticionEntrar"];
+                };
+            };
+            responses: {
+                /** @description Sesión iniciada. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["CuerpoInvalido"];
+                /** @description Credenciales incorrectas (`credenciales_invalidas`). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Falta CSRF o la cuenta está desactivada. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Cuenta bloqueada (`cuenta_bloqueada`). */
+                423: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                429: components["responses"]["DemasiadasPeticiones"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/salir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra sesión del consumidor */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sesión revocada y cookie borrada. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Csrf"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/sesion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Devuelve la cuenta y verificación del consumidor */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sesión vigente para el host y organización actuales. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SesionConsumidor"];
+                    };
+                };
+                401: components["responses"]["SinSesion"];
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/recuperar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicita la recuperación de la cuenta del portal
+         * @description Responde 200 exista o no el correo. El mensaje usa marca y host del portal.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeticionRecuperar"];
+                };
+            };
+            responses: {
+                /** @description Solicitud recibida. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Csrf"];
+                429: components["responses"]["DemasiadasPeticiones"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/restablecer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restablece la contraseña del consumidor */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeticionRestablecer"];
+                };
+            };
+            responses: {
+                /** @description Contraseña restablecida; sesiones anteriores revocadas. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["DatosInvalidos"];
+                403: components["responses"]["Csrf"];
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Token inválido o vencido. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/invitacion/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta el correo de la invitación */
+        get: operations["consultarInvitacionConsumidor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/auth/invitacion/{token}/aceptar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acepta una invitación al portal */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                    "X-Requested-With": components["parameters"]["XRequestedWith"];
+                };
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PeticionAceptarInvitacion"];
+                };
+            };
+            responses: {
+                /** @description Consumidor creado con correo verificado y sesión iniciada. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["DatosInvalidos"];
+                403: components["responses"]["Csrf"];
+                /** @description Portal no disponible. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Ya existe una cuenta con ese correo en la organización (`correo_ya_registrado`). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
+                };
+                /** @description Invitación vencida */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["DemasiadasPeticiones"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/perfil": {
         parameters: {
             query?: never;
@@ -225,6 +708,26 @@ export interface components {
             organizacion: string;
             /** @description No puede ser igual al correo. */
             contrasena: string;
+        };
+        PeticionRegistroConsumidor: {
+            nombre: string;
+            nombreEmpresa: string;
+            /** Format: email */
+            correo: string;
+            /** @description No puede ser igual al correo. */
+            contrasena: string;
+        };
+        PeticionAceptarInvitacion: {
+            nombre: string;
+            nombreEmpresa: string;
+            contrasena: string;
+        };
+        SesionConsumidor: {
+            consumidor: {
+                nombre: string;
+                nombreEmpresa: string;
+            };
+            correoVerificado: boolean;
         };
         /** @description Si falta `token`, responde 422 `token_invalido`. */
         PeticionVerificacion: {
@@ -644,6 +1147,90 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
+        };
+    };
+    registrarConsumidor: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF (10 §1). El cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionRegistroConsumidor"];
+            };
+        };
+        responses: {
+            /** @description Cuenta creada y correo encolado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["DatosInvalidos"];
+            403: components["responses"]["Csrf"];
+            /** @description Portal no disponible. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Correo ya registrado en esta organización (`correo_ya_registrado`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            429: components["responses"]["DemasiadasPeticiones"];
+        };
+    };
+    consultarInvitacionConsumidor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitación vigente y correo invitado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        correo: string;
+                    };
+                };
+            };
+            /** @description Portal no disponible. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitación vencida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            429: components["responses"]["DemasiadasPeticiones"];
         };
     };
     obtenerPerfil: {

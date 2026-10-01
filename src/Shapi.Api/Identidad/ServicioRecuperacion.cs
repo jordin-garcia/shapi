@@ -18,17 +18,20 @@ public class ServicioRecuperacion : IServicioRecuperacion
     private readonly IColaCorreo _colaCorreo;
     private readonly IReloj _reloj;
     private readonly IPasswordHasher<Usuario> _hasherUsuario;
+    private readonly IPasswordHasher<Consumidor> _hasherConsumidor;
 
     public ServicioRecuperacion(
         ShapiDbContext db,
         IColaCorreo colaCorreo,
         IReloj reloj,
-        IPasswordHasher<Usuario> hasherUsuario)
+        IPasswordHasher<Usuario> hasherUsuario,
+        IPasswordHasher<Consumidor> hasherConsumidor)
     {
         _db = db;
         _colaCorreo = colaCorreo;
         _reloj = reloj;
         _hasherUsuario = hasherUsuario;
+        _hasherConsumidor = hasherConsumidor;
     }
 
     public async Task Solicitar(
@@ -38,7 +41,8 @@ public class ServicioRecuperacion : IServicioRecuperacion
         string? nombrePortal = null,
         string? colorPortal = null,
         bool logoPortal = false,
-        CancellationToken cancelacion = default)
+        CancellationToken cancelacion = default,
+        Guid? organizacionPortalId = null)
     {
         correo = Usuario.NormalizarCorreo(correo);
         var ahora = _reloj.Ahora;
@@ -60,7 +64,15 @@ public class ServicioRecuperacion : IServicioRecuperacion
         }
         else
         {
-            throw new NotImplementedException("Recuperación para consumidores se implementará en EM-05.");
+            var consumidor = await _db.Set<Consumidor>().IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Correo == correo && (organizacionPortalId == null || c.OrganizacionId == organizacionPortalId), cancelacion);
+            if (consumidor is null || consumidor.Estado != EstadoCuenta.Activo)
+            {
+                return;
+            }
+
+            consumidorId = consumidor.Id;
+            organizacionId = consumidor.OrganizacionId;
+            nombre = consumidor.Nombre;
         }
 
         var valorToken = SeguridadTokens.GenerarToken();
@@ -80,7 +92,8 @@ public class ServicioRecuperacion : IServicioRecuperacion
     public async Task<RecuperacionExitosa?> Restablecer(
         string token,
         string nuevaContrasena,
-        CancellationToken cancelacion = default)
+        CancellationToken cancelacion = default,
+        Guid? organizacionPortalId = null)
     {
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(nuevaContrasena))
         {
@@ -91,7 +104,10 @@ public class ServicioRecuperacion : IServicioRecuperacion
         var ahora = _reloj.Ahora;
 
         var entidadToken = await _db.Set<Token>().IgnoreQueryFilters()
-            .FirstOrDefaultAsync(t => t.HashToken == hash && t.Tipo == TipoToken.Recuperacion, cancelacion);
+            .FirstOrDefaultAsync(t => t.HashToken == hash && t.Tipo == TipoToken.Recuperacion
+                && (organizacionPortalId == null
+                    ? t.UsuarioId != null && t.ConsumidorId == null
+                    : t.ConsumidorId != null && t.UsuarioId == null && t.OrganizacionId == organizacionPortalId), cancelacion);
 
         if (entidadToken is null || !entidadToken.EsValido(ahora))
         {
@@ -132,7 +148,17 @@ public class ServicioRecuperacion : IServicioRecuperacion
         }
         else
         {
-            throw new NotImplementedException("Recuperación para consumidores se implementará en EM-05.");
+            var consumidor = await _db.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.Id == entidadToken.ConsumidorId, cancelacion);
+            if (consumidor.Estado != EstadoCuenta.Activo)
+            {
+                await transaccion.CommitAsync(cancelacion);
+                return null;
+            }
+            consumidor.DefinirHashContrasena(_hasherConsumidor.HashPassword(consumidor, nuevaContrasena));
+            await _db.Set<Sesion>().IgnoreQueryFilters()
+                .Where(s => s.ConsumidorId == consumidor.Id && s.RevocadaEn == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevocadaEn, ahora).SetProperty(x => x.ActualizadoEn, ahora), cancelacion);
+            resultado = new RecuperacionExitosa(null, consumidor.Id, consumidor.OrganizacionId, consumidor.Nombre, AmbitoSesion.Consumidor);
         }
 
         await _db.SaveChangesAsync(cancelacion);

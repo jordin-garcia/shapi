@@ -18,7 +18,8 @@ public interface IServicioRecuperacion
         string? nombrePortal = null,
         string? colorPortal = null,
         bool logoPortal = false,
-        CancellationToken cancelacion = default);
+        CancellationToken cancelacion = default,
+        Guid? organizacionPortalId = null);
 
     /// <summary>
     /// Restablece la contraseña utilizando el token provisto.
@@ -27,7 +28,8 @@ public interface IServicioRecuperacion
     Task<RecuperacionExitosa?> Restablecer(
         string token,
         string nuevaContrasena,
-        CancellationToken cancelacion = default);
+        CancellationToken cancelacion = default,
+        Guid? organizacionPortalId = null);
 }
 
 public record RecuperacionExitosa(Guid? UsuarioId, Guid? ConsumidorId, Guid? OrganizacionId, string Nombre, AmbitoSesion Ambito);

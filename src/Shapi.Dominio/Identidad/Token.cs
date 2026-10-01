@@ -31,6 +31,18 @@ public class Token
         ExpiraEn = ahora + VigenciaVerificacionCorreo,
     };
 
+    /// <summary>Enlace de verificación del correo de un consumidor.</summary>
+    public static Token VerificacionCorreoConsumidor(string hashToken, Consumidor consumidor, DateTimeOffset ahora) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Tipo = TipoToken.VerificacionCorreo,
+        HashToken = hashToken,
+        ConsumidorId = consumidor.Id,
+        OrganizacionId = consumidor.OrganizacionId,
+        Correo = consumidor.Correo,
+        ExpiraEn = ahora + VigenciaVerificacionCorreo,
+    };
+
     /// <summary>Enlace de recuperación de contraseña de un usuario o consumidor. Solo se guarda el hash del valor del enlace.</summary>
     public static Token Recuperacion(string hashToken, Guid? usuarioId, Guid? consumidorId, Guid? organizacionId, string correo, DateTimeOffset ahora) => new()
     {
@@ -42,6 +54,16 @@ public class Token
         OrganizacionId = organizacionId,
         Correo = correo,
         ExpiraEn = ahora + TimeSpan.FromMinutes(60),
+    };
+
+    public static Token InvitacionConsumidor(string hashToken, Guid organizacionId, string correo, DateTimeOffset ahora) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Tipo = TipoToken.InvitacionConsumidor,
+        HashToken = hashToken,
+        OrganizacionId = organizacionId,
+        Correo = Usuario.NormalizarCorreo(correo),
+        ExpiraEn = ahora + TimeSpan.FromDays(7),
     };
 
     public bool EsValido(DateTimeOffset ahora) => UsadoEn is null && ExpiraEn > ahora;

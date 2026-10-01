@@ -36,8 +36,13 @@ public static class IdentidadModulo
         services.AddScoped<IValidator<RegistroProveedor>, ValidadorRegistroProveedor>();
         services.AgregarPoliticasShapi();
 
-        services.AddAuthentication(PersonalAutenticacionOpciones.Esquema)
-            .AddScheme<PersonalAutenticacionOpciones, PersonalAutenticacionHandler>(PersonalAutenticacionOpciones.Esquema, null);
+        services.AddAuthentication(EsquemaAutenticacionPortal.Esquema)
+            .AddPolicyScheme(EsquemaAutenticacionPortal.Esquema, null, opciones => opciones.ForwardDefaultSelector = contexto =>
+                contexto.Request.Cookies.ContainsKey(ConsumidorAutenticacionOpciones.Cookie)
+                    ? ConsumidorAutenticacionOpciones.Esquema
+                    : PersonalAutenticacionOpciones.Esquema)
+            .AddScheme<PersonalAutenticacionOpciones, PersonalAutenticacionHandler>(PersonalAutenticacionOpciones.Esquema, null)
+            .AddScheme<ConsumidorAutenticacionOpciones, ConsumidorAutenticacionHandler>(ConsumidorAutenticacionOpciones.Esquema, null);
 
         // Detrás del borde, la IP del cliente llega en X-Forwarded-For y el esquema en X-Forwarded-Proto. Solo se confía
         // en ellas si la conexión viene de las redes del borde (SHAPI_REDES_BORDE). Caddy reemplaza las que mande el
@@ -105,6 +110,7 @@ public static class IdentidadModulo
         app.UseRateLimiter();
 
         app.MapearEndpointsIdentidad();
+        app.MapearEndpointsIdentidadPortal();
 
         return app;
     }
