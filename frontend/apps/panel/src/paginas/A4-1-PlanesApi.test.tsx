@@ -22,6 +22,8 @@ const planesMock = [
   }
 ];
 
+let ultimoCuerpoPOST: Record<string, unknown> | null = null;
+
 const servidor = setupServer(
   
   http.get('http://localhost/api/apis', () => {
@@ -37,6 +39,7 @@ const servidor = setupServer(
   }),
   http.post('http://localhost/api/apis/:apiId/planes', async ({ request }) => {
     const body = await request.clone().json();
+    ultimoCuerpoPOST = body as Record<string, unknown>;
     const bodyObj = body as Record<string, unknown>;
     if (!bodyObj.nombre || bodyObj.precio === undefined) {
       return HttpResponse.json({ codigo: 'datos_invalidos' }, { status: 400 });
@@ -50,7 +53,10 @@ const servidor = setupServer(
 );
 
 beforeAll(() => servidor.listen());
-afterEach(() => servidor.resetHandlers());
+afterEach(() => {
+  servidor.resetHandlers();
+  ultimoCuerpoPOST = null;
+});
 afterAll(() => servidor.close());
 
 function renderizarPagina() {
@@ -128,6 +134,56 @@ describe('PaginaA41PlanesApi', () => {
     
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Planes de la API/i })).toBeDefined();
+    });
+
+    expect(ultimoCuerpoPOST).toEqual({
+      nombre: 'Pro',
+      descripcion: 'Plan pro',
+      cuotaLlamadas: 5000,
+      limiteMinuto: 30,
+      precio: 150,
+      vigenciaDias: 30,
+      esGratuito: false
+    });
+  });
+
+  it('RF-18 permite crear un plan gratuito enviando el cuerpo correcto', async () => {
+    const usuario = userEvent.setup();
+    renderizarPagina();
+    
+    await waitFor(() => {
+      expect(screen.getByText('Crear un plan')).toBeDefined();
+    });
+    
+    await usuario.click(screen.getByText('Crear un plan'));
+    
+    await usuario.type(screen.getByLabelText(/nombre/i), 'Gratis');
+    await usuario.type(screen.getByLabelText(/descripción/i), 'Para iniciar');
+    await usuario.type(screen.getByLabelText(/cuota mensual/i), '100');
+    await usuario.type(screen.getByLabelText(/límite por minuto/i), '5');
+    
+    const inputPrecio = screen.getByLabelText(/precio/i);
+    const cbGratuito = screen.getByLabelText(/plan gratuito/i);
+    
+    await usuario.click(cbGratuito);
+    
+    expect((inputPrecio as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText('Un plan gratuito queda en Q 0.00.')).toBeDefined();
+
+    await usuario.click(screen.getByRole('button', { name: 'Crear plan' }));
+    
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Planes de la API/i })).toBeDefined();
+    });
+
+    expect(ultimoCuerpoPOST).toEqual({
+      nombre: 'Gratis',
+      descripcion: 'Para iniciar',
+      cuotaLlamadas: 100,
+      limiteMinuto: 5,
+      precio: 0,
+      vigenciaDias: 30,
+      esGratuito: true
     });
   });
 

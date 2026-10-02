@@ -81,8 +81,8 @@ export default function PaginaA41PlanesApi() {
             <span key="desc" className="line-clamp-2" title={plan.descripcion}>{plan.descripcion}</span>,
             <span key="precio">{plan.esGratuito ? 'Gratis' : `Q ${plan.precio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>,
             <span key="vigencia">{plan.vigenciaDias} días</span>,
-            <span key="cuota">{plan.cuotaLlamadas.toLocaleString()} llamadas</span>,
-            <span key="limite">{plan.limiteMinuto.toLocaleString()} peticiones</span>,
+            <span key="cuota">{plan.cuotaLlamadas.toLocaleString('en-US')} llamadas</span>,
+            <span key="limite">{plan.limiteMinuto.toLocaleString('en-US')} peticiones</span>,
             <button key="accion" type="button" onClick={() => setVista(plan)} className="font-medium text-principal hover:underline text-right w-full block">Editar</button>
           ])}
         />
@@ -176,7 +176,17 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
           <h2 className="font-display text-[21px] leading-[1.3]">Datos del plan</h2>
           <div className="flex flex-col gap-[18px] border-t border-borde-fila mt-5 pt-5">
             <Campo required etiqueta="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre que verán sus consumidores" />
-            <Campo required etiqueta="Descripción" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Para quién es este plan" />
+            <div className="flex flex-col gap-[6px]">
+              <label htmlFor="descripcion" className="text-[13px] font-semibold text-tinta">Descripción</label>
+              <textarea
+                id="descripcion"
+                required
+                className="min-h-[100px] rounded-base border px-[14px] py-[10px] text-[15px] bg-panel text-tinta outline-none transition-colors placeholder:text-tinta-inactiva focus:ring-[3px] focus:ring-anillo-foco border-borde-campo focus:border-principal"
+                value={descripcion}
+                onChange={e => setDescripcion(e.target.value)}
+                placeholder="Para quién es este plan"
+              />
+            </div>
             
             <div className="grid grid-cols-2 gap-5">
               <div className="flex flex-col gap-[7px]">
@@ -205,7 +215,7 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
               <div className={`mt-[2px] w-[18px] h-[18px] rounded flex items-center justify-center shrink-0 border-[1.5px] ${esGratuito ? 'border-principal bg-principal' : 'border-borde-campo bg-white'}`}>
                 {esGratuito && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.2 L5 8.5 L9.5 3.5" stroke="#FFFFFF" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>}
               </div>
-              <input type="checkbox" className="hidden" checked={esGratuito} onChange={e => setEsGratuito(e.target.checked)} />
+              <input type="checkbox" className="sr-only" checked={esGratuito} onChange={e => setEsGratuito(e.target.checked)} />
               <div className="flex flex-col gap-[2px]">
                 <span className="text-[15px] font-medium text-tinta leading-[1.5]">Plan gratuito</span>
                 <span className="text-[13px] text-tinta-suave leading-[1.5]">Al contratarlo, a su consumidor no se le pedirá tarjeta.</span>
@@ -226,10 +236,7 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
               <Selector 
                 value={vigenciaDias} 
                 onChange={e => setVigenciaDias(e.target.value)}
-                opciones={[
-                  { valor: '30', etiqueta: '30 días' },
-                  { valor: '365', etiqueta: '365 días' }
-                ]} 
+                opciones={Array.from(new Set(['30', '365', vigenciaDias])).sort((a, b) => Number(a) - Number(b)).map(v => ({ valor: v, etiqueta: `${v} días` }))} 
               />
             </div>
           </div>

@@ -118,6 +118,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         NpgsqlConnection.ClearAllPools();
     }
 
+    // RF-18
     [Fact]
     public async Task EM07_CrearPlan_DatosValidos_Retorna200YGuardaEnBD()
     {
@@ -151,6 +152,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal("plan_api.creado", entrada.Accion);
     }
 
+    // RF-19
     [Fact]
     public async Task EM07_EditarPlan_DatosValidos_ActualizaPlanYPublicaSuscripciones()
     {
@@ -187,6 +189,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Contains(suscripcionId, publicador.SuscripcionesPublicadas);
     }
 
+    // RF-19
     [Fact]
     public async Task EM07_DesactivarPlan_DesactivaPlanYRegistraEnBitacora()
     {
@@ -246,13 +249,24 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
 
     [Theory]
     [InlineData("Lector")]
-    public async Task EM07_Planes_RolLector_Recibe403(string rol)
+    public async Task EM07_Planes_RolLector_PuedeLeer_Retorna200_NoPuedeEditar_Retorna403(string rol)
     {
-        // RF-18
+        // RF-18, RF-19
         var apiId = await InsertarApi(_organizacionId);
+        var planId = await InsertarPlan(apiId, "Test Lector");
+
+        using var respGet = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/planes", null, rol);
+        Assert.Equal(HttpStatusCode.OK, respGet.StatusCode);
+
         var peticion = new { nombre = "Test", descripcion = "Desc", precio = 0.0m, esGratuito = true, vigenciaDias = 30, cuotaLlamadas = 1000, limiteMinuto = 60 };
-        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion, rol);
-        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+        using var respPost = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion, rol);
+        Assert.Equal(HttpStatusCode.Forbidden, respPost.StatusCode);
+
+        using var respPut = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/planes/{planId}", peticion, rol);
+        Assert.Equal(HttpStatusCode.Forbidden, respPut.StatusCode);
+
+        using var respDesactivar = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes/{planId}/desactivar", null, rol);
+        Assert.Equal(HttpStatusCode.Forbidden, respDesactivar.StatusCode);
     }
 
     [Theory]
@@ -301,6 +315,29 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         };
 
         using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion);
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task EM07_EditarPlan_NombreDuplicado_Retorna409()
+    {
+        // RF-19
+        var apiId = await InsertarApi(_organizacionId);
+        await InsertarPlan(apiId, "Plan 1");
+        var plan2Id = await InsertarPlan(apiId, "Plan 2");
+
+        var peticion = new
+        {
+            nombre = "Plan 1",
+            descripcion = "Otro",
+            precio = 0.0m,
+            esGratuito = true,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60
+        };
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/planes/{plan2Id}", peticion);
         Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
     }
 

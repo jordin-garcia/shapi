@@ -23,6 +23,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PlanApi"
+        "400":
+          description: Petición inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "403":
+          description: No tiene permisos
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "404":
+          description: API no encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
     post:
       summary: Crea un plan de API
       operationId: crearPlan
@@ -46,6 +64,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanApi"
+        "400":
+          description: Petición inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "403":
+          description: No tiene permisos
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "404":
+          description: API no encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "409":
+          description: Conflicto
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
   /api/apis/{apiId}/planes/{planId}:
     put:
       summary: Edita un plan de API
@@ -76,6 +118,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanApi"
+        "400":
+          description: Petición inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "403":
+          description: No tiene permisos
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "404":
+          description: API o plan no encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "409":
+          description: Conflicto
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
   /api/apis/{apiId}/planes/{planId}/desactivar:
     post:
       summary: Desactiva un plan de API
@@ -96,6 +162,25 @@ paths:
       responses:
         "200":
           description: Plan desactivado exitosamente
+        "400":
+          description: Petición inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "403":
+          description: No tiene permisos
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "404":
+          description: API o plan no encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+
   /api/portal/planes:
     get:
       summary: Obtiene los planes activos para el portal público de una API
@@ -172,3 +257,26 @@ components:
           type: integer
         limiteMinuto:
           type: integer
+    Problema:
+      type: object
+      description: ProblemDetails de la API de control.
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+          enum: [datos_invalidos, csrf, api_no_encontrada, plan_no_encontrado, plan_duplicado]
+        detalle:
+          type: object
+          additionalProperties: true
+        errores:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

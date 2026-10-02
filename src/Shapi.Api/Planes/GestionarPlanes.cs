@@ -79,7 +79,14 @@ public class CrearPlan(ShapiDbContext db, IBitacora bitacora)
             Ip = ip
         }, cancelacion);
 
-        await db.SaveChangesAsync(cancelacion);
+        try
+        {
+            await db.SaveChangesAsync(cancelacion);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            return Resultado<PlanApi>.Fallo(new Error(CodigosError.PlanDuplicado, "Ya existe un plan con ese nombre en esta API."));
+        }
         return plan;
     }
 
@@ -100,20 +107,7 @@ public class CrearPlan(ShapiDbContext db, IBitacora bitacora)
             return new Error(CodigosError.DatosInvalidos, "El precio no puede ser negativo.");
         }
 
-        if (string.IsNullOrWhiteSpace(s.Nombre) || s.Nombre.Length > 100)
-        {
-            return new Error(CodigosError.DatosInvalidos, "El nombre del plan es obligatorio y debe tener máximo 100 caracteres.");
-        }
 
-        if (string.IsNullOrWhiteSpace(s.Descripcion) || s.Descripcion.Length > 500)
-        {
-            return new Error(CodigosError.DatosInvalidos, "La descripción del plan es obligatoria y debe tener máximo 500 caracteres.");
-        }
-
-        if (s.Precio < 0)
-        {
-            return new Error(CodigosError.DatosInvalidos, "El precio no puede ser negativo.");
-        }
 
         if (s.EsGratuito && s.Precio != 0)
         {
@@ -189,7 +183,14 @@ public class EditarPlan(ShapiDbContext db, IBitacora bitacora, IPublicadorCache 
             Ip = ip
         }, cancelacion);
 
-        await db.SaveChangesAsync(cancelacion);
+        try
+        {
+            await db.SaveChangesAsync(cancelacion);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            return Resultado<PlanApi>.Fallo(new Error(CodigosError.PlanDuplicado, "Ya existe un plan con ese nombre en esta API."));
+        }
 
         // Publicar suscripciones activas asociadas al plan
         var suscripciones = await db.Set<SuscripcionApi>()
