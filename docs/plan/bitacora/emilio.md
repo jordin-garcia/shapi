@@ -58,4 +58,8 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Jordin:** las pruebas de integración requieren que CI confirme el resultado, porque Docker no está disponible en este entorno local.
   - **Dominique:** los tipos de identidad de `frontend/packages/api/src/generado/identidad.ts` se regeneraron con EM-05; actualiza tu rama desde `main` al integrar cambios dependientes.
-- **01/10/2026:** Implementé EM-07 (Planes de API - A4.1). Mocks en frontend completados, validaciones y lógica del backend funcionando con pruebas, y tests end-to-end pasando. Todo correcto y verificado.
+## 2026-10-01 · EM-07 · Planes de API (A4.1)
+- Hecho: Se implementaron los endpoints para crear, editar, listar y desactivar planes (`/api/apis/{apiId}/planes`). Se creó la interfaz frontend (A4.1) y se conectó al backend con MSW para los tests. Las validaciones de integridad (precio, unicidad, plan gratuito) y la publicación de cachés para suscripciones fueron cubiertas, y se registraron en la bitácora (`TipoActor.Usuario`). Se ajustaron tipos y errores a la especificación, con códigos 404, 400 y 409.
+- Decisiones: Se resolvió que el nombre del plan se verifique ignorando los que no son parte de la misma API, pero incluyendo inactivos para prevenir conflictos al editar. Para `CodigosError`, se implementaron `PlanDuplicado` y `PlanNoEncontrado`.
+- Pendiente o aviso para otros:
+  - **Dominique**: Revisa que la interfaz de portales pueda leer los planes activos adecuadamente con los endpoints proporcionados.
