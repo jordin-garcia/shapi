@@ -139,9 +139,7 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
           body: cuerpo,
         });
       }
-      if (res.error) {
-        throw new ErrorApi(res.error as any);
-      }
+
       if (!res.response.ok || !res.data) {
         throw new Error(esNuevo ? 'No se pudo crear el plan.' : 'No se pudo editar el plan.');
       }
