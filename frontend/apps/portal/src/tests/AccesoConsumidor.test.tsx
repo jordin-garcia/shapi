@@ -10,6 +10,9 @@ import { server } from '../../../../test/servidor';
 
 const API = 'http://localhost/api/portal/auth';
 const configuracion = { nombrePortal: 'Envíos Xelajú', colorPrincipal: '#B8322A', urlLogo: null, bienvenida: 'Bienvenido', nombreApi: 'Cotización de Envíos', descripcionApi: 'API', hostPortal: 'envios.shapi.localhost', hostApi: 'envios.api.shapi.localhost' };
+function problema(estado: number, codigo: string, title: string) {
+  return HttpResponse.json({ status: estado, codigo, title }, { status: estado, headers: { 'Content-Type': 'application/problem+json' } });
+}
 let cliente: QueryClient;
 function montar(ruta: string) {
   const enrutador = createMemoryRouter(crearRutas(), { initialEntries: [ruta] });
@@ -54,12 +57,34 @@ describe('DC-08 · acceso del consumidor', () => {
     expect(cuerpo).toEqual({ nombre: 'Inés', nombreEmpresa: 'Tienda', contrasena: 'Contrasena123' });
   });
 
+  it('RF-05 distingue una invitación inválida de un fallo recuperable', async () => {
+    server.use(http.get(`${API}/invitacion/vencida`, () => problema(422, 'token_invalido', 'La invitación ya no sirve.')));
+    const router = montar('/invitacion?token=vencida');
+    expect(await screen.findByRole('heading', { name: 'El enlace ya no sirve' })).toBeDefined();
+
+    server.use(http.get(`${API}/invitacion/red`, () => new HttpResponse(null, { status: 503 })));
+    await router.navigate('/invitacion?token=red');
+    expect(await screen.findByRole('heading', { name: 'No se pudo consultar la invitación' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDefined();
+  });
+
   it.each(['/planes', '/cuenta/suscripcion'] as const)('RF-04 entrar navega al destino %s de la sesión', async destino => {
     server.use(http.post(`${API}/entrar`, () => new HttpResponse(null, { status: 200 })), http.get(`${API}/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino })));
     const router = montar('/entrar');
     expect(await screen.findByText('¿Olvidó su contraseña?')).toBeDefined();
     await userEvent.type(screen.getByLabelText('Correo electrónico'), 'ana@tienda.test'); await userEvent.type(screen.getByLabelText('Contraseña'), 'Contrasena123'); await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(destino));
+  });
+
+  it('RF-04 muestra credenciales inválidas sin navegar', async () => {
+    server.use(http.post(`${API}/entrar`, () => problema(401, 'credenciales_invalidas', 'El correo o la contraseña no son correctos.')));
+    const router = montar('/entrar');
+    await screen.findByRole('heading', { name: 'Entrar' });
+    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'ana@tienda.test');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'incorrecta');
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('El correo o la contraseña no son correctos.');
+    expect(router.state.location.pathname).toBe('/entrar');
   });
 
   it('RF-02 reenvía la verificación con una respuesta neutral', async () => {
@@ -76,6 +101,13 @@ describe('DC-08 · acceso del consumidor', () => {
     const router = montar('/verificar-correo?token=abc');
     await waitFor(() => expect(router.state.location.pathname).toBe('/planes'));
     expect(verificaciones).toBe(1);
+  });
+
+  it('RF-02 muestra el estado de enlace de verificación inválido', async () => {
+    server.use(http.post(`${API}/verificar-correo`, () => problema(422, 'token_invalido', 'El enlace venció o ya se usó.')));
+    montar('/verificar-correo?token=vencido');
+    expect(await screen.findByRole('heading', { name: 'Enlace no válido' })).toBeDefined();
+    expect(screen.getByText('El enlace venció o ya se usó.')).toBeDefined();
   });
 
   it('RF-03 recuperación muestra el mismo mensaje neutral', async () => {
@@ -95,5 +127,15 @@ describe('DC-08 · acceso del consumidor', () => {
     await userEvent.type(screen.getByLabelText('Contraseña nueva'), 'NuevaContra123'); await userEvent.click(screen.getByRole('button', { name: 'Guardar la contraseña' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/cuenta/suscripcion'));
     expect(restablecimientos).toBe(1);
+  });
+
+  it('RF-03 ofrece pedir otro enlace cuando el token de recuperación es inválido', async () => {
+    server.use(http.post(`${API}/restablecer`, () => problema(422, 'token_invalido', 'El enlace venció o ya se usó.')));
+    montar('/restablecer?token=vencido');
+    await screen.findByRole('heading', { name: 'Definir la contraseña' });
+    await userEvent.type(screen.getByLabelText('Contraseña nueva'), 'NuevaContra123');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar la contraseña' }));
+    expect(await screen.findByRole('heading', { name: 'El enlace ya no sirve' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Solicitar un enlace nuevo' }).getAttribute('href')).toBe('/recuperar');
   });
 });

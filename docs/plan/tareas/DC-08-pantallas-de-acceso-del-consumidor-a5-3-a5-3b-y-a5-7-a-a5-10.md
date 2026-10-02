@@ -25,12 +25,12 @@ Implementar en el portal el registro (directo y por invitación), la verificaci�
 - `docs/specs/10-identidad-y-seguridad.md` §1 (destino después de entrar)
 
 ## Archivos que creas o modificas
-- `frontend/apps/portal/src/paginas/A5-3-Registro.tsx`, `A5-3b-RegistroInvitacion.tsx`, `A5-7-Entrar.tsx`, `A5-8-Verificacion.tsx`, `A5-9-Recuperacion.tsx` y `A5-10-NuevaContrasena.tsx`
+- `frontend/apps/portal/src/paginas/A5-3-Registro.tsx`, `A5-3b-Invitacion.tsx`, `A5-7-Acceso.tsx`, `A5-8-Verificacion.tsx`, `A5-9-Recuperacion.tsx` y `A5-10-NuevaContrasena.tsx`
 - `frontend/apps/portal/src/modulos/sesion/**` (sesión real)
 
 ## Criterios de aceptación
 1. Cada pantalla reproduce su mockup con la marca del portal.
-2. Después del registro se muestra A5.8. El enlace `/verificar?token=` confirma el correo y entra.
+2. Después del registro se muestra A5.8. El enlace `/verificar-correo?token=` confirma el correo y entra.
 3. Iniciar sesión lleva a `/cuenta/suscripcion` si hay suscripción y, si no, a `/planes`.
 4. `/invitacion?token=` precarga el correo invitado y crea la cuenta ya verificada.
 5. La recuperación responde lo mismo exista o no el correo.
@@ -53,6 +53,6 @@ Verificación manual con el entorno levantado:
 ## Avance 2026-10-02
 
 - Las seis pantallas, la sesión real, los flujos con tokens y sus pruebas Vitest + MSW están implementados en la rama `dominique/DC-08-acceso-consumidor`.
-- Lint, typecheck, 241 pruebas y build del frontend pasan.
+- Lint, typecheck, 250 pruebas y build del frontend pasan.
 - Pendiente para cerrar: EM-18 debe agregar `destino` a la sesión del consumidor; sin ese dato el frontend no puede distinguir una cuenta con suscripción de una cuenta nueva.
-- La comprobación manual quedó pendiente porque el entorno local no tenía la imagen de Caddy y su descarga no terminó.
+- La comprobación manual sigue pendiente: la infraestructura terminó de descargarse, pero otro proyecto ocupa el puerto local 5432. No se cerrará la tarea hasta integrar EM-18 y verificar el flujo completo con el entorno levantado.
