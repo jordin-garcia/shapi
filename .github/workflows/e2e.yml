@@ -1,0 +1,53 @@
+name: Pruebas E2E
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tests/e2e/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: tests/e2e/pnpm-lock.yaml
+      - name: Instalar pruebas y navegador
+        working-directory: tests/e2e
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Preparar configuracion local
+        run: cp .env.example .env
+      - name: Levantar ambiente productivo simulado
+        run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build
+      - name: Verificar ambiente
+        run: node infra/verificar.mjs
+      - name: Ejecutar pruebas
+        working-directory: tests/e2e
+        run: pnpm test
+      - name: Adjuntar informe de Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-playwright
+          path: tests/e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Mostrar registros si falla
+        if: failure()
+        run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs
+      - name: Apagar y borrar datos efimeros
+        if: always()
+        run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml down -v
