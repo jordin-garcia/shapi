@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-01
 depende_de: [EM-02, DC-04, JG-04]
 requisitos: [RF-18, RF-19]
@@ -55,3 +55,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ## Fuera de alcance
 - Contratación (EM-08)
 - Planes en el portal (DC-09)
+
+
+## Resultado
+- **Hecho:** Se implementaron los endpoints y validaciones, la publicación de planes en caché, y se integró la interfaz A4.1 (mockups y pruebas de MSW). Se ajustó la bitácora con los eventos requeridos (`plan_api.creado`, `plan_api.editado`, `plan_api.desactivado`).
+- **Decisiones:** Se implementó una lógica de nombre único considerando la API (incluso inactivos), y las validaciones de límite y precio usan 400 y 409 con la especificación `ErrorApi` en frontend.
+- **Archivos:** `src/Shapi.Api/Planes/GestionarPlanes.cs`, `src/Shapi.Api/Planes/Endpoints.cs`, `tests/Shapi.Api.Tests/Planes/PlanesTests.cs`, `frontend/apps/panel/src/paginas/A4-1-PlanesApi.tsx`, `frontend/apps/panel/src/paginas/A4-1-PlanesApi.test.tsx`, `contratos/openapi/planes.yaml`.

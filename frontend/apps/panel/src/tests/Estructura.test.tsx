@@ -53,6 +53,7 @@ beforeEach(() => {
   server.use(
     http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())),
     http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos' }], total: 1 })),
+    http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
   );
 });
 afterEach(() => { cleanup(); cliente.clear(); vi.restoreAllMocks(); });

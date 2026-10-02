@@ -37,6 +37,7 @@ const implementadas: Record<string, string> = {
   'A3-2': 'Registrar una API',
   'A3-3': 'Cargar especificación OpenAPI',
   'A3-4': 'Rutas expuestas',
+  'A4-1': 'Planes de la API',
   'A8-1': 'Mi perfil',
   'B3-2': 'Bitácora de acciones sensibles',
 };
@@ -71,6 +72,7 @@ beforeEach(() => {
       totalExpuestas: 0,
       totalOcultas: 0,
     })),
+    http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
   );
 });

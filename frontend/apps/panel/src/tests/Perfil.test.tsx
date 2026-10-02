@@ -33,7 +33,9 @@ beforeEach(() => {
     })),
     http.get(`${API}/perfil`, () => HttpResponse.json({
       nombre: 'Ana', correo: 'ana@enviosxelaju.com'
-    }))
+    })),
+    http.get(`${API}/apis`, () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos' }], total: 1 })),
+    http.get(`${API}/apis/:id/planes`, () => HttpResponse.json([]))
   );
 });
 afterEach(() => { cleanup(); cliente.clear(); });
