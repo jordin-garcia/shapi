@@ -1,0 +1,174 @@
+openapi: 3.1.0
+info:
+  title: API de Planes de Shapi
+  version: 1.0.0
+paths:
+  /api/apis/{apiId}/planes:
+    get:
+      summary: Obtiene los planes de una API
+      operationId: obtenerPlanes
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Lista de planes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanApi"
+    post:
+      summary: Crea un plan de API
+      operationId: crearPlan
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionPlanApi"
+      responses:
+        "200":
+          description: Plan creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanApi"
+  /api/apis/{apiId}/planes/{planId}:
+    put:
+      summary: Edita un plan de API
+      operationId: editarPlan
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionPlanApi"
+      responses:
+        "200":
+          description: Plan editado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanApi"
+  /api/apis/{apiId}/planes/{planId}/desactivar:
+    post:
+      summary: Desactiva un plan de API
+      operationId: desactivarPlan
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Plan desactivado exitosamente
+  /api/portal/planes:
+    get:
+      summary: Obtiene los planes activos para el portal público de una API
+      operationId: obtenerPlanesPortal
+      responses:
+        "200":
+          description: Lista de planes activos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanApi"
+components:
+  schemas:
+    PlanApi:
+      type: object
+      required:
+        - id
+        - apiId
+        - nombre
+        - descripcion
+        - precio
+        - esGratuito
+        - vigenciaDias
+        - cuotaLlamadas
+        - limiteMinuto
+        - activo
+      properties:
+        id:
+          type: string
+          format: uuid
+        apiId:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        precio:
+          type: number
+        esGratuito:
+          type: boolean
+        vigenciaDias:
+          type: integer
+        cuotaLlamadas:
+          type: integer
+        limiteMinuto:
+          type: integer
+        activo:
+          type: boolean
+    PeticionPlanApi:
+      type: object
+      required:
+        - nombre
+        - descripcion
+        - precio
+        - esGratuito
+        - vigenciaDias
+        - cuotaLlamadas
+        - limiteMinuto
+      properties:
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        precio:
+          type: number
+        esGratuito:
+          type: boolean
+        vigenciaDias:
+          type: integer
+        cuotaLlamadas:
+          type: integer
+        limiteMinuto:
+          type: integer

@@ -33,6 +33,8 @@ beforeEach(() => {
       organizacion: { id: 'org-1', nombre: 'Envíos Xelajú, S.A.' },
       rol: 'propietario', correoVerificado: true, destino: '/panel/apis'
     }) : new HttpResponse(null, { status: 401 })),
+    http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos' }], total: 1 })),
+    http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([]))
   );
 });
 afterEach(() => { cleanup(); cliente.clear(); });
