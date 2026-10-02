@@ -45,3 +45,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **JZ-05:** el trabajador y el ambiente productivo ya están listos para agregar y ejecutar `sembrar-demo`; conserve el volumen compartido `dpkeys` y el comando documentado en `docs/manual-tecnico.md`.
   - **JZ-07:** puede usar `infra/compose.prod.yml` y `node infra/verificar.mjs` como base del entorno E2E y de la herramienta de capturas.
   - **JZ-12:** el trabajador queda sin healthcheck HTTP, como exige 06 §8; agregue su latido `salud:trabajador` sin exponer un puerto nuevo.
+
+## 2026-10-01 · JZ-07 · Pruebas de extremo a extremo y herramienta de capturas
+- Hecho: se creó el proyecto Playwright, la herramienta de capturas a 1440 × 900, el ayudante de Mailpit, la E2E de registro y acceso, y el workflow manual y posterior a cada integración en `main` con su informe como artefacto.
+- Decisiones: el ayudante resuelve los hosts locales en `127.0.0.1` para que Node llegue a Caddy de la misma forma que Chromium; cada ejecución usa un correo único y conserva rastros solo cuando hay fallos.
+- Pendiente o aviso para otros:
+  - **JZ-13:** reutilice `playwright.config.ts` y `soporte/mailpit.ts` para agregar los flujos E2E principales.
+  - **Todos:** para comparar una pantalla con su mockup, ejecute `pnpm captura <url> <archivo.png>` desde `tests/e2e`.
