@@ -241,9 +241,12 @@ public class PasarelaSimuladaTests
         resultado.Marca.Should().Be("Visa");
         resultado.Ultimos4.Should().Be("4242");
         resultado.Titular.Should().Be("Ana López");
+        // El token es un UUID al azar: puede traer "987" por casualidad, así que se busca el CVV en el resto del
+        // resultado y se exige que el token tenga su formato, sin espacio para guardar datos de la tarjeta.
+        resultado.Token.Should().MatchRegex($"^tok_sim_{FormatoUuid}$");
         var serializado = JsonSerializer.Serialize(resultado);
         serializado.Should().NotContain("4242424242424242");
-        serializado.Should().NotContain("987");
+        serializado.Replace(resultado.Token!, "", StringComparison.Ordinal).Should().NotContain("987");
         tarjeta.ToString().Should().NotContain("4242").And.NotContain("987");
     }
 
