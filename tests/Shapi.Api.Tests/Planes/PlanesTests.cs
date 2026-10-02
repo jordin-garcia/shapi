@@ -255,25 +255,31 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
     }
 
-    [Fact]
-    public async Task EM07_CrearPlan_DatosInvalidos_Retorna400()
+    [Theory]
+    [InlineData("", 0.0, true, 30, 1000, 60)]
+    [InlineData("Basico", 100.0, true, 30, 1000, 60)]
+    [InlineData("Basico", 0.0, true, 0, 1000, 60)]
+    [InlineData("Basico", 0.0, true, 367, 1000, 60)]
+    [InlineData("Basico", 0.0, true, 30, 0, 60)]
+    [InlineData("Basico", 0.0, true, 30, 1000, 0)]
+    public async Task EM07_CrearPlan_DatosInvalidos_Retorna400(string nombre, decimal precio, bool esGratuito, int vigenciaDias, int cuotaLlamadas, int limiteMinuto)
     {
         // RF-18
         var apiId = await InsertarApi(_organizacionId);
 
         var peticion = new
         {
-            nombre = "",
+            nombre,
             descripcion = "Plan básico",
-            precio = 100.0m,
-            esGratuito = true,
-            vigenciaDias = 0,
-            cuotaLlamadas = 0,
-            limiteMinuto = 0
+            precio,
+            esGratuito,
+            vigenciaDias,
+            cuotaLlamadas,
+            limiteMinuto
         };
 
         using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion);
-        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
     }
 
     [Fact]
@@ -410,5 +416,13 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
     {
         alcance = _fabrica.Services.CreateScope();
         return alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+    }
+
+    private static async Task<System.Text.Json.JsonElement> AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
+    {
+        Assert.Equal(estado, respuesta.StatusCode);
+        var json = await respuesta.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal(codigo, json.GetProperty("codigo").GetString());
+        return json;
     }
 }
