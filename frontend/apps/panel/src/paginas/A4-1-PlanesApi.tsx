@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/planes';
+import type { paths as apisPaths } from '@shapi/api/apis';
 import { Aviso, Boton, Campo, Selector, Tabla, Tarjeta, EstadoCargando, EstadoError } from '@shapi/ui';
 import { useParams } from 'react-router';
 
 const cliente = crearCliente<paths>(window.location.origin);
+const clienteApis = crearCliente<apisPaths>(window.location.origin);
 
 type PlanApi = components['schemas']['PlanApi'];
 
@@ -30,7 +32,7 @@ export default function PaginaA41PlanesApi() {
   const consultaApis = useQuery({
     queryKey: ['apis'],
     queryFn: async ({ signal }) => {
-      const { data, response } = await cliente.GET('/api/apis', { signal });
+      const { data, response } = await clienteApis.GET('/api/apis', { signal });
       if (!response.ok || !data) throw new Error('Error al cargar APIs.');
       return data;
     },
