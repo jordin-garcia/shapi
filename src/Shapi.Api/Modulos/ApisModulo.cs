@@ -24,8 +24,12 @@ public static class ApisModulo
         services.AddScoped<IValidator<SolicitudRegistroApi>, ValidadorSolicitudRegistroApi>();
         services.AddScoped<IRepositorioApis, RepositorioApis>();
         services.AddScoped<IProbadorOrigen, ProbadorOrigenHttp>();
+        services.AddScoped<ILectorEspecificacionOpenApi, LectorEspecificacionOpenApi>();
         services.AddScoped<RegistrarApi>();
         services.AddScoped<ListarApis>();
+        services.AddScoped<CargarEspecificacion>();
+        services.AddScoped<ListarRutas>();
+        services.AddScoped<ActualizarExposicionRutas>();
         return services;
     }
 

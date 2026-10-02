@@ -28,6 +28,69 @@ public sealed record ApiListado(Guid Id, string Nombre, string Subdominio, Estad
 
 public sealed record ListaApis(IReadOnlyList<ApiListado> Elementos, int Total, string PlanNombre, int? MaxApis);
 
+public sealed record OperacionEspecificacion(
+    MetodoHttp Metodo,
+    string Patron,
+    string? Resumen,
+    string? Descripcion,
+    string Definicion,
+    int Orden);
+
+public sealed record EspecificacionLeida(
+    EspecificacionFormato Formato,
+    string VersionOpenApi,
+    string Titulo,
+    string? Descripcion,
+    string Version,
+    IReadOnlyList<OperacionEspecificacion> Operaciones);
+
+public sealed record ErrorLecturaEspecificacion(string Ubicacion, string Mensaje);
+
+public sealed record ResultadoLecturaEspecificacion(EspecificacionLeida? Especificacion, ErrorLecturaEspecificacion? Error)
+{
+    public bool EsValida => Especificacion is not null;
+}
+
+public sealed record RutaAdministrada(
+    Guid Id,
+    string Metodo,
+    string Patron,
+    string? Resumen,
+    string? Descripcion,
+    bool Expuesta,
+    int Orden);
+
+public sealed record ListaRutas(
+    Guid ApiId,
+    string ApiNombre,
+    IReadOnlyList<RutaAdministrada> Elementos,
+    int TotalExpuestas,
+    int TotalOcultas);
+
+public sealed record EspecificacionCargada(
+    Guid ApiId,
+    string ApiNombre,
+    string Titulo,
+    string? Descripcion,
+    string Version,
+    string VersionOpenApi,
+    string Formato,
+    DateTimeOffset CargadaEn,
+    int TotalRutas,
+    IReadOnlyList<RutaAdministrada> Rutas);
+
+public sealed record CambioExposicionRuta(Guid RutaId, bool Expuesta);
+
+public sealed record SolicitudExposicionRutas(IReadOnlyList<CambioExposicionRuta> Cambios, ActorRegistroApi Actor);
+
+public interface ILectorEspecificacionOpenApi
+{
+    Task<ResultadoLecturaEspecificacion> Leer(
+        string contenido,
+        string nombreArchivo,
+        CancellationToken cancelacion = default);
+}
+
 public interface IProbadorOrigen
 {
     Task<ResultadoPruebaOrigen> Probar(DireccionOrigenValidada origen, CancellationToken cancelacion = default);
@@ -44,6 +107,21 @@ public interface IRepositorioApis
     Task<ListaApis> Listar(Guid organizacionId, CancellationToken cancelacion = default);
 
     Task<string?> ObtenerNombreUsuario(Guid usuarioId, CancellationToken cancelacion = default);
+
+    Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default);
+
+    Task<List<Ruta>> ObtenerRutas(Guid apiId, CancellationToken cancelacion = default);
+
+    Task ConsolidarConsumoRutas(
+        IReadOnlyCollection<Guid> rutaIds,
+        DateTimeOffset actualizadoEn,
+        CancellationToken cancelacion = default);
+
+    void AgregarRuta(Ruta ruta);
+
+    void EliminarRuta(Ruta ruta);
+
+    Task Guardar(CancellationToken cancelacion = default);
 }
 
 public interface ITransaccionApis : IAsyncDisposable

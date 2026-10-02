@@ -35,6 +35,8 @@ const implementadas: Record<string, string> = {
   'A1-4b': 'Definir la contraseña',
   'A3-1': 'APIs de la organización',
   'A3-2': 'Registrar una API',
+  'A3-3': 'Cargar especificación OpenAPI',
+  'A3-4': 'Rutas expuestas',
   'A8-1': 'Mi perfil',
   'B3-2': 'Bitácora de acciones sensibles',
 };
@@ -61,6 +63,13 @@ beforeEach(() => {
       total: 2,
       planNombre: 'Producto',
       maxApis: 10,
+    })),
+    http.get('http://localhost/api/apis/:id/rutas', ({ params }) => HttpResponse.json({
+      apiId: params.id,
+      apiNombre: params.id === 'api-2' ? 'Agro Precios' : 'Envíos Xelajú',
+      elementos: [],
+      totalExpuestas: 0,
+      totalOcultas: 0,
     })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
   );

@@ -22,6 +22,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apis/{id}/especificacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Carga la especificación OpenAPI de una API
+         * @description Extrae sus operaciones y reconcilia las rutas existentes sin perder su configuración.
+         */
+        put: operations["cargarEspecificacionApi"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/rutas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista las rutas extraídas de una API */
+        get: operations["listarRutasApi"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/rutas/exposicion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Expone u oculta rutas de una API */
+        put: operations["actualizarExposicionRutasApi"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -64,13 +118,52 @@ export interface components {
             secretoOrigen: string;
             conexionMilisegundos: number;
         };
+        RutaAdministrada: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            metodo: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
+            patron: string;
+            resumen?: string | null;
+            descripcion?: string | null;
+            expuesta: boolean;
+        };
+        ListaRutas: {
+            /** Format: uuid */
+            apiId: string;
+            apiNombre: string;
+            elementos: components["schemas"]["RutaAdministrada"][];
+            totalExpuestas: number;
+            totalOcultas: number;
+        };
+        EspecificacionCargada: {
+            /** Format: uuid */
+            apiId: string;
+            apiNombre: string;
+            titulo: string;
+            descripcion?: string | null;
+            version: string;
+            /** @example 3.0.3 */
+            versionOpenApi: string;
+            /** @enum {string} */
+            formato: "json" | "yaml";
+            /** Format: date-time */
+            cargadaEn: string;
+            totalRutas: number;
+            rutas: components["schemas"]["RutaAdministrada"][];
+        };
+        CambioExposicionRuta: {
+            /** Format: uuid */
+            rutaId: string;
+            expuesta: boolean;
+        };
         /** @description ProblemDetails de la API de control. */
         Problema: {
             type?: string;
             title: string;
             status: number;
             /** @enum {string} */
-            codigo: "datos_invalidos" | "csrf" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible";
+            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida";
             detalle?: {
                 [key: string]: unknown;
             };
@@ -80,6 +173,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description La API no existe o pertenece a otra organización. */
+        ApiNoEncontrada: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
         /** @description Datos inválidos (`datos_invalidos`), con errores por campo. */
         DatosInvalidos: {
             headers: {
@@ -124,6 +226,7 @@ export interface components {
         };
     };
     parameters: {
+        ApiId: string;
         /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
         XRequestedWith: "shapi";
     };
@@ -201,6 +304,111 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
+        };
+    };
+    cargarEspecificacionApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description OpenAPI 3.0 o 3.1 en JSON o YAML, de hasta 2 MB.
+                     */
+                    archivo: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Especificación validada y rutas reconciliadas. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EspecificacionCargada"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+            /** @description Documento inválido (`especificacion_invalida`), con línea o sección en el detalle. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    listarRutasApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rutas en el orden de la especificación. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaRutas"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermiso"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    actualizarExposicionRutasApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambioExposicionRuta"][];
+            };
+        };
+        responses: {
+            /** @description Exposición actualizada y resumen vigente. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaRutas"];
+                };
+            };
+            400: components["responses"]["DatosInvalidos"];
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
         };
     };
 }
