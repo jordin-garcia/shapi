@@ -223,7 +223,10 @@ describe('RF-09 · A3.3 Especificación OpenAPI', () => {
     await screen.findByRole('heading', { name: 'Cargar especificación OpenAPI' });
     vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
     await userEvent.upload(screen.getByLabelText('Elegir archivo OpenAPI'), new File(['x'], 'mala.yaml'));
-    expect((await screen.findByRole('alert')).textContent).toContain('La especificación OpenAPI no es válida.');
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('La especificación OpenAPI no es válida.');
+    expect(aviso.textContent).toContain('línea 4');
+    expect(aviso.textContent).toContain('Fin inesperado.');
   });
 });
 
@@ -246,7 +249,9 @@ describe('RF-10 · A3.4 Rutas expuestas', () => {
     expect(await screen.findByRole('heading', { name: 'Rutas expuestas' })).toBeDefined();
     expect(document.body.textContent).toContain('Rutas expuestas4');
     expect(document.body.textContent).toContain('Rutas ocultas1');
-    expect(screen.getByText('Cotizar un envío')).toBeDefined();
+    expect(screen.getAllByRole('columnheader').map(encabezado => encabezado.textContent))
+      .toEqual(['Método', 'Ruta', 'Estado']);
+    expect(screen.queryByText('Cotizar un envío')).toBeNull();
     await userEvent.click(screen.getByLabelText('Ocultar POST /cotizaciones'));
     expect(document.body.textContent).toContain('Rutas expuestas3');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar rutas expuestas' }));

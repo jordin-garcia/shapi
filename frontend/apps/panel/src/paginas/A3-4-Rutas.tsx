@@ -68,12 +68,11 @@ export default function PaginaA34Rutas() {
         <div className="w-full overflow-auto">
           <table className="w-full border-collapse text-left">
             <thead><tr>
-              {['Método', 'Ruta', 'Resumen', 'Estado'].map(titulo => <th key={titulo} className="border-b border-borde pb-[10px] pr-4 text-encabezado font-semibold uppercase text-tinta-suave">{titulo}</th>)}
+              {['Método', 'Ruta', 'Estado'].map(titulo => <th key={titulo} className="border-b border-borde pb-[10px] pr-4 text-encabezado font-semibold uppercase text-tinta-suave">{titulo}</th>)}
             </tr></thead>
             <tbody>{rutas.map(ruta => <tr key={ruta.id} className="border-b border-borde-fila">
               <td className="py-3 pr-4 text-[12px] font-semibold tracking-[0.06em] text-tinta-suave">{ruta.metodo}</td>
               <td className="py-3 pr-4 text-[15px] text-tinta">{ruta.patron}</td>
-              <td className="py-3 pr-4 text-[14px] text-tinta-suave">{ruta.resumen ?? '—'}</td>
               <td className="py-3 text-[14px] text-tinta">
                 <div className="flex gap-5">
                   <label className="flex items-center gap-2">

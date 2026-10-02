@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-01
 depende_de: [DC-04]
 requisitos: [RF-09, RF-10]
@@ -55,3 +55,12 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Configuración por ruta y publicación (DC-06)
+
+## Resultado
+
+- Se publicaron los contratos y endpoints para cargar especificaciones OpenAPI, listar rutas y guardar su exposición por lote.
+- El lector acepta JSON o YAML de OpenAPI 3.0/3.1, informa ubicación y mensaje de validación, e incorpora parámetros, cuerpos, respuestas y ejemplos en una definición JSON estable por operación.
+- La recarga reconcilia por método y patrón: conserva identificador, exposición, límites, caché y peso; crea rutas ocultas; desvincula el consumo histórico y elimina las retiradas dentro de una transacción.
+- Las APIs publicadas actualizan su caché después de confirmar los cambios, y los cambios de exposición registran `ruta.expuesta` o `ruta.ocultada` en la bitácora.
+- A3.3 y A3.4 implementan la carga automática, sus estados y errores, la tabla de rutas y la selección de exposición según los mockups.
+- Las pruebas cubren las dos especificaciones de demostración, archivos inválidos y grandes, recargas, aislamiento, permisos, bitácora, publicación de caché y las dos pantallas.

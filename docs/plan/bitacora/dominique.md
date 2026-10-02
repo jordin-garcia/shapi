@@ -67,3 +67,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **DC-06:** la lista muestra la acción visual Publicar/Despublicar, pero su comportamiento sigue fuera de DC-04.
   - **EM-13:** `GET /api/apis` ya devuelve `total`, `planNombre` y `maxApis`; el registro todavía no aplica el límite del plan.
   - **JG-05:** `ValidadorDireccionOrigen` devuelve la URI y direcciones resueltas válidas para reutilizar la misma política SSRF sin volver a resolver DNS.
+
+## 2026-10-01 · DC-05 · Especificación OpenAPI y rutas expuestas (A3.3 y A3.4)
+- Hecho: carga y validación de OpenAPI 3.0/3.1 en JSON o YAML; reconciliación transaccional de rutas; listado y exposición por lote con bitácora y publicación de caché; contratos y tipos generados; pantallas A3.3/A3.4; pruebas de integración y Vitest.
+- Decisiones: `ruta.definicion` guarda JSON estable con orden, parámetros, cuerpo y respuestas, con referencias locales resueltas; una recarga conserva identificador, exposición, límite, caché y peso por método/patrón, y desvincula el consumo histórico antes de retirar rutas ausentes.
+- Pendiente o aviso para otros:
+  - **DC-06:** `GET /api/apis/{id}/rutas` ya entrega las rutas configurables y los cambios sobre una API publicada llaman a `IPublicadorCache.PublicarApi` después de persistir.
+  - **DC-07 y DC-10:** `ruta.definicion` contiene `orden`, `parametros`, `cuerpo` y `respuestas`; las referencias locales quedan incorporadas en el JSON guardado.

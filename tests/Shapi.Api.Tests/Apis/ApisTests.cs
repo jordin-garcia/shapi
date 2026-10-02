@@ -18,6 +18,7 @@ using Shapi.Aplicacion.Apis;
 using Shapi.Aplicacion.Comun;
 using Shapi.Contratos.Red;
 using Shapi.Dominio.Apis;
+using Shapi.Dominio.Consumo;
 using Shapi.Infraestructura.Persistencia;
 using Testcontainers.PostgreSql;
 using ApiDominio = Shapi.Dominio.Apis.Api;
@@ -358,16 +359,28 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             apiId,
             "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
 
-        Guid cotizacionesId;
+        Guid tarifasId;
         await using (var db = Db(out var alcance))
         using (alcance)
         {
-            var cotizaciones = await db.Set<Ruta>().IgnoreQueryFilters()
-                .SingleAsync(r => r.ApiId == apiId && r.Patron == "/cotizaciones");
-            cotizacionesId = cotizaciones.Id;
+            var tarifas = await db.Set<Ruta>().IgnoreQueryFilters()
+                .SingleAsync(r => r.ApiId == apiId && r.Patron == "/tarifas");
+            tarifasId = tarifas.Id;
             await db.Database.ExecuteSqlInterpolatedAsync($"""
-                UPDATE ruta SET expuesta = true, limite_minuto = 25, cache_segundos = 0, peso_llamadas = 3
-                WHERE id = {cotizacionesId}
+                UPDATE ruta SET expuesta = true, limite_minuto = 25, cache_segundos = 90, peso_llamadas = 3
+                WHERE id = {tarifasId}
+                """);
+            var retiradaId = await db.Set<Ruta>().IgnoreQueryFilters()
+                .Where(r => r.ApiId == apiId && r.Patron == "/guias")
+                .Select(r => r.Id)
+                .SingleAsync();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO consumo_diario
+                    (fecha, api_id, ruta_id, entorno, hist_latencia_total, hist_latencia_compuerta,
+                     latencia_total_suma_ms, latencia_compuerta_suma_ms, actualizado_en)
+                VALUES
+                    ({new DateOnly(2026, 10, 1)}, {apiId}, {retiradaId}, 'produccion',
+                     ARRAY[0,0,0,0,0,0,0,0,0,0], ARRAY[0,0,0,0,0,0,0,0,0,0], 0, 0, now())
                 """);
         }
 
@@ -377,9 +390,9 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
               title: API recargada
               version: 2.0.0
             paths:
-              /cotizaciones:
-                post:
-                  summary: Cotización actualizada
+              /tarifas:
+                get:
+                  summary: Tarifas actualizadas
                   responses:
                     '200': { description: Correcto }
               /nueva:
@@ -396,13 +409,45 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         using var __ = alcanceFinal;
         var rutas = await dbFinal.Set<Ruta>().IgnoreQueryFilters().Where(r => r.ApiId == apiId).ToListAsync();
         Assert.Equal(2, rutas.Count);
-        var conservada = Assert.Single(rutas, r => r.Patron == "/cotizaciones");
-        Assert.Equal(cotizacionesId, conservada.Id);
+        var conservada = Assert.Single(rutas, r => r.Patron == "/tarifas");
+        Assert.Equal(tarifasId, conservada.Id);
         Assert.True(conservada.Expuesta);
         Assert.Equal(25, conservada.LimiteMinuto);
+        Assert.Equal(90, conservada.CacheSegundos);
         Assert.Equal(3, conservada.PesoLlamadas);
-        Assert.Equal("Cotización actualizada", conservada.Resumen);
+        Assert.Equal("Tarifas actualizadas", conservada.Resumen);
         Assert.False(Assert.Single(rutas, r => r.Patron == "/nueva").Expuesta);
+        Assert.Null((await dbFinal.Set<ConsumoDiario>().IgnoreQueryFilters().SingleAsync(c => c.ApiId == apiId)).RutaId);
+    }
+
+    [Fact]
+    public async Task RF_09_RecargarApiPublicada_PublicaCacheDespuesDePersistir()
+    {
+        var apiId = await RegistrarYObtenerId("cache-especificacion");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        await MarcarPublicada(apiId);
+
+        const string recarga = """
+            openapi: 3.0.3
+            info:
+              title: API publicada recargada
+              version: 2.0.0
+            paths:
+              /cotizaciones:
+                post:
+                  responses:
+                    '200': { description: Correcto }
+            """;
+        using var respuesta = await CargarEspecificacion(apiId, "recarga.yaml", recarga);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        Assert.Equal("2.0.0", (await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(a => a.Id == apiId)).EspecificacionVersion);
+        var publicador = _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>();
+        Assert.Contains(apiId, publicador.ApisPublicadas);
     }
 
     [Fact]

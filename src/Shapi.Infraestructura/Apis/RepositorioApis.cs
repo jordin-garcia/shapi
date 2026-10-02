@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using Shapi.Aplicacion.Apis;
 using Shapi.Dominio.Apis;
+using Shapi.Dominio.Consumo;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
@@ -70,6 +71,20 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
 
     public Task<List<Ruta>> ObtenerRutas(Guid apiId, CancellationToken cancelacion = default) =>
         db.Set<Ruta>().Where(r => r.ApiId == apiId).ToListAsync(cancelacion);
+
+    public async Task DesvincularConsumoRutas(
+        IReadOnlyCollection<Guid> rutaIds,
+        CancellationToken cancelacion = default)
+    {
+        if (rutaIds.Count == 0)
+        {
+            return;
+        }
+
+        await db.Set<ConsumoDiario>()
+            .Where(consumo => consumo.RutaId.HasValue && rutaIds.Contains(consumo.RutaId.Value))
+            .ExecuteUpdateAsync(actualizacion => actualizacion.SetProperty(consumo => consumo.RutaId, (Guid?)null), cancelacion);
+    }
 
     public void AgregarRuta(Ruta ruta) => db.Add(ruta);
 

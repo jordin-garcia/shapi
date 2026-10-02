@@ -19,9 +19,11 @@ describe('RNF-12 · cliente HTTP', () => {
   it('convierte las extensiones codigo y errores de ProblemDetails', async () => {
     server.use(http.post('http://localhost/prueba', () => HttpResponse.json({
       type: 'about:blank', title: 'Límite del plan', codigo: 'limite_del_plan', errores: { nombre: ['Requerido'] },
+      detalle: { ubicacion: 'línea 4', mensaje: 'Fin inesperado.' },
     }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })));
     await expect(cliente.POST('/prueba')).rejects.toMatchObject({
       name: 'ErrorApi', codigo: 'limite_del_plan', titulo: 'Límite del plan', errores: { nombre: ['Requerido'] }, estado: 422,
+      detalle: { ubicacion: 'línea 4', mensaje: 'Fin inesperado.' },
     });
     await expect(cliente.POST('/prueba')).rejects.toBeInstanceOf(ErrorApi);
   });

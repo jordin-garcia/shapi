@@ -7,6 +7,7 @@ export class ErrorApi extends Error {
     public titulo: string,
     public estado: number,
     public errores?: Record<string, string[]>,
+    public detalle?: Record<string, unknown>,
   ) {
     super(titulo);
     this.name = 'ErrorApi';
@@ -36,11 +37,13 @@ const convertirProblemas: Middleware = {
         ? Object.fromEntries(Object.entries(problema.errores).filter((entrada): entrada is [string, string[]] =>
           Array.isArray(entrada[1]) && entrada[1].every(valor => typeof valor === 'string')))
         : undefined;
+      const detalle = esObjeto(problema.detalle) ? problema.detalle : undefined;
       throw new ErrorApi(
         typeof problema.codigo === 'string' && problema.codigo ? problema.codigo : 'error',
         typeof problema.title === 'string' && problema.title ? problema.title : 'Ocurrió un error inesperado',
         response.status,
         errores,
+        detalle,
       );
     }
     return response;

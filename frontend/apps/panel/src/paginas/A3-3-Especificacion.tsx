@@ -49,7 +49,15 @@ export default function PaginaA33Especificacion() {
       setResultado(data);
       setError(undefined);
     },
-    onError: fallo => setError(fallo instanceof ErrorApi ? fallo.titulo : 'No se pudo cargar la especificación. Inténtelo de nuevo.'),
+    onError: fallo => {
+      if (fallo instanceof ErrorApi) {
+        const ubicacion = typeof fallo.detalle?.ubicacion === 'string' ? fallo.detalle.ubicacion : undefined;
+        const mensaje = typeof fallo.detalle?.mensaje === 'string' ? fallo.detalle.mensaje : undefined;
+        setError([fallo.titulo, ubicacion, mensaje].filter(Boolean).join(' '));
+        return;
+      }
+      setError('No se pudo cargar la especificación. Inténtelo de nuevo.');
+    },
   });
 
   function seleccionar(seleccionado?: File) {
