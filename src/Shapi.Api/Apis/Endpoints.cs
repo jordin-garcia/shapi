@@ -15,6 +15,12 @@ public static class Endpoints
         var grupo = app.MapGroup("/api/apis");
         grupo.MapGet("", Listar).RequireAuthorization(Permisos.VerApis);
         grupo.MapPost("", Registrar).RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapPut("/{id:guid}/especificacion", CargarEspecificacionArchivo)
+            .DisableAntiforgery()
+            .RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapGet("/{id:guid}/rutas", ObtenerRutas).RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapPut("/{id:guid}/rutas/exposicion", ActualizarExposicion)
+            .RequireAuthorization(Permisos.ConfigurarApis);
         return app;
     }
 
@@ -69,13 +75,90 @@ public static class Endpoints
     private static Guid OrganizacionId(ClaimsPrincipal usuario) =>
         Guid.Parse(usuario.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);
 
+    private static async Task<IResult> CargarEspecificacionArchivo(
+        Guid id,
+        IFormFile archivo,
+        HttpContext contexto,
+        CargarEspecificacion casoUso,
+        CancellationToken cancelacion)
+    {
+        if (archivo.Length > CargarEspecificacion.MaximoBytes)
+        {
+            return Problema(new Error(
+                CodigosError.EspecificacionInvalida,
+                "La especificación OpenAPI no es válida.",
+                new { ubicacion = "archivo", mensaje = "El archivo no puede superar 2 MB." }));
+        }
+
+        using var lector = new StreamReader(archivo.OpenReadStream());
+        var contenido = await lector.ReadToEndAsync(cancelacion);
+        var resultado = await casoUso.Ejecutar(id, OrganizacionId(contexto.User), archivo.FileName, contenido, cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> ObtenerRutas(
+        Guid id,
+        HttpContext contexto,
+        ListarRutas casoUso,
+        CancellationToken cancelacion)
+    {
+        var resultado = await casoUso.Ejecutar(id, OrganizacionId(contexto.User), cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> ActualizarExposicion(
+        Guid id,
+        [FromBody] CambioExposicionRuta[] cambios,
+        HttpContext contexto,
+        ActualizarExposicionRutas casoUso,
+        CancellationToken cancelacion)
+    {
+        var usuarioId = Guid.Parse(contexto.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var actor = new ActorRegistroApi(
+            usuarioId,
+            contexto.User.FindFirstValue(ClaimTypes.Name)
+                ?? contexto.User.FindFirstValue(ClaimTypes.Email)
+                ?? "Usuario",
+            contexto.Connection.RemoteIpAddress?.ToString());
+        var resultado = await casoUso.Ejecutar(
+            id,
+            OrganizacionId(contexto.User),
+            new SolicitudExposicionRutas(cambios, actor),
+            cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
+    }
+
+    private static RespuestaListaRutas Respuesta(ListaRutas lista) => new(
+        lista.ApiId,
+        lista.ApiNombre,
+        lista.Elementos.Select(Respuesta).ToArray(),
+        lista.TotalExpuestas,
+        lista.TotalOcultas);
+
+    private static RespuestaEspecificacionCargada Respuesta(EspecificacionCargada especificacion) => new(
+        especificacion.ApiId,
+        especificacion.ApiNombre,
+        especificacion.Titulo,
+        especificacion.Descripcion,
+        especificacion.Version,
+        especificacion.VersionOpenApi,
+        especificacion.Formato,
+        especificacion.CargadaEn,
+        especificacion.TotalRutas,
+        especificacion.Rutas.Select(Respuesta).ToArray());
+
+    private static RespuestaRuta Respuesta(RutaAdministrada ruta) => new(
+        ruta.Id, ruta.Metodo, ruta.Patron, ruta.Resumen, ruta.Descripcion, ruta.Expuesta);
+
     private static IResult Problema(Error error)
     {
         var estado = error.Codigo switch
         {
             CodigosError.DatosInvalidos => StatusCodes.Status400BadRequest,
+            CodigosError.ApiNoEncontrada => StatusCodes.Status404NotFound,
             CodigosError.SubdominioOcupado => StatusCodes.Status409Conflict,
-            CodigosError.OrigenNoPermitido or CodigosError.OrigenInaccesible => StatusCodes.Status422UnprocessableEntity,
+            CodigosError.OrigenNoPermitido or CodigosError.OrigenInaccesible or CodigosError.EspecificacionInvalida
+                => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError,
         };
         var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };
@@ -110,4 +193,31 @@ public static class Endpoints
         string Estado,
         string SecretoOrigen,
         long ConexionMilisegundos);
+
+    private sealed record RespuestaRuta(
+        Guid Id,
+        string Metodo,
+        string Patron,
+        string? Resumen,
+        string? Descripcion,
+        bool Expuesta);
+
+    private sealed record RespuestaListaRutas(
+        Guid ApiId,
+        string ApiNombre,
+        IReadOnlyList<RespuestaRuta> Elementos,
+        int TotalExpuestas,
+        int TotalOcultas);
+
+    private sealed record RespuestaEspecificacionCargada(
+        Guid ApiId,
+        string ApiNombre,
+        string Titulo,
+        string? Descripcion,
+        string Version,
+        string VersionOpenApi,
+        string Formato,
+        DateTimeOffset CargadaEn,
+        int TotalRutas,
+        IReadOnlyList<RespuestaRuta> Rutas);
 }

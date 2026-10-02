@@ -65,6 +65,18 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
             .Select(u => u.Nombre)
             .FirstOrDefaultAsync(cancelacion);
 
+    public Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default) =>
+        db.Set<Api>().SingleOrDefaultAsync(a => a.Id == apiId && a.OrganizacionId == organizacionId, cancelacion);
+
+    public Task<List<Ruta>> ObtenerRutas(Guid apiId, CancellationToken cancelacion = default) =>
+        db.Set<Ruta>().Where(r => r.ApiId == apiId).ToListAsync(cancelacion);
+
+    public void AgregarRuta(Ruta ruta) => db.Add(ruta);
+
+    public void EliminarRuta(Ruta ruta) => db.Remove(ruta);
+
+    public Task Guardar(CancellationToken cancelacion = default) => db.SaveChangesAsync(cancelacion);
+
     private sealed class TransaccionApis(IDbContextTransaction transaccion) : ITransaccionApis
     {
         public Task Confirmar(CancellationToken cancelacion = default) => transaccion.CommitAsync(cancelacion);

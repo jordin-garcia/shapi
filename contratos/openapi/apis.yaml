@@ -3,7 +3,7 @@ info:
   title: API de Control - APIs
   version: 1.0.0
   description: |
-    Registro y consulta de las APIs de una organización (DC-04).
+    Registro, especificación y rutas de las APIs de una organización (DC-04 y DC-05).
     La sesión viaja en la cookie `shapi_sesion` y los métodos no seguros exigen
     `X-Requested-With: shapi`.
 servers:
@@ -70,6 +70,103 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problema'
 
+  /api/apis/{id}/especificacion:
+    put:
+      summary: Carga la especificación OpenAPI de una API
+      description: Extrae sus operaciones y reconcilia las rutas existentes sin perder su configuración.
+      operationId: cargarEspecificacionApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo]
+              properties:
+                archivo:
+                  type: string
+                  format: binary
+                  description: OpenAPI 3.0 o 3.1 en JSON o YAML, de hasta 2 MB.
+      responses:
+        '200':
+          description: Especificación validada y rutas reconciliadas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EspecificacionCargada'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermisoOCsrf'
+        '404':
+          $ref: '#/components/responses/ApiNoEncontrada'
+        '422':
+          description: Documento inválido (`especificacion_invalida`), con línea o sección en el detalle.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+
+  /api/apis/{id}/rutas:
+    get:
+      summary: Lista las rutas extraídas de una API
+      operationId: listarRutasApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+      responses:
+        '200':
+          description: Rutas en el orden de la especificación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaRutas'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/ApiNoEncontrada'
+
+  /api/apis/{id}/rutas/exposicion:
+    put:
+      summary: Expone u oculta rutas de una API
+      operationId: actualizarExposicionRutasApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CambioExposicionRuta'
+      responses:
+        '200':
+          description: Exposición actualizada y resumen vigente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaRutas'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermisoOCsrf'
+        '404':
+          $ref: '#/components/responses/ApiNoEncontrada'
+
 components:
   securitySchemes:
     cookieSesion:
@@ -78,6 +175,13 @@ components:
       name: shapi_sesion
 
   parameters:
+    ApiId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     XRequestedWith:
       name: X-Requested-With
       in: header
@@ -88,6 +192,12 @@ components:
         const: shapi
 
   responses:
+    ApiNoEncontrada:
+      description: La API no existe o pertenece a otra organización.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
     DatosInvalidos:
       description: Datos inválidos (`datos_invalidos`), con errores por campo.
       content:
@@ -209,6 +319,87 @@ components:
           type: integer
           minimum: 0
 
+    RutaAdministrada:
+      type: object
+      required: [id, metodo, patron, expuesta]
+      properties:
+        id:
+          type: string
+          format: uuid
+        metodo:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS]
+        patron:
+          type: string
+        resumen:
+          type: [string, 'null']
+        descripcion:
+          type: [string, 'null']
+        expuesta:
+          type: boolean
+
+    ListaRutas:
+      type: object
+      required: [apiId, apiNombre, elementos, totalExpuestas, totalOcultas]
+      properties:
+        apiId:
+          type: string
+          format: uuid
+        apiNombre:
+          type: string
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RutaAdministrada'
+        totalExpuestas:
+          type: integer
+          minimum: 0
+        totalOcultas:
+          type: integer
+          minimum: 0
+
+    EspecificacionCargada:
+      type: object
+      required: [apiId, apiNombre, titulo, version, versionOpenApi, formato, cargadaEn, totalRutas, rutas]
+      properties:
+        apiId:
+          type: string
+          format: uuid
+        apiNombre:
+          type: string
+        titulo:
+          type: string
+        descripcion:
+          type: [string, 'null']
+        version:
+          type: string
+        versionOpenApi:
+          type: string
+          enum: ['3.0', '3.1']
+        formato:
+          type: string
+          enum: [json, yaml]
+        cargadaEn:
+          type: string
+          format: date-time
+        totalRutas:
+          type: integer
+          minimum: 0
+        rutas:
+          type: array
+          items:
+            $ref: '#/components/schemas/RutaAdministrada'
+
+    CambioExposicionRuta:
+      type: object
+      required: [rutaId, expuesta]
+      properties:
+        rutaId:
+          type: string
+          format: uuid
+        expuesta:
+          type: boolean
+
     Problema:
       type: object
       description: ProblemDetails de la API de control.
@@ -222,7 +413,7 @@ components:
           type: integer
         codigo:
           type: string
-          enum: [datos_invalidos, csrf, subdominio_ocupado, origen_no_permitido, origen_inaccesible]
+          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida]
         detalle:
           type: object
           additionalProperties: true

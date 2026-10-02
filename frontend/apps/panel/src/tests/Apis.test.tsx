@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +7,8 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../../test/servidor';
 import PaginaA31Apis from '../paginas/A3-1-Apis';
 import PaginaA32Registro from '../paginas/A3-2-Registro';
+import PaginaA33Especificacion from '../paginas/A3-3-Especificacion';
+import PaginaA34Rutas from '../paginas/A3-4-Rutas';
 
 const API = 'http://localhost/api/apis';
 let cliente: QueryClient;
@@ -26,6 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   cliente.clear();
+  vi.restoreAllMocks();
 });
 
 describe('RF-14 · A3.1 Lista de APIs', () => {
@@ -155,5 +158,99 @@ describe('RF-08 y RF-47 · A3.2 Registro de API', () => {
 
     expect(await screen.findByText('Escriba el nombre de la API.')).toBeDefined();
     expect(screen.getByText('El subdominio no está disponible.')).toBeDefined();
+  });
+});
+
+const API_ID = '0199a5b2-7c3d-7e4f-8a9b-0c1d2e3f4a5b';
+const RUTAS = [
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000001', metodo: 'POST', patron: '/cotizaciones', resumen: 'Cotizar un envío', descripcion: null, expuesta: true },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000002', metodo: 'POST', patron: '/guias', resumen: 'Crear una guía', descripcion: null, expuesta: true },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000003', metodo: 'GET', patron: '/tarifas', resumen: 'Listar tarifas', descripcion: null, expuesta: false },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000004', metodo: 'GET', patron: '/rastreo', resumen: 'Rastrear una guía', descripcion: null, expuesta: true },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000005', metodo: 'GET', patron: '/cobertura', resumen: 'Consultar cobertura', descripcion: null, expuesta: true },
+] as const;
+
+describe('RF-09 · A3.3 Especificación OpenAPI', () => {
+  it('carga el archivo y reproduce las rutas encontradas del mockup', async () => {
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: [], totalExpuestas: 0, totalOcultas: 0,
+      })),
+      http.put(`${API}/${API_ID}/especificacion`, ({ request }) => {
+        expect(request.headers.get('X-Requested-With')).toBe('shapi');
+        expect(request.headers.get('Content-Type')).toContain('multipart/form-data');
+        return HttpResponse.json({
+          apiId: API_ID,
+          apiNombre: 'API de Cotización de Envíos',
+          titulo: 'API de Cotización de Envíos',
+          descripcion: 'Cotice envíos.',
+          version: '1.0.0',
+          versionOpenApi: '3.0',
+          formato: 'yaml',
+          cargadaEn: '2026-10-01T12:00:00Z',
+          totalRutas: 5,
+          rutas: RUTAS.map(ruta => ({ ...ruta, expuesta: false })),
+        });
+      }),
+    );
+
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+    expect(await screen.findByRole('heading', { name: 'Cargar especificación OpenAPI' })).toBeDefined();
+    vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
+    const archivo = new File(['openapi: 3.0.3'], 'cotizacion-envios.yaml', { type: 'application/yaml' });
+    await userEvent.upload(screen.getByLabelText('Elegir archivo OpenAPI'), archivo);
+
+    expect(await screen.findByText('Cargado')).toBeDefined();
+    expect(screen.getByText('cotizacion-envios.yaml')).toBeDefined();
+    expect(document.body.textContent).toContain('OpenAPI 3.0 · 14 B');
+    expect(document.body.textContent).toContain('Rutas encontradas5');
+    expect(screen.getByText('/cotizaciones')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Continuar a la selección de rutas' }).getAttribute('href'))
+      .toBe(`/panel/apis/${API_ID}/rutas`);
+  });
+
+  it('muestra el error de una especificación inválida', async () => {
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: [], totalExpuestas: 0, totalOcultas: 0,
+      })),
+      http.put(`${API}/${API_ID}/especificacion`, () => HttpResponse.json({
+        type: 'about:blank', title: 'La especificación OpenAPI no es válida.', status: 422,
+        codigo: 'especificacion_invalida', detalle: { ubicacion: 'línea 4', mensaje: 'Fin inesperado.' },
+      }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+    await screen.findByRole('heading', { name: 'Cargar especificación OpenAPI' });
+    vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
+    await userEvent.upload(screen.getByLabelText('Elegir archivo OpenAPI'), new File(['x'], 'mala.yaml'));
+    expect((await screen.findByRole('alert')).textContent).toContain('La especificación OpenAPI no es válida.');
+  });
+});
+
+describe('RF-10 · A3.4 Rutas expuestas', () => {
+  it('muestra el resumen, cambia estados y guarda el lote', async () => {
+    let cuerpo: unknown;
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1,
+      })),
+      http.put(`${API}/${API_ID}/rutas/exposicion`, async ({ request }) => {
+        cuerpo = await request.json();
+        return HttpResponse.json({
+          apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1,
+        });
+      }),
+    );
+
+    envolver(<Routes><Route path="/panel/apis/:id/rutas" element={<PaginaA34Rutas />} /></Routes>, `/panel/apis/${API_ID}/rutas`);
+    expect(await screen.findByRole('heading', { name: 'Rutas expuestas' })).toBeDefined();
+    expect(document.body.textContent).toContain('Rutas expuestas4');
+    expect(document.body.textContent).toContain('Rutas ocultas1');
+    expect(screen.getByText('Cotizar un envío')).toBeDefined();
+    await userEvent.click(screen.getByLabelText('Ocultar POST /cotizaciones'));
+    expect(document.body.textContent).toContain('Rutas expuestas3');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar rutas expuestas' }));
+    expect(await screen.findByText('Las rutas expuestas se guardaron.')).toBeDefined();
+    expect(cuerpo).toEqual(RUTAS.map((ruta, indice) => ({ rutaId: ruta.id, expuesta: indice === 0 ? false : ruta.expuesta })));
   });
 });

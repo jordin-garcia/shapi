@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -43,6 +45,17 @@ public sealed class ProbadorOrigenFalso : IProbadorOrigen
 
         return Task.FromResult(ResultadoPruebaOrigen.Exito(142));
     }
+}
+
+public sealed class PublicadorCacheApisFalso : IPublicadorCache
+{
+    public List<Guid> ApisPublicadas { get; } = [];
+    public Task PublicarApi(Guid apiId, CancellationToken cancelacion = default) { ApisPublicadas.Add(apiId); return Task.CompletedTask; }
+    public Task PublicarClave(Guid claveId, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task ExpirarClave(string hashClave, DateTimeOffset instante, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task EliminarClave(string hashClave, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task PublicarSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task PublicarOrganizacion(Guid organizacionId, CancellationToken cancelacion = default) => Task.CompletedTask;
 }
 
 public sealed class AutenticacionApisPrueba(
@@ -107,6 +120,9 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
                     })
                     .AddScheme<AuthenticationSchemeOptions, AutenticacionApisPrueba>(AutenticacionApisPrueba.Esquema, _ => { });
                 services.AddSingleton<IProbadorOrigen, ProbadorOrigenFalso>();
+                services.RemoveAll<IPublicadorCache>();
+                services.AddSingleton<PublicadorCacheApisFalso>();
+                services.AddSingleton<IPublicadorCache>(sp => sp.GetRequiredService<PublicadorCacheApisFalso>());
             });
         });
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false, AllowAutoRedirect = false });
@@ -235,6 +251,232 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.False(json.ToString().Contains("ajena", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("origenes-demo/envios-xelaju/cotizacion-envios.yaml", 5, "API de Cotización de Envíos")]
+    [InlineData("origenes-demo/agro-precios/openapi.yaml", 4, "API de Precios de Mercado")]
+    public async Task RF_09_CargarEspecificacion_DemosExtraeInfoRutasYDefinicion(
+        string archivoRelativo,
+        int totalEsperado,
+        string tituloEsperado)
+    {
+        var apiId = await RegistrarYObtenerId($"demo-{Guid.NewGuid():N}"[..20]);
+
+        using var respuesta = await CargarEspecificacion(apiId, archivoRelativo);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(totalEsperado, json.GetProperty("totalRutas").GetInt32());
+        Assert.Equal(tituloEsperado, json.GetProperty("titulo").GetString());
+        Assert.All(json.GetProperty("rutas").EnumerateArray(), ruta => Assert.False(ruta.GetProperty("expuesta").GetBoolean()));
+
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        var api = await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(a => a.Id == apiId);
+        Assert.Equal(tituloEsperado, api.EspecificacionTitulo);
+        Assert.Equal("1.0.0", api.EspecificacionVersion);
+        var rutas = await db.Set<Ruta>().IgnoreQueryFilters().Where(r => r.ApiId == apiId).ToListAsync();
+        Assert.Equal(totalEsperado, rutas.Count);
+        Assert.Contains(rutas, r => r.Definicion.Contains("parametros", StringComparison.Ordinal)
+            && r.Definicion.Contains("respuestas", StringComparison.Ordinal));
+        if (archivoRelativo.Contains("agro-precios", StringComparison.Ordinal))
+        {
+            var precios = Assert.Single(rutas, r => r.Patron == "/precios");
+            Assert.Contains("producto", precios.Definicion, StringComparison.Ordinal);
+            Assert.Contains("frijol_negro", precios.Definicion, StringComparison.Ordinal);
+        }
+        else
+        {
+            var cotizaciones = Assert.Single(rutas, r => r.Patron == "/cotizaciones");
+            Assert.Contains("cuerpo", cotizaciones.Definicion, StringComparison.Ordinal);
+            Assert.Contains("peso_kg", cotizaciones.Definicion, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_InvalidaResponde422ConUbicacion()
+    {
+        var apiId = await RegistrarYObtenerId("invalida");
+        const string contenido = "openapi: 3.0.3\ninfo:\n  title: Sin versión\npaths: [";
+
+        using var respuesta = await CargarEspecificacion(apiId, "invalida.yaml", contenido);
+
+        var problema = await AfirmarProblema(respuesta, (HttpStatusCode)422, "especificacion_invalida");
+        Assert.False(string.IsNullOrWhiteSpace(problema.GetProperty("detalle").GetProperty("ubicacion").GetString()));
+        Assert.Equal(0, await ContarRutas(apiId));
+    }
+
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_Json31EsAceptada()
+    {
+        var apiId = await RegistrarYObtenerId("json-31");
+        const string contenido = """
+            {"openapi":"3.1.0","info":{"title":"API JSON","version":"1.2.3"},"paths":{"/saludo":{"parameters":[{"name":"idioma","in":"query","schema":{"type":"string"}}],"get":{"responses":{"200":{"description":"Correcto"}}}}}}
+            """;
+
+        using var respuesta = await CargarEspecificacion(apiId, "openapi.json", contenido);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("3.1", json.GetProperty("versionOpenApi").GetString());
+        Assert.Equal("json", json.GetProperty("formato").GetString());
+        Assert.Equal("/saludo", Assert.Single(json.GetProperty("rutas").EnumerateArray()).GetProperty("patron").GetString());
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        Assert.Contains("idioma", (await db.Set<Ruta>().IgnoreQueryFilters().SingleAsync(r => r.ApiId == apiId)).Definicion,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_MayorDe2MbResponde422SinGuardar()
+    {
+        var apiId = await RegistrarYObtenerId("grande");
+        var contenido = new string('x', Shapi.Aplicacion.Apis.CargarEspecificacion.MaximoBytes + 1);
+
+        using var respuesta = await CargarEspecificacion(apiId, "grande.yaml", contenido);
+
+        var problema = await AfirmarProblema(respuesta, (HttpStatusCode)422, "especificacion_invalida");
+        Assert.Equal("archivo", problema.GetProperty("detalle").GetProperty("ubicacion").GetString());
+        Assert.Equal(0, await ContarRutas(apiId));
+    }
+
+    [Fact]
+    public async Task RF_09_ListarRutas_ApiDeOtraOrganizacionResponde404()
+    {
+        var otra = await CrearOrganizacion("Otra organización");
+        var apiAjena = await InsertarApi(otra, "api-ajena");
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiAjena}/rutas", null);
+
+        await AfirmarProblema(respuesta, HttpStatusCode.NotFound, "api_no_encontrada");
+    }
+
+    [Fact]
+    public async Task RF_09_Recargar_ConservaConfiguracionAgregaOcultasYEliminaAusentes()
+    {
+        var apiId = await RegistrarYObtenerId("recarga");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+
+        Guid cotizacionesId;
+        await using (var db = Db(out var alcance))
+        using (alcance)
+        {
+            var cotizaciones = await db.Set<Ruta>().IgnoreQueryFilters()
+                .SingleAsync(r => r.ApiId == apiId && r.Patron == "/cotizaciones");
+            cotizacionesId = cotizaciones.Id;
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE ruta SET expuesta = true, limite_minuto = 25, cache_segundos = 0, peso_llamadas = 3
+                WHERE id = {cotizacionesId}
+                """);
+        }
+
+        const string recarga = """
+            openapi: 3.1.0
+            info:
+              title: API recargada
+              version: 2.0.0
+            paths:
+              /cotizaciones:
+                post:
+                  summary: Cotización actualizada
+                  responses:
+                    '200': { description: Correcto }
+              /nueva:
+                get:
+                  summary: Ruta nueva
+                  responses:
+                    '200': { description: Correcto }
+            """;
+
+        using var respuesta = await CargarEspecificacion(apiId, "recarga.json", recarga);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await using var dbFinal = Db(out var alcanceFinal);
+        using var __ = alcanceFinal;
+        var rutas = await dbFinal.Set<Ruta>().IgnoreQueryFilters().Where(r => r.ApiId == apiId).ToListAsync();
+        Assert.Equal(2, rutas.Count);
+        var conservada = Assert.Single(rutas, r => r.Patron == "/cotizaciones");
+        Assert.Equal(cotizacionesId, conservada.Id);
+        Assert.True(conservada.Expuesta);
+        Assert.Equal(25, conservada.LimiteMinuto);
+        Assert.Equal(3, conservada.PesoLlamadas);
+        Assert.Equal("Cotización actualizada", conservada.Resumen);
+        Assert.False(Assert.Single(rutas, r => r.Patron == "/nueva").Expuesta);
+    }
+
+    [Fact]
+    public async Task RF_10_Exposicion_ActualizaRutasYRegistraBitacora()
+    {
+        var apiId = await RegistrarYObtenerId("exposicion");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var listadoInicial = await ObtenerRutas(apiId);
+        var rutas = listadoInicial.GetProperty("elementos").EnumerateArray().ToArray();
+        var primera = rutas[0].GetProperty("id").GetGuid();
+        var segunda = rutas[1].GetProperty("id").GetGuid();
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", new[]
+        {
+            new { rutaId = primera, expuesta = true },
+            new { rutaId = segunda, expuesta = true },
+        });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, json.GetProperty("totalExpuestas").GetInt32());
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        var entradas = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters()
+            .Where(e => e.ObjetivoTipo == "ruta" && (e.ObjetivoId == primera || e.ObjetivoId == segunda))
+            .ToListAsync();
+        Assert.Equal(2, entradas.Count);
+        Assert.All(entradas, entrada => Assert.Equal("ruta.expuesta", entrada.Accion));
+
+        using var ocultar = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", new[]
+        {
+            new { rutaId = primera, expuesta = false },
+        });
+        Assert.Equal(HttpStatusCode.OK, ocultar.StatusCode);
+        db.ChangeTracker.Clear();
+        Assert.Contains(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
+            entrada => entrada.ObjetivoId == primera && entrada.Accion == "ruta.ocultada");
+    }
+
+    [Fact]
+    public async Task RF_10_Exposicion_ApiPublicadaPublicaCacheDespuesDeGuardar()
+    {
+        var apiId = await RegistrarYObtenerId("cache-rutas");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutaId = (await ObtenerRutas(apiId)).GetProperty("elementos")[0].GetProperty("id").GetGuid();
+        await MarcarPublicada(apiId);
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", new[]
+        {
+            new { rutaId, expuesta = true },
+        });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var publicador = _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>();
+        Assert.Contains(apiId, publicador.ApisPublicadas);
+    }
+
+    [Theory]
+    [InlineData("Propietario", HttpStatusCode.OK)]
+    [InlineData("Editor", HttpStatusCode.OK)]
+    [InlineData("Lector", HttpStatusCode.Forbidden)]
+    public async Task RF_09_RF_10_Endpoints_RespetanPermisoConfigurarApis(string rol, HttpStatusCode esperado)
+    {
+        var apiId = await RegistrarYObtenerId($"rol-{rol.ToLowerInvariant()}");
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/rutas", null, rol);
+
+        Assert.Equal(esperado, respuesta.StatusCode);
+    }
+
     private async Task<HttpResponseMessage> Registrar(string subdominio, string urlOrigen, string rol = "Propietario") =>
         await EnviarAutenticado(HttpMethod.Post, "/api/apis", new
         {
@@ -242,6 +484,48 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             urlOrigen,
             subdominio,
         }, rol);
+
+    private async Task<Guid> RegistrarYObtenerId(string subdominio)
+    {
+        using var respuesta = await Registrar(subdominio, "https://8.8.8.8");
+        Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
+        return (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+    }
+
+    private async Task<HttpResponseMessage> CargarEspecificacion(Guid apiId, string archivoRelativo)
+    {
+        var ruta = RaizRepositorio.Ruta(archivoRelativo.Split('/'));
+        return await CargarEspecificacion(apiId, Path.GetFileName(ruta), await File.ReadAllTextAsync(ruta));
+    }
+
+    private async Task<HttpResponseMessage> CargarEspecificacion(Guid apiId, string nombre, string contenido)
+    {
+        var multipart = new MultipartFormDataContent();
+        multipart.Add(new StringContent(contenido, Encoding.UTF8), "archivo", nombre);
+        var peticion = new HttpRequestMessage(HttpMethod.Put, $"/api/apis/{apiId}/especificacion") { Content = multipart };
+        peticion.Headers.Add("X-Prueba-Organizacion", _organizacionId.ToString());
+        peticion.Headers.Add("X-Prueba-Rol", "Propietario");
+        peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
+        peticion.Headers.Add("X-Requested-With", "shapi");
+        return await _cliente.SendAsync(peticion);
+    }
+
+    private async Task<JsonElement> ObtenerRutas(Guid apiId)
+    {
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/rutas", null);
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        return await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    private async Task<int> ContarRutas(Guid apiId)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = "SELECT count(*) FROM ruta WHERE api_id = @api";
+        comando.Parameters.AddWithValue("api", apiId);
+        return Convert.ToInt32(await comando.ExecuteScalarAsync());
+    }
 
     private async Task<HttpResponseMessage> EnviarAutenticado(HttpMethod metodo, string ruta, object? cuerpo, string rol = "Propietario")
     {
@@ -279,7 +563,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         return (Guid)(await comando.ExecuteScalarAsync())!;
     }
 
-    private async Task InsertarApi(Guid organizacionId, string subdominio)
+    private async Task<Guid> InsertarApi(Guid organizacionId, string subdominio)
     {
         await using var conexion = new NpgsqlConnection(_cadena);
         await conexion.OpenAsync();
@@ -287,9 +571,20 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         comando.CommandText = """
             INSERT INTO api (id, organizacion_id, nombre, subdominio, url_origen, estado, secreto_origen_cifrado)
             VALUES (gen_random_uuid(), @organizacion, 'API ajena', @subdominio, 'https://8.8.8.8', 'borrador', 'cifrado')
+            RETURNING id
             """;
         comando.Parameters.AddWithValue("organizacion", organizacionId);
         comando.Parameters.AddWithValue("subdominio", subdominio);
+        return (Guid)(await comando.ExecuteScalarAsync())!;
+    }
+
+    private async Task MarcarPublicada(Guid apiId)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = "UPDATE api SET estado = 'publicada', publicada_en = now() WHERE id = @api";
+        comando.Parameters.AddWithValue("api", apiId);
         await comando.ExecuteNonQueryAsync();
     }
 

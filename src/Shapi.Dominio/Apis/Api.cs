@@ -76,4 +76,26 @@ public class Api : IPerteneceAOrganizacion
         CreadoEn = ahora;
         ActualizadoEn = ahora;
     }
+
+    /// <summary>Guarda el archivo OpenAPI validado y sus datos de información (RF-09).</summary>
+    public void CargarEspecificacion(
+        string contenido,
+        EspecificacionFormato formato,
+        string titulo,
+        string? descripcion,
+        string version,
+        DateTimeOffset ahora)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contenido);
+        ArgumentException.ThrowIfNullOrWhiteSpace(titulo);
+        ArgumentException.ThrowIfNullOrWhiteSpace(version);
+
+        Especificacion = contenido;
+        EspecificacionFormato = formato;
+        EspecificacionTitulo = titulo;
+        EspecificacionDescripcion = descripcion;
+        EspecificacionVersion = version;
+        EspecificacionCargadaEn = ahora;
+        ActualizadoEn = ahora;
+    }
 }
