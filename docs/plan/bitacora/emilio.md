@@ -63,3 +63,4 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: Se resolvió que el nombre del plan se verifique ignorando los que no son parte de la misma API, pero incluyendo inactivos para prevenir conflictos al editar. Para `CodigosError`, se implementaron `PlanDuplicado` y `PlanNoEncontrado`.
 - Pendiente o aviso para otros:
   - **Dominique**: Revisa que la interfaz de portales pueda leer los planes activos adecuadamente con los endpoints proporcionados.
+- **02 de octubre, 2026**: Implementación de A4.1 (EM-07 Planes de API). Backend: Refactorización de tests (CS0103 y aserciones) completada exitosamente. Frontend: Arreglo de interceptores MSW (remover "as any", resolver type-checking) y corrección del ciclo de mutación `openapi-fetch`. Todos los tests (locales y CI) de PR #55 pasaron.
