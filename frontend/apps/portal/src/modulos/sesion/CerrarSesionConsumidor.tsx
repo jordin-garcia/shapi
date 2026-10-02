@@ -7,7 +7,7 @@ export function CerrarSesionConsumidor() {
   const cache = useQueryClient();
   const cerrar = useMutation({
     mutationFn: async () => {
-      const { response } = await clienteSesion.POST('/api/portal/auth/salir');
+      const { response } = await clienteSesion.POST('/api/portal/auth/salir', { params: { header: { 'X-Requested-With': 'shapi' } } });
       if (!response.ok && response.status !== 401) throw new Error('No se pudo cerrar la sesión');
     },
     onSuccess: async () => {

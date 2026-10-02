@@ -49,3 +49,10 @@ Verificación manual con el entorno levantado:
 
 ## Fuera de alcance
 - Backend (EM-05)
+
+## Avance 2026-10-02
+
+- Las seis pantallas, la sesión real, los flujos con tokens y sus pruebas Vitest + MSW están implementados en la rama `dominique/DC-08-acceso-consumidor`.
+- Lint, typecheck, 241 pruebas y build del frontend pasan.
+- Pendiente para cerrar: EM-18 debe agregar `destino` a la sesión del consumidor; sin ese dato el frontend no puede distinguir una cuenta con suscripción de una cuenta nueva.
+- La comprobación manual quedó pendiente porque el entorno local no tenía la imagen de Caddy y su descarga no terminó.
