@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Shapi.Aplicacion.Apis;
 using Shapi.Dominio.Apis;
+using SharpYaml.Serialization;
 
 namespace Shapi.Infraestructura.Apis;
 
@@ -76,7 +77,7 @@ public sealed class LectorEspecificacionOpenApi : ILectorEspecificacionOpenApi
             return new ResultadoLecturaEspecificacion(
                 new EspecificacionLeida(
                     formato == "json" ? EspecificacionFormato.Json : EspecificacionFormato.Yaml,
-                    diagnostico.SpecificationVersion == OpenApiSpecVersion.OpenApi3_1 ? "3.1" : "3.0",
+                    ObtenerVersionExacta(contenido, formato),
                     documento.Info.Title,
                     documento.Info.Description,
                     documento.Info.Version,
@@ -173,5 +174,26 @@ public sealed class LectorEspecificacionOpenApi : ILectorEspecificacionOpenApi
     {
         var indice = mensaje.IndexOf("line", StringComparison.OrdinalIgnoreCase);
         return indice >= 0 ? mensaje[indice..] : archivo;
+    }
+
+    private static string ObtenerVersionExacta(string contenido, string formato)
+    {
+        if (formato == "json")
+        {
+            return JsonNode.Parse(contenido)?["openapi"]?.GetValue<string>()
+                ?? throw new InvalidOperationException("El documento no declara su versión OpenAPI.");
+        }
+
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(contenido));
+        if (yaml.Documents.FirstOrDefault()?.RootNode is YamlMappingNode raiz
+            && raiz.Children.TryGetValue(new YamlScalarNode("openapi"), out var nodo)
+            && nodo is YamlScalarNode version
+            && !string.IsNullOrWhiteSpace(version.Value))
+        {
+            return version.Value;
+        }
+
+        throw new InvalidOperationException("El documento no declara su versión OpenAPI.");
     }
 }

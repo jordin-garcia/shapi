@@ -46,7 +46,7 @@ public sealed class CargarEspecificacion(
         var clavesNuevas = especificacion.Operaciones.Select(o => (o.Metodo, o.Patron)).ToHashSet();
 
         var retiradas = existentes.Where(r => !clavesNuevas.Contains((r.Metodo, r.Patron))).ToArray();
-        await repositorio.DesvincularConsumoRutas(retiradas.Select(r => r.Id).ToArray(), cancelacion);
+        await repositorio.ConsolidarConsumoRutas(retiradas.Select(r => r.Id).ToArray(), ahora, cancelacion);
         foreach (var anterior in retiradas)
         {
             repositorio.EliminarRuta(anterior);

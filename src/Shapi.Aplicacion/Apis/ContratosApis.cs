@@ -112,7 +112,10 @@ public interface IRepositorioApis
 
     Task<List<Ruta>> ObtenerRutas(Guid apiId, CancellationToken cancelacion = default);
 
-    Task DesvincularConsumoRutas(IReadOnlyCollection<Guid> rutaIds, CancellationToken cancelacion = default);
+    Task ConsolidarConsumoRutas(
+        IReadOnlyCollection<Guid> rutaIds,
+        DateTimeOffset actualizadoEn,
+        CancellationToken cancelacion = default);
 
     void AgregarRuta(Ruta ruta);
 

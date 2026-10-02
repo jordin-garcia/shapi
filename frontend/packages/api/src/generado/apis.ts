@@ -143,8 +143,8 @@ export interface components {
             titulo: string;
             descripcion?: string | null;
             version: string;
-            /** @enum {string} */
-            versionOpenApi: "3.0" | "3.1";
+            /** @example 3.0.3 */
+            versionOpenApi: string;
             /** @enum {string} */
             formato: "json" | "yaml";
             /** Format: date-time */

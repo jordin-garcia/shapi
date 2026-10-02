@@ -185,7 +185,7 @@ describe('RF-09 · A3.3 Especificación OpenAPI', () => {
           titulo: 'API de Cotización de Envíos',
           descripcion: 'Cotice envíos.',
           version: '1.0.0',
-          versionOpenApi: '3.0',
+          versionOpenApi: '3.0.3',
           formato: 'yaml',
           cargadaEn: '2026-10-01T12:00:00Z',
           totalRutas: 5,
@@ -202,7 +202,7 @@ describe('RF-09 · A3.3 Especificación OpenAPI', () => {
 
     expect(await screen.findByText('Cargado')).toBeDefined();
     expect(screen.getByText('cotizacion-envios.yaml')).toBeDefined();
-    expect(document.body.textContent).toContain('OpenAPI 3.0 · 14 B');
+    expect(document.body.textContent).toContain('OpenAPI 3.0.3 · 14 B');
     expect(document.body.textContent).toContain('Rutas encontradas5');
     expect(screen.getByText('/cotizaciones')).toBeDefined();
     expect(screen.getByRole('link', { name: 'Continuar a la selección de rutas' }).getAttribute('href'))

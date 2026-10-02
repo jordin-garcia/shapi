@@ -268,6 +268,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(totalEsperado, json.GetProperty("totalRutas").GetInt32());
         Assert.Equal(tituloEsperado, json.GetProperty("titulo").GetString());
+        Assert.Equal("3.0.3", json.GetProperty("versionOpenApi").GetString());
         Assert.All(json.GetProperty("rutas").EnumerateArray(), ruta => Assert.False(ruta.GetProperty("expuesta").GetBoolean()));
 
         await using var db = Db(out var alcance);
@@ -318,13 +319,34 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("3.1", json.GetProperty("versionOpenApi").GetString());
+        Assert.Equal("3.1.0", json.GetProperty("versionOpenApi").GetString());
         Assert.Equal("json", json.GetProperty("formato").GetString());
         Assert.Equal("/saludo", Assert.Single(json.GetProperty("rutas").EnumerateArray()).GetProperty("patron").GetString());
         await using var db = Db(out var alcance);
         using var _ = alcance;
         Assert.Contains("idioma", (await db.Set<Ruta>().IgnoreQueryFilters().SingleAsync(r => r.ApiId == apiId)).Definicion,
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_VersionYamlSeLeeDeLaRaiz()
+    {
+        var apiId = await RegistrarYObtenerId("version-yaml");
+        const string contenido = """
+            x-datos:
+              openapi: 3.0.3
+            openapi: 3.1.0
+            info:
+              title: API YAML
+              version: 1.0.0
+            paths: {}
+            """;
+
+        using var respuesta = await CargarEspecificacion(apiId, "openapi.yaml", contenido);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("3.1.0", json.GetProperty("versionOpenApi").GetString());
     }
 
     [Fact]
@@ -370,17 +392,53 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
                 UPDATE ruta SET expuesta = true, limite_minuto = 25, cache_segundos = 90, peso_llamadas = 3
                 WHERE id = {tarifasId}
                 """);
-            var retiradaId = await db.Set<Ruta>().IgnoreQueryFilters()
-                .Where(r => r.ApiId == apiId && r.Patron == "/guias")
+            var retiradas = await db.Set<Ruta>().IgnoreQueryFilters()
+                .Where(r => r.ApiId == apiId && (r.Patron == "/guias" || r.Patron == "/cobertura"))
                 .Select(r => r.Id)
-                .SingleAsync();
+                .ToArrayAsync();
+            var suscripcionId = Guid.NewGuid();
+            var consumidorId = Guid.NewGuid();
+            var planId = Guid.NewGuid();
             await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO consumo_diario
-                    (fecha, api_id, ruta_id, entorno, hist_latencia_total, hist_latencia_compuerta,
-                     latencia_total_suma_ms, latencia_compuerta_suma_ms, actualizado_en)
+                INSERT INTO consumidor
+                    (id, organizacion_id, nombre, nombre_empresa, correo, hash_contrasena, estado)
                 VALUES
-                    ({new DateOnly(2026, 10, 1)}, {apiId}, {retiradaId}, 'produccion',
-                     ARRAY[0,0,0,0,0,0,0,0,0,0], ARRAY[0,0,0,0,0,0,0,0,0,0], 0, 0, now())
+                    ({consumidorId}, {_organizacionId}, 'Consumidor', 'Empresa', {suscripcionId + "@prueba.test"}, 'hash', 'activo');
+                INSERT INTO plan_api
+                    (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias,
+                     cuota_llamadas, limite_minuto, activo)
+                VALUES
+                    ({planId}, {apiId}, 'Plan', 'Plan de prueba', 10, false, 30, 1000, 60, true);
+                INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin)
+                VALUES ({suscripcionId}, {consumidorId}, {apiId}, {planId}, 'activa', now(), now() + interval '30 days');
+                INSERT INTO consumo_diario
+                    (fecha, api_id, ruta_id, suscripcion_id, entorno,
+                     peticiones, llamadas, bytes_entrada, bytes_salida,
+                     rechazos_401, rechazos_403, rechazos_404, rechazos_429,
+                     origen_2xx, origen_3xx, origen_4xx, origen_5xx, origen_fallo,
+                     hist_latencia_total, hist_latencia_compuerta,
+                     latencia_total_suma_ms, latencia_compuerta_suma_ms, creado_en, actualizado_en)
+                VALUES
+                    ({new DateOnly(2026, 10, 1)}, {apiId}, NULL, {suscripcionId}, 'produccion',
+                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                     array_fill(1, ARRAY[10]), array_fill(1, ARRAY[10]), 10, 20,
+                     {new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero)}, {new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero)}),
+                    ({new DateOnly(2026, 10, 1)}, {apiId}, {retiradas[0]}, {suscripcionId}, 'produccion',
+                     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                     array_fill(2, ARRAY[10]), array_fill(2, ARRAY[10]), 20, 40,
+                     {new DateTimeOffset(2026, 8, 2, 0, 0, 0, TimeSpan.Zero)}, {new DateTimeOffset(2026, 9, 2, 0, 0, 0, TimeSpan.Zero)}),
+                    ({new DateOnly(2026, 10, 1)}, {apiId}, {retiradas[1]}, {suscripcionId}, 'produccion',
+                     3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                     array_fill(3, ARRAY[10]), array_fill(3, ARRAY[10]), 30, 60,
+                     {new DateTimeOffset(2026, 8, 3, 0, 0, 0, TimeSpan.Zero)}, {new DateTimeOffset(2026, 9, 3, 0, 0, 0, TimeSpan.Zero)}),
+                    ({new DateOnly(2026, 10, 2)}, {apiId}, {retiradas[0]}, {suscripcionId}, 'produccion',
+                     4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                     array_fill(4, ARRAY[10]), array_fill(4, ARRAY[10]), 40, 80,
+                     {new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero)}, {new DateTimeOffset(2026, 9, 4, 0, 0, 0, TimeSpan.Zero)}),
+                    ({new DateOnly(2026, 10, 2)}, {apiId}, {retiradas[1]}, {suscripcionId}, 'produccion',
+                     5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                     array_fill(5, ARRAY[10]), array_fill(5, ARRAY[10]), 50, 100,
+                     {new DateTimeOffset(2026, 8, 5, 0, 0, 0, TimeSpan.Zero)}, {new DateTimeOffset(2026, 9, 5, 0, 0, 0, TimeSpan.Zero)})
                 """);
         }
 
@@ -405,6 +463,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         using var respuesta = await CargarEspecificacion(apiId, "recarga.json", recarga);
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var respuestaJson = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         await using var dbFinal = Db(out var alcanceFinal);
         using var __ = alcanceFinal;
         var rutas = await dbFinal.Set<Ruta>().IgnoreQueryFilters().Where(r => r.ApiId == apiId).ToListAsync();
@@ -417,7 +476,19 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Equal(3, conservada.PesoLlamadas);
         Assert.Equal("Tarifas actualizadas", conservada.Resumen);
         Assert.False(Assert.Single(rutas, r => r.Patron == "/nueva").Expuesta);
-        Assert.Null((await dbFinal.Set<ConsumoDiario>().IgnoreQueryFilters().SingleAsync(c => c.ApiId == apiId)).RutaId);
+        var cargadaEn = respuestaJson.GetProperty("cargadaEn").GetDateTimeOffset();
+        var consumos = await dbFinal.Set<ConsumoDiario>().IgnoreQueryFilters()
+            .Where(c => c.ApiId == apiId)
+            .OrderBy(c => c.Fecha)
+            .ToArrayAsync();
+        Assert.Collection(
+            consumos,
+            consumo => AfirmarConsumoConsolidado(
+                consumo,
+                6,
+                new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero),
+                cargadaEn),
+            consumo => AfirmarConsumoConsolidado(consumo, 9, cargadaEn, cargadaEn));
     }
 
     [Fact]
@@ -520,6 +591,34 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/rutas", null, rol);
 
         Assert.Equal(esperado, respuesta.StatusCode);
+    }
+
+    private static void AfirmarConsumoConsolidado(
+        ConsumoDiario consumo,
+        long valor,
+        DateTimeOffset creadoEn,
+        DateTimeOffset actualizadoEn)
+    {
+        Assert.Null(consumo.RutaId);
+        Assert.Equal(valor, consumo.Peticiones);
+        Assert.Equal(valor, consumo.Llamadas);
+        Assert.Equal(valor, consumo.BytesEntrada);
+        Assert.Equal(valor, consumo.BytesSalida);
+        Assert.Equal(valor, consumo.Rechazos401);
+        Assert.Equal(valor, consumo.Rechazos403);
+        Assert.Equal(valor, consumo.Rechazos404);
+        Assert.Equal(valor, consumo.Rechazos429);
+        Assert.Equal(valor, consumo.Origen2xx);
+        Assert.Equal(valor, consumo.Origen3xx);
+        Assert.Equal(valor, consumo.Origen4xx);
+        Assert.Equal(valor, consumo.Origen5xx);
+        Assert.Equal(valor, consumo.OrigenFallo);
+        Assert.All(consumo.HistLatenciaTotal, rango => Assert.Equal((int)valor, rango));
+        Assert.All(consumo.HistLatenciaCompuerta, rango => Assert.Equal((int)valor, rango));
+        Assert.Equal(valor * 10, consumo.LatenciaTotalSumaMs);
+        Assert.Equal(valor * 20, consumo.LatenciaCompuertaSumaMs);
+        Assert.InRange(consumo.CreadoEn, creadoEn.AddMilliseconds(-1), creadoEn.AddMilliseconds(1));
+        Assert.InRange(consumo.ActualizadoEn, actualizadoEn.AddMilliseconds(-1), actualizadoEn.AddMilliseconds(1));
     }
 
     private async Task<HttpResponseMessage> Registrar(string subdominio, string urlOrigen, string rol = "Propietario") =>
