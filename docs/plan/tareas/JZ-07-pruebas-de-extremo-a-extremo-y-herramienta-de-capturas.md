@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-01
 depende_de: [EM-03, JZ-03, JZ-06]
 requisitos: [RNF-15]
@@ -47,3 +47,13 @@ cd tests/e2e && pnpm install && pnpm exec playwright install chromium && pnpm te
 
 ## Fuera de alcance
 - Flujos completos (JZ-13)
+
+## Resultado
+
+- Se creó el proyecto independiente `tests/e2e` con Playwright, `baseURL` en `https://shapi.localhost`, aceptación del certificado local y un viewport de 1440 × 900.
+- `pnpm captura <url> <archivo.png>` guarda capturas de página completa; una prueba comprueba el comando y las dimensiones del PNG.
+- El ayudante de Mailpit consulta `/api/v1/messages`, espera por destinatario y extrae enlaces del contenido HTML o de texto. La primera E2E recorre el registro del proveedor, abre el enlace recibido y comprueba la barra lateral del panel.
+- `.github/workflows/e2e.yml` levanta el ambiente productivo simulado al llegar a `main` o por ejecución manual, corre Playwright y adjunta el informe como artefacto sin convertirse en una verificación obligatoria del PR.
+- Se resolvieron los hosts `*.localhost` a `127.0.0.1` dentro del ayudante, porque el proceso de Node no usa necesariamente la misma resolución especial de nombres que Chromium.
+
+Archivos principales: `tests/e2e/playwright.config.ts`, `tests/e2e/scripts/captura.ts`, `tests/e2e/soporte/mailpit.ts`, `tests/e2e/tests/registro-y-acceso.spec.ts` y `.github/workflows/e2e.yml`.
