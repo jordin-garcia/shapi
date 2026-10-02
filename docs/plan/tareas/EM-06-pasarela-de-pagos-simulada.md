@@ -81,3 +81,7 @@ Lo terminó Jordin (coordinador, protocolo §E4) el 27 de septiembre, a partir d
 
 - **H-130:** el aviso de la bitácora de Jordin decía que EM-09 registraba la pasarela en el Trabajador, pero las renovaciones las cobra EM-10. Se corrigió el aviso y EM-10 ya lo incluye en sus archivos y en sus pruebas (`Pagos:DemoraMs=0`).
 - **H-131:** `PasarelaSimulada` usa las constantes de `CodigosError` en lugar de escribir los códigos como texto.
+
+### Corrección del coordinador (2026-10-01)
+- `RF_20_Tokenizar_DevuelveLaMarcaLosUltimos4YElTitularSinElNumeroNiElCvv` fallaba al azar, más o menos 1 de cada 140 veces: el token es `tok_sim_{uuid}` y el UUID a veces contiene el CVV de la prueba ("987"). Pasó en la CI del PR #51.
+- Ahora la prueba exige que el token tenga exactamente el formato `tok_sim_{uuid}` y busca el CVV en el resto del resultado. No se debilita: el token sigue sin poder guardar datos de la tarjeta, y un CVV en cualquier otro campo se detecta igual.

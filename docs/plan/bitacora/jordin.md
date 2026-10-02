@@ -529,3 +529,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **DC-05 y DC-06:** la compuerta solo deja pasar las rutas `expuesta = true` de `api:{id}:rutas`, y cualquier cambio de rutas se aplica cuando `PublicarApi` sube la `version` (si no, tarda hasta 5 s). Los patrones pueden mezclar texto y parámetros en un segmento (`{nombre}.json`), y sus literales no distinguen mayúsculas. Uno que no empiece con `/` o tenga llaves sin cerrar no coincide con nada.
   - **DC-10:** las respuestas de la compuerta, también los errores, llevan `Access-Control-Allow-Origin` cuando el `Origin` es el portal de la API, y exponen las cabeceras de 08 §5. El *preflight* no necesita clave.
   - **JZ-05 y JZ-07:** para llamar a la compuerta, la API necesita, además de `api:*` y `clave:*`, `org:{id}` activa, `susc:{id}` activa o en gracia y la ruta expuesta. Con la resincronización basta.
+
+## 2026-10-01 · EM-06 · Corrección de una prueba intermitente de la pasarela
+- Hecho: `RF_20_Tokenizar_DevuelveLaMarcaLosUltimos4YElTitularSinElNumeroNiElCvv` fallaba cuando el UUID al azar del token contenía "987", el CVV de la prueba (CI del PR #51). Ahora la prueba exige el formato exacto `tok_sim_{uuid}` y busca el CVV fuera del token.
+- Decisiones: no se cambió el código de la pasarela, solo la prueba. Revisé las demás aserciones `NotContain` con textos cortos y no dependen de valores al azar.
+- Pendiente o aviso para otros:
+  - **Emilio:** cambié `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs` (solo esa prueba) y agregué una subsección a `## Resultado` de EM-06. Actualiza tu rama desde `main`. Si una prueba busca que un dato no aparezca en un texto que lleva un UUID o un token al azar, quita primero ese valor del texto.
