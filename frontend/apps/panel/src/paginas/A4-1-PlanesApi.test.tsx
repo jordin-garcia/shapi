@@ -37,7 +37,8 @@ const servidor = setupServer(
   }),
   http.post('http://localhost/api/apis/:apiId/planes', async ({ request }) => {
     const body = await request.clone().json();
-    if (!(body as any).nombre || (body as any).precio === undefined) {
+    const bodyObj = body as Record<string, unknown>;
+    if (!bodyObj.nombre || bodyObj.precio === undefined) {
       return HttpResponse.json({ codigo: 'datos_invalidos' }, { status: 400 });
     }
     return HttpResponse.json({ id: '2', ...(body as Record<string, unknown>), apiId: 'api-1', activo: true });
