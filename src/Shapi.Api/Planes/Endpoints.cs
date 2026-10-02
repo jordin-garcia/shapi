@@ -14,9 +14,9 @@ public static class Endpoints
     {
         var grupo = app.MapGroup("/api/apis/{apiId:guid}/planes");
         grupo.MapGet("", Listar).RequireAuthorization(Permisos.VerApis);
-        grupo.MapPost("", Crear).RequireAuthorization(Permisos.ConfigurarApis);
-        grupo.MapPut("/{planId:guid}", Editar).RequireAuthorization(Permisos.ConfigurarApis);
-        grupo.MapPost("/{planId:guid}/desactivar", Desactivar).RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapPost("", Crear).RequireAuthorization(Permisos.AdministrarPlanesApi);
+        grupo.MapPut("/{planId:guid}", Editar).RequireAuthorization(Permisos.AdministrarPlanesApi);
+        grupo.MapPost("/{planId:guid}/desactivar", Desactivar).RequireAuthorization(Permisos.AdministrarPlanesApi);
 
         app.MapGet("/api/portal/planes", PortalPlanes).AllowAnonymous();
         return app;
@@ -39,7 +39,10 @@ public static class Endpoints
         CrearPlan casoUso,
         CancellationToken cancelacion)
     {
-        var resultado = await casoUso.Ejecutar(apiId, OrganizacionId(contexto.User), solicitud, cancelacion);
+        var usuarioId = Guid.Parse(contexto.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var nombre = contexto.User.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+        var ip = contexto.Connection.RemoteIpAddress?.ToString();
+        var resultado = await casoUso.Ejecutar(apiId, OrganizacionId(contexto.User), solicitud, usuarioId, nombre, ip, cancelacion);
         return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
     }
 
@@ -51,7 +54,10 @@ public static class Endpoints
         EditarPlan casoUso,
         CancellationToken cancelacion)
     {
-        var resultado = await casoUso.Ejecutar(apiId, planId, OrganizacionId(contexto.User), solicitud, cancelacion);
+        var usuarioId = Guid.Parse(contexto.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var nombre = contexto.User.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+        var ip = contexto.Connection.RemoteIpAddress?.ToString();
+        var resultado = await casoUso.Ejecutar(apiId, planId, OrganizacionId(contexto.User), solicitud, usuarioId, nombre, ip, cancelacion);
         return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
     }
 
@@ -62,7 +68,10 @@ public static class Endpoints
         DesactivarPlan casoUso,
         CancellationToken cancelacion)
     {
-        var resultado = await casoUso.Ejecutar(apiId, planId, OrganizacionId(contexto.User), cancelacion);
+        var usuarioId = Guid.Parse(contexto.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var nombre = contexto.User.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+        var ip = contexto.Connection.RemoteIpAddress?.ToString();
+        var resultado = await casoUso.Ejecutar(apiId, planId, OrganizacionId(contexto.User), usuarioId, nombre, ip, cancelacion);
         return resultado.EsExito ? TypedResults.Ok() : Problema(resultado.Error);
     }
 
@@ -91,6 +100,8 @@ public static class Endpoints
         {
             CodigosError.DatosInvalidos => StatusCodes.Status400BadRequest,
             CodigosError.ApiNoEncontrada => StatusCodes.Status404NotFound,
+            CodigosError.PlanNoEncontrado => StatusCodes.Status404NotFound,
+            CodigosError.PlanDuplicado => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError,
         };
         var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };

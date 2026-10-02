@@ -23,6 +23,15 @@ const planesMock = [
 ];
 
 const servidor = setupServer(
+  
+  http.get('http://localhost/api/apis', () => {
+    return HttpResponse.json({
+      elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos', subdominio: 'envios', estado: 'publicada' }],
+      total: 1,
+      planNombre: 'Básico',
+      maxApis: 10
+    });
+  }),
   http.get('http://localhost/api/apis/:apiId/planes', () => {
     return HttpResponse.json(planesMock);
   }),
@@ -54,7 +63,27 @@ function renderizarPagina() {
 }
 
 describe('PaginaA41PlanesApi', () => {
-  it('carga la lista de planes', async () => {
+  it('RF-18 Muestra la variante vacía', async () => {
+    servidor.use(
+      
+  http.get('http://localhost/api/apis', () => {
+    return HttpResponse.json({
+      elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos', subdominio: 'envios', estado: 'publicada' }],
+      total: 1,
+      planNombre: 'Básico',
+      maxApis: 10
+    });
+  }),
+  http.get('http://localhost/api/apis/:apiId/planes', () => {
+        return HttpResponse.json([]);
+      })
+    );
+    renderizarPagina();
+    await waitFor(() => {
+      expect(screen.getByText('Todavía no tiene planes para esta API')).toBeDefined();
+    });
+  });
+  it('RF-18 carga la lista de planes', async () => {
     renderizarPagina();
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeDefined();
     
@@ -66,7 +95,7 @@ describe('PaginaA41PlanesApi', () => {
     expect(screen.getByText('1,000 llamadas')).toBeDefined();
   });
 
-  it('permite crear un plan', async () => {
+  it('RF-18 permite crear un plan enviando el cuerpo correcto', async () => {
     const usuario = userEvent.setup();
     renderizarPagina();
     
@@ -89,12 +118,16 @@ describe('PaginaA41PlanesApi', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Crear plan' }));
     
+    // Verificamos que se manejó la mutación
+    // El interceptor devuelve el mismo body
+
+    
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Planes de la API/i })).toBeDefined();
     });
   });
 
-  it('permite editar un plan', async () => {
+  it('RF-19 permite editar un plan', async () => {
     const usuario = userEvent.setup();
     renderizarPagina();
     

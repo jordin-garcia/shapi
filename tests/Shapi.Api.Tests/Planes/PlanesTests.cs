@@ -242,6 +242,78 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal("Plan Activo", elementos[0].GetProperty("nombre").GetString());
     }
 
+
+
+    [Theory]
+    [InlineData("Lector")]
+    public async Task EM07_Planes_RolLector_Recibe403(string rol)
+    {
+        // RF-18
+        var apiId = await InsertarApi(_organizacionId);
+        var peticion = new { nombre = "Test", descripcion = "Desc", precio = 0.0m, esGratuito = true, vigenciaDias = 30, cuotaLlamadas = 1000, limiteMinuto = 60 };
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion, rol);
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task EM07_CrearPlan_DatosInvalidos_Retorna400()
+    {
+        // RF-18
+        var apiId = await InsertarApi(_organizacionId);
+
+        var peticion = new
+        {
+            nombre = "",
+            descripcion = "Plan básico",
+            precio = 100.0m,
+            esGratuito = true,
+            vigenciaDias = 0,
+            cuotaLlamadas = 0,
+            limiteMinuto = 0
+        };
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion);
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task EM07_CrearPlan_NombreRepetido_Retorna409()
+    {
+        // RF-18
+        var apiId = await InsertarApi(_organizacionId);
+        await InsertarPlan(apiId, "Básico");
+
+        var peticion = new
+        {
+            nombre = "Básico",
+            descripcion = "Otro",
+            precio = 0.0m,
+            esGratuito = true,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60
+        };
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion);
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task EM07_Planes_OtraOrganizacion_Recibe404()
+    {
+        // RNF-08
+        var apiId = await InsertarApi(_organizacionId);
+        var otraOrgId = await CrearOrganizacion("Otra Org");
+
+        var peticion = new HttpRequestMessage(HttpMethod.Get, $"/api/apis/{apiId}/planes");
+        peticion.Headers.Add("X-Prueba-Organizacion", otraOrgId.ToString());
+        peticion.Headers.Add("X-Prueba-Rol", "Propietario");
+        peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
+        peticion.Headers.Add("X-Requested-With", "shapi");
+
+        using var respuesta = await _cliente.SendAsync(peticion);
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+    }
     private async Task<HttpResponseMessage> EnviarAutenticado(HttpMethod metodo, string ruta, object? cuerpo, string rol = "Propietario")
     {
         var peticion = new HttpRequestMessage(metodo, ruta);

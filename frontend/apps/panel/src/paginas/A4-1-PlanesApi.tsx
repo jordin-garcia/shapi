@@ -27,6 +27,17 @@ export default function PaginaA41PlanesApi() {
     retry: false,
   });
 
+  const consultaApis = useQuery({
+    queryKey: ['apis'],
+    queryFn: async ({ signal }) => {
+      const { data, response } = await cliente.GET('/api/apis', { signal });
+      if (!response.ok || !data) throw new Error('Error al cargar APIs.');
+      return data;
+    },
+    staleTime: 60000,
+  });
+  const nombreApi = consultaApis.data?.elementos.find(a => a.id === apiId)?.nombre ?? 'API';
+
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.isError) {
     return <EstadoError mensaje="No se pudieron cargar los planes." reintentar={() => void consulta.refetch()} />;
@@ -34,9 +45,10 @@ export default function PaginaA41PlanesApi() {
 
   const planes = consulta.data;
 
+
   if (vista !== 'lista') {
     return (
-      <FormularioPlan
+      <FormularioPlan apiNombre={nombreApi}
         apiId={apiId!}
         planOriginal={vista === 'nuevo' ? undefined : vista}
         alTerminar={() => {
@@ -52,7 +64,7 @@ export default function PaginaA41PlanesApi() {
     <div>
       <div className="flex items-end justify-between gap-6">
         <div className="flex flex-col gap-[10px]">
-          <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">API</p>
+          <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">{nombreApi}</p>
           <h1 className="font-display text-[32px] leading-[1.2]">Planes de la API</h1>
           <p className="text-[15px] leading-[1.55] text-tinta-suave">Sus consumidores contratan estos planes desde su portal.</p>
         </div>
@@ -65,7 +77,7 @@ export default function PaginaA41PlanesApi() {
           filas={planes.map(plan => [
             <span key="nombre" className="font-medium text-tinta">{plan.nombre}</span>,
             <span key="desc" className="line-clamp-2" title={plan.descripcion}>{plan.descripcion}</span>,
-            <span key="precio">{plan.esGratuito ? 'Gratis' : `Q ${plan.precio.toFixed(2)}`}</span>,
+            <span key="precio">{plan.esGratuito ? 'Gratis' : `Q ${plan.precio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>,
             <span key="vigencia">{plan.vigenciaDias} días</span>,
             <span key="cuota">{plan.cuotaLlamadas.toLocaleString()} llamadas</span>,
             <span key="limite">{plan.limiteMinuto.toLocaleString()} peticiones</span>,
@@ -91,7 +103,7 @@ export default function PaginaA41PlanesApi() {
   );
 }
 
-function FormularioPlan({ apiId, planOriginal, alTerminar, alCancelar }: { apiId: string, planOriginal?: PlanApi, alTerminar: () => void, alCancelar: () => void }) {
+function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar }: { apiId: string, apiNombre: string, planOriginal?: PlanApi, alTerminar: () => void, alCancelar: () => void }) {
   const esNuevo = !planOriginal;
   const [nombre, setNombre] = useState(planOriginal?.nombre ?? '');
   const [descripcion, setDescripcion] = useState(planOriginal?.descripcion ?? '');
@@ -127,6 +139,9 @@ function FormularioPlan({ apiId, planOriginal, alTerminar, alCancelar }: { apiId
           body: cuerpo,
         });
       }
+      if (res.error) {
+        throw new ErrorApi(res.error as any);
+      }
       if (!res.response.ok || !res.data) {
         throw new Error(esNuevo ? 'No se pudo crear el plan.' : 'No se pudo editar el plan.');
       }
@@ -151,7 +166,7 @@ function FormularioPlan({ apiId, planOriginal, alTerminar, alCancelar }: { apiId
   return (
     <div>
       <div className="flex flex-col gap-[10px]">
-        <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">API</p>
+        <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">{apiNombre}</p>
         <h1 className="font-display text-[32px] leading-[1.2]">{esNuevo ? 'Crear un plan' : 'Editar plan'}</h1>
         <p className="text-[15px] leading-[1.55] text-tinta-suave">Sus consumidores ven estos datos en la sección de planes de su portal.</p>
       </div>
@@ -160,21 +175,21 @@ function FormularioPlan({ apiId, planOriginal, alTerminar, alCancelar }: { apiId
         <Tarjeta className="flex flex-col">
           <h2 className="font-display text-[21px] leading-[1.3]">Datos del plan</h2>
           <div className="flex flex-col gap-[18px] border-t border-borde-fila mt-5 pt-5">
-            <Campo required etiqueta="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. Básico" />
+            <Campo required etiqueta="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre que verán sus consumidores" />
             <Campo required etiqueta="Descripción" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Para quién es este plan" />
             
             <div className="grid grid-cols-2 gap-5">
               <div className="flex flex-col gap-[7px]">
                 <label htmlFor="cuotaLlamadas" className="text-[13px] font-semibold text-tinta">Cuota mensual</label>
                 <div className="flex items-center gap-3">
-                  <input id="cuotaLlamadas" required type="number" min="1" className="flex-grow h-12 rounded-base border border-borde-campo px-[14px] text-[15px] bg-panel outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco tabular-nums" value={cuotaLlamadas} onChange={e => setCuotaLlamadas(e.target.value)} placeholder="Ej. 1000" />
+                  <input id="cuotaLlamadas" required type="number" min="1" className="flex-grow h-12 rounded-base border border-borde-campo px-[14px] text-[15px] bg-panel outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco tabular-nums" value={cuotaLlamadas} onChange={e => setCuotaLlamadas(e.target.value)} placeholder="Por ejemplo, 1,000" />
                   <span className="text-[14px] text-tinta-suave whitespace-nowrap">llamadas</span>
                 </div>
               </div>
               <div className="flex flex-col gap-[7px]">
                 <label htmlFor="limiteMinuto" className="text-[13px] font-semibold text-tinta">Límite por minuto</label>
                 <div className="flex items-center gap-3">
-                  <input id="limiteMinuto" required type="number" min="1" className="flex-grow h-12 rounded-base border border-borde-campo px-[14px] text-[15px] bg-panel outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco tabular-nums" value={limiteMinuto} onChange={e => setLimiteMinuto(e.target.value)} placeholder="Ej. 10" />
+                  <input id="limiteMinuto" required type="number" min="1" className="flex-grow h-12 rounded-base border border-borde-campo px-[14px] text-[15px] bg-panel outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco tabular-nums" value={limiteMinuto} onChange={e => setLimiteMinuto(e.target.value)} placeholder="Por ejemplo, 10" />
                   <span className="text-[14px] text-tinta-suave whitespace-nowrap">peticiones</span>
                 </div>
               </div>
