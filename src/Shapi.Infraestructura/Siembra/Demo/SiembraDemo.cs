@@ -246,7 +246,7 @@ public sealed class SiembraDemo(
             CrearPagoPlataforma(suscripcionesPlataforma[1], mediosOrganizacion[1].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-12)),
             CrearPagoPlataforma(suscripcionesPlataforma[0], mediosOrganizacion[0].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-20), periodoInicio: ahora.AddDays(-34)),
             CrearPagoPlataforma(suscripcionesPlataforma[3], mediosOrganizacion[3].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-32), periodoInicio: ahora.AddDays(-63)),
-            CrearPagoPlataforma(suscripcionesPlataforma[4], mediosOrganizacion[4].Id, "Lanzamiento", 199m, EstadoPago.Revertido, ahora.AddDays(-39), ConceptoPago.Renovacion, personal[0].Id, ahora.AddDays(-70)));
+            CrearPagoPlataforma(suscripcionesPlataforma[4], mediosOrganizacion[4].Id, "Lanzamiento", 199m, EstadoPago.Revertido, ahora.AddDays(-39), ConceptoPago.Renovacion, personal[0].Id, ahora.AddDays(-70), ahora.AddDays(-3)));
 
         var casos = new[]
         {
@@ -260,11 +260,13 @@ public sealed class SiembraDemo(
         await db.SaveChangesAsync(cancelacion);
         db.AddRange(
             CrearMensaje(casos[0].Id, propietarios[0].Id, "¿Cómo puedo rotar una clave sin interrumpir el servicio?", ahora.AddDays(-11)),
+            CrearMensaje(casos[0].Id, personal[2].Id, "Rote la clave desde el portal; la anterior seguirá funcionando durante 24 horas para que actualice su integración.", ahora.AddDays(-10)),
             CrearMensaje(casos[1].Id, propietarios[2].Id, "No recibí el correo de verificación de mi cuenta.", ahora.AddDays(-8)),
             CrearMensaje(casos[2].Id, propietarios[4].Id, "Desde la suspensión, ninguna de nuestras APIs responde.", ahora.AddDays(-4)),
             CrearMensaje(casos[3].Id, propietarios[1].Id, "Un consumidor recibe 429 aunque su cuota todavía tiene llamadas disponibles.", ahora.AddDays(-3)),
-            CrearMensaje(casos[4].Id, propietarios[0].Id, $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {ahora.ToOffset(TimeSpan.FromHours(-6)).AddDays(-17).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.", ahora.AddDays(-2)),
-            CrearMensaje(casos[4].Id, personal[2].Id, "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.", ahora.AddDays(-2).AddMinutes(18)));
+            CrearMensaje(casos[4].Id, propietarios[0].Id, $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {ahora.ToOffset(TimeSpan.FromHours(-6)).AddDays(-3).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.", ahora.AddDays(-2)),
+            CrearMensaje(casos[4].Id, personal[2].Id, "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.", ahora.AddDays(-2).AddMinutes(18)),
+            CrearMensaje(casos[4].Id, personal[2].Id, "El registro apunta a envios.shapi.localhost, que es la dirección del portal. Cámbielo a envios.api.shapi.localhost y pulse «Verificar registro DNS» en Dominios.", ahora.AddDays(-2).AddMinutes(23)));
 
         var consumoMercadito = CrearConsumo(rutasEnvios, suscripcionesApi[0].Id, ahora).ToList();
         var consumoOtros = CrearConsumoProveedor(rutasEnvios,
@@ -428,7 +430,7 @@ public sealed class SiembraDemo(
 
     private static Pago CrearPagoPlataforma(SuscripcionPlataforma suscripcion, Guid medioPagoId, string descripcion, decimal monto,
         EstadoPago estado, DateTimeOffset fecha, ConceptoPago concepto = ConceptoPago.Renovacion,
-        Guid? revertidoPor = null, DateTimeOffset? periodoInicio = null)
+        Guid? revertidoPor = null, DateTimeOffset? periodoInicio = null, DateTimeOffset? revertidoEn = null)
     {
         var inicio = periodoInicio ?? suscripcion.Inicio;
         var fin = periodoInicio is null ? suscripcion.Fin : inicio.AddDays(30);
@@ -439,7 +441,7 @@ public sealed class SiembraDemo(
             (nameof(Pago.ReferenciaPasarela), $"demo-{Guid.NewGuid():N}"),
             (nameof(Pago.MotivoRechazo), estado == EstadoPago.Rechazado ? "Fondos insuficientes" : null),
             (nameof(Pago.PeriodoInicio), inicio), (nameof(Pago.PeriodoFin), fin),
-            (nameof(Pago.RevertidoEn), estado == EstadoPago.Revertido ? fecha.AddDays(1) : null),
+            (nameof(Pago.RevertidoEn), estado == EstadoPago.Revertido ? revertidoEn ?? fecha.AddDays(1) : null),
             (nameof(Pago.RevertidoPor), revertidoPor), (nameof(Pago.CreadoEn), fecha));
     }
 
@@ -644,19 +646,19 @@ public sealed class SiembraDemo(
     private static IEnumerable<EntradaBitacoraDominio> CrearBitacora(DateTimeOffset ahora, Usuario[] personal,
         Usuario[] propietarios, Usuario diego, Consumidor[] consumidores, Caso[] casos)
     {
-        yield return Entrada(ahora.AddHours(-2), personal[0], "organizacion.suspendida", "Suspendió la organización Datos Chapines, S.A.");
-        yield return Entrada(ahora.AddHours(-5), personal[2], "caso.abierto", "Abrió el caso CAS-104 de Envíos Xelajú, S.A.", casos[4].Id);
-        yield return Entrada(ahora.AddDays(-1), personal[0], "cuenta.desactivada", "Desactivó la cuenta de plataforma de Julio Estrada Ixcot");
-        yield return Entrada(ahora.AddDays(-1).AddHours(-1), personal[0], "pago.revertido", "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A.");
-        yield return Entrada(ahora.AddDays(-1).AddHours(-5), propietarios[0], "suscripcion.cambiada", "Cambió su suscripción de plataforma de Lanzamiento a Producto");
+        yield return Entrada(ahora.AddDays(-2), personal[0], "organizacion.suspendida", "Suspendió la organización Datos Chapines, S.A.");
+        yield return Entrada(ahora.AddDays(-2).AddHours(-3), personal[2], "caso.abierto", "Abrió el caso CAS-104 de Envíos Xelajú, S.A.", casos[4].Id);
+        yield return Entrada(ahora.AddDays(-3).AddHours(1), personal[0], "cuenta.desactivada", "Desactivó la cuenta de plataforma de Julio Estrada Ixcot");
+        yield return Entrada(ahora.AddDays(-3), personal[0], "pago.revertido", "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A.");
+        yield return Entrada(ahora.AddDays(-3).AddHours(-5), propietarios[0], "suscripcion.cambiada", "Cambió su suscripción de plataforma de Lanzamiento a Producto");
         yield return new EntradaBitacoraDominio(ahora.AddHours(-9), ActorTipo.Consumidor, consumidores[1].Id,
             consumidores[1].NombreEmpresa, null, "clave.rotada", "clave", null,
             "Rotó su clave de producción en la API de Cotización de Envíos", null, null);
-        yield return Entrada(ahora.AddDays(-1).AddHours(-8), propietarios[0], "clave.revocada", "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos");
-        yield return Entrada(ahora.AddDays(-2), diego, "ruta.ocultada", "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos");
-        yield return Entrada(ahora.AddDays(-3), propietarios[0], "miembro.invitado", "Invitó a karla.batres@enviosxelaju.com con el rol de lector");
-        yield return Entrada(ahora.AddDays(-5), personal[2], "caso.cerrado", "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A.", casos[1].Id);
-        yield return Entrada(ahora.AddDays(-6), personal[0], "cuenta.creada", "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador");
+        yield return Entrada(ahora.AddDays(-3).AddHours(-8), propietarios[0], "clave.revocada", "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos");
+        yield return Entrada(ahora.AddDays(-4), diego, "ruta.ocultada", "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos");
+        yield return Entrada(ahora.AddDays(-5), propietarios[0], "miembro.invitado", "Invitó a karla.batres@enviosxelaju.com con el rol de lector");
+        yield return Entrada(ahora.AddDays(-7), personal[2], "caso.cerrado", "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A.", casos[1].Id);
+        yield return Entrada(ahora.AddDays(-8), personal[0], "cuenta.creada", "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador");
 
         static EntradaBitacoraDominio Entrada(DateTimeOffset fecha, Usuario actor, string accion, string descripcion, Guid? objetivo = null) =>
             new(fecha, ActorTipo.Usuario, actor.Id, actor.Nombre, null, accion, objetivo is null ? null : "caso", objetivo, descripcion, null, null);

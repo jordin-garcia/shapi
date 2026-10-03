@@ -312,10 +312,16 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         {
             mensajesPorCaso[caso.Id].Should().NotBeEmpty();
         }
-        mensajesPorCaso[(await db.Set<Caso>().IgnoreQueryFilters().SingleAsync(c => c.Numero == 104)).Id]
+        var caso100 = await db.Set<Caso>().IgnoreQueryFilters().SingleAsync(c => c.Numero == 100);
+        var caso101 = await db.Set<Caso>().IgnoreQueryFilters().SingleAsync(c => c.Numero == 101);
+        var caso104 = await db.Set<Caso>().IgnoreQueryFilters().SingleAsync(c => c.Numero == 104);
+        mensajesPorCaso[caso100.Id].Should().HaveCount(2);
+        mensajesPorCaso[caso104.Id].Should().HaveCount(3);
+        mensajesPorCaso[caso104.Id]
             .Select(m => m.Cuerpo).Should().Equal(
-                $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {Reloj.Ahora.AddDays(-17).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.",
-                "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.");
+                $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {Reloj.Ahora.AddDays(-3).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.",
+                "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.",
+                "El registro apunta a envios.shapi.localhost, que es la dirección del portal. Cámbielo a envios.api.shapi.localhost y pulse «Verificar registro DNS» en Dominios.");
 
         var pagosConPeriodo = await db.Set<Pago>().IgnoreQueryFilters().ToListAsync();
         pagosConPeriodo.Should().OnlyContain(p => p.PeriodoInicio != null && p.PeriodoFin != null);
@@ -328,9 +334,9 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
             .ToListAsync();
         bitacora.Should().BeEquivalentTo(new[]
         {
+            new { ActorNombre = "Boutique Cayalá", Descripcion = "Rotó su clave de producción en la API de Cotización de Envíos" },
             new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Suspendió la organización Datos Chapines, S.A." },
             new { ActorNombre = "Sofía Menchú Cojtí", Descripcion = "Abrió el caso CAS-104 de Envíos Xelajú, S.A." },
-            new { ActorNombre = "Boutique Cayalá", Descripcion = "Rotó su clave de producción en la API de Cotización de Envíos" },
             new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Desactivó la cuenta de plataforma de Julio Estrada Ixcot" },
             new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A." },
             new { ActorNombre = "Ana Lucía Morales", Descripcion = "Cambió su suscripción de plataforma de Lanzamiento a Producto" },
@@ -340,6 +346,11 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
             new { ActorNombre = "Sofía Menchú Cojtí", Descripcion = "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A." },
             new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador" },
         }, opciones => opciones.WithStrictOrdering());
+
+        var eventos = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToDictionaryAsync(e => e.Accion);
+        caso101.CerradoEn.Should().Be(eventos["caso.cerrado"].Fecha);
+        pagosConPeriodo.Single(p => p.Estado == EstadoPago.Revertido).RevertidoEn
+            .Should().Be(eventos["pago.revertido"].Fecha);
     }
 
     [Fact]
