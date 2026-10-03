@@ -77,10 +77,15 @@ ENTRADAS: rl_s, rl_r (opcional), cuota_s, cuota_o, limite_plan, limite_ruta, pes
 ```
 
 - Como la reserva es atómica, **la cuota nunca se excede**, ni siquiera con peticiones concurrentes ([ADR-21](12-decisiones.md)).
-- Si el origen **no se pudo conectar** (502), la compuerta devuelve la reserva: `DECRBY cuota_s peso` y `DECR cuota_o`.
+- Si el origen **no se pudo conectar** (502), la compuerta devuelve la reserva: `DECRBY cuota_s peso` y `DECR cuota_o`. Los contadores por minuto no se devuelven.
 - Los errores 4xx y 5xx del origen y los 504 **sí descuentan**, porque la petición llegó al origen.
 - Las respuestas desde caché **descuentan**, porque el consumidor recibió los datos.
 - El límite por minuto usa una ventana fija de 60 segundos alineada al minuto (`minuto_epoch = floor(unix/60)`).
+- `rl_r` solo se usa si la ruta tiene `limite_minuto`, y `cuota_o` solo si `org:{id}` tiene `cuota_peticiones` y ciclo: la organización de la plataforma no tiene cuota de plataforma ([07 §4](07-modelo-de-datos.md#4-estructura-de-las-llaves-en-redis)).
+- `ttl_s` y `ttl_o` son `fin + 8 días`. Si el `fin` ya pasó (un ciclo que el trabajador todavía no cierra, [RNF-04](03-requisitos.md#rnf-04)), se cuentan 8 días desde ahora: un `EXPIREAT` en el pasado borraría el contador y reiniciaría la cuota en cada petición.
+- Al rechazar, el script devuelve también los contadores ya revertidos, para las cabeceras de [§5](#5-cabeceras). Así no hace falta otra llamada.
+- La compuerta lo llama siempre con `EVALSHA`. Si Redis no tiene el script, porque se reinició o vació su caché de scripts, responde `NOSCRIPT` sin ejecutar nada. Entonces la compuerta lo ejecuta una vez con `EVAL`, que lo deja guardado.
+- **Clave de pruebas** ([RF-45](03-requisitos.md#rf-45)): el mismo script, con `rl_s = rl:p:{clave_id}:{minuto_epoch}` y `limite_plan = 10`, sin `rl_r` ni `cuota_o`, y con el contador diario `dia:p:{clave_id}:{aaaammdd}` en el lugar de `cuota_s` (`peso = 1` y límite 1,000). No se usa el límite de la ruta. Al pasar las 1,000 peticiones del día se responde 429 `cuota_agotada`, con `Retry-After` hasta la medianoche de Guatemala. Como no toca las cuotas, un 502 no devuelve nada.
 
 ## 4. Contrato de errores
 
@@ -107,8 +112,8 @@ Todos los rechazos de la compuerta responden con `Content-Type: application/json
 | 404 | `api_no_encontrada` | El host no corresponde a ninguna API publicada | — |
 | 413 | `cuerpo_demasiado_grande` | El cuerpo pesa más de 10 MB | — |
 | 429 | `limite_por_minuto` | Se pasó el límite de peticiones por minuto del plan o de la ruta | `Retry-After` (segundos para el siguiente minuto) |
-| 429 | `cuota_agotada` | Se agotó la cuota de llamadas del ciclo | `Retry-After` (segundos para que termine el ciclo) |
-| 429 | `cuota_plataforma_agotada` | El **proveedor** agotó la cuota de peticiones de su plan de plataforma | `Retry-After` |
+| 429 | `cuota_agotada` | Se agotó la cuota de llamadas del ciclo. Con la clave de pruebas, se pasaron las 1,000 peticiones del día | `Retry-After` (segundos para que termine el ciclo o, con la clave de pruebas, para la medianoche de Guatemala; 1 si el ciclo ya terminó) |
+| 429 | `cuota_plataforma_agotada` | El **proveedor** agotó la cuota de peticiones de su plan de plataforma | `Retry-After` (segundos para que termine el ciclo de plataforma) |
 | 502 | `origen_inaccesible` | No se pudo conectar con el origen en 10 segundos, o el origen apunta a una dirección prohibida | — |
 | 503 | `servicio_no_disponible` | Redis no está disponible: la compuerta no puede validar la petición ([RNF-04](03-requisitos.md#rnf-04)) | `Retry-After: 5` |
 | 504 | `origen_sin_respuesta` | El origen no respondió en 30 segundos (si la respuesta ya había empezado, se corta) | — |
@@ -117,18 +122,20 @@ Las respuestas del **origen** se devuelven tal cual, incluidos sus errores. Las 
 
 ## 5. Cabeceras
 
-**En las respuestas que traen una clave válida** (incluidos los 429):
+**En las respuestas que traen una clave válida** (incluidos los 429). Son las que llegan al filtro 6: un rechazo de los filtros 1 a 5 no las lleva. También las llevan los 502 y los 504 del reenvío, y reemplazan las que mande el origen con el mismo nombre:
 
 | Cabecera | Valor |
 |---|---|
 | `X-Shapi-Plan` | Nombre del plan, por ejemplo `Comercio`. En las claves de pruebas es `Pruebas` |
 | `X-RateLimit-Limit` | El límite por minuto que aplica (el menor entre el del plan y el de la ruta) |
-| `X-RateLimit-Remaining` | Peticiones que quedan en el minuto actual |
+| `X-RateLimit-Remaining` | Peticiones que quedan en el minuto actual: la menor entre lo que queda del límite del plan y del de la ruta |
 | `X-RateLimit-Reset` | Segundos hasta el siguiente minuto |
 | `X-Cuota-Limite` | Llamadas del ciclo según el plan |
 | `X-Cuota-Restante` | Llamadas que quedan en el ciclo |
-| `X-Cuota-Reinicio` | Fecha ISO 8601 en que termina el ciclo |
+| `X-Cuota-Reinicio` | Fecha ISO 8601 en UTC en que termina el ciclo, por ejemplo `2026-10-31T06:00:00Z` |
 | `X-Shapi-Cache` | `HIT` o `MISS` (solo en las rutas con caché) |
+
+Con la clave de pruebas, `X-RateLimit-Limit` es 10, y las `X-Cuota-*` informan el límite diario: `X-Cuota-Limite: 1000`, las peticiones que quedan en el día y la medianoche de Guatemala en que se renueva.
 
 **Hacia el origen:** `X-Shapi-Consumidor`, `X-Shapi-Entorno`, `X-Shapi-Secreto` y `X-Forwarded-*`. **Nunca** se envían `X-Api-Key` ni las cookies de sesión de Shapi: de la cabecera `Cookie` se quitan `shapi_sesion` y `portal_sesion`, y las demás cookies pasan. El `Host` que recibe el origen es el de `url_origen`, no el de la API en Shapi. El host original viaja en `X-Forwarded-Host`. Cualquier `X-Shapi-*` que mande el cliente se quita, así que no puede cambiar el consumidor, el entorno ni el secreto.
 
