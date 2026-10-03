@@ -26,15 +26,20 @@ public static class PostgresCompartido
     private static readonly Lazy<Task> Inicio = new(ArrancarYMigrarAsync);
 
     /// <summary>
-    /// Las pruebas no necesitan durabilidad: sin fsync ni escrituras síncronas PostgreSQL es mucho más rápido.
+    /// Las pruebas no necesitan durabilidad: sin fsync ni escrituras síncronas PostgreSQL es mucho más rápido, y los
+    /// datos viven en memoria (tmpfs). Cada base nueva copia unos 7 MB de la plantilla y los vuelve a escribir en el WAL;
+    /// en disco eran varios GB por ejecución, que en la CI frenaban a las pruebas de tiempo de la compuerta (PR #59).
     /// Las conexiones suben a 300 porque ahora todas las clases comparten el servidor.
     /// </summary>
     public static PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine")
+        .WithTmpfsMount("/var/lib/postgresql/data")
         .WithCommand(
             "-c", "fsync=off",
             "-c", "synchronous_commit=off",
             "-c", "full_page_writes=off",
-            "-c", "max_connections=300")
+            "-c", "max_connections=300",
+            // En tmpfs, el WAL también ocupa memoria: se acota entre checkpoints.
+            "-c", "max_wal_size=256MB")
         .Build();
 
     /// <summary>Arranca el contenedor y migra la plantilla, una sola vez por proceso.</summary>

@@ -185,3 +185,23 @@ test("JG-18: el PR ejecuta las pruebas E2E en el ambiente productivo simulado, a
   // El ambiente se apaga aunque fallen las pruebas.
   assert.ok(indice("down -v") > indice("run: pnpm test"));
 });
+
+test("JG-18: backend y frontend omiten sus pasos, nunca el job, si el PR no los afecta", () => {
+  for (const area of ["backend", "frontend"]) {
+    const job = jobs(ci)[area];
+    // Un check obligatorio omitido cuenta como aprobado: el job no puede tener `if`.
+    assert.doesNotMatch(job, /^ {4}if:/m, `${area}: el job no puede tener if`);
+    assert.match(job, /uses: actions\/checkout@v\d+\n {8}with:\n {10}fetch-depth: 2\n/, `${area}: falta fetch-depth 2`);
+    const pasos = job.split(/\n(?= {6}- )/).filter((paso) => /^ {6}- /.test(paso));
+    const decision = pasos.findIndex((paso) => paso.includes(`node scripts/cambios-ci.mjs ${area} "\${{ github.event_name }}"`));
+    assert.ok(decision > 0, `${area}: falta el paso que decide con scripts/cambios-ci.mjs`);
+    assert.match(pasos[decision], /^ {8}id: cambios$/m);
+    assert.doesNotMatch(pasos[decision], /^ {8}(if|continue-on-error):/m, `${area}: la decisión no se puede omitir`);
+    // Todos los pasos posteriores dependen de la decisión, y ninguno puede fallar en silencio.
+    for (const paso of pasos.slice(decision + 1)) {
+      // != 'false': si la decisión no escribe su salida, se verifica todo.
+      assert.match(paso, /^(?: {6}- | {8})if: steps\.cambios\.outputs\.ejecutar != 'false'$/m, `${area}: paso sin la condición:\n${paso}`);
+      assert.doesNotMatch(paso, /continue-on-error/, `${area}: paso con continue-on-error:\n${paso}`);
+    }
+  }
+});

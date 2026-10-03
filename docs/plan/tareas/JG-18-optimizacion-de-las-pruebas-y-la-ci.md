@@ -17,7 +17,7 @@ pantallas: []
 **Responsable:** Jordin García · **Avance:** 2 · **Prioridad:** P2 · **Sin dependencias**
 
 ## Objetivo
-Que cada tarea tarde menos en verificarse, sin quitar ninguna prueba ni ninguna verificación obligatoria. Se parte de un análisis de los tiempos reales del 3 oct 2026:
+Que cada tarea tarde menos en verificarse, sin quitar ninguna prueba ni ninguna verificación obligatoria. La **Ampliación** del final, que Jordin autorizó después del PR #58, cambia dos cosas: borra las tres pruebas de humo (su comprobación de `/salud` pasa a pruebas existentes) y omite los pasos de `backend` o `frontend` que el PR no afecta. Se parte de un análisis de los tiempos reales del 3 oct 2026:
 - `dotnet test Shapi.slnx` tardaba 15 min 18 s en la PC de Jordin (13 min 18 s solo `Shapi.Api.Tests`), y en la CI 2 min 33 s.
 - Las 585 pruebas de `Shapi.Api.Tests` sumaban 7.5 min. El resto se iba en arrancar unos 12 contenedores de PostgreSQL y en migrar una base nueva en cada prueba.
 - Los PR de Emilio y Dominique repetían la CI entre 5 y 10 veces. El hallazgo más repetido de la revisión con Claude era mecánico: faltaba `## Resultado`, `estado: hecha` o la bitácora.
@@ -36,6 +36,7 @@ Que cada tarea tarde menos en verificarse, sin quitar ninguna prueba ni ninguna 
 - `.github/workflows/titulo-pr.yml` y `.github/workflows/publicar-imagenes.yml` (modificar)
 - `docs/plan/protocolo.md`, `AGENTS.md`, `docs/plan/instalacion.md` y `.github/pull_request_template.md` (modificar)
 - `docs/specs/06-arquitectura.md` §7.3 (modificar): las E2E corren en cada PR
+- Ampliación: `scripts/cambios-ci.mjs`, `scripts/cambios-ci.test.mjs` y `src/Shapi.Compuerta/ConexionRedisAlArrancar.cs` (crear), `src/Shapi.Compuerta/ServiciosCompuerta.cs`, `docs/specs/08-compuerta.md` §8, `.github/workflows/ci.yml`, `docs/plan/convenciones.md` §4, `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `tests/Shapi.Compuerta.Tests/Tuberia/CompuertaTests.cs` (modificar), y `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs` (borrar)
 
 ## Criterios de aceptación
 1. Cuando se ejecuta `Shapi.Api.Tests`, el sistema deberá usar un solo contenedor de PostgreSQL, y la base de cada prueba deberá nacer ya migrada. Cada prueba sigue teniendo su propia base, que se borra al terminar.
@@ -58,7 +59,7 @@ dotnet format Shapi.slnx --verify-no-changes
 ```
 
 ## Fuera de alcance
-- Borrar o debilitar pruebas. La de RF-08, que espera 5 s reales, se queda: comprueba justamente ese límite.
+- Borrar o debilitar pruebas, salvo las tres de humo de la Ampliación, que autorizó Jordin y cuya comprobación se conserva. La de RF-08, que espera 5 s reales, se queda: comprueba justamente ese límite.
 - Cambiar `dotnet format`: `whitespace` y `style` ahorrarían unos 10 s en la CI, pero dejarían de revisar los analizadores.
 
 ## Resultado
@@ -82,4 +83,22 @@ dotnet format Shapi.slnx --verify-no-changes
   - Donde la Verificación de una tarea dice `dotnet test Shapi.slnx`, la evidencia es el check `backend`.
   - B11 corre `--validar-cierre` antes del *push*. Se actualizaron también `AGENTS.md` (comandos, "Siempre" y la Definición de terminado), `instalacion.md` y la plantilla del PR.
 - **Decisiones de Jordin (3 oct 2026):** tarea nueva JG-18; pruebas dirigidas en local; todo en un solo PR.
-- **Pendiente de decisión:** omitir los pasos de los jobs `backend` o `frontend` cuando el PR no toca nada que lean. El clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI, y no se aplicó. Está descrito en la bitácora de Jordin.
+- **Pendiente de decisión:** omitir los pasos de los jobs `backend` o `frontend` cuando el PR no toca nada que lean. El clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI, y no se aplicó en el PR #58. Jordin lo autorizó después (ver abajo).
+
+### Ampliación (2026-10-03)
+Segundo PR de JG-18, autorizado por Jordin después del PR #58:
+- **Verificaciones según el área:** `scripts/cambios-ci.mjs` decide si un PR afecta al backend o al frontend. Los jobs `backend` y `frontend` de `ci.yml` siempre se ejecutan, porque son checks obligatorios y uno omitido cuenta como aprobado, pero omiten sus pasos si el PR no los afecta.
+  - Cada área tiene una lista de rutas que seguro no le afectan. Cualquier otra ruta, incluidos `ci.yml`, `.gitattributes` o una carpeta nueva, ejecuta todo, y en `main` se verifica siempre todo.
+  - `scripts/cambios-ci.mjs` y `scripts/tareas.mjs`, que deciden qué se verifica, ejecutan las dos áreas.
+  - Los pasos comparan con `!= 'false'`: si la decisión no escribe su salida, se verifica todo.
+  - El backend lee también `docs/specs/`, `mockups/`, `infra/`, `contratos/` y `origenes-demo/`. El frontend lee `contratos/` y `docs/specs/11-interfaz.md`.
+  - Con los últimos PR: DC-08 no habría corrido el backend; EM-06, JZ-06, JG-06 y el PR #58 no habrían corrido el frontend; JZ-07 y JG-03 no habrían corrido ninguno.
+  - Pruebas en `scripts/cambios-ci.test.mjs` y una regla en `scripts/reglas-repositorio.test.mjs`: sin `if` en el job, `fetch-depth: 2`, y todos los pasos posteriores condicionados a la decisión.
+- **Error de la compuerta que hacía fallar sus pruebas de tiempo:** en la CI fallaban al azar pruebas de clases distintas, todas en el mismo instante. `RF_31_TiempoTotal_OrigenQueEnviaPocoAPoco_SeCortaAlVencer` tardaba 9 a 16 s en vez de menos de 3, y aparecían `RedisTimeoutException` sin nada pendiente.
+  - La causa estaba en la compuerta (JG-06): la conexión a Redis se abría con la primera petición, con el `ConnectionMultiplexer.Connect` síncrono dentro del singleton.
+  - La prueba de 50 peticiones simultáneas de `LimitesYCuotasTests` arranca un host nuevo, y sus 50 peticiones quedaban bloqueadas esperando esa conexión. El *pool* de hilos del proceso se agotaba durante segundos.
+  - Ahora `ConexionRedisAlArrancar` (un `IHostedService`) abre la conexión al arrancar. Quedó en 08 §8, con la prueba `CompuertaTests.Redis_LaConexionSeAbreAlArrancarYNoConLaPrimeraPeticion`, que falla sin la corrección.
+  - Además, el PostgreSQL compartido de las pruebas guarda sus datos en memoria (`tmpfs`). Cada base nueva copia ~7 MB y los vuelve a escribir en el WAL, varios GB en disco por ejecución.
+- **Pruebas de humo:** se borraron `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs`.
+  - Las dos primeras eran lo único que comprobaba que `/salud` responde 200, y esa comprobación pasó a `ApisTests.Salud_ApiEnEjecucion_Responde200` y `CompuertaTests.Salud_CompuertaEnEjecucion_Responde200`.
+  - `HumoTests` solo comprobaba que el ensamblado carga, algo que ya demuestran las otras 48 pruebas del dominio.
