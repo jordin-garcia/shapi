@@ -52,3 +52,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **JZ-13:** reutilice `playwright.config.ts` y `soporte/mailpit.ts` para agregar los flujos E2E principales.
   - **Todos:** para comparar una pantalla con su mockup, ejecute `pnpm captura <url> <archivo.png>` desde `tests/e2e`.
+
+## 2026-10-03 · JZ-05 · Siembra de demostración
+- Hecho: se implementó `sembrar-demo [--reiniciar]` con datos completos y relativos de A3–A6 y B1–B3, claves fijas, consumo, pagos, casos, bitácora, configuración de orígenes y resincronización de Redis; se documentaron las credenciales y se agregaron pruebas de integración.
+- Decisiones: el reinicio conserva la bitácora inmutable y agrega un conjunto nuevo con fechas relativas; la clave rotada de Boutique Cayalá conserva una ventana total de 24 horas y permanece visible durante la demostración.
+- Pendiente o aviso para otros:
+  - **JZ-13:** el entorno E2E puede ejecutar `dotnet run --project src/Shapi.Trabajador -- sembrar-demo --reiniciar` antes de los flujos para reconstruir datos deterministas.
+  - **Todos:** las cuentas y claves fijas están en `docs/manual-tecnico.md`; en producción simulada los orígenes predeterminados son `http://origen-envios:8080` y `http://origen-agro:8080`.
