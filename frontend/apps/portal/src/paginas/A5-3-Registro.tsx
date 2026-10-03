@@ -21,7 +21,10 @@ export default function PaginaA53Registro() {
       await registrarConsumidor(datos);
       await navegar(`/verificar-correo?correo=${encodeURIComponent(datos.correo)}`);
     } catch (causa) {
-      setError(interpretarError(causa));
+      const interpretado = interpretarError(causa);
+      // CU-11 2a: el correo repetido se muestra debajo del campo de correo, como los errores de validación.
+      if (interpretado.codigo === 'correo_ya_registrado') interpretado.errores = { correo: [interpretado.mensaje] };
+      setError(interpretado);
     } finally {
       setEnviando(false);
     }
@@ -48,14 +51,24 @@ export default function PaginaA53Registro() {
       )}
       <form ref={formulario} onSubmit={enviar} noValidate className="mt-8 flex flex-col gap-5">
         <Campo etiqueta="Nombre" value={datos.nombre} onChange={cambiar('nombre')} error={errorDe('nombre')} autoComplete="name" />
-        <Campo
-          etiqueta="Correo electrónico"
-          type="email"
-          value={datos.correo}
-          onChange={cambiar('correo')}
-          error={errorDe('correo')}
-          autoComplete="email"
-        />
+        <div className="flex flex-col gap-2">
+          <Campo
+            etiqueta="Correo electrónico"
+            type="email"
+            value={datos.correo}
+            onChange={cambiar('correo')}
+            error={errorDe('correo')}
+            autoComplete="email"
+          />
+          {/* CU-11 2a (11 §EM-03): con el correo repetido se ofrece entrar o recuperar la contraseña. */}
+          {error?.codigo === 'correo_ya_registrado' && (
+            <p className="text-sm text-tinta-suave">
+              <Link className="text-[var(--marca-principal)]" to="/entrar">Entrar</Link>
+              {' · '}
+              <Link className="text-[var(--marca-principal)]" to="/recuperar">Recuperar la contraseña</Link>
+            </p>
+          )}
+        </div>
         <Campo
           etiqueta="Nombre de la empresa"
           value={datos.nombreEmpresa}

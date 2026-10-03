@@ -68,6 +68,7 @@ Verificación manual con el entorno levantado:
   - **Criterio 3 (destino):** integró antes EM-18 (PR #60). El portal usa ahora el tipo generado `SesionConsumidor`, sin la extensión local ni el `as`, y navega a `sesion.destino`.
   - **A5.3b:** si la invitación ya se aceptó y solo falló la consulta de la sesión, «Reintentar» ya no la vuelve a aceptar. Antes el backend respondía `token_invalido` aunque la cuenta ya existiera.
   - **Marca del portal:** el botón principal salía azul (Shapi) en las seis pantallas, porque `bg-principal` de `Boton` le ganaba a la clase de la página. `MarcoAcceso` redefine ahora `--principal`, `--principal-hover` y `--anillo-foco` con `--marca-principal`, y así el botón y el campo enfocado usan la marca, como en los mockups. En A5.3b, el correo invitado se ve de solo lectura, como en el mockup.
+  - **A5.3 (CU-11 2a, revisión con Claude del PR #61):** con el correo ya registrado, el mensaje sale debajo del correo con los enlaces «Entrar» y «Recuperar la contraseña», como A1.1. En A5.3b, si la invitación se usó mientras se llenaba el formulario, se muestra «El enlace ya no sirve».
   - **A5.8:**
     - con el enlace vencido o usado se puede pedir otro escribiendo el correo, como en A1.2;
     - un fallo de red al reenviar ofrece «Reintentar»;

@@ -249,4 +249,37 @@ describe('DC-08 · acceso del consumidor', () => {
     expect(marco.style.getPropertyValue('--anillo-foco')).toBe('color-mix(in srgb, var(--marca-principal) 17%, #FFFFFF)');
     expect(marco.contains(screen.getByRole('button', { name: 'Entrar' }))).toBe(true);
   });
+
+  it('RF-05 con el correo ya registrado ofrece entrar y recuperar la contraseña (CU-11 2a)', async () => {
+    server.use(http.post(`${API}/registro`, () => problema(409, 'correo_ya_registrado', 'Ya existe una cuenta con ese correo.')));
+    const router = montar('/registro');
+    await screen.findByRole('heading', { name: 'Crear una cuenta' });
+    await userEvent.type(screen.getByLabelText('Nombre'), 'María José Quiñónez');
+    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'maria@tienda.test');
+    await userEvent.type(screen.getByLabelText('Nombre de la empresa'), 'Mercadito Antigua');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'Contrasena123');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    expect(await screen.findByText('Ya existe una cuenta con ese correo.')).toBeDefined();
+    expect(screen.getByLabelText('Correo electrónico').getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByRole('link', { name: 'Recuperar la contraseña' }).getAttribute('href')).toBe('/recuperar');
+    expect(screen.getAllByRole('link', { name: 'Entrar' }).some(enlace => enlace.getAttribute('href') === '/entrar')).toBe(true);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(router.state.location.pathname).toBe('/registro');
+  });
+
+  it('RF-05 si la invitación se usó mientras se llenaba el formulario, muestra que el enlace ya no sirve', async () => {
+    server.use(
+      http.get(`${API}/invitacion/abc`, () => HttpResponse.json({ correo: 'invitada@tienda.test' })),
+      http.post(`${API}/invitacion/abc/aceptar`, () => problema(422, 'token_invalido', 'La invitación ya no sirve.')),
+    );
+    montar('/invitacion?token=abc');
+    await screen.findByLabelText('Nombre');
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Inés');
+    await userEvent.type(screen.getByLabelText('Nombre de la empresa'), 'Tienda');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'Contrasena123');
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar la invitación y crear la cuenta' }));
+
+    expect(await screen.findByRole('heading', { name: 'El enlace ya no sirve' })).toBeDefined();
+  });
 });

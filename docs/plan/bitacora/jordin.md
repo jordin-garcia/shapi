@@ -593,6 +593,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - En A5.3b, «Reintentar» ya no vuelve a aceptar una invitación ya aceptada.
   - El botón principal y el campo enfocado usan la marca del portal: salían en el azul de Shapi en las seis pantallas.
   - A5.8 permite pedir otro enlace cuando el enlace está vencido o usado, y reintentar el reenvío.
+  - A5.3 ofrece entrar o recuperar la contraseña cuando el correo ya está registrado (CU-11 2a).
   - Reformateé las páginas y agregué pruebas.
   - Hice la verificación manual completa en el ambiente productivo simulado y comparé las capturas con los mockups.
 - Decisiones: los colores de la marca se aplican en `MarcoAcceso`, redefiniendo `--principal`, `--principal-hover` y `--anillo-foco`, para no cambiar `Boton` de `@shapi/ui`. Las demás son las de Dominique.

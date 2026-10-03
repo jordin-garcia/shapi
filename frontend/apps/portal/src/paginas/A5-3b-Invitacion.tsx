@@ -71,7 +71,8 @@ export default function PaginaA53bInvitacion() {
       </MarcoAcceso>
     );
   }
-  if (!invitacion.data) return <InvitacionNoValida />;
+  // La invitación pudo usarse o vencer mientras se llenaba el formulario (por ejemplo, en otra pestaña).
+  if (!invitacion.data || error?.codigo === 'token_invalido') return <InvitacionNoValida />;
 
   return (
     <MarcoAcceso>
