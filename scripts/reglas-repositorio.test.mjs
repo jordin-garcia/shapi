@@ -157,3 +157,31 @@ test("H-151: ningún agente integra con --admin; solo Jordin, a mano, salta un f
   assert.ok(!negado(autoMerge), "se niega el auto-merge normal");
   assert.ok(reglas("allow").some((p) => coincide(p, autoMerge)), "el auto-merge normal no está permitido");
 });
+
+test("JG-18: el check titulo valida el cierre de la tarea con el diff del PR", () => {
+  const job = jobs(titulo).titulo;
+  // El diff del PR es el commit de integración contra su primer padre: hace falta fetch-depth 2.
+  assert.match(job, /uses: actions\/checkout@v\d+\n {8}with:\n {10}fetch-depth: 2\n/);
+  const pasos = job.split(/\n(?= {6}- )/);
+  const indice = (texto) => pasos.findIndex((paso) => paso.includes(texto));
+  const cierre = pasos[indice("--validar-cierre")];
+  assert.ok(cierre, "falta el paso de --validar-cierre");
+  assert.ok(indice("--validar-titulo") < indice("--validar-cierre"), "el cierre se valida después del título");
+  // Como el título, va en una variable de entorno y el paso no se puede omitir.
+  assert.match(cierre, /TITULO_PR: \$\{\{ github\.event\.pull_request\.title \}\}/);
+  assert.doesNotMatch(cierre, /^ {8}(if|continue-on-error):/m);
+});
+
+test("JG-18: el PR ejecuta las pruebas E2E en el ambiente productivo simulado, antes de integrar", () => {
+  const ambiente = jobs(leer(".github", "workflows", "publicar-imagenes.yml"))["verificar-ambiente"];
+  assert.ok(ambiente, "falta el job verificar-ambiente");
+  assert.match(ambiente, /^ {4}if: github\.event_name == 'pull_request'$/m);
+  const pasos = ambiente.split(/\n(?= {6}- )/);
+  const indice = (texto) => pasos.findIndex((paso) => paso.includes(texto));
+  assert.ok(indice("node infra/verificar.mjs") >= 0 && indice("node infra/verificar.mjs") < indice("run: pnpm test"),
+    "las pruebas E2E corren después de verificar el ambiente");
+  assert.match(pasos[indice("run: pnpm test")], /working-directory: tests\/e2e/);
+  assert.doesNotMatch(pasos[indice("run: pnpm test")], /continue-on-error/);
+  // El ambiente se apaga aunque fallen las pruebas.
+  assert.ok(indice("down -v") > indice("run: pnpm test"));
+});

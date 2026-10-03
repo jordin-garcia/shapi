@@ -13,24 +13,18 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Planes;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 using ApiDominio = Shapi.Dominio.Apis.Api;
 using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 
 namespace Shapi.Api.Tests.Planes;
 
-public sealed class ContenedorPostgresPlanes : IAsyncLifetime
-{
-    public PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
-
-    public Task InitializeAsync() => Contenedor.StartAsync();
-
-    public Task DisposeAsync() => Contenedor.DisposeAsync().AsTask();
-}
+/// <summary>Cada prueba usa su propia base de datos en el PostgreSQL compartido (JG-18).</summary>
+public sealed class ContenedorPostgresPlanes : PostgresDePrueba;
 
 public sealed class AutenticacionPlanesPrueba(
     IOptionsMonitor<AuthenticationSchemeOptions> opciones,
@@ -116,6 +110,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         _cliente.Dispose();
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     // RF-18

@@ -544,3 +544,24 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **DC-10:** con la clave de pruebas, `X-RateLimit-Limit` es 10 y las `X-Cuota-*` informan el límite diario: `X-Cuota-Limite: 1000`, las que quedan en el día y la medianoche de Guatemala en `X-Cuota-Reinicio` (ISO 8601 en UTC). Al pasar las 1,000 del día, la compuerta responde 429 `cuota_agotada`. Las cabeceras ya se exponen por CORS.
   - **EM-13:** `cuota:org:{organizacion_id}:{ciclo_inicio}` cuenta las peticiones del ciclo de plataforma. Un 502 las devuelve. Vence a los `ciclo_fin + 8 días`; si no existe, el uso es 0.
 
+
+## 2026-10-03 · JG-18 · Optimización de las pruebas y la CI
+- Hecho:
+  - `Shapi.Api.Tests` usa un solo PostgreSQL (`Persistencia/PostgresCompartido.cs`), con `template1` ya migrada: cada base nueva nace migrada. Antes cada clase arrancaba su propio contenedor (unos 12) y cada prueba migraba su base.
+  - En mi PC bajó de 13 min 18 s a 7 min 16 s. Las pruebas de un módulo tardan alrededor de 1 min.
+  - El check `titulo` valida el cierre de la tarea (`node scripts/tareas.mjs --validar-cierre`).
+  - Las pruebas E2E corren también en el PR (job `ambiente-productivo`).
+  - B7 permite correr en local solo las pruebas de lo que se tocó.
+- Decisiones: no se borró ni se debilitó ninguna prueba. La de RF-08 que espera 5 s se queda, porque comprueba ese límite. `dotnet format` no se cambió.
+- Pendiente o aviso para otros:
+  - **Todos:**
+    - B7 cambió: en local basta con `dotnet build`, `dotnet format` y las pruebas de lo que tocaste, por ejemplo `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.Planes"`. La suite completa la corre el check `backend`.
+    - Antes del *push*, corran `node scripts/tareas.mjs --validar-cierre "[<ID>] <título>"`. El check `titulo` ahora falla si la tarea no queda `hecha` con `## Resultado` o si el PR no agrega una entrada en la bitácora; antes eso solo lo detectaba la revisión con Claude, después de varios minutos.
+    - Una clase de pruebas nueva que necesite PostgreSQL usa un fixture de una línea (`public sealed class MiFixture : PostgresDePrueba;`) y su propia base (`Database = $"prueba_{Guid.NewGuid():N}"`), en vez de arrancar su propio contenedor. Al terminar, la borra en su `DisposeAsync` con `await PostgresCompartido.EliminarBaseAsync(_cadena);`. Si no se borra, las bases se acumulan y el borrado final hace fallar por tiempo las pruebas de la compuerta. Nada debe conectarse a `template1`.
+  - **Emilio:** cambié los fixtures de `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs`, `Identidad/ConsumidorPortalTests.cs`, `Identidad/RecuperacionTests.cs`, `Planes/PlanesTests.cs` y `Persistencia/BaseDePrueba.cs` (`PostgresPersistencia`), y agregué `Persistencia/PostgresCompartido.cs`. Solo cambiaron la preparación y el `DisposeAsync`, que ahora borra la base; las pruebas son las mismas. Una migración nueva no requiere nada: `template1` se migra al arrancar. Actualiza tu rama desde `main`.
+  - **Dominique:** cambié los fixtures de `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `Portal/PortalTests.cs`; las pruebas no cambiaron. Actualiza tu rama desde `main`. Tu PR #56 (DC-08) va a fallar en el check `titulo` mientras la tarea siga en `estado: pendiente` sin `## Resultado`, que es lo que pide B10.
+  - **José Pablo:**
+    - Cambié los fixtures de `tests/Shapi.Api.Tests/Bitacora/BitacoraTests.cs` y `Correo/EnvioCorreoTests.cs`: `EntornoCorreo` ya no tiene la propiedad `Postgres`, y su base vive en el servidor compartido. Las pruebas no cambiaron.
+    - En `.github/workflows/publicar-imagenes.yml`, el job `ambiente-productivo` ahora instala Playwright y corre `tests/e2e` después de `infra/verificar.mjs`. `e2e.yml` sigue igual.
+    - Actualiza tu rama desde `main`.
+  - **Pendiente (Jordin):** omitir los pasos de los jobs `backend` y `frontend` cuando el PR no toca nada que lean. Por ejemplo, un PR solo de frontend como DC-08 corrió el backend completo 4 veces. El job seguiría existiendo y en `main` se verificaría todo. No se aplicó: el clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI. Si se aprueba, se hace en otro PR.

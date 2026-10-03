@@ -373,7 +373,7 @@ Los orígenes de demostración (`origen-envios` y `origen-agro`) son dos APIs m�
 
 - En cada *pull request*: compilar, ejecutar las pruebas del backend (xUnit con Testcontainers) y del frontend (Vitest), revisar formato y *lint*, y hacer un *build* de las imágenes.
 - En cada *merge* a `main`: publicar las imágenes `shapi-api`, `shapi-compuerta`, `shapi-trabajador` y `shapi-borde` en GHCR, que es gratis para repositorios públicos.
-- Antes de la exposición: pruebas de extremo a extremo con Playwright contra el ambiente productivo simulado.
+- Pruebas de extremo a extremo con Playwright contra el ambiente productivo simulado: en cada *pull request*, en el ambiente que se levanta para verificarlo, y en cada *merge* a `main`.
 
 ## 8. Observabilidad y estado de componentes
 

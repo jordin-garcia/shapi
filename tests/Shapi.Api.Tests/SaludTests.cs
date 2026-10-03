@@ -1,7 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Testcontainers.PostgreSql;
+using Shapi.Api.Tests.Persistencia;
 
 namespace Shapi.Api.Tests;
 
@@ -9,30 +9,28 @@ namespace Shapi.Api.Tests;
 public class SaludTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _fabrica;
-    private readonly PostgreSqlContainer _dbContainer;
+    private string _cadena = null!;
 
     public SaludTests(WebApplicationFactory<Program> fabrica)
     {
-        _dbContainer = new PostgreSqlBuilder("postgres:16-alpine").Build();
         _fabrica = fabrica;
     }
 
+    // Usa su propia base en el PostgreSQL compartido (JG-18).
     public async Task InitializeAsync()
     {
-        await _dbContainer.StartAsync();
+        await PostgresCompartido.IniciarAsync();
+        _cadena = PostgresCompartido.NuevaCadena();
     }
 
-    public async Task DisposeAsync()
-    {
-        await _dbContainer.DisposeAsync();
-    }
+    public Task DisposeAsync() => PostgresCompartido.EliminarBaseAsync(_cadena);
 
     [Fact]
     public async Task Salud_ApiEnEjecucion_Responde200()
     {
         var fabricaConfigurada = _fabrica.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", _dbContainer.GetConnectionString());
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", _cadena);
         });
         using var cliente = fabricaConfigurada.CreateClient();
         var respuesta = await cliente.GetAsync("/salud");

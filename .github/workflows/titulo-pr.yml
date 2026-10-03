@@ -1,5 +1,6 @@
 # Valida el título del PR (protocolo §B11): "[<ID>] <título>", con una tarea que exista. Sin el ID, la revisión con
 # Claude no revisa criterios ni alcance. Es la verificación obligatoria `titulo` de main (auditoría del 25 sep, H-108).
+# Desde JG-18 también valida el cierre de la tarea (protocolo B10), que la CI solo detectaba con la revisión con Claude.
 # Va aparte de ci.yml para que editar el PR solo repita esta validación, que tarda segundos, y no toda la CI.
 # El job no lleva `if`: un check obligatorio omitido cuenta como aprobado.
 name: Título del PR
@@ -21,7 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # fetch-depth 2: el commit de integración del PR y su primer padre, la punta de main (para leer el diff del PR).
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -30,3 +34,9 @@ jobs:
         env:
           TITULO_PR: ${{ github.event.pull_request.title }}
         run: node scripts/tareas.mjs --validar-titulo
+      # JG-18: estado de la tarea, "## Resultado" y bitácora (protocolo B10). Lo revisa también la revisión con
+      # Claude, pero aquí falla en segundos y sin gastar una revisión.
+      - name: Validar el cierre de la tarea
+        env:
+          TITULO_PR: ${{ github.event.pull_request.title }}
+        run: node scripts/tareas.mjs --validar-cierre

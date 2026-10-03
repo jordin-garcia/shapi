@@ -5,22 +5,18 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Correo;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Shapi.Api.Tests.Identidad;
 
-public sealed class ContenedorPostgresConsumidor : IAsyncLifetime
-{
-    public PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
-    public Task InitializeAsync() => Contenedor.StartAsync();
-    public Task DisposeAsync() => Contenedor.DisposeAsync().AsTask();
-}
+/// <summary>Cada prueba usa su propia base de datos en el PostgreSQL compartido (JG-18).</summary>
+public sealed class ContenedorPostgresConsumidor : PostgresDePrueba;
 
 public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres) : IClassFixture<ContenedorPostgresConsumidor>, IAsyncLifetime
 {
@@ -49,6 +45,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         _cliente.Dispose();
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     [Fact]
