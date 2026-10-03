@@ -33,7 +33,7 @@ Que cada tarea tarde menos en verificarse, sin quitar ninguna prueba ni ninguna 
 - Fixtures de PostgreSQL en `tests/Shapi.Api.Tests/` (modificar): `Persistencia/BaseDePrueba.cs`, `Apis/ApisTests.cs`, `Bitacora/BitacoraTests.cs`, `Identidad/AutenticacionTests.cs`, `Identidad/ConsumidorPortalTests.cs`, `Planes/PlanesTests.cs`, `Portal/PortalTests.cs`, `Correo/EnvioCorreoTests.cs`, `Comun/ServiciosComunesTests.cs` y `SaludTests.cs`
 - `scripts/tareas.mjs` y `scripts/tareas.test.mjs` (modificar): `--validar-cierre`
 - `scripts/reglas-repositorio.test.mjs` (modificar)
-- `.github/workflows/titulo-pr.yml` y `.github/workflows/publicar-imagenes.yml` (modificar)
+- `.github/workflows/ci.yml`, `.github/workflows/titulo-pr.yml` y `.github/workflows/publicar-imagenes.yml` (modificar)
 - `docs/plan/protocolo.md`, `AGENTS.md`, `docs/plan/instalacion.md` y `.github/pull_request_template.md` (modificar)
 - `docs/specs/06-arquitectura.md` §7.3 (modificar): las E2E corren en cada PR
 
@@ -66,6 +66,7 @@ dotnet format Shapi.slnx --verify-no-changes
   - `PostgresCompartido` arranca un solo PostgreSQL 16 por proceso, sin `fsync` y con 300 conexiones, y le aplica las migraciones a `template1`. Así, cada base nueva que EF Core crea nace migrada, y `MigrateAsync` solo la crea.
   - Las clases conservan su fixture, ahora de una línea (`: PostgresDePrueba`). `SaludTests`, `ServiciosComunesTests` y el entorno de correo usaban la base por defecto de su propio contenedor; ahora cada uno usa una base propia.
   - En la PC de Jordin (i5-5200U de 2 núcleos), `Shapi.Api.Tests` bajó de 13 min 18 s a 7 min 16 s. Lo que queda es CPU: cada prueba arranca la API. Las pruebas de un solo módulo, que ahora bastan en local, tardan alrededor de 1 min (`Planes`: 57 s).
+- **CI:** `ci.yml` corre `dotnet test Shapi.slnx -m:1`, un proyecto a la vez. Con los proyectos en paralelo, `Shapi.Api.Tests`, que ahora ocupa toda la CPU en menos tiempo, dejaba sin CPU a las pruebas de la compuerta que miden tiempos: una espera de menos de 3 s tardó 16 s. Así falló dos veces el PR #58. En la CI, `Shapi.Api.Tests` bajó de 2 min 33 s a 1 min 28 s.
 - **Cierre de la tarea:**
   - `node scripts/tareas.mjs --validar-cierre` valida B10 con el título del PR y su diff: el commit de integración contra su primer padre, con `fetch-depth: 2`. Corre en el check `titulo`, después de validar el título.
   - En local (B11, antes del *push*) compara la rama contra `origin/main`, así que revisa lo mismo que la CI, aunque el último commit sea un *merge* de `main`.
