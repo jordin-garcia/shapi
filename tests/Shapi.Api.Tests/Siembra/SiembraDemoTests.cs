@@ -314,7 +314,7 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         }
         mensajesPorCaso[(await db.Set<Caso>().IgnoreQueryFilters().SingleAsync(c => c.Numero == 104)).Id]
             .Select(m => m.Cuerpo).Should().Equal(
-                $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {Reloj.Ahora.AddDays(-17):d 'de' MMMM}. Ya creé el registro CNAME que me indicó la pantalla de dominios.",
+                $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {Reloj.Ahora.AddDays(-17).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.",
                 "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.");
 
         var pagosConPeriodo = await db.Set<Pago>().IgnoreQueryFilters().ToListAsync();
