@@ -304,6 +304,84 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.Equal(HttpStatusCode.UnprocessableEntity, otraOrganizacion.StatusCode);
     }
 
+    // ---------- EM-18 · RF-04 y 10 §1: destino del consumidor después de iniciar sesión ----------
+
+    [Theory]
+    [InlineData(null, "/planes")]
+    [InlineData("activa", "/cuenta/suscripcion")]
+    [InlineData("en_gracia", "/cuenta/suscripcion")]
+    [InlineData("suspendida", "/cuenta/suscripcion")]
+    [InlineData("finalizada", "/planes")]
+    public async Task RF_04_Sesion_DestinoSegunLaSuscripcionVigenteEnLaApiDelPortal(string? estado, string destino)
+    {
+        // 10 §1: el consumidor va a /cuenta/suscripcion o, si no tiene suscripción, a /planes. La vigente es la que no
+        // está finalizada (07, índice único parcial en suscripcion_api).
+        await InsertarApi("destino");
+        var (cookie, consumidorId) = await ConsumidorConSesion("ana@destino.test", "destino.shapi.localhost");
+        if (estado is not null)
+        {
+            await InsertarSuscripcion(consumidorId, "destino", estado);
+        }
+
+        var sesion = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "destino.shapi.localhost", cookie: cookie);
+
+        Assert.Equal(HttpStatusCode.OK, sesion.StatusCode);
+        Assert.Equal(destino, (await sesion.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("destino").GetString());
+    }
+
+    [Fact]
+    public async Task RF_04_Sesion_UnaSuscripcionDeOtraApiDeLaOrganizacionNoCuenta()
+    {
+        // EM-18, criterio 1: cuenta la suscripción de la API del portal actual, no la de otra API del mismo proveedor.
+        var organizacionId = await InsertarApi("destino-propia");
+        await InsertarApiEnOrganizacion("destino-otra", organizacionId);
+        var (cookie, consumidorId) = await ConsumidorConSesion("ana@otra-api.test", "destino-propia.shapi.localhost");
+        await InsertarSuscripcion(consumidorId, "destino-otra", "activa");
+
+        var sesion = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "destino-propia.shapi.localhost", cookie: cookie);
+
+        Assert.Equal("/planes", (await sesion.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("destino").GetString());
+    }
+
+    /// <summary>Registra y verifica un consumidor en el portal; devuelve la cookie de su sesión y su ID.</summary>
+    private async Task<(string Cookie, Guid ConsumidorId)> ConsumidorConSesion(string correo, string host)
+    {
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", host,
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo, contrasena = "ContrasenaValida123" });
+        var token = await TokenCorreo(correo, host);
+        var verificacion = await Enviar(HttpMethod.Post, "/api/portal/auth/verificar-correo", host, new { token });
+        Assert.Equal(HttpStatusCode.OK, verificacion.StatusCode);
+
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = "SELECT id FROM consumidor WHERE correo = @correo";
+        comando.Parameters.AddWithValue("correo", correo);
+        return (Cookie(verificacion, "portal_sesion"), (Guid)(await comando.ExecuteScalarAsync())!);
+    }
+
+    /// <summary>Una suscripción del consumidor a la API del subdominio, con un plan propio, en el estado indicado.</summary>
+    private async Task InsertarSuscripcion(Guid consumidorId, string subdominio, string estado)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            WITH api_portal AS (SELECT id FROM api WHERE subdominio = @sub),
+            plan AS (
+              INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+              SELECT gen_random_uuid(), id, 'Comercio', 'Descripción', 450, false, 30, 1000, 60, true FROM api_portal
+              RETURNING id, api_id
+            )
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin)
+            SELECT gen_random_uuid(), @consumidor, api_id, id, @estado, now() - interval '1 day', now() + interval '29 days' FROM plan
+            """;
+        comando.Parameters.AddWithValue("sub", subdominio);
+        comando.Parameters.AddWithValue("consumidor", consumidorId);
+        comando.Parameters.AddWithValue("estado", estado);
+        Assert.Equal(1, await comando.ExecuteNonQueryAsync());
+    }
+
     private async Task<Guid> InsertarApi(string subdominio)
     {
         await using var conexion = new NpgsqlConnection(_cadena);

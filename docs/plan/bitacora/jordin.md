@@ -579,3 +579,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - Si una prueba de la compuerta falla por tiempo con `RedisTimeoutException` o con esperas de varios segundos, sospechen de un *pool* de hilos agotado: alguna espera síncrona (`Connect`, `.Result`, `.Wait()`) en un camino que reciben muchas peticiones a la vez.
     - Si una prueba empieza a leer un archivo de otra carpeta (por ejemplo, una de Vitest que lea una especificación distinta de `11-interfaz.md`), hay que quitar esa ruta de la lista de `scripts/cambios-ci.mjs` en el mismo PR.
   - **Dominique:** agregué `Salud_ApiEnEjecucion_Responde200` en `tests/Shapi.Api.Tests/Apis/ApisTests.cs`, que reemplaza a `SaludTests`. Actualiza tu rama desde `main`.
+
+## 2026-10-03 · EM-18 · Publicar el destino de la sesión del consumidor
+- Hecho: `GET /api/portal/auth/sesion` devuelve `destino` (`/cuenta/suscripcion` con una suscripción vigente a la API del portal; si no, `/planes`). Actualicé el contrato `SesionConsumidor` y regeneré los tipos. Agregué pruebas de integración de los cinco casos y de la suscripción a otra API del mismo proveedor.
+- Decisiones: "tiene suscripción" es "tiene una suscripción vigente", es decir, no `finalizada` (07 y ADR-19). Implementé la tarea de Emilio porque DC-08 la necesita para cumplir su criterio 3 (protocolo §E1). Dominique la había creado en su PR #56, que no estaba integrado.
+- Pendiente o aviso para otros:
+  - **Emilio:** EM-18 es una tarea tuya que creó Dominique en su PR #56 y nunca llegó a `main`. Ya está hecha. Cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`), `contratos/openapi/identidad.yaml` (`SesionConsumidor.destino`) y `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`. Actualiza tu rama desde `main`.
+  - **Dominique:** `SesionConsumidor` ya trae `destino` en el contrato y en los tipos generados. Termino DC-08 a partir de tu PR #56 en el siguiente PR (protocolo §E4).
