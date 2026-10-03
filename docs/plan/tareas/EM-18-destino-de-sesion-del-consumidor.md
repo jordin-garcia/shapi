@@ -64,4 +64,4 @@ node scripts/tareas.mjs --validar
   - `RF_04_Sesion_DestinoSegunLaSuscripcionVigenteEnLaApiDelPortal`, con los cinco casos: sin suscripción y con cada estado;
   - `RF_04_Sesion_UnaSuscripcionDeOtraApiDeLaOrganizacionNoCuenta`.
 - **Decisiones:** "tiene suscripción" se interpreta como "tiene una suscripción vigente", que es la definición de 07 (índice único parcial `estado <> 'finalizada'`) y de ADR-19.
-- **Archivos:** `src/Shapi.Api/Identidad/EndpointsPortal.cs`, `contratos/openapi/identidad.yaml`, `frontend/packages/api/src/generado/identidad.ts` y `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`.
+- **Archivos:** `docs/specs/10-identidad-y-seguridad.md` §1 (precisión de "suscripción vigente"), `src/Shapi.Api/Identidad/EndpointsPortal.cs`, `contratos/openapi/identidad.yaml`, `frontend/packages/api/src/generado/identidad.ts` y `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`.

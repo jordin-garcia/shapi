@@ -25,7 +25,7 @@ Los enlaces enviados por correo llevan a la pantalla del ámbito de la cuenta. P
 | administrador | `/admin/organizaciones` |
 | soporte | `/admin/casos` |
 | propietario, editor, lector | `/panel/apis` |
-| consumidor | `/cuenta/suscripcion` o, si no tiene suscripción, `/planes` |
+| consumidor | `/cuenta/suscripcion` o, si no tiene una suscripción vigente (no `finalizada`) a la API del portal, `/planes`. Lo indica `destino` en `GET /api/portal/auth/sesion` |
 
 ## 2. Resolución de la organización (multi-tenancy)
 
