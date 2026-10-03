@@ -3,19 +3,11 @@ using Npgsql;
 using Shapi.Aplicacion.Comun;
 using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 
 namespace Shapi.Api.Tests.Persistencia;
 
-/// <summary>Un solo contenedor de PostgreSQL 16 para todas las pruebas de persistencia.</summary>
-public sealed class PostgresPersistencia : IAsyncLifetime
-{
-    public PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
-
-    public Task InitializeAsync() => Contenedor.StartAsync();
-
-    public Task DisposeAsync() => Contenedor.DisposeAsync().AsTask();
-}
+/// <summary>Las pruebas de persistencia usan el PostgreSQL compartido (JG-18).</summary>
+public sealed class PostgresPersistencia : PostgresDePrueba;
 
 [CollectionDefinition(nameof(PostgresPersistencia))]
 public sealed class ColeccionPersistencia : ICollectionFixture<PostgresPersistencia>;
@@ -32,7 +24,8 @@ public sealed class RelojFijo(DateTimeOffset ahora) : IReloj
 
 /// <summary>
 /// Cada prueba recibe su propia base de datos, recién migrada, para que las restricciones únicas
-/// de una prueba no choquen con los datos de otra.
+/// de una prueba no choquen con los datos de otra. La base nace migrada desde la plantilla de
+/// <see cref="PostgresCompartido"/>, así que <c>MigrateAsync</c> solo la crea.
 /// </summary>
 public abstract class BaseDePrueba(PostgresPersistencia postgres) : IAsyncLifetime
 {
@@ -51,10 +44,10 @@ public abstract class BaseDePrueba(PostgresPersistencia postgres) : IAsyncLifeti
         await db.Database.MigrateAsync();
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
         NpgsqlConnection.ClearAllPools();
-        return Task.CompletedTask;
+        await PostgresCompartido.EliminarBaseAsync(Cadena);
     }
 
     /// <summary>Un DbContext configurado como en la aplicación: con el contexto de organización y el interceptor de fechas.</summary>

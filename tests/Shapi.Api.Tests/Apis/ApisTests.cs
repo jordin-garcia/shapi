@@ -14,26 +14,20 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Apis;
 using Shapi.Aplicacion.Comun;
 using Shapi.Contratos.Red;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Consumo;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 using ApiDominio = Shapi.Dominio.Apis.Api;
 using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 
 namespace Shapi.Api.Tests.Apis;
 
-public sealed class ContenedorPostgresApis : IAsyncLifetime
-{
-    public PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
-
-    public Task InitializeAsync() => Contenedor.StartAsync();
-
-    public Task DisposeAsync() => Contenedor.DisposeAsync().AsTask();
-}
+/// <summary>Cada prueba usa su propia base de datos en el PostgreSQL compartido (JG-18).</summary>
+public sealed class ContenedorPostgresApis : PostgresDePrueba;
 
 public sealed class ProbadorOrigenFalso : IProbadorOrigen
 {
@@ -136,6 +130,16 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         _cliente.Dispose();
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
+    }
+
+    // RNF-15: la API responde /salud (antes en SaludTests, que arrancaba su propio contenedor; JG-18).
+    [Fact]
+    public async Task Salud_ApiEnEjecucion_Responde200()
+    {
+        var respuesta = await _cliente.GetAsync("/salud");
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]

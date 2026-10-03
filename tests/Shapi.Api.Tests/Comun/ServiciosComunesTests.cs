@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Infraestructura.Cache;
 using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 
 namespace Shapi.Api.Tests.Comun;
 
@@ -17,29 +17,27 @@ namespace Shapi.Api.Tests.Comun;
 public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _fabrica;
-    private readonly PostgreSqlContainer _dbContainer;
+    private string _cadena = null!;
 
     public ServiciosComunesTests(WebApplicationFactory<Program> fabrica)
     {
-        _dbContainer = new PostgreSqlBuilder("postgres:16-alpine").Build();
         _fabrica = fabrica;
     }
 
+    // Cada prueba usa su propia base en el PostgreSQL compartido (JG-18).
     public async Task InitializeAsync()
     {
-        await _dbContainer.StartAsync();
+        await PostgresCompartido.IniciarAsync();
+        _cadena = PostgresCompartido.NuevaCadena();
     }
 
-    public async Task DisposeAsync()
-    {
-        await _dbContainer.DisposeAsync();
-    }
+    public Task DisposeAsync() => PostgresCompartido.EliminarBaseAsync(_cadena);
 
     private WebApplicationFactory<Program> CrearFabrica()
     {
         return _fabrica.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", _dbContainer.GetConnectionString());
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", _cadena);
 
             // Sin Redis: el publicador no debe lanzar aunque Redis no responda (criterio 3 de JG-04).
             builder.UseSetting("SHAPI_REDIS", "127.0.0.1:1,connectTimeout=100");

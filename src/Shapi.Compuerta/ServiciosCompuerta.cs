@@ -26,6 +26,9 @@ public static class ServiciosCompuerta
             return ConnectionMultiplexer.Connect(opciones);
         });
 
+        // La conexión se abre al arrancar, no con la primera petición (ver ConexionRedisAlArrancar).
+        services.AddHostedService<ConexionRedisAlArrancar>();
+
         services.AddHttpForwarder();
 
         // YARP registra la URL de destino con su query ("Proxying to …"), que puede traer datos del consumidor

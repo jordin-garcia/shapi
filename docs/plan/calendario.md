@@ -41,7 +41,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Mié 30 sep | **JG-05** Compuerta: organización, suscripción, ruta, secreto, SSRF y CORS | **EM-05** Identidad del consumidor (backend del portal) | — | — |
 | Jue 1 oct | — | **EM-07** Planes de API (A4.1) | **DC-05** Especificación OpenAPI y rutas expuestas (A3.3 y A3.4) | **JZ-07** Pruebas de extremo a extremo y herramienta de capturas |
 | Vie 2 oct | **JG-06** Compuerta: límites por minuto, cuotas y cabeceras (Lua) | **EM-18** Publicar el destino de la sesión del consumidor | **DC-08** Pantallas de acceso del consumidor (A5.3, A5.3b y A5.7 a A5.10) | — |
-| Sáb 3 oct | — | **EM-08** Contratación de un plan de API (backend) | — | **JZ-05** Siembra de demostración |
+| Sáb 3 oct | **JG-18** Optimización de las pruebas y la CI | **EM-08** Contratación de un plan de API (backend) | — | **JZ-05** Siembra de demostración |
 | Dom 4 oct | **JG-09** Medición en la compuerta y consolidación del consumo | — | **DC-06** Configuración por ruta y publicación (A3.5) | — |
 | Lun 5 oct | — | **EM-09** Suscripción de plataforma: contratar y cambiar de plan (A2 y B1.4) | — | **JZ-11** Plantillas de correo completas |
 | Mar 6 oct | — | — | **DC-07** Portal público: inicio y documentación (A5.0, A5.1 y A5.5) | — |

@@ -728,6 +728,11 @@ export interface components {
                 nombreEmpresa: string;
             };
             correoVerificado: boolean;
+            /**
+             * @description A dónde lleva el portal después de iniciar sesión (10 §1): `/cuenta/suscripcion` si el consumidor tiene una suscripción vigente (no finalizada) a la API de este portal; si no, `/planes`.
+             * @enum {string}
+             */
+            destino: "/cuenta/suscripcion" | "/planes";
         };
         /** @description Si falta `token`, responde 422 `token_invalido`. */
         PeticionVerificacion: {

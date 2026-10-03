@@ -55,15 +55,40 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tests/e2e/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: pnpm
+          cache-dependency-path: tests/e2e/pnpm-lock.yaml
       - name: Preparar configuración local
         run: cp .env.example .env
       - name: Levantar desde cero
         run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build
       - name: Verificar ambiente
         run: node infra/verificar.mjs
+      # JG-18: las pruebas E2E también corren en el PR, con el ambiente que este job ya levantó (unos 30 s más). Antes
+      # solo corrían en main (e2e.yml), así que un flujo roto se descubría después de integrar.
+      - name: Instalar pruebas E2E y navegador
+        working-directory: tests/e2e
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Pruebas E2E
+        working-directory: tests/e2e
+        env:
+          CI: "true"
+        run: pnpm test
+      - name: Adjuntar informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-playwright-pr
+          path: tests/e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Mostrar registros si falla
         if: failure()
         run: docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs
