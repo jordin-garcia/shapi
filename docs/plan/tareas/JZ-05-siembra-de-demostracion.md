@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-03
 depende_de: [EM-01, JZ-02, DC-05]
 requisitos: [RNF-14]
@@ -53,3 +53,10 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Datos base (EM-01)
+
+## Resultado
+- Se agregó el comando `sembrar-demo [--reiniciar]`, protegido por `SHAPI_MODO_DEMO=true`, idempotente y con reinicio transaccional de los datos de demostración.
+- La siembra crea el catálogo completo de 07 §6, las rutas desde las especificaciones OpenAPI, pagos, casos, bitácora, claves fijas y consumo relativo que reproduce A3–A6 y B1–B3.
+- Las URLs y secretos de los orígenes son configurables; el ambiente productivo usa los nombres de servicio y al finalizar se resincroniza Redis.
+- Se documentaron las cuentas y claves de demostración y se cubrieron modo demo, idempotencia, reinicio, atomicidad, muestras, fechas, métricas y datos exactos con pruebas de integración.
+- Archivos principales: `src/Shapi.Infraestructura/Siembra/Demo/`, `src/Shapi.Trabajador/Program.cs`, `tests/Shapi.Api.Tests/Siembra/SiembraDemoTests.cs`, `infra/compose.prod.yml` y `docs/manual-tecnico.md`.
