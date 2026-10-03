@@ -11,14 +11,16 @@
 // su primer padre, la punta de main. Uso en la CI (después de actions/checkout con fetch-depth: 2):
 //   node scripts/cambios-ci.mjs <backend|frontend> <evento>   → escribe ejecutar=true|false en $GITHUB_OUTPUT
 import { appendFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { archivosDelPr } from "./tareas.mjs";
 
 // Rutas que no leen ni compilan ninguna de las verificaciones de cada área. Un prefijo que termina en "/" cubre la
 // carpeta completa; si no, es un archivo exacto.
 const COMUNES = [
   "docs/plan/", "docs/lineamientos.md", "docs/manual-tecnico.md", "scripts/", ".claude/", ".gemini/",
-  "AGENTS.md", "CLAUDE.md", "README.md", ".gitattributes",
+  "AGENTS.md", "CLAUDE.md", "README.md",
   // Los workflows no cambian lo que se verifica, salvo ci.yml, que es donde se verifica.
   ".github/pull_request_template.md", ".github/workflows/claude-interactivo.yml", ".github/workflows/e2e.yml",
   ".github/workflows/publicar-imagenes.yml", ".github/workflows/revision-claude.yml",
@@ -39,13 +41,18 @@ export const NO_AFECTAN = {
   ],
 };
 
+// Archivos que deciden qué se verifica, como ci.yml (que no está en ninguna lista): un cambio en ellos ejecuta todo,
+// aunque estén dentro de una carpeta de las listas. .gitattributes no está en las listas porque decide los finales de
+// línea con que se escriben los archivos en la CI, y eso lo revisa dotnet format.
+const SIEMPRE = ["scripts/cambios-ci.mjs", "scripts/tareas.mjs"];
+
 const AREAS = Object.keys(NO_AFECTAN);
 
 /** ¿Algún archivo del PR puede cambiar el resultado de las verificaciones del área? */
 export function afectaA(area, archivos) {
   if (!AREAS.includes(area)) throw new Error(`Área desconocida: ${area}. Use ${AREAS.join(" o ")}.`);
   const libres = NO_AFECTAN[area];
-  return archivos.some((archivo) =>
+  return archivos.some((archivo) => SIEMPRE.includes(archivo) ||
     !libres.some((ruta) => (ruta.endsWith("/") ? archivo.startsWith(ruta) : archivo === ruta)));
 }
 
@@ -57,7 +64,10 @@ export function decidir(area, evento, archivos) {
   return { ejecutar: false, motivo: `el PR no cambia nada que lean las verificaciones del ${area} (${archivos.length} archivos)` };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+// Como en tareas.mjs: solo se ejecuta como programa, no cuando una prueba lo importa.
+const esPrincipal = import.meta.main ?? (process.argv[1] && pathToFileURL(realpathSync(resolve(process.argv[1]))).href === import.meta.url);
+
+if (esPrincipal) {
   const [area, evento] = process.argv.slice(2);
   if (!AREAS.includes(area)) {
     console.error(`Uso: node scripts/cambios-ci.mjs <${AREAS.join("|")}> <evento>`);

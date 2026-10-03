@@ -199,7 +199,8 @@ test("JG-18: backend y frontend omiten sus pasos, nunca el job, si el PR no los 
     assert.doesNotMatch(pasos[decision], /^ {8}(if|continue-on-error):/m, `${area}: la decisión no se puede omitir`);
     // Todos los pasos posteriores dependen de la decisión, y ninguno puede fallar en silencio.
     for (const paso of pasos.slice(decision + 1)) {
-      assert.match(paso, /^(?: {6}- | {8})if: steps\.cambios\.outputs\.ejecutar == 'true'$/m, `${area}: paso sin la condición:\n${paso}`);
+      // != 'false': si la decisión no escribe su salida, se verifica todo.
+      assert.match(paso, /^(?: {6}- | {8})if: steps\.cambios\.outputs\.ejecutar != 'false'$/m, `${area}: paso sin la condición:\n${paso}`);
       assert.doesNotMatch(paso, /continue-on-error/, `${area}: paso con continue-on-error:\n${paso}`);
     }
   }

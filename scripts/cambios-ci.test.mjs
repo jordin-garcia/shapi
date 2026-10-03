@@ -16,7 +16,7 @@ test("JG-18: un PR solo de backend no ejecuta el frontend, pero sí el backend",
 });
 
 test("JG-18: un PR solo del plan (bloqueada, convergencia) no ejecuta ninguno de los dos", () => {
-  const archivos = ["docs/plan/tareas/JZ-12-x.md", "docs/plan/bitacora/jose-pablo.md", "docs/plan/calendario.md", "scripts/tareas.mjs"];
+  const archivos = ["docs/plan/tareas/JZ-12-x.md", "docs/plan/bitacora/jose-pablo.md", "docs/plan/calendario.md", "scripts/tablero.mjs"];
   assert.equal(afectaA("backend", archivos), false);
   assert.equal(afectaA("frontend", archivos), false);
 });
@@ -36,7 +36,8 @@ test("JG-18: lo que leen las pruebas de Vitest ejecuta el frontend", () => {
 });
 
 test("JG-18: ci.yml y cualquier ruta desconocida ejecutan las dos áreas", () => {
-  for (const archivo of [".github/workflows/ci.yml", "carpeta-nueva/algo.txt", "global.json", ".github/workflows/nuevo.yml"]) {
+  for (const archivo of [".github/workflows/ci.yml", "carpeta-nueva/algo.txt", "global.json", ".github/workflows/nuevo.yml",
+    ".gitattributes", ".editorconfig"]) {
     assert.equal(afectaA("backend", [archivo]), true, archivo);
     assert.equal(afectaA("frontend", [archivo]), true, archivo);
   }
@@ -48,6 +49,14 @@ test("JG-18: de las especificaciones, solo 11-interfaz.md (y una nueva) ejecuta 
   assert.equal(afectaA("frontend", ["docs/specs/13-nueva.md"]), true);
   // El backend sí lee otras especificaciones (08 y 10): cualquier cambio en docs/specs/ lo ejecuta.
   assert.equal(afectaA("backend", ["docs/specs/12-decisiones.md"]), true);
+});
+
+test("JG-18: los scripts que deciden qué se verifica ejecutan las dos áreas; los demás scripts, ninguna", () => {
+  for (const archivo of ["scripts/cambios-ci.mjs", "scripts/tareas.mjs"]) {
+    assert.equal(afectaA("backend", [archivo]), true, archivo);
+    assert.equal(afectaA("frontend", [archivo]), true, archivo);
+  }
+  assert.equal(afectaA("backend", ["scripts/tablero.mjs", "scripts/tareas.test.mjs"]), false);
 });
 
 test("JG-18: un prefijo de archivo no cubre otro archivo con el mismo inicio", () => {

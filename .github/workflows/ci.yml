@@ -47,33 +47,34 @@ jobs:
         with:
           fetch-depth: 2
       # JG-18: si el PR no toca nada que lean estas verificaciones, se omiten los pasos, no el job (un check
-      # obligatorio omitido contaría como aprobado). En main se verifica todo.
+      # obligatorio omitido contaría como aprobado). En main se verifica todo. Los pasos comparan con != 'false': si
+      # la decisión no escribe su salida, se verifica todo.
       - name: Decidir si el PR afecta al backend
         id: cambios
         run: node scripts/cambios-ci.mjs backend "${{ github.event_name }}"
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Restaurar
-        if: steps.cambios.outputs.ejecutar == 'true'
+        if: steps.cambios.outputs.ejecutar != 'false'
         run: dotnet restore Shapi.slnx
       - name: Compilar
-        if: steps.cambios.outputs.ejecutar == 'true'
+        if: steps.cambios.outputs.ejecutar != 'false'
         run: dotnet build Shapi.slnx --no-restore --configuration Release
       - name: Formato
-        if: steps.cambios.outputs.ejecutar == 'true'
+        if: steps.cambios.outputs.ejecutar != 'false'
         run: dotnet format Shapi.slnx --verify-no-changes --no-restore
       # Un cambio del modelo sin su migración falla aquí y no al levantar la base (convenciones §3).
       # dotnet-ef se instala con la misma versión de EF Core que usa la solución.
       - name: Migraciones al día con el modelo
-        if: steps.cambios.outputs.ejecutar == 'true'
+        if: steps.cambios.outputs.ejecutar != 'false'
         run: |
           dotnet tool install --global dotnet-ef --version "$(sed -n 's/.*"Microsoft.EntityFrameworkCore.Design" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)"
           dotnet ef migrations has-pending-model-changes -p src/Shapi.Infraestructura -s src/Shapi.Api --no-build --configuration Release
       # Docker ya está disponible en ubuntu-latest para Testcontainers.
       - name: Pruebas
-        if: steps.cambios.outputs.ejecutar == 'true'
+        if: steps.cambios.outputs.ejecutar != 'false'
         run: dotnet test Shapi.slnx --no-build --configuration Release
 
   frontend:
@@ -92,22 +93,22 @@ jobs:
         id: cambios
         working-directory: .
         run: node scripts/cambios-ci.mjs frontend "${{ github.event_name }}"
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         uses: pnpm/action-setup@v6
         with:
           package_json_file: frontend/package.json
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         run: pnpm install --frozen-lockfile
       # Los tipos de packages/api/src/generado/ salen de contratos/openapi/ y nunca se escriben a mano.
       # git status detecta también un contrato nuevo sin sus tipos, que git diff no ve.
       - name: Tipos generados al día con los contratos
-        if: steps.cambios.outputs.ejecutar == 'true'
+        if: steps.cambios.outputs.ejecutar != 'false'
         run: |
           pnpm generar:api
           if [ -n "$(git status --porcelain -- packages/api/src/generado)" ]; then
@@ -115,11 +116,11 @@ jobs:
             echo "::error::Los tipos generados no coinciden con contratos/openapi/. Ejecute 'pnpm generar:api' en frontend/ y haga commit del resultado."
             exit 1
           fi
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         run: pnpm lint
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         run: pnpm typecheck
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         run: pnpm test
-      - if: steps.cambios.outputs.ejecutar == 'true'
+      - if: steps.cambios.outputs.ejecutar != 'false'
         run: pnpm build
