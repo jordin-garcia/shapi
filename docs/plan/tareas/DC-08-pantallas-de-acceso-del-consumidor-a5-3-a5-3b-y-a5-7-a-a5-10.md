@@ -14,7 +14,7 @@ pantallas: [A5.3, A5.3b, A5.7, A5.8, A5.9, A5.10]
 
 # DC-08 · Pantallas de acceso del consumidor (A5.3, A5.3b y A5.7 a A5.10)
 
-**Responsable:** Dominique Contreras · **Avance:** 2 · **Prioridad:** P1 · **Depende de:** DC-03, EM-05
+**Responsable:** Dominique Contreras · **Avance:** 2 · **Prioridad:** P1 · **Depende de:** DC-03, EM-05, EM-18
 
 ## Objetivo
 Implementar en el portal el registro (directo y por invitación), la verificación, el inicio de sesión y la recuperación de contraseña del consumidor.

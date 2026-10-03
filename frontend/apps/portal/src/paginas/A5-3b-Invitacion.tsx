@@ -32,6 +32,8 @@ export default function PaginaA53bInvitacion() {
   // El token es de un solo uso: si la invitación ya se aceptó y solo falló la consulta del destino, el reintento no la
   // vuelve a aceptar (el backend respondería token_invalido aunque la cuenta ya exista).
   const aceptada = useRef(false);
+  // Con errores por campo, cada uno se muestra en su campo y no hace falta el aviso general (como en A5.3).
+  const porCampo = Object.keys(error?.errores ?? {}).length > 0;
 
   async function enviar(evento: FormEvent) {
     evento.preventDefault();
@@ -78,7 +80,7 @@ export default function PaginaA53bInvitacion() {
           {marca.nombrePortal} lo invitó a su portal. Su cuenta pertenece a ese portal: con ella contrata planes y obtiene claves de su API.
         </p>
       </EncabezadoAcceso>
-      {error && (
+      {error && !porCampo && (
         <div className="mt-6">
           <AvisoError
             mensaje={error.mensaje}
@@ -99,7 +101,7 @@ export default function PaginaA53bInvitacion() {
           value={invitacion.data.correo}
           readOnly
           aria-describedby="correo-invitado"
-          className="[&_input]:bg-fondo [&_input]:text-tinta-suave"
+          className="[&_input]:border-borde-inactivo [&_input]:bg-fondo [&_input]:text-tinta-suave"
         />
         <span id="correo-invitado" className="-mt-4 text-[13px] text-tinta-suave">Es el correo al que llegó la invitación.</span>
         <Campo

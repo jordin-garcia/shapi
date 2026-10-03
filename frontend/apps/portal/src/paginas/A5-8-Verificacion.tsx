@@ -71,16 +71,17 @@ function Revisar({ correo: correoInicial }: { correo: string }) {
         <EncabezadoAcceso rotulo={<RotuloPortal />} titulo="Revise su correo" />
       </div>
       <p className="mt-5 text-base leading-[1.6] text-tinta-suave">
-        Enviamos un enlace de confirmación a <span className="font-medium text-tinta">{correo || 'su correo'}</span>. Vence en{' '}
+        Enviamos un enlace de confirmación a <span className="font-medium text-tinta">{correoInicial || 'su correo'}</span>. Vence en{' '}
         <span className="font-medium text-tinta">24 horas</span>.
       </p>
       <div className="mt-6 rounded-base border border-alerta-borde bg-alerta-fondo px-4 py-[14px] text-sm text-alerta">
         Podrá contratar un plan en cuanto confirme su correo.
       </div>
       {correoInicial ? (
-        <form onSubmit={enviar} className="mt-7 text-center">
-          <button type="submit" disabled={enviando} className="text-sm text-[var(--marca-principal)]">
-            ¿No le llegó? Enviar el enlace otra vez
+        <form onSubmit={enviar} className="mt-7 text-center text-sm text-tinta-suave">
+          ¿No le llegó?{' '}
+          <button type="submit" disabled={enviando} className="text-[var(--marca-principal)]">
+            Enviar el enlace otra vez
           </button>
         </form>
       ) : (
