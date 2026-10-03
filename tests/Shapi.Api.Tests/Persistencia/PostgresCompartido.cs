@@ -37,7 +37,9 @@ public static class PostgresCompartido
             "-c", "fsync=off",
             "-c", "synchronous_commit=off",
             "-c", "full_page_writes=off",
-            "-c", "max_connections=300")
+            "-c", "max_connections=300",
+            // En tmpfs, el WAL también ocupa memoria: se acota entre checkpoints.
+            "-c", "max_wal_size=256MB")
         .Build();
 
     /// <summary>Arranca el contenedor y migra la plantilla, una sola vez por proceso.</summary>
