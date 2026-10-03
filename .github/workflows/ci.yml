@@ -73,9 +73,11 @@ jobs:
           dotnet tool install --global dotnet-ef --version "$(sed -n 's/.*"Microsoft.EntityFrameworkCore.Design" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)"
           dotnet ef migrations has-pending-model-changes -p src/Shapi.Infraestructura -s src/Shapi.Api --no-build --configuration Release
       # Docker ya está disponible en ubuntu-latest para Testcontainers.
+      # -m:1: un proyecto de pruebas a la vez (JG-18). Shapi.Api.Tests ocupa toda la CPU desde que comparte un solo
+      # PostgreSQL, y en paralelo frenaba a las pruebas de la compuerta que miden tiempos.
       - name: Pruebas
         if: steps.cambios.outputs.ejecutar != 'false'
-        run: dotnet test Shapi.slnx --no-build --configuration Release
+        run: dotnet test Shapi.slnx --no-build --configuration Release -m:1
 
   frontend:
     name: frontend

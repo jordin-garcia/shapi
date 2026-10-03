@@ -570,6 +570,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho:
   - En los PR, los jobs `backend` y `frontend` omiten sus pasos si el PR no cambia nada que lean sus verificaciones (`scripts/cambios-ci.mjs`). El job siempre se ejecuta y en `main` se verifica todo.
   - Se borraron las tres pruebas de humo (`SaludTests` de la API y de la compuerta, `HumoTests` del dominio). La comprobación de que `/salud` responde 200 pasó a `ApisTests` y `CompuertaTests`.
+  - El PostgreSQL compartido de las pruebas guarda sus datos en memoria (`tmpfs`), y la CI corre un proyecto de pruebas a la vez (`-m:1`). Así se evitan los fallos de tiempo de `RF_31_…PocoAPoco` en la compuerta.
 - Decisiones: lo autoricé después del PR #58. La regla es conservadora: cada área enumera las rutas que seguro no le afectan, y cualquier otra la ejecuta.
 - Pendiente o aviso para otros:
   - **Todos:**
