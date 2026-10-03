@@ -31,4 +31,11 @@ public sealed class ContextoPeticion(HttpContext http)
 
     /// <summary>La ruta expuesta que coincide con el método y el camino. La resuelve <c>FiltroRuta</c>.</summary>
     public RutaCache? Ruta { get; set; }
+
+    /// <summary>
+    /// Devuelve la cuota que reservó <c>FiltroLimitesYCuotas</c>. El reenvío la llama si no se pudo conectar con el
+    /// origen (502), porque la petición no llegó (08 §3). Es <c>null</c> si no se reservó cuota, como con la clave
+    /// de pruebas.
+    /// </summary>
+    public Func<Task>? DevolverReserva { get; set; }
 }

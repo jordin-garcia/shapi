@@ -122,9 +122,9 @@ public class TuberiaCompuertaTests
     [Fact]
     public void RNF_13_Orden_DefinidoEnUnSoloLugar()
     {
-        // 08 §3: filtros 0 a 5. Agregar una regla es agregar una clase y una línea (RNF-13).
+        // 08 §3: filtros 0 a 6. Agregar una regla es agregar una clase y una línea (RNF-13).
         TuberiaCompuerta.Orden.Should().Equal(typeof(FiltroCors), typeof(FiltroApi), typeof(FiltroClave),
-            typeof(FiltroOrganizacion), typeof(FiltroSuscripcion), typeof(FiltroRuta));
+            typeof(FiltroOrganizacion), typeof(FiltroSuscripcion), typeof(FiltroRuta), typeof(FiltroLimitesYCuotas));
         TuberiaCompuerta.Orden.Should().OnlyContain(t => typeof(IFiltroCompuerta).IsAssignableFrom(t));
     }
 
