@@ -2,8 +2,11 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Shapi.Compuerta.Tests.Soporte;
 using Shapi.Contratos.Redis;
+using StackExchange.Redis;
 
 namespace Shapi.Compuerta.Tests.Tuberia;
 
@@ -24,6 +27,27 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
         var respuesta = await cliente.GetAsync("/salud");
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // 08 §8 (JG-18): la conexión a Redis se abre al arrancar. Si se abría con la primera petición, varias peticiones
+    // simultáneas agotaban el pool de hilos esperando al Connect síncrono, y el proceso se frenaba durante segundos.
+    [Fact]
+    public async Task Redis_LaConexionSeAbreAlArrancarYNoConLaPrimeraPeticion()
+    {
+        var creadas = 0;
+        await using var fabrica = entorno.Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
+            servicios.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                Interlocked.Increment(ref creadas);
+                return ConnectionMultiplexer.Connect(entorno.CadenaRedis);
+            })));
+
+        // Crear el cliente arranca la compuerta, sin enviar ninguna petición.
+        using var cliente = EntornoCompuerta.Cliente(fabrica, "localhost");
+        creadas.Should().Be(1);
+
+        (await cliente.GetAsync("/salud")).StatusCode.Should().Be(HttpStatusCode.OK);
+        creadas.Should().Be(1);
     }
 
     [Fact]

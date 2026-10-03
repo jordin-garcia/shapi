@@ -36,7 +36,7 @@ Que cada tarea tarde menos en verificarse, sin quitar ninguna prueba ni ninguna 
 - `.github/workflows/titulo-pr.yml` y `.github/workflows/publicar-imagenes.yml` (modificar)
 - `docs/plan/protocolo.md`, `AGENTS.md`, `docs/plan/instalacion.md` y `.github/pull_request_template.md` (modificar)
 - `docs/specs/06-arquitectura.md` §7.3 (modificar): las E2E corren en cada PR
-- Ampliación: `scripts/cambios-ci.mjs` y `scripts/cambios-ci.test.mjs` (crear), `.github/workflows/ci.yml`, `docs/plan/convenciones.md` §4, `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `tests/Shapi.Compuerta.Tests/Tuberia/CompuertaTests.cs` (modificar), y `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs` (borrar)
+- Ampliación: `scripts/cambios-ci.mjs`, `scripts/cambios-ci.test.mjs` y `src/Shapi.Compuerta/ConexionRedisAlArrancar.cs` (crear), `src/Shapi.Compuerta/ServiciosCompuerta.cs`, `docs/specs/08-compuerta.md` §8, `.github/workflows/ci.yml`, `docs/plan/convenciones.md` §4, `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `tests/Shapi.Compuerta.Tests/Tuberia/CompuertaTests.cs` (modificar), y `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs` (borrar)
 
 ## Criterios de aceptación
 1. Cuando se ejecuta `Shapi.Api.Tests`, el sistema deberá usar un solo contenedor de PostgreSQL, y la base de cada prueba deberá nacer ya migrada. Cada prueba sigue teniendo su propia base, que se borra al terminar.
@@ -94,9 +94,11 @@ Segundo PR de JG-18, autorizado por Jordin después del PR #58:
   - El backend lee también `docs/specs/`, `mockups/`, `infra/`, `contratos/` y `origenes-demo/`. El frontend lee `contratos/` y `docs/specs/11-interfaz.md`.
   - Con los últimos PR: DC-08 no habría corrido el backend; EM-06, JZ-06, JG-06 y el PR #58 no habrían corrido el frontend; JZ-07 y JG-03 no habrían corrido ninguno.
   - Pruebas en `scripts/cambios-ci.test.mjs` y una regla en `scripts/reglas-repositorio.test.mjs`: sin `if` en el job, `fetch-depth: 2`, y todos los pasos posteriores condicionados a la decisión.
-- **Pruebas de tiempo de la compuerta:** en la CI de este PR volvió a fallar `RF_31_TiempoTotal_OrigenQueEnviaPocoAPoco_SeCortaAlVencer`: un tiempo de 700 ms tardó 16 s, síntoma de un proceso frenado. Se atacaron las dos presiones que trajo el PostgreSQL compartido, sin tocar ninguna prueba:
-  - Sus datos viven en memoria (`tmpfs`): cada base nueva copia ~7 MB y los vuelve a escribir en el WAL, varios GB en disco por ejecución.
-  - La CI corre un proyecto de pruebas a la vez (`dotnet test Shapi.slnx -m:1`), porque `Shapi.Api.Tests` ahora ocupa toda la CPU mientras corre. Cuesta unos 25 s (lo que tarda la compuerta).
+- **Error de la compuerta que hacía fallar sus pruebas de tiempo:** en la CI fallaban al azar pruebas de clases distintas, todas en el mismo instante. `RF_31_TiempoTotal_OrigenQueEnviaPocoAPoco_SeCortaAlVencer` tardaba 9 a 16 s en vez de menos de 3, y aparecían `RedisTimeoutException` sin nada pendiente.
+  - La causa estaba en la compuerta (JG-06): la conexión a Redis se abría con la primera petición, con el `ConnectionMultiplexer.Connect` síncrono dentro del singleton.
+  - La prueba de 50 peticiones simultáneas de `LimitesYCuotasTests` arranca un host nuevo, y sus 50 peticiones quedaban bloqueadas esperando esa conexión. El *pool* de hilos del proceso se agotaba durante segundos.
+  - Ahora `ConexionRedisAlArrancar` (un `IHostedService`) abre la conexión al arrancar. Quedó en 08 §8, con la prueba `CompuertaTests.Redis_LaConexionSeAbreAlArrancarYNoConLaPrimeraPeticion`, que falla sin la corrección.
+  - Además, el PostgreSQL compartido de las pruebas guarda sus datos en memoria (`tmpfs`). Cada base nueva copia ~7 MB y los vuelve a escribir en el WAL, varios GB en disco por ejecución.
 - **Pruebas de humo:** se borraron `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs`.
   - Las dos primeras eran lo único que comprobaba que `/salud` responde 200, y esa comprobación pasó a `ApisTests.Salud_ApiEnEjecucion_Responde200` y `CompuertaTests.Salud_CompuertaEnEjecucion_Responde200`.
   - `HumoTests` solo comprobaba que el ensamblado carga, algo que ya demuestran las otras 48 pruebas del dominio.
