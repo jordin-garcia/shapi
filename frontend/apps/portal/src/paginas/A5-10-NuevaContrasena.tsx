@@ -5,8 +5,73 @@ import { AvisoError, EncabezadoAcceso, MarcoAcceso } from '../modulos/sesion/For
 import { interpretarError, restablecerConsumidor, useIrAlDestinoConsumidor, type ErrorFormulario } from '../modulos/sesion/useIdentidadConsumidor';
 
 export default function PaginaA510NuevaContrasena() {
-  const [parametros] = useSearchParams(); const token = parametros.get('token') ?? ''; const irAlDestino = useIrAlDestinoConsumidor(); const formulario = useRef<HTMLFormElement>(null); const [contrasena, setContrasena] = useState(''); const [error, setError] = useState<ErrorFormulario | null>(null); const [enviando, setEnviando] = useState(false); const [restablecida, setRestablecida] = useState(false);
-  async function enviar(e: FormEvent) { e.preventDefault(); setEnviando(true); setError(null); try { if (!restablecida) { await restablecerConsumidor(token, contrasena); setRestablecida(true); } await irAlDestino(); } catch (causa) { setError(interpretarError(causa)); setEnviando(false); } }
-  if (!token || error?.codigo === 'token_invalido') return <MarcoAcceso ancho={460}><EncabezadoAcceso rotulo="Recuperación · enlace no válido" titulo="El enlace ya no sirve"><p className="text-tinta-suave">El enlace venció o ya se usó. Puede solicitar uno nuevo.</p></EncabezadoAcceso><Link className="mt-8 inline-block text-[var(--marca-principal)]" to="/recuperar">Solicitar un enlace nuevo</Link></MarcoAcceso>;
-  return <MarcoAcceso ancho={460}><EncabezadoAcceso rotulo="Recuperación · paso 2 de 2" titulo="Definir la contraseña"><p className="text-[15px] leading-[1.55] text-tinta-suave">Defina una contraseña nueva para su cuenta.</p></EncabezadoAcceso>{error && !error.errores.contrasena && <div className="mt-6"><AvisoError mensaje={error.mensaje} reintentar={error.codigo === null ? () => formulario.current?.requestSubmit() : undefined} /></div>}<form ref={formulario} onSubmit={enviar} noValidate className="mt-8"><Campo etiqueta="Contraseña nueva" type="password" value={contrasena} onChange={e => setContrasena(e.target.value)} error={error?.errores.contrasena?.[0]} autoComplete="new-password" /><p className="mt-2 text-[13px] text-tinta-suave">Al menos 10 caracteres.</p><Boton className="mt-6 w-full bg-[var(--marca-principal)]" type="submit" deshabilitado={enviando}>Guardar la contraseña</Boton></form><div className="mt-6 rounded-base border border-borde bg-fondo px-4 py-[14px] text-sm text-tinta-suave">Este enlace es de un solo uso. Al guardar la contraseña se cierran las sesiones abiertas en otros equipos.</div></MarcoAcceso>;
+  const [parametros] = useSearchParams();
+  const token = parametros.get('token') ?? '';
+  const irAlDestino = useIrAlDestinoConsumidor();
+  const formulario = useRef<HTMLFormElement>(null);
+  const [contrasena, setContrasena] = useState('');
+  const [error, setError] = useState<ErrorFormulario | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  // El token es de un solo uso: si ya se restableció y solo falló la consulta del destino, el reintento no lo reenvía.
+  const [restablecida, setRestablecida] = useState(false);
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    setEnviando(true);
+    setError(null);
+    try {
+      if (!restablecida) {
+        await restablecerConsumidor(token, contrasena);
+        setRestablecida(true);
+      }
+      await irAlDestino();
+    } catch (causa) {
+      setError(interpretarError(causa));
+      setEnviando(false);
+    }
+  }
+
+  if (!token || error?.codigo === 'token_invalido') {
+    return (
+      <MarcoAcceso ancho={460}>
+        <EncabezadoAcceso rotulo="Recuperación · enlace no válido" titulo="El enlace ya no sirve">
+          <p className="text-tinta-suave">El enlace venció o ya se usó. Puede solicitar uno nuevo.</p>
+        </EncabezadoAcceso>
+        <Link className="mt-8 inline-block text-[var(--marca-principal)]" to="/recuperar">Solicitar un enlace nuevo</Link>
+      </MarcoAcceso>
+    );
+  }
+
+  return (
+    <MarcoAcceso ancho={460}>
+      <EncabezadoAcceso rotulo="Recuperación · paso 2 de 2" titulo="Definir la contraseña">
+        <p className="text-[15px] leading-[1.55] text-tinta-suave">Defina una contraseña nueva para su cuenta.</p>
+      </EncabezadoAcceso>
+      {error && !error.errores.contrasena && (
+        <div className="mt-6">
+          <AvisoError
+            mensaje={error.mensaje}
+            reintentar={error.codigo === null ? () => formulario.current?.requestSubmit() : undefined}
+          />
+        </div>
+      )}
+      <form ref={formulario} onSubmit={enviar} noValidate className="mt-8">
+        <Campo
+          etiqueta="Contraseña nueva"
+          type="password"
+          value={contrasena}
+          onChange={e => setContrasena(e.target.value)}
+          error={error?.errores.contrasena?.[0]}
+          autoComplete="new-password"
+        />
+        <p className="mt-2 text-[13px] text-tinta-suave">Al menos 10 caracteres.</p>
+        <Boton className="mt-6 w-full" type="submit" deshabilitado={enviando}>
+          Guardar la contraseña
+        </Boton>
+      </form>
+      <div className="mt-6 rounded-base border border-borde bg-fondo px-4 py-[14px] text-sm text-tinta-suave">
+        Este enlace es de un solo uso. Al guardar la contraseña se cierran las sesiones abiertas en otros equipos.
+      </div>
+    </MarcoAcceso>
+  );
 }

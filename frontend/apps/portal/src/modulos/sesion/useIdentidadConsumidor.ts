@@ -69,6 +69,6 @@ export function useIrAlDestinoConsumidor() {
   return useCallback(async () => {
     const sesion = await cache.fetchQuery({ queryKey: claveSesionConsumidor, queryFn: consultarSesionConsumidor, staleTime: 0 });
     if (!sesion) throw new Error('La sesión no quedó iniciada');
-    await navegar(sesion.destino ?? '/planes', { replace: true });
+    await navegar(sesion.destino, { replace: true });
   }, [cache, navegar]);
 }

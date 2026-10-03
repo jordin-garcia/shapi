@@ -138,4 +138,115 @@ describe('DC-08 · acceso del consumidor', () => {
     expect(await screen.findByRole('heading', { name: 'El enlace ya no sirve' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Solicitar un enlace nuevo' }).getAttribute('href')).toBe('/recuperar');
   });
+
+  // El token es de un solo uso: si la consulta de la sesión falla después de usarlo, «Reintentar» solo vuelve a pedir
+  // el destino. Un segundo envío del token respondería token_invalido aunque la cuenta ya tenga la sesión iniciada.
+  const sesionQueFallaUnaVez = (destino: string) => {
+    let consultas = 0;
+    return http.get(`${API}/sesion`, () => {
+      consultas++;
+      if (consultas === 1) return new HttpResponse(null, { status: 503 });
+      return HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino });
+    });
+  };
+
+  it('RF-05 si la sesión falla después de aceptar la invitación, reintentar no la acepta otra vez', async () => {
+    let aceptaciones = 0;
+    server.use(
+      http.get(`${API}/invitacion/abc`, () => HttpResponse.json({ correo: 'invitada@tienda.test' })),
+      http.post(`${API}/invitacion/abc/aceptar`, () => { aceptaciones++; return new HttpResponse(null, { status: 200 }); }),
+      sesionQueFallaUnaVez('/planes'),
+    );
+    const router = montar('/invitacion?token=abc');
+    await screen.findByLabelText('Nombre');
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Inés');
+    await userEvent.type(screen.getByLabelText('Nombre de la empresa'), 'Tienda');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'Contrasena123');
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar la invitación y crear la cuenta' }));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/planes'));
+    expect(aceptaciones).toBe(1);
+  });
+
+  it('RF-02 si la sesión falla después de confirmar el correo, reintentar no reenvía el token', async () => {
+    let verificaciones = 0;
+    server.use(
+      http.post(`${API}/verificar-correo`, () => { verificaciones++; return new HttpResponse(null, { status: 200 }); }),
+      sesionQueFallaUnaVez('/cuenta/suscripcion'),
+    );
+    const router = montar('/verificar-correo?token=abc');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/cuenta/suscripcion'));
+    expect(verificaciones).toBe(1);
+  });
+
+  it('RF-03 si la sesión falla después de restablecer, reintentar no reenvía el token', async () => {
+    let restablecimientos = 0;
+    server.use(
+      http.post(`${API}/restablecer`, () => { restablecimientos++; return new HttpResponse(null, { status: 200 }); }),
+      sesionQueFallaUnaVez('/planes'),
+    );
+    const router = montar('/restablecer?token=abc');
+    await screen.findByRole('heading', { name: 'Definir la contraseña' });
+    await userEvent.type(screen.getByLabelText('Contraseña nueva'), 'NuevaContra123');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar la contraseña' }));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/planes'));
+    expect(restablecimientos).toBe(1);
+  });
+
+  it('RF-02 con el enlace de verificación vencido se puede pedir uno nuevo con el correo', async () => {
+    let cuerpo: unknown;
+    server.use(
+      http.post(`${API}/verificar-correo`, () => problema(422, 'token_invalido', 'El enlace venció o ya se usó.')),
+      http.post(`${API}/reenviar-verificacion`, async ({ request }) => { cuerpo = await request.json(); return new HttpResponse(null, { status: 200 }); }),
+    );
+    montar('/verificar-correo?token=vencido');
+    await screen.findByRole('heading', { name: 'Enlace no válido' });
+    expect(screen.getByText('Escriba su correo y le enviaremos un enlace nuevo.')).toBeDefined();
+
+    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'ana@tienda.test');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar el enlace otra vez' }));
+
+    expect(await screen.findByText(/Si su correo todavía no está confirmado/)).toBeDefined();
+    expect(cuerpo).toEqual({ correo: 'ana@tienda.test' });
+  });
+
+  it('RF-02 si el reenvío falla por la red, se puede reintentar', async () => {
+    let intentos = 0;
+    server.use(http.post(`${API}/reenviar-verificacion`, () => {
+      intentos++;
+      return intentos === 1 ? new HttpResponse(null, { status: 503 }) : new HttpResponse(null, { status: 200 });
+    }));
+    montar('/verificar-correo?correo=ana%40tienda.test');
+    await userEvent.click(await screen.findByRole('button', { name: /Enviar el enlace otra vez/ }));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText(/Si su correo todavía no está confirmado/)).toBeDefined();
+    expect(intentos).toBe(2);
+  });
+
+  it('RF-02 sin correo en la dirección, el campo de correo no desaparece al escribir', async () => {
+    montar('/verificar-correo');
+    await userEvent.type(await screen.findByLabelText('Correo electrónico'), 'ana@tienda.test');
+
+    expect((screen.getByLabelText('Correo electrónico') as HTMLInputElement).value).toBe('ana@tienda.test');
+  });
+
+  it('RF-15 el botón principal y el campo enfocado usan la marca del portal, no el azul de Shapi', async () => {
+    montar('/entrar');
+    const marco = (await screen.findByRole('heading', { name: 'Entrar' })).closest('section')!;
+
+    expect(marco.style.getPropertyValue('--principal')).toBe('var(--marca-principal)');
+    expect(marco.style.getPropertyValue('--principal-hover')).toContain('var(--marca-principal)');
+    expect(marco.style.getPropertyValue('--anillo-foco')).toBe('color-mix(in srgb, var(--marca-principal) 17%, #FFFFFF)');
+    expect(marco.contains(screen.getByRole('button', { name: 'Entrar' }))).toBe(true);
+  });
 });
