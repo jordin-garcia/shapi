@@ -45,6 +45,7 @@ public sealed class TuberiaCompuerta(
         typeof(FiltroOrganizacion), // 3 · organización activa
         typeof(FiltroSuscripcion), // 4 · suscripción activa o en gracia
         typeof(FiltroRuta), // 5 · método + patrón expuestos
+        typeof(FiltroLimitesYCuotas), // 6 · límites por minuto y cuotas (un script Lua)
     ];
 
     public async Task ProcesarAsync(HttpContext http)

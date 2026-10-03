@@ -708,11 +708,11 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 | `clave:{sha256}` | hash | `clave_id`, `suscripcion_id`, `api_id`, `organizacion_id`, `consumidor_id`, `tipo`. Cuando la clave está rotada, la llave tiene `EXPIREAT`. Como `expira_en` está en la hora de `IReloj`, que el modo demostración adelanta, y Redis usa la hora real, el instante se traslada: hora real + (`expira_en` − `IReloj.Ahora`). Una clave revocada no tiene llave | API de control | Compuerta |
 | `susc:{suscripcion_id}` | hash | `plan_id`, `plan_nombre`, `estado`, `inicio` (epoch), `fin` (epoch), `cuota_llamadas`, `limite_minuto`. Solo las suscripciones de API sin finalizar: al finalizar, la llave se borra. La suscripción de plataforma no tiene llave propia: su estado va en `org:{id}` | API de control y trabajador | Compuerta |
 | `org:{organizacion_id}` | hash | `estado_efectivo`, `cuota_peticiones`, `ciclo_inicio` (epoch), `ciclo_fin`. Los tres últimos salen de la suscripción de plataforma sin finalizar; si no hay ninguna (la organización de la plataforma), no se escriben | API de control y trabajador | Compuerta |
-| `cuota:susc:{suscripcion_id}:{inicio}` | string (int) | Llamadas consumidas en el ciclo. TTL = `fin + 8 días` | Compuerta | Compuerta y API (B2.1) |
-| `cuota:org:{organizacion_id}:{inicio}` | string (int) | Peticiones del ciclo de plataforma. TTL = `fin + 8 días` | Compuerta | Compuerta y API (avisos de RF-43) |
+| `cuota:susc:{suscripcion_id}:{inicio}` | string (int) | Llamadas consumidas en el ciclo. TTL = `fin + 8 días` (si el `fin` ya pasó, 8 días desde ahora; [08 §3](08-compuerta.md#script-evaluar_limiteslua)) | Compuerta | Compuerta y API (B2.1) |
+| `cuota:org:{organizacion_id}:{inicio}` | string (int) | Peticiones del ciclo de plataforma. TTL = `fin + 8 días` (igual que la anterior) | Compuerta | Compuerta y API (avisos de RF-43) |
 | `rl:s:{suscripcion_id}:{minuto_epoch}` | string (int) | Peticiones en ese minuto. TTL 120 s | Compuerta | Compuerta |
 | `rl:r:{suscripcion_id}:{ruta_id}:{minuto_epoch}` | string (int) | Peticiones a esa ruta en ese minuto. TTL 120 s | Compuerta | Compuerta |
-| `rl:p:{clave_id}:{minuto_epoch}` y `dia:p:{clave_id}:{aaaammdd}` | string (int) | Límites de la clave de pruebas | Compuerta | Compuerta |
+| `rl:p:{clave_id}:{minuto_epoch}` y `dia:p:{clave_id}:{aaaammdd}` | string (int) | Límites de la clave de pruebas: peticiones en ese minuto (TTL 120 s) y en ese día de Guatemala (vence un día después de la medianoche en que termina) | Compuerta | Compuerta |
 | `cache:{api_id}:{ruta_id}:{sha256(metodo+ruta+query)}` | hash | `status`, `headers` (JSON), `body` (hasta 1 MB). TTL = `cache_segundos` | Compuerta | Compuerta |
 | `met:{aaaammdd}:{api}:{ruta\|-}:{susc\|-}:{entorno}` | hash | Contadores y rangos del histograma (`h_t_0`…`h_t_9`, `h_c_0`…`h_c_9`) | Compuerta | Trabajador |
 | `met:pendientes` | set | Llaves `met:` que tienen datos | Compuerta | Trabajador |

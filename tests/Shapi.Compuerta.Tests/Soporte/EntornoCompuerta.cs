@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shapi.Compuerta.Filtros;
 using Shapi.Contratos.Redis;
 using StackExchange.Redis;
 using Testcontainers.Redis;
@@ -42,11 +43,17 @@ public sealed class EntornoCompuerta : IAsyncLifetime
 
     public string CadenaRedis => _contenedor.GetConnectionString();
 
+    public IServer Servidor => Redis.GetServer(Redis.GetEndPoints()[0]);
+
     public async Task InitializeAsync()
     {
         await _contenedor.StartAsync();
         await Origen.IniciarAsync();
-        Redis = await ConnectionMultiplexer.ConnectAsync(CadenaRedis);
+        // Con permisos de administración, para que las pruebas puedan usar INFO y SCRIPT FLUSH.
+        Redis = await ConnectionMultiplexer.ConnectAsync($"{CadenaRedis},allowAdmin=true");
+
+        // El script de límites ya cargado, como en una compuerta en marcha: así cada petición hace un solo EVALSHA.
+        await Servidor.ScriptLoadAsync(FiltroLimitesYCuotas.Script);
         Fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
         {
             web.UseSetting("SHAPI_REDIS", CadenaRedis);
@@ -78,8 +85,8 @@ public sealed class EntornoCompuerta : IAsyncLifetime
             AllowAutoRedirect = false,
         });
 
-    public static RutaCache Ruta(string metodo, string patron, bool expuesta = true) =>
-        new(Guid.NewGuid(), metodo, patron, expuesta, null, 0, 1);
+    public static RutaCache Ruta(string metodo, string patron, bool expuesta = true, int? limiteMinuto = null, int peso = 1) =>
+        new(Guid.NewGuid(), metodo, patron, expuesta, limiteMinuto, 0, peso);
 
     /// <summary>
     /// Escribe en Redis una API con su host, sus rutas y su organización activa, como lo hace el publicador de la API
@@ -106,9 +113,16 @@ public sealed class EntornoCompuerta : IAsyncLifetime
         Redis.GetDatabase().HashSetAsync(LlavesRedis.Api(api.ApiId), ContextoApi.CampoVersion,
             version.ToString(CultureInfo.InvariantCulture));
 
-    public Task SembrarOrganizacionAsync(Guid organizacionId, string estadoEfectivo)
+    /// <param name="cuotaPeticiones">
+    /// La cuota de plataforma. Con <c>null</c> no se escriben la cuota ni el ciclo, como en la organización de la
+    /// plataforma (07 §4).
+    /// </param>
+    public Task SembrarOrganizacionAsync(Guid organizacionId, string estadoEfectivo, long? cuotaPeticiones = 100_000,
+        long cicloInicio = 1_790_000_000, long cicloFin = 1_792_600_000)
     {
-        var organizacion = new ContextoOrganizacion(organizacionId, estadoEfectivo, 100_000, 1_790_000_000, 1_792_600_000);
+        var organizacion = cuotaPeticiones is null
+            ? new ContextoOrganizacion(organizacionId, estadoEfectivo, null, null, null)
+            : new ContextoOrganizacion(organizacionId, estadoEfectivo, cuotaPeticiones, cicloInicio, cicloFin);
         return ReemplazarHashAsync(LlavesRedis.Organizacion(organizacionId), organizacion.ACampos());
     }
 
@@ -130,9 +144,11 @@ public sealed class EntornoCompuerta : IAsyncLifetime
         return clave;
     }
 
-    public Task SembrarSuscripcionAsync(Guid suscripcionId, string estado, long inicio = 1_790_000_000, long fin = 1_792_600_000)
+    public Task SembrarSuscripcionAsync(Guid suscripcionId, string estado, long inicio = 1_790_000_000, long fin = 1_792_600_000,
+        long cuotaLlamadas = 50_000, int limiteMinuto = 60, string planNombre = "Comercio")
     {
-        var suscripcion = new ContextoSuscripcion(suscripcionId, Guid.NewGuid(), "Comercio", estado, inicio, fin, 50_000, 60);
+        var suscripcion = new ContextoSuscripcion(suscripcionId, Guid.NewGuid(), planNombre, estado, inicio, fin,
+            cuotaLlamadas, limiteMinuto);
         return ReemplazarHashAsync(LlavesRedis.Suscripcion(suscripcionId), suscripcion.ACampos());
     }
 

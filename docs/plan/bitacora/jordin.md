@@ -535,3 +535,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: no se cambió el código de la pasarela, solo la prueba. Revisé las demás aserciones `NotContain` con textos cortos y no dependen de valores al azar.
 - Pendiente o aviso para otros:
   - **Emilio:** cambié `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs` (solo esa prueba) y agregué una subsección a `## Resultado` de EM-06. Actualiza tu rama desde `main`. Si una prueba busca que un dato no aparezca en un texto que lleva un UUID o un token al azar, quita primero ese valor del texto.
+
+## 2026-10-02 · JG-06 · Compuerta: límites por minuto, cuotas y cabeceras (Lua)
+- Hecho: filtro 6 de 08 §3 con `evaluar_limites.lua`: límite por minuto del plan y de la ruta, cuota del consumidor (por peso) y cuota de plataforma, reservados de forma atómica en una sola llamada `EVALSHA`. Respuestas 429 con `Retry-After` y las cabeceras de 08 §5 en toda respuesta que pasa por el filtro. La cuota se devuelve si el origen no se pudo conectar (502). La clave de pruebas usa 10 por minuto y 1,000 por día.
+- Decisiones: el límite diario de la clave de pruebas responde `cuota_agotada` y lo informan las `X-Cuota-*`. Si el ciclo ya terminó, los contadores de cuota vencen 8 días después de ahora. Si Redis no tiene el script, se ejecuta una vez con `EVAL`. Todo quedó en 08 §3 a §5 y en 07 §4.
+- Pendiente o aviso para otros:
+  - **JZ-14:** la compuerta ahora aplica los límites. Para la carga de k6, usa una clave de producción cuyo plan tenga `limite_minuto` y `cuota_llamadas` mayores que la carga, o recibirás 429. La clave de pruebas solo permite 10 peticiones por minuto. Cada petición hace tres viajes a Redis (08 §8).
+  - **DC-10:** con la clave de pruebas, `X-RateLimit-Limit` es 10 y las `X-Cuota-*` informan el límite diario: `X-Cuota-Limite: 1000`, las que quedan en el día y la medianoche de Guatemala en `X-Cuota-Reinicio` (ISO 8601 en UTC). Al pasar las 1,000 del día, la compuerta responde 429 `cuota_agotada`. Las cabeceras ya se exponen por CORS.
+  - **EM-13:** `cuota:org:{organizacion_id}:{ciclo_inicio}` cuenta las peticiones del ciclo de plataforma. Un 502 las devuelve. Vence a los `ciclo_fin + 8 días`; si no existe, el uso es 0.
+
