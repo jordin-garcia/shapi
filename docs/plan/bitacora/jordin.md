@@ -535,3 +535,72 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: no se cambió el código de la pasarela, solo la prueba. Revisé las demás aserciones `NotContain` con textos cortos y no dependen de valores al azar.
 - Pendiente o aviso para otros:
   - **Emilio:** cambié `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs` (solo esa prueba) y agregué una subsección a `## Resultado` de EM-06. Actualiza tu rama desde `main`. Si una prueba busca que un dato no aparezca en un texto que lleva un UUID o un token al azar, quita primero ese valor del texto.
+
+## 2026-10-02 · JG-06 · Compuerta: límites por minuto, cuotas y cabeceras (Lua)
+- Hecho: filtro 6 de 08 §3 con `evaluar_limites.lua`: límite por minuto del plan y de la ruta, cuota del consumidor (por peso) y cuota de plataforma, reservados de forma atómica en una sola llamada `EVALSHA`. Respuestas 429 con `Retry-After` y las cabeceras de 08 §5 en toda respuesta que pasa por el filtro. La cuota se devuelve si el origen no se pudo conectar (502). La clave de pruebas usa 10 por minuto y 1,000 por día.
+- Decisiones: el límite diario de la clave de pruebas responde `cuota_agotada` y lo informan las `X-Cuota-*`. Si el ciclo ya terminó, los contadores de cuota vencen 8 días después de ahora. Si Redis no tiene el script, se ejecuta una vez con `EVAL`. Todo quedó en 08 §3 a §5 y en 07 §4.
+- Pendiente o aviso para otros:
+  - **JZ-14:** la compuerta ahora aplica los límites. Para la carga de k6, usa una clave de producción cuyo plan tenga `limite_minuto` y `cuota_llamadas` mayores que la carga, o recibirás 429. La clave de pruebas solo permite 10 peticiones por minuto. Cada petición hace tres viajes a Redis (08 §8).
+  - **DC-10:** con la clave de pruebas, `X-RateLimit-Limit` es 10 y las `X-Cuota-*` informan el límite diario: `X-Cuota-Limite: 1000`, las que quedan en el día y la medianoche de Guatemala en `X-Cuota-Reinicio` (ISO 8601 en UTC). Al pasar las 1,000 del día, la compuerta responde 429 `cuota_agotada`. Las cabeceras ya se exponen por CORS.
+  - **EM-13:** `cuota:org:{organizacion_id}:{ciclo_inicio}` cuenta las peticiones del ciclo de plataforma. Un 502 las devuelve. Vence a los `ciclo_fin + 8 días`; si no existe, el uso es 0.
+
+
+## 2026-10-03 · JG-18 · Optimización de las pruebas y la CI
+- Hecho:
+  - `Shapi.Api.Tests` usa un solo PostgreSQL (`Persistencia/PostgresCompartido.cs`), con `template1` ya migrada: cada base nueva nace migrada. Antes cada clase arrancaba su propio contenedor (unos 12) y cada prueba migraba su base.
+  - En mi PC bajó de 13 min 18 s a 7 min 16 s. Las pruebas de un módulo tardan alrededor de 1 min.
+  - El check `titulo` valida el cierre de la tarea (`node scripts/tareas.mjs --validar-cierre`).
+  - Las pruebas E2E corren también en el PR (job `ambiente-productivo`).
+  - B7 permite correr en local solo las pruebas de lo que se tocó.
+- Decisiones: no se borró ni se debilitó ninguna prueba. La de RF-08 que espera 5 s se queda, porque comprueba ese límite. `dotnet format` no se cambió.
+- Pendiente o aviso para otros:
+  - **Todos:**
+    - B7 cambió: en local basta con `dotnet build`, `dotnet format` y las pruebas de lo que tocaste, por ejemplo `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.Planes"`. La suite completa la corre el check `backend`.
+    - Antes del *push*, corran `node scripts/tareas.mjs --validar-cierre "[<ID>] <título>"`. El check `titulo` ahora falla si la tarea no queda `hecha` con `## Resultado` o si el PR no agrega una entrada en la bitácora; antes eso solo lo detectaba la revisión con Claude, después de varios minutos.
+    - Una clase de pruebas nueva que necesite PostgreSQL usa un fixture de una línea (`public sealed class MiFixture : PostgresDePrueba;`) y su propia base (`Database = $"prueba_{Guid.NewGuid():N}"`), en vez de arrancar su propio contenedor. Al terminar, la borra en su `DisposeAsync` con `await PostgresCompartido.EliminarBaseAsync(_cadena);`. Si no se borra, las bases se acumulan y el borrado final hace fallar por tiempo las pruebas de la compuerta. Nada debe conectarse a `template1`.
+  - **Emilio:** cambié los fixtures de `tests/Shapi.Api.Tests/Identidad/AutenticacionTests.cs`, `Identidad/ConsumidorPortalTests.cs`, `Identidad/RecuperacionTests.cs`, `Planes/PlanesTests.cs` y `Persistencia/BaseDePrueba.cs` (`PostgresPersistencia`), y agregué `Persistencia/PostgresCompartido.cs`. Solo cambiaron la preparación y el `DisposeAsync`, que ahora borra la base; las pruebas son las mismas. Una migración nueva no requiere nada: `template1` se migra al arrancar. Actualiza tu rama desde `main`.
+  - **Dominique:** cambié los fixtures de `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `Portal/PortalTests.cs`; las pruebas no cambiaron. Actualiza tu rama desde `main`. Tu PR #56 (DC-08) va a fallar en el check `titulo` mientras la tarea siga en `estado: pendiente` sin `## Resultado`, que es lo que pide B10.
+  - **José Pablo:**
+    - Cambié los fixtures de `tests/Shapi.Api.Tests/Bitacora/BitacoraTests.cs` y `Correo/EnvioCorreoTests.cs`: `EntornoCorreo` ya no tiene la propiedad `Postgres`, y su base vive en el servidor compartido. Las pruebas no cambiaron.
+    - En `.github/workflows/publicar-imagenes.yml`, el job `ambiente-productivo` ahora instala Playwright y corre `tests/e2e` después de `infra/verificar.mjs`. `e2e.yml` sigue igual.
+    - Actualiza tu rama desde `main`.
+  - **Pendiente (Jordin):** omitir los pasos de los jobs `backend` y `frontend` cuando el PR no toca nada que lean. Por ejemplo, un PR solo de frontend como DC-08 corrió el backend completo 4 veces. El job seguiría existiendo y en `main` se verificaría todo. No se aplicó: el clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI. Si se aprueba, se hace en otro PR. (Resuelto en la entrada siguiente.)
+
+## 2026-10-03 · JG-18 · Verificaciones según el área y pruebas de humo
+- Hecho:
+  - En los PR, los jobs `backend` y `frontend` omiten sus pasos si el PR no cambia nada que lean sus verificaciones (`scripts/cambios-ci.mjs`). El job siempre se ejecuta y en `main` se verifica todo.
+  - Se borraron las tres pruebas de humo (`SaludTests` de la API y de la compuerta, `HumoTests` del dominio). La comprobación de que `/salud` responde 200 pasó a `ApisTests` y `CompuertaTests`.
+  - Corregí un error de la compuerta (JG-06) que hacía fallar al azar sus pruebas de tiempo en la CI. La conexión a Redis se abría con la primera petición, de forma síncrona, y 50 peticiones simultáneas agotaban el *pool* de hilos. Ahora se abre al arrancar (`ConexionRedisAlArrancar`, 08 §8).
+  - El PostgreSQL compartido de las pruebas guarda sus datos en memoria (`tmpfs`).
+- Decisiones: lo autoricé después del PR #58. La regla es conservadora: cada área enumera las rutas que seguro no le afectan, y cualquier otra la ejecuta.
+- Pendiente o aviso para otros:
+  - **Todos:**
+    - Un PR que solo toca `frontend/` ya no corre las pruebas de .NET, y uno que solo toca el backend no corre las de Vitest. En los checks aparecen en verde, con pasos omitidos y el motivo en el resumen del job.
+    - Si una prueba de la compuerta falla por tiempo con `RedisTimeoutException` o con esperas de varios segundos, sospechen de un *pool* de hilos agotado: alguna espera síncrona (`Connect`, `.Result`, `.Wait()`) en un camino que reciben muchas peticiones a la vez.
+    - Si una prueba empieza a leer un archivo de otra carpeta (por ejemplo, una de Vitest que lea una especificación distinta de `11-interfaz.md`), hay que quitar esa ruta de la lista de `scripts/cambios-ci.mjs` en el mismo PR.
+  - **Dominique:** agregué `Salud_ApiEnEjecucion_Responde200` en `tests/Shapi.Api.Tests/Apis/ApisTests.cs`, que reemplaza a `SaludTests`. Actualiza tu rama desde `main`.
+
+## 2026-10-03 · EM-18 · Publicar el destino de la sesión del consumidor
+- Hecho: `GET /api/portal/auth/sesion` devuelve `destino` (`/cuenta/suscripcion` con una suscripción vigente a la API del portal; si no, `/planes`). Actualicé el contrato `SesionConsumidor` y regeneré los tipos. Agregué pruebas de integración de los cinco casos y de la suscripción a otra API del mismo proveedor.
+- Decisiones: "tiene suscripción" es "tiene una suscripción vigente", es decir, no `finalizada` (07 y ADR-19). Implementé la tarea de Emilio porque DC-08 la necesita para cumplir su criterio 3 (protocolo §E1). Dominique la había creado en su PR #56, que no estaba integrado.
+- Pendiente o aviso para otros:
+  - **Emilio:** EM-18 es una tarea tuya que creó Dominique en su PR #56 y nunca llegó a `main`. Ya está hecha. Cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`), `contratos/openapi/identidad.yaml` (`SesionConsumidor.destino`) y `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`. Actualiza tu rama desde `main`.
+  - **Dominique:** `SesionConsumidor` ya trae `destino` en el contrato y en los tipos generados. Termino DC-08 a partir de tu PR #56 en el siguiente PR (protocolo §E4).
+
+## 2026-10-03 · DC-08 · Pantallas de acceso del consumidor (terminada por el coordinador)
+- Hecho:
+  - Terminé DC-08 a partir del PR #56 de Dominique (protocolo §E4), después de integrar EM-18 (PR #60): el portal usa `sesion.destino` con el tipo generado.
+  - En A5.3b, «Reintentar» ya no vuelve a aceptar una invitación ya aceptada.
+  - El botón principal y el campo enfocado usan la marca del portal: salían en el azul de Shapi en las seis pantallas.
+  - A5.8 permite pedir otro enlace cuando el enlace está vencido o usado, y reintentar el reenvío.
+  - A5.3 ofrece entrar o recuperar la contraseña cuando el correo ya está registrado (CU-11 2a).
+  - Reformateé las páginas y agregué pruebas.
+  - Hice la verificación manual completa en el ambiente productivo simulado y comparé las capturas con los mockups.
+- Decisiones: los colores de la marca se aplican en `MarcoAcceso`, redefiniendo `--principal`, `--principal-hover` y `--anillo-foco`, para no cambiar `Boton` de `@shapi/ui`. Las demás son las de Dominique.
+- Pendiente o aviso para otros:
+  - **Dominique:**
+    - Cerré tu PR #56 con un enlace al nuevo. Tu rama `dominique/DC-08-acceso-consumidor` queda intacta.
+    - Cambié `frontend/apps/portal/src/paginas/A5-{3,3b,7,8,9,10}-*.tsx`, `frontend/apps/portal/src/modulos/sesion/{useSesionConsumidor.ts,useIdentidadConsumidor.ts,FormulariosAcceso.tsx}`, `frontend/apps/portal/src/tests/AccesoConsumidor.test.tsx` y tu archivo de tarea.
+    - Ojo para las próximas pantallas del portal: `className="bg-[var(--marca-principal)]"` en un `Boton` no tiene efecto, porque gana `bg-principal`. Dentro de `MarcoAcceso` el botón ya toma la marca. Fuera de él, redefine `--principal` en el contenedor, como hace `MarcoAcceso`.
+    - Actualiza tu rama desde `main`.
+  - **JZ-11:** en la verificación de DC-08, el correo de verificación del consumidor llegó sin la marca de Envíos Xelajú (plantilla básica de JZ-03). Es tu criterio 2: los datos ya traen `nombrePortal`, `hostPortal` y `colorPortal`.

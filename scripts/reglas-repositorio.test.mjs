@@ -157,3 +157,51 @@ test("H-151: ningún agente integra con --admin; solo Jordin, a mano, salta un f
   assert.ok(!negado(autoMerge), "se niega el auto-merge normal");
   assert.ok(reglas("allow").some((p) => coincide(p, autoMerge)), "el auto-merge normal no está permitido");
 });
+
+test("JG-18: el check titulo valida el cierre de la tarea con el diff del PR", () => {
+  const job = jobs(titulo).titulo;
+  // El diff del PR es el commit de integración contra su primer padre: hace falta fetch-depth 2.
+  assert.match(job, /uses: actions\/checkout@v\d+\n {8}with:\n {10}fetch-depth: 2\n/);
+  const pasos = job.split(/\n(?= {6}- )/);
+  const indice = (texto) => pasos.findIndex((paso) => paso.includes(texto));
+  const cierre = pasos[indice("--validar-cierre")];
+  assert.ok(cierre, "falta el paso de --validar-cierre");
+  assert.ok(indice("--validar-titulo") < indice("--validar-cierre"), "el cierre se valida después del título");
+  // Como el título, va en una variable de entorno y el paso no se puede omitir.
+  assert.match(cierre, /TITULO_PR: \$\{\{ github\.event\.pull_request\.title \}\}/);
+  assert.doesNotMatch(cierre, /^ {8}(if|continue-on-error):/m);
+});
+
+test("JG-18: el PR ejecuta las pruebas E2E en el ambiente productivo simulado, antes de integrar", () => {
+  const ambiente = jobs(leer(".github", "workflows", "publicar-imagenes.yml"))["verificar-ambiente"];
+  assert.ok(ambiente, "falta el job verificar-ambiente");
+  assert.match(ambiente, /^ {4}if: github\.event_name == 'pull_request'$/m);
+  const pasos = ambiente.split(/\n(?= {6}- )/);
+  const indice = (texto) => pasos.findIndex((paso) => paso.includes(texto));
+  assert.ok(indice("node infra/verificar.mjs") >= 0 && indice("node infra/verificar.mjs") < indice("run: pnpm test"),
+    "las pruebas E2E corren después de verificar el ambiente");
+  assert.match(pasos[indice("run: pnpm test")], /working-directory: tests\/e2e/);
+  assert.doesNotMatch(pasos[indice("run: pnpm test")], /continue-on-error/);
+  // El ambiente se apaga aunque fallen las pruebas.
+  assert.ok(indice("down -v") > indice("run: pnpm test"));
+});
+
+test("JG-18: backend y frontend omiten sus pasos, nunca el job, si el PR no los afecta", () => {
+  for (const area of ["backend", "frontend"]) {
+    const job = jobs(ci)[area];
+    // Un check obligatorio omitido cuenta como aprobado: el job no puede tener `if`.
+    assert.doesNotMatch(job, /^ {4}if:/m, `${area}: el job no puede tener if`);
+    assert.match(job, /uses: actions\/checkout@v\d+\n {8}with:\n {10}fetch-depth: 2\n/, `${area}: falta fetch-depth 2`);
+    const pasos = job.split(/\n(?= {6}- )/).filter((paso) => /^ {6}- /.test(paso));
+    const decision = pasos.findIndex((paso) => paso.includes(`node scripts/cambios-ci.mjs ${area} "\${{ github.event_name }}"`));
+    assert.ok(decision > 0, `${area}: falta el paso que decide con scripts/cambios-ci.mjs`);
+    assert.match(pasos[decision], /^ {8}id: cambios$/m);
+    assert.doesNotMatch(pasos[decision], /^ {8}(if|continue-on-error):/m, `${area}: la decisión no se puede omitir`);
+    // Todos los pasos posteriores dependen de la decisión, y ninguno puede fallar en silencio.
+    for (const paso of pasos.slice(decision + 1)) {
+      // != 'false': si la decisión no escribe su salida, se verifica todo.
+      assert.match(paso, /^(?: {6}- | {8})if: steps\.cambios\.outputs\.ejecutar != 'false'$/m, `${area}: paso sin la condición:\n${paso}`);
+      assert.doesNotMatch(paso, /continue-on-error/, `${area}: paso con continue-on-error:\n${paso}`);
+    }
+  }
+});

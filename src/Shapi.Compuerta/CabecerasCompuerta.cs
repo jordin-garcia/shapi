@@ -8,6 +8,16 @@ public static class CabecerasCompuerta
     public const string Entorno = "X-Shapi-Entorno";
     public const string Secreto = "X-Shapi-Secreto";
 
+    /// <summary>Hacia el consumidor (08 §5, RF-32).</summary>
+    public const string Plan = "X-Shapi-Plan";
+    public const string LimiteMinuto = "X-RateLimit-Limit";
+    public const string RestanteMinuto = "X-RateLimit-Remaining";
+    public const string ReinicioMinuto = "X-RateLimit-Reset";
+    public const string CuotaLimite = "X-Cuota-Limite";
+    public const string CuotaRestante = "X-Cuota-Restante";
+    public const string CuotaReinicio = "X-Cuota-Reinicio";
+    public const string Cache = "X-Shapi-Cache";
+
     /// <summary>El origen no recibe ninguna cabecera con este prefijo que no haya puesto la compuerta (08 §5).</summary>
     public const string PrefijoShapi = "X-Shapi-";
 
@@ -20,7 +30,6 @@ public static class CabecerasCompuerta
     /// <summary><c>Access-Control-Expose-Headers</c>: todas las de 08 §5.</summary>
     public static readonly IReadOnlyList<string> ExpuestasCors =
     [
-        "X-Shapi-Plan", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-Cuota-Limite",
-        "X-Cuota-Restante", "X-Cuota-Reinicio", "X-Shapi-Cache",
+        Plan, LimiteMinuto, RestanteMinuto, ReinicioMinuto, CuotaLimite, CuotaRestante, CuotaReinicio, Cache,
     ];
 }

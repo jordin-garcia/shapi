@@ -30,11 +30,11 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 
 | Qué | Comando |
 |---|---|
-| Tareas | `node scripts/tareas.mjs --persona <clave>` · `--hoy [<clave>]` · `--ver <ID>` · `--validar` |
+| Tareas | `node scripts/tareas.mjs --persona <clave>` · `--hoy [<clave>]` · `--ver <ID>` · `--validar` · `--validar-cierre "[<ID>] <título>"` (antes del *push*) |
 | Calendario por día | `node scripts/tareas.mjs --calendario` (para reescribirlo en `docs/plan/calendario.md` tras cambiar fechas: `--calendario --escribir`) |
 | Infraestructura local | `docker compose --env-file .env -f infra/compose.yml up -d` · `docker compose --env-file .env -f infra/compose.yml down` |
 | Backend: compilar | `dotnet build Shapi.slnx` |
-| Backend: pruebas | `dotnet test Shapi.slnx` (usa Docker por Testcontainers). Si en Windows falla con errores de Docker, repite con `dotnet test Shapi.slnx -m:1`, que corre un proyecto a la vez |
+| Backend: pruebas | En local, las de lo que tocaste: `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.<Modulo>"` (protocolo B7). La suite completa, `dotnet test Shapi.slnx`, la corre el check `backend` de la CI. Las pruebas usan Docker por Testcontainers. Si en Windows `dotnet test Shapi.slnx` falla con errores de Docker, agrega `-m:1`, que corre un proyecto a la vez |
 | Backend: formato | `dotnet format Shapi.slnx --verify-no-changes` (para corregir: sin `--verify-no-changes`) |
 | Backend: ejecutar | `dotnet run --project src/Shapi.Api` · `src/Shapi.Compuerta` · `src/Shapi.Trabajador` |
 | Migraciones | `dotnet ef migrations add <Nombre> -p src/Shapi.Infraestructura -s src/Shapi.Api` |
@@ -59,7 +59,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 **✅ Siempre**
 - Trabaja en una rama `<persona>/<ID>-<descripcion-corta>` creada desde un `main` actualizado. La única excepción es cuando el coordinador termina el PR de otra persona: entonces la rama parte de la de ese PR (protocolo §E4).
 - Escribe primero las pruebas de los criterios de aceptación. Nombra cada prueba con el código del requisito que cubre (por ejemplo `// RF-28`).
-- Ejecuta todos los comandos de la sección **Verificación** de la tarea y muestra su salida como evidencia.
+- Ejecuta todos los comandos de la sección **Verificación** de la tarea y muestra su salida como evidencia. En local, `dotnet test` se limita a las pruebas de lo que tocaste (protocolo B7).
 - Haz la revisión en contexto limpio con `docs/plan/prompts/revision.md` antes de abrir el PR.
 - En el mismo PR, actualiza `estado: hecha` en el archivo de la tarea y agrega una entrada en `docs/plan/bitacora/<persona>.md`.
 - Escribe los *commits*, el PR y los comentarios en español, con los nombres del glosario (`docs/specs/02-glosario.md`).
@@ -81,7 +81,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 
 Una tarea está terminada cuando se cumplen todas estas condiciones:
 1. Todos sus criterios de aceptación tienen una prueba automatizada que pasa.
-2. La compilación, el formato, el lint, el *typecheck* y todas las pruebas pasan localmente y en la CI.
+2. La compilación, el formato, el lint, el *typecheck* y las pruebas pasan. En local, las pruebas de lo que se tocó (protocolo B7); en la CI, todas.
 3. Si la tarea tiene pantallas, coinciden con su mockup: mismos textos, datos, orden y estados.
 4. Si la tarea tiene endpoints, el contrato OpenAPI está actualizado.
 5. Si se precisó algún comportamiento, las especificaciones quedaron actualizadas.

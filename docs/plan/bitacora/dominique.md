@@ -74,3 +74,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **DC-06:** `GET /api/apis/{id}/rutas` ya entrega las rutas configurables y los cambios sobre una API publicada llaman a `IPublicadorCache.PublicarApi` después de persistir.
   - **DC-07 y DC-10:** `ruta.definicion` contiene `orden`, `parametros`, `cuerpo` y `respuestas`; las referencias locales quedan incorporadas en el JSON guardado.
+
+## 2026-10-02 · DC-08 · Avance de las pantallas de acceso del consumidor
+- Hecho: se implementaron las seis pantallas, los flujos de registro, invitación, acceso, verificación y recuperación, y ocho pruebas Vitest + MSW enfocadas en los criterios.
+- Decisiones: las rutas de acceso usan un encabezado de marca sin navegación ni pie; `/verificar-correo` es la ruta canónica de 10 §1 y 11 §3; A5.10 no muestra el correo, según 11 §Precisiones.
+- Pendiente o aviso para otros:
+  - **EM-18:** `GET /api/portal/auth/sesion` necesita devolver `destino` para que DC-08 pueda distinguir `/cuenta/suscripcion` de `/planes`. Se creó EM-18 con el contrato y las dos pruebas de integración requeridas.
+  - **Dominique:** no marcar DC-08 como hecha hasta integrar EM-18 y completar la comprobación manual con el entorno levantado.

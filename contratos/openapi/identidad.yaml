@@ -614,7 +614,7 @@ components:
         contrasena: { type: string, minLength: 10, maxLength: 128 }
     SesionConsumidor:
       type: object
-      required: [consumidor, correoVerificado]
+      required: [consumidor, correoVerificado, destino]
       properties:
         consumidor:
           type: object
@@ -623,6 +623,12 @@ components:
             nombre: { type: string }
             nombreEmpresa: { type: string }
         correoVerificado: { type: boolean }
+        destino:
+          type: string
+          enum: [/cuenta/suscripcion, /planes]
+          description: >-
+            A dónde lleva el portal después de iniciar sesión (10 §1): `/cuenta/suscripcion` si el consumidor tiene una
+            suscripción vigente (no finalizada) a la API de este portal; si no, `/planes`.
 
     PeticionVerificacion:
       type: object

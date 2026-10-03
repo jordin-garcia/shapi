@@ -125,9 +125,10 @@ public class ValidacionesCompuertaTests(EntornoCompuerta entorno) : IClassFixtur
     }
 
     [Fact]
-    public async Task RNF_01_ContextoDeRedis_DosViajesPorPeticion()
+    public async Task RNF_01_ContextoDeRedis_TresViajesPorPeticion()
     {
-        // Criterio 9 y 08 §8: un pipeline con api:host y clave, y otro con api, sus rutas, org y susc.
+        // Criterio 9 y 08 §8: un pipeline con api:host y clave, otro con api, sus rutas, org y susc, y el script de
+        // límites y cuotas (JG-06).
         var contador = new ContadorRedis();
         using var fabrica = entorno.Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
             servicios.AddSingleton(contador.Envolver(entorno.Redis))));
@@ -145,7 +146,8 @@ public class ValidacionesCompuertaTests(EntornoCompuerta entorno) : IClassFixtur
 
             respuesta.StatusCode.Should().Be(HttpStatusCode.Created, vez);
             var viajes = contador.Viajes;
-            viajes.Should().HaveCount(2, vez);
+            viajes.Should().HaveCount(3, vez);
+            viajes[2].Should().Equal(["ScriptEvaluateAsync"], vez);
             viajes[0].Should().BeEquivalentTo(
                 [$"StringGetAsync {LlavesRedis.ApiPorHost(host)}", $"HashGetAllAsync {LlavesRedis.Clave(ContextoClave.CalcularHash(clave))}"],
                 vez);

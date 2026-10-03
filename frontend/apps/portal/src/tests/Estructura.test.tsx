@@ -94,14 +94,8 @@ describe('RF-16 · rutas y navegación pública', () => {
     ['/', 'A5.0'],
     ['/documentacion/cotizaciones', 'A5.1'],
     ['/consola', 'A5.2'],
-    ['/registro', 'A5.3'],
-    ['/invitacion?token=abc', 'A5.3b'],
     ['/planes', 'A5.4'],
     ['/contratar/basico', 'A5.6'],
-    ['/entrar', 'A5.7'],
-    ['/verificar-correo', 'A5.8'],
-    ['/recuperar', 'A5.9'],
-    ['/restablecer?token=abc', 'A5.10'],
   ])('%s muestra la página de relleno %s', async (ruta, id) => {
     montar(ruta);
 

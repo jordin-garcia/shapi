@@ -12,6 +12,7 @@ using Shapi.Aplicacion.Identidad;
 using Shapi.Aplicacion.Portal;
 using Shapi.Contratos;
 using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Identidad;
 using Shapi.Infraestructura.Persistencia;
 
@@ -223,7 +224,18 @@ public static class EndpointsPortal
             return PortalNoDisponible();
         }
 
-        return TypedResults.Ok(new { consumidor = new { nombre = consumidor.Nombre, nombreEmpresa = consumidor.NombreEmpresa }, correoVerificado = consumidor.CorreoVerificadoEn is not null });
+        // 10 §1 (EM-18): a /cuenta/suscripcion si tiene una suscripción vigente (no finalizada) a la API de este portal;
+        // si no, a /planes. Sin filtro de organización, pero acotado al consumidor y a la API del host, que ya se
+        // comprobó que son de la misma organización.
+        var tieneSuscripcion = await db.Set<SuscripcionApi>().IgnoreQueryFilters()
+            .AnyAsync(s => s.ConsumidorId == consumidor.Id && s.ApiId == portal.ApiId && s.Estado != EstadoSuscripcion.Finalizada, ct);
+
+        return TypedResults.Ok(new
+        {
+            consumidor = new { nombre = consumidor.Nombre, nombreEmpresa = consumidor.NombreEmpresa },
+            correoVerificado = consumidor.CorreoVerificadoEn is not null,
+            destino = tieneSuscripcion ? "/cuenta/suscripcion" : "/planes",
+        });
     }
 
     private static async Task<IResult> Recuperar(PeticionCorreo p, IResolutorPortal resolver, HttpContext http, IServicioRecuperacion recuperacion, CancellationToken ct)
