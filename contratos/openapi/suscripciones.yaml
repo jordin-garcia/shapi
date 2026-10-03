@@ -44,6 +44,18 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problema"
+        "404":
+          description: Portal, plan o consumidor no encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "503":
+          description: Pasarela de pagos no disponible
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
   /api/portal/suscripcion:
     get:
       summary: Consulta la suscripción del consumidor en la API del portal

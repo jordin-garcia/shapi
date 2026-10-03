@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Shapi.Api.Identidad;
 using Shapi.Aplicacion.Claves;
 using Shapi.Aplicacion.Comun;
@@ -65,9 +66,7 @@ public sealed class ContratacionApi(
 
         // Serializa dos intentos simultáneos del mismo consumidor para la misma API.
         await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
-        var bloqueado = await db.Set<Consumidor>().FromSqlInterpolated($"SELECT * FROM consumidor WHERE id = {consumidorId} FOR UPDATE")
-            .IgnoreQueryFilters().SingleOrDefaultAsync(cancelacion);
-        if (bloqueado is null)
+        if (!await BloquearConsumidor(consumidorId, cancelacion))
         {
             return TypedResults.NotFound();
         }
@@ -133,10 +132,15 @@ public sealed class ContratacionApi(
         }
 
         await db.SaveChangesAsync(cancelacion);
+        var claves = await servicioClaves.PrepararClavesParaSuscripcion(suscripcion.Id, cancelacion);
         await transaccion.CommitAsync(cancelacion);
 
         await publicador.PublicarSuscripcion(suscripcion.Id, cancelacion);
-        var claves = await servicioClaves.EmitirClavesParaSuscripcion(suscripcion.Id, cancelacion);
+        foreach (var clave in claves)
+        {
+            await publicador.PublicarClave(clave.Id, cancelacion);
+        }
+
         return TypedResults.Created("/api/portal/suscripcion", new { suscripcion = Vista(suscripcion, plan), claves });
     }
 
@@ -194,6 +198,22 @@ public sealed class ContratacionApi(
     {
         var estado = codigo == CodigosError.PasarelaNoDisponible ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status422UnprocessableEntity;
         return Problemas.Crear(estado, codigo, "No se pudo procesar la tarjeta.");
+    }
+
+    private async Task<bool> BloquearConsumidor(Guid consumidorId, CancellationToken cancelacion)
+    {
+        var comando = db.Database.GetDbConnection().CreateCommand();
+        await using (comando)
+        {
+            comando.Transaction = db.Database.CurrentTransaction?.GetDbTransaction();
+            comando.CommandText = "SELECT id FROM consumidor WHERE id = @consumidorId FOR UPDATE";
+            var parametro = comando.CreateParameter();
+            parametro.ParameterName = "consumidorId";
+            parametro.Value = consumidorId;
+            comando.Parameters.Add(parametro);
+            await using var lector = await comando.ExecuteReaderAsync(cancelacion);
+            return await lector.ReadAsync(cancelacion);
+        }
     }
 
     private static string Estado(EstadoSuscripcion estado) => estado switch

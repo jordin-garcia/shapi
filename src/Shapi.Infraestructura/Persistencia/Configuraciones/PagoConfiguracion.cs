@@ -43,7 +43,8 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
 
         builder.ToTable(t => t.HasCheckConstraint("ck_pago_suscripcion",
             "(num_nonnulls(suscripcion_plataforma_id, suscripcion_api_id) = 1 AND consumidor_id IS NULL AND api_id IS NULL) OR " +
-            "(suscripcion_plataforma_id IS NULL AND suscripcion_api_id IS NULL AND consumidor_id IS NOT NULL AND api_id IS NOT NULL AND estado = 'rechazado')"));
+            "(suscripcion_plataforma_id IS NULL AND suscripcion_api_id IS NULL AND consumidor_id IS NOT NULL AND api_id IS NOT NULL " +
+            "AND estado = 'rechazado' AND medio_pago_id IS NULL)"));
 
         builder.Property(x => x.Concepto)
             .IsRequired()

@@ -23,7 +23,13 @@ public sealed class ServicioClaves(
 {
     private static readonly TipoClave[] Tipos = [TipoClave.Produccion, TipoClave.Pruebas];
 
-    public async Task<IReadOnlyList<ClaveEmitida>> EmitirClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default)
+    public Task<IReadOnlyList<ClaveEmitida>> EmitirClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default) =>
+        EmitirClaves(suscripcionId, publicar: true, cancelacion);
+
+    public Task<IReadOnlyList<ClaveEmitida>> PrepararClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default) =>
+        EmitirClaves(suscripcionId, publicar: false, cancelacion);
+
+    private async Task<IReadOnlyList<ClaveEmitida>> EmitirClaves(Guid suscripcionId, bool publicar, CancellationToken cancelacion)
     {
         var existe = await db.Set<SuscripcionApi>()
             .AnyAsync(s => s.Id == suscripcionId && s.Estado != EstadoSuscripcion.Finalizada, cancelacion);
@@ -44,9 +50,12 @@ public sealed class ServicioClaves(
         db.AddRange(emitidas.Select(e => e.Clave));
         await db.SaveChangesAsync(cancelacion);
 
-        foreach (var (clave, _) in emitidas)
+        if (publicar)
         {
-            await publicador.PublicarClave(clave.Id, cancelacion);
+            foreach (var (clave, _) in emitidas)
+            {
+                await publicador.PublicarClave(clave.Id, cancelacion);
+            }
         }
 
         return [.. emitidas.Select(e => Emitida(e.Clave, e.EnClaro))];

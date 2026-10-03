@@ -20,6 +20,12 @@ public interface IServicioClaves
     /// <exception cref="InvalidOperationException">Si la suscripción no existe, es de otra organización o está finalizada.</exception>
     Task<IReadOnlyList<ClaveEmitida>> EmitirClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default);
 
+    /// <summary>
+    /// Persiste las claves de la suscripción sin publicarlas. La contratación lo usa dentro de su transacción para
+    /// guardar suscripción y claves atómicamente, y las publica después del commit.
+    /// </summary>
+    Task<IReadOnlyList<ClaveEmitida>> PrepararClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default);
+
     /// <summary>Las claves de la suscripción sin finalizar del consumidor en la API del portal (B2.3).</summary>
     Task<IReadOnlyList<VistaClave>> ClavesDelConsumidor(ConsumidorDelPortal consumidor, CancellationToken cancelacion = default);
 

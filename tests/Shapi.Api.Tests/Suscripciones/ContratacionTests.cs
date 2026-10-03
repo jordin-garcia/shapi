@@ -1,22 +1,20 @@
-extern alias compuerta;
-
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
 using Shapi.Api.Tests.Cache;
 using Shapi.Api.Tests.Claves;
 using Shapi.Api.Tests.Persistencia;
+using Shapi.Aplicacion.Claves;
 using Shapi.Aplicacion.Comun;
 using Shapi.Contratos.Redis;
+using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
-using StackExchange.Redis;
-using ProgramaCompuerta = compuerta::Program;
 
 namespace Shapi.Api.Tests.Suscripciones;
 
@@ -170,6 +168,34 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         respuesta.StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task PrepararClaves_DentroDeLaTransaccion_NoPublicaYSeRevierteConLaSuscripcion()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        using var alcance = Fabrica.Services.CreateScope();
+        var http = new DefaultHttpContext { User = SesionConsumidorDePrueba.Principal(e.ConsumidorId, e.OrganizacionId) };
+        alcance.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = http;
+        var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var inicio = SuscripcionApi.InicioDeCiclo(Reloj.Ahora);
+        var suscripcion = SuscripcionApi.Crear(e.ConsumidorId, e.ApiId, e.PlanId, inicio, inicio.AddDays(30));
+
+        await using var transaccion = await db.Database.BeginTransactionAsync();
+        db.Add(suscripcion);
+        await db.SaveChangesAsync();
+        var claves = await alcance.ServiceProvider.GetRequiredService<IServicioClaves>()
+            .PrepararClavesParaSuscripcion(suscripcion.Id);
+
+        claves.Should().HaveCount(2);
+        foreach (var clave in claves)
+        {
+            (await Redis.KeyExistsAsync(LlavesRedis.Clave(ContextoClave.CalcularHash(clave.Clave)))).Should().BeFalse();
+        }
+
+        await transaccion.RollbackAsync();
+        (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM clave")).Should().Be(0);
     }
 
     private sealed record Escenario(Guid OrganizacionId, Guid ApiId, Guid ConsumidorId, Guid PlanId);
