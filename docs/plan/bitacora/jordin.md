@@ -586,3 +586,21 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Emilio:** EM-18 es una tarea tuya que creó Dominique en su PR #56 y nunca llegó a `main`. Ya está hecha. Cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`), `contratos/openapi/identidad.yaml` (`SesionConsumidor.destino`) y `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`. Actualiza tu rama desde `main`.
   - **Dominique:** `SesionConsumidor` ya trae `destino` en el contrato y en los tipos generados. Termino DC-08 a partir de tu PR #56 en el siguiente PR (protocolo §E4).
+
+## 2026-10-03 · DC-08 · Pantallas de acceso del consumidor (terminada por el coordinador)
+- Hecho:
+  - Terminé DC-08 a partir del PR #56 de Dominique (protocolo §E4), después de integrar EM-18 (PR #60): el portal usa `sesion.destino` con el tipo generado.
+  - En A5.3b, «Reintentar» ya no vuelve a aceptar una invitación ya aceptada.
+  - El botón principal y el campo enfocado usan la marca del portal: salían en el azul de Shapi en las seis pantallas.
+  - A5.8 permite pedir otro enlace cuando el enlace está vencido o usado, y reintentar el reenvío.
+  - A5.3 ofrece entrar o recuperar la contraseña cuando el correo ya está registrado (CU-11 2a).
+  - Reformateé las páginas y agregué pruebas.
+  - Hice la verificación manual completa en el ambiente productivo simulado y comparé las capturas con los mockups.
+- Decisiones: los colores de la marca se aplican en `MarcoAcceso`, redefiniendo `--principal`, `--principal-hover` y `--anillo-foco`, para no cambiar `Boton` de `@shapi/ui`. Las demás son las de Dominique.
+- Pendiente o aviso para otros:
+  - **Dominique:**
+    - Cerré tu PR #56 con un enlace al nuevo. Tu rama `dominique/DC-08-acceso-consumidor` queda intacta.
+    - Cambié `frontend/apps/portal/src/paginas/A5-{3,3b,7,8,9,10}-*.tsx`, `frontend/apps/portal/src/modulos/sesion/{useSesionConsumidor.ts,useIdentidadConsumidor.ts,FormulariosAcceso.tsx}`, `frontend/apps/portal/src/tests/AccesoConsumidor.test.tsx` y tu archivo de tarea.
+    - Ojo para las próximas pantallas del portal: `className="bg-[var(--marca-principal)]"` en un `Boton` no tiene efecto, porque gana `bg-principal`. Dentro de `MarcoAcceso` el botón ya toma la marca. Fuera de él, redefine `--principal` en el contenedor, como hace `MarcoAcceso`.
+    - Actualiza tu rama desde `main`.
+  - **JZ-11:** en la verificación de DC-08, el correo de verificación del consumidor llegó sin la marca de Envíos Xelajú (plantilla básica de JZ-03). Es tu criterio 2: los datos ya traen `nombrePortal`, `hostPortal` y `colorPortal`.

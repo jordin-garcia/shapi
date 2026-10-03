@@ -1,37 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { crearCliente, ErrorApi } from '@shapi/api';
+import type { components, paths } from '@shapi/api/identidad';
 
-export interface SesionConsumidor {
-  consumidor: {
-    nombre: string;
-    nombreEmpresa: string;
-  };
-  correoVerificado: boolean;
-}
+/** La sesión del consumidor, con el `destino` de 10 §1 que calcula la API (EM-18). */
+export type SesionConsumidor = components['schemas']['SesionConsumidor'];
 
-export interface RutasSesionPortal {
-  '/api/portal/auth/sesion': {
-    get: {
-      responses: {
-        200: { content: { 'application/json': SesionConsumidor } };
-        401: { content?: never };
-      };
-    };
-  };
-  '/api/portal/auth/salir': {
-    post: {
-      responses: {
-        200: { content?: never };
-        401: { content?: never };
-      };
-    };
-  };
-}
-
-export const clienteSesion = crearCliente<RutasSesionPortal>(window.location.origin);
+export const clienteSesion = crearCliente<paths>(window.location.origin);
 export const claveSesionConsumidor = ['portal', 'sesion'] as const;
 
-async function consultarSesion({ signal }: { signal?: AbortSignal } = {}): Promise<SesionConsumidor | null> {
+export async function consultarSesionConsumidor({ signal }: { signal?: AbortSignal } = {}): Promise<SesionConsumidor | null> {
   try {
     const { data, response } = await clienteSesion.GET('/api/portal/auth/sesion', { signal });
     if (response.status === 401) return null;
@@ -46,7 +23,7 @@ async function consultarSesion({ signal }: { signal?: AbortSignal } = {}): Promi
 export function useSesionConsumidor() {
   return useQuery({
     queryKey: claveSesionConsumidor,
-    queryFn: consultarSesion,
+    queryFn: consultarSesionConsumidor,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
