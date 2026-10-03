@@ -10,8 +10,7 @@
 // Los archivos del PR los da archivosDelPr de tareas.mjs: en la CI de un pull_request, el commit de integración contra
 // su primer padre, la punta de main. Uso en la CI (después de actions/checkout con fetch-depth: 2):
 //   node scripts/cambios-ci.mjs <backend|frontend> <evento>   → escribe ejecutar=true|false en $GITHUB_OUTPUT
-import { appendFileSync } from "node:fs";
-import { realpathSync } from "node:fs";
+import { appendFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { archivosDelPr } from "./tareas.mjs";
