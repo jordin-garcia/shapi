@@ -183,11 +183,65 @@ origen.
 
 ### Sembrar la demostración
 
-Cuando JZ-05 esté integrada, cargue los datos de demostración con:
+Cargue los datos de demostración con:
 
 ```bash
 docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo
 ```
+
+El comando exige `SHAPI_MODO_DEMO=true`, es idempotente y toma las URL de los
+orígenes de `SHAPI_URL_ORIGEN_ENVIOS` y `SHAPI_URL_ORIGEN_AGRO`. Sin esas
+variables usa `localhost:5101` y `localhost:5102` en desarrollo, y
+`origen-envios:8080` y `origen-agro:8080` en producción. Para recrear
+únicamente los datos de demostración, conservando los datos base y la bitácora
+append-only, agregue `--reiniciar`. Al terminar resincroniza la configuración de
+la compuerta en Redis. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o
+`SHAPI_SECRETO_ORIGEN_AGRO`, la siembra cifra esos mismos secretos para que la
+compuerta pueda autenticarse ante cada origen.
+
+En desarrollo también se puede ejecutar directamente:
+
+```bash
+dotnet run --project src/Shapi.Trabajador -- sembrar-demo
+dotnet run --project src/Shapi.Trabajador -- sembrar-demo --reiniciar
+```
+
+Todas las cuentas siguientes usan la contraseña `Shapi2026!demo`:
+
+| Área | Nombre | Correo |
+|---|---|---|
+| Administración | Rodrigo Alvarado | `rodrigo.alvarado@shapi.localhost` |
+| Administración | Lucía Ramírez Pineda | `lucia.ramirez@shapi.localhost` |
+| Soporte | Sofía Menchú Cojtí | `sofia.menchu@shapi.localhost` |
+| Soporte, desactivada | Julio Estrada Ixcot | `julio.estrada@shapi.localhost` |
+| Envíos Xelajú | Ana Lucía Morales | `ana.morales@enviosxelaju.com` |
+| Envíos Xelajú | Diego Us Pérez | `diego.us@enviosxelaju.com` |
+| Envíos Xelajú | Karla Batres | `karla.batres@enviosxelaju.com` |
+| Portal de Envíos Xelajú | María José Quiñónez, Mercadito Antigua | `mariajose@mercaditoantigua.com` |
+| Portal de Envíos Xelajú | Isabel Herrera, Boutique Cayalá | `isabel@boutiquecayala.com` |
+| Portal de Envíos Xelajú | Óscar Méndez, Ferretería Zona 11 | `oscar@ferreteriazona11.com` |
+| Portal de Envíos Xelajú | Rosa Choc, Tienda Sololá | `rosa@tiendasolola.com` |
+| Agro Precios | Carlos Tzul | `carlos.tzul@agroprecios.com` |
+| Portal de Agro Precios | Andrea Xiloj, Distribuidora San Lucas | `andrea@distribuidorasl.com` |
+| Cafetalera del Altiplano | Lucía Cotom | `lucia.cotom@cafetaleraaltiplano.com` |
+| Transportes Petén | Mario Pop | `mario.pop@transportespeten.com` |
+| Datos Chapines | Gabriela Sac | `gabriela.sac@datoschapines.com` |
+
+Claves fijas para llamadas de demostración:
+
+| Portal y consumidor | Entorno | Clave |
+|---|---|---|
+| Envíos Xelajú · Mercadito Antigua | Producción | `shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e` |
+| Envíos Xelajú · Mercadito Antigua | Pruebas | `shp_prueba_Jp5sX1cV8nB3yG7tQe2Kv0a19d` |
+| Envíos Xelajú · Boutique Cayalá | Producción | `shp_prod_BoutiqueCayalaDemo00004b80` |
+| Envíos Xelajú · Boutique Cayalá | Producción, rotada hace 9 horas y vigente 15 horas más | `shp_prod_BoutiqueCayalaRotada00e513` |
+| Envíos Xelajú · Boutique Cayalá | Pruebas | `shp_prueba_BoutiqueCayalaDem0000031c7` |
+| Envíos Xelajú · Ferretería Zona 11 | Producción | `shp_prod_FerreteriaZona11Demo0090fb` |
+| Envíos Xelajú · Ferretería Zona 11 | Pruebas | `shp_prueba_FerreteriaZona11De00005e28` |
+| Envíos Xelajú · Tienda Sololá | Producción | `shp_prod_TiendaSololaDemo000000b3a4` |
+| Envíos Xelajú · Tienda Sololá | Pruebas, revocada | `shp_prueba_TiendaSololaDemo000000d6f1` |
+| Agro Precios · Distribuidora San Lucas | Producción | `shp_prod_AgroPreciosDemo0000000a7f2` |
+| Agro Precios · Distribuidora San Lucas | Pruebas | `shp_prueba_AgroPreciosDemo00000004c8d` |
 
 ### Consultar registros
 

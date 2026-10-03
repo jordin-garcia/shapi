@@ -1,4 +1,5 @@
 using Shapi.Infraestructura.Comun;
+using Shapi.Infraestructura.Siembra.Demo;
 using Shapi.Trabajador.Correo;
 using Shapi.Trabajador.Resincronizacion;
 
@@ -8,8 +9,31 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AgregarServiciosComunes(builder.Configuration);
 builder.Services.AgregarProcesamientoCorreo();
 builder.Services.AgregarResincronizacion();
+builder.Services.AddScoped<SiembraDemo>();
 
 var host = builder.Build();
+
+if (args.FirstOrDefault()?.Equals("sembrar-demo", StringComparison.OrdinalIgnoreCase) == true)
+{
+    await using var alcance = host.Services.CreateAsyncScope();
+    var configuracion = alcance.ServiceProvider.GetRequiredService<IConfiguration>();
+    var modoDemo = bool.TryParse(configuracion["SHAPI_MODO_DEMO"], out var habilitado) && habilitado;
+    var reiniciar = args.Any(a => a.Equals("--reiniciar", StringComparison.OrdinalIgnoreCase));
+    var urls = ConfiguracionSiembraDemo.ResolverUrls(
+        configuracion["SHAPI_URL_ORIGEN_ENVIOS"],
+        configuracion["SHAPI_URL_ORIGEN_AGRO"],
+        builder.Environment.IsProduction());
+    await alcance.ServiceProvider.GetRequiredService<SiembraDemo>().EjecutarAsync(
+        modoDemo,
+        reiniciar,
+        urls.Envios,
+        urls.Agro,
+        configuracion["SHAPI_SECRETO_ORIGEN_ENVIOS"],
+        configuracion["SHAPI_SECRETO_ORIGEN_AGRO"]);
+    await alcance.ServiceProvider.GetRequiredService<ResincronizarCache>().EjecutarAsync(CancellationToken.None);
+    return;
+}
+
 host.Run();
 
 /// <summary>
