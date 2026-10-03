@@ -112,7 +112,10 @@ public class ShapiDbContext : DbContext
             OrganizacionId != null
             && (Set<SuscripcionPlataforma>().Any(s => s.Id == e.SuscripcionPlataformaId && s.OrganizacionId == OrganizacionId)
                 || Set<SuscripcionApi>().Any(s => s.Id == e.SuscripcionApiId
-                    && Set<Api>().Any(a => a.Id == s.ApiId && a.OrganizacionId == OrganizacionId))));
+                    && Set<Api>().Any(a => a.Id == s.ApiId && a.OrganizacionId == OrganizacionId))
+                || (e.Estado == EstadoPago.Rechazado
+                    && Set<Consumidor>().Any(c => c.Id == e.ConsumidorId && c.OrganizacionId == OrganizacionId)
+                    && Set<Api>().Any(a => a.Id == e.ApiId && a.OrganizacionId == OrganizacionId))));
 
         modelBuilder.Entity<CasoMensaje>().HasQueryFilter(e =>
             OrganizacionId != null

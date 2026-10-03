@@ -14,4 +14,31 @@ public class MedioPago
     public DateTimeOffset CreadoEn { get; private set; }
 
     protected MedioPago() { }
+
+    public static MedioPago CrearParaConsumidor(Guid consumidorId, string token, string marca, string ultimos4, string titular, int mes, int anio)
+    {
+        var tipoMarca = marca switch
+        {
+            "Visa" => MarcaTarjeta.Visa,
+            "Mastercard" => MarcaTarjeta.Mastercard,
+            "American Express" => MarcaTarjeta.AmericanExpress,
+            _ => throw new ArgumentOutOfRangeException(nameof(marca)),
+        };
+        if (ultimos4.Length != 4 || mes is < 1 or > 12 || anio < 2000)
+        {
+            throw new ArgumentException("Los datos de la tarjeta tokenizada no son válidos.");
+        }
+
+        return new MedioPago
+        {
+            Id = Guid.CreateVersion7(),
+            ConsumidorId = consumidorId,
+            TokenPasarela = token,
+            Marca = tipoMarca,
+            Ultimos4 = ultimos4,
+            Titular = titular,
+            MesVencimiento = checked((short)mes),
+            AnioVencimiento = checked((short)anio),
+        };
+    }
 }

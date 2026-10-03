@@ -63,3 +63,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: Se resolvió que el nombre del plan se verifique ignorando los que no son parte de la misma API, pero incluyendo inactivos para prevenir conflictos al editar. Para `CodigosError`, se implementaron `PlanDuplicado` y `PlanNoEncontrado`.
 - Pendiente o aviso para otros:
   - **Dominique**: Revisa que la interfaz de portales pueda leer los planes activos adecuadamente con los endpoints proporcionados.
+
+## 2026-10-03 · EM-08 · Contratación de un plan de API (backend)
+- Hecho: Se implementaron la contratación de planes pagados y gratuitos, el registro de rechazos, la publicación de la suscripción y las claves de JG-07, y la consulta de la suscripción vigente. Se agregó el contrato OpenAPI, las pruebas de integración y la migración `PagoRechazadoSinSuscripcion`.
+- Decisiones: Con autorización del usuario, se amplió el esquema de `pago` para asociar un intento rechazado sin suscripción al consumidor y la API. No se conserva token, tarjeta ni CVV para los rechazos.
+- Verificación: `dotnet build Shapi.slnx --no-restore` pasó sin advertencias ni errores. `dotnet format Shapi.slnx --verify-no-changes --no-restore` pasó. `dotnet ef migrations has-pending-model-changes -p src/Shapi.Infraestructura -s src/Shapi.Api` informó que no hay cambios pendientes. `node scripts/tareas.mjs --validar` informó 68 tareas válidas. `dotnet test Shapi.slnx --no-restore` ejecutó 598 pruebas de API (295 pasaron, 303 fallaron al iniciar PostgreSQL/Redis Testcontainers porque este entorno no tiene Docker); también falló por el mismo motivo la ejecución dirigida a EM-08. OrigenesDemo.Tests (48) y Shapi.Dominio.Tests (48) pasaron en la ejecución completa. CI debe confirmar las suites de integración.
+- Pendiente o aviso para otros:
+  - **DC-09:** ya están disponibles en `contratos/openapi/suscripciones.yaml` `POST /api/portal/suscripciones` y `GET /api/portal/suscripcion`; la respuesta de contratación devuelve las dos claves completas una sola vez.
+  - **JG-13:** los pagos de contratación rechazados sin suscripción llevan `consumidor_id` y `api_id`; los demás pagos siguen asociados a su suscripción.

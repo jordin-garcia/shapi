@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-03
 depende_de: [EM-05, EM-06, EM-07, JG-07]
 requisitos: [RF-20, RF-26, RF-19]
@@ -54,3 +54,17 @@ dotnet format Shapi.slnx --verify-no-changes
 - Pantallas del portal (DC-09)
 - Renovación (EM-10)
 - Cambio de plan (EM-13)
+
+## Resultado
+
+**Qué se hizo**
+- Se implementó `POST /api/portal/suscripciones` con verificación de correo, validación de plan activo, serialización de contrataciones concurrentes, tokenización y cobro simulado. Los rechazos quedan registrados sin crear suscripción ni guardar datos de tarjeta; los cobros aprobados guardan el medio tokenizado, el pago y la suscripción en una transacción.
+- Los planes gratuitos activan la suscripción sin tarjeta ni pago. Al confirmar la transacción se publica la suscripción y JG-07 emite y publica las claves, que solo se devuelven en la respuesta de contratación.
+- Se implementó `GET /api/portal/suscripcion` con plan, estado, periodo visible, próxima renovación, tarjeta enmascarada y límites.
+- Se añadió contrato OpenAPI, pruebas de integración con PostgreSQL y Redis, configuración de pagos, filtro por organización y migración `PagoRechazadoSinSuscripcion`.
+
+**Decisiones tomadas**
+- La restricción original de `pago` requería una suscripción para cada fila, lo que impedía registrar el rechazo sin activar una suscripción. Con autorización de Emilio, el esquema admite además intentos rechazados sin suscripción y los asocia con `consumidor_id` y `api_id`. Estos intentos no guardan medio de pago. La regla quedó documentada en 07 §3.4 y 09 §2.
+- El plan inactivo responde 422 con el código existente `plan_no_encontrado`, al no haber un código más específico en el contrato de errores.
+
+**Archivos principales:** `src/Shapi.Api/Suscripciones/**`, `src/Shapi.Dominio/{Pagos,Suscripciones}/**`, `src/Shapi.Infraestructura/Persistencia/**`, `contratos/openapi/suscripciones.yaml` y `tests/Shapi.Api.Tests/Suscripciones/ContratacionTests.cs`.

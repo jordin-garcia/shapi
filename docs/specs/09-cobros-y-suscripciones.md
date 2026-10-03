@@ -43,6 +43,7 @@ public interface IPasarelaPagos
 - La pasarela simulada tarda entre 300 y 800 ms en responder, para que se note la espera en la interfaz. Con `Pagos:DemoraMs` se fija otra demora en milisegundos; las pruebas usan 0.
 - El token tiene el formato `tok_sim_{uuid}`. El de una tarjeta de prueba especial lleva sus últimos 4 dígitos (`tok_sim_0002_{uuid}`, `tok_sim_0069_{uuid}` o `tok_sim_0341_{uuid}`), para que su comportamiento no se pierda si el proceso se reinicia y lo respete cualquier proceso que cobre, como el Trabajador en las renovaciones. La pasarela no guarda nada en memoria.
 - Las referencias de cobro tienen el formato `ch_sim_{uuid}` y las de reembolso `re_sim_{uuid}`.
+- Si se rechaza el cobro de una primera contratación de API, se registra `pago` con estado `rechazado`, monto, motivo, consumidor y API, sin medio de pago ni suscripción. Los rechazos de renovaciones se asocian a la suscripción existente. Un rechazo nunca activa claves ni una suscripción nueva.
 
 ## 3. Máquina de estados de las suscripciones
 

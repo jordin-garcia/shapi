@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shapi.Dominio.Apis;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Suscripciones;
@@ -31,6 +32,9 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<Consumidor>().WithMany().HasForeignKey(x => x.ConsumidorId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Api>().WithMany().HasForeignKey(x => x.ApiId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne<Usuario>()
             .WithMany()
             .HasForeignKey(x => x.RevertidoPor)
@@ -38,7 +42,8 @@ public class PagoConfiguracion : IEntityTypeConfiguration<Pago>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.ToTable(t => t.HasCheckConstraint("ck_pago_suscripcion",
-            "num_nonnulls(suscripcion_plataforma_id, suscripcion_api_id) = 1"));
+            "(num_nonnulls(suscripcion_plataforma_id, suscripcion_api_id) = 1 AND consumidor_id IS NULL AND api_id IS NULL) OR " +
+            "(suscripcion_plataforma_id IS NULL AND suscripcion_api_id IS NULL AND consumidor_id IS NOT NULL AND api_id IS NOT NULL AND estado = 'rechazado')"));
 
         builder.Property(x => x.Concepto)
             .IsRequired()
