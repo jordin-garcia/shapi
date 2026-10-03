@@ -49,6 +49,13 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
             : null;
         if (rechazo is not null)
         {
+            // 08 §3: si no se pudo conectar, la petición no llegó al origen y la cuota se devuelve. Los 504 sí
+            // descuentan.
+            if (rechazo == Inaccesible && contexto.DevolverReserva is { } devolver)
+            {
+                await devolver();
+            }
+
             await RespuestaError.EscribirAsync(http, rechazo);
         }
     }
