@@ -12,7 +12,6 @@ using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
 using Shapi.Infraestructura.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Shapi.Api.Tests.Identidad;

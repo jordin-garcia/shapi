@@ -35,6 +35,7 @@ Que cada tarea tarde menos en verificarse, sin quitar ninguna prueba ni ninguna 
 - `scripts/reglas-repositorio.test.mjs` (modificar)
 - `.github/workflows/titulo-pr.yml` y `.github/workflows/publicar-imagenes.yml` (modificar)
 - `docs/plan/protocolo.md`, `AGENTS.md`, `docs/plan/instalacion.md` y `.github/pull_request_template.md` (modificar)
+- `docs/specs/06-arquitectura.md` §7.3 (modificar): las E2E corren en cada PR
 
 ## Criterios de aceptación
 1. Cuando se ejecuta `Shapi.Api.Tests`, el sistema deberá usar un solo contenedor de PostgreSQL, y la base de cada prueba deberá nacer ya migrada. Cada prueba sigue teniendo su propia base.
@@ -67,6 +68,7 @@ dotnet format Shapi.slnx --verify-no-changes
   - En la PC de Jordin (i5-5200U de 2 núcleos), `Shapi.Api.Tests` bajó de 13 min 18 s a 7 min 16 s. Lo que queda es CPU: cada prueba arranca la API. Las pruebas de un solo módulo, que ahora bastan en local, tardan alrededor de 1 min (`Planes`: 57 s).
 - **Cierre de la tarea:**
   - `node scripts/tareas.mjs --validar-cierre` valida B10 con el título del PR y su diff: el commit de integración contra su primer padre, con `fetch-depth: 2`. Corre en el check `titulo`, después de validar el título.
+  - En local (B11, antes del *push*) compara la rama contra `origin/main`, así que revisa lo mismo que la CI, aunque el último commit sea un *merge* de `main`.
   - La subsección de auditoría solo se exige si la tarea ya estaba hecha en `main`. Una tarea que el mismo PR crea y cierra, como EM-17, no la necesita.
   - Aplicado a los 40 últimos PR integrados, no rechaza ninguno.
 - **E2E en el PR:** `publicar-imagenes.yml` (`ambiente-productivo`) instala Playwright y corre `tests/e2e` después de `infra/verificar.mjs`. `e2e.yml` sigue corriendo en `main`.

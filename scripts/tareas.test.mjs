@@ -176,21 +176,50 @@ test("JG-18: el plan de la auditoría y los títulos sin tarea no se revisan aqu
   assert.deepEqual(validarCierrePr("[EM-99] No existe", undefined, "", []), []);
 });
 
-test("JG-18: los archivos del PR son el diff del commit de integración contra la punta de main", () => {
+const EN_LA_CI = { GITHUB_EVENT_NAME: "pull_request" };
+
+test("JG-18: en la CI, los archivos del PR son el diff del commit de integración contra la punta de main", () => {
   const llamadas = [];
   const git = (args) => {
     llamadas.push(args.join(" "));
     return args[0] === "diff" ? "src/a.cs\r\ndocs/plan/bitacora/emilio.md\n" : "abc\n";
   };
-  assert.deepEqual(archivosDelPr(git), ["src/a.cs", "docs/plan/bitacora/emilio.md"]);
+  assert.deepEqual(archivosDelPr(git, EN_LA_CI), ["src/a.cs", "docs/plan/bitacora/emilio.md"]);
   assert.deepEqual(llamadas, ["rev-parse --verify --quiet HEAD^2", "diff --name-only HEAD^1 HEAD"]);
-  assert.equal(archivosDelPr(() => { throw new Error("sin HEAD^2"); }), null);
+  assert.equal(archivosDelPr(() => { throw new Error("sin HEAD^2"); }, EN_LA_CI), null);
+});
+
+test("JG-18: en local, el PR se compara contra origin/main, aunque el último commit sea un merge", () => {
+  const llamadas = [];
+  const git = (args) => {
+    llamadas.push(args.join(" "));
+    if (args[0] === "diff") return "docs/plan/tareas/EM-07-planes.md\ndocs/plan/bitacora/emilio.md\n";
+    if (args[0] === "show") return "---\nestado: pendiente\n---\n";
+    return "abc\n";
+  };
+  assert.deepEqual(archivosDelPr(git, {}), ["docs/plan/tareas/EM-07-planes.md", "docs/plan/bitacora/emilio.md"]);
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", git, {}), "pendiente");
+  assert.deepEqual(llamadas, [
+    "rev-parse --verify --quiet origin/main", "diff --name-only origin/main...HEAD",
+    "rev-parse --verify --quiet origin/main", "show origin/main:docs/plan/tareas/EM-07-planes.md",
+  ]);
+  // Sin origin/main no hay contra qué comparar.
+  assert.equal(archivosDelPr(() => { throw new Error("sin origin/main"); }, {}), null);
+});
+
+test("JG-18: en local, una corrección de auditoría sin su subsección también se rechaza", () => {
+  const git = (args) => (args[0] === "show" ? "---\nestado: hecha\n---\n" : args[0] === "diff" ? "docs/plan/bitacora/jordin.md\n" : "abc\n");
+  const tarea = HECHA;
+  const errores = validarCierrePr("[EM-07] Correcciones de la auditoría: planes", tarea, CON_RESULTADO,
+    archivosDelPr(git, {}), estadoEnMain(tarea.archivo, git, {}));
+  assert.equal(errores.length, 1);
+  assert.match(errores[0], /### Correcciones de la auditoría/);
 });
 
 test("JG-18: el estado anterior de la tarea se lee de la punta de main", () => {
   const git = (args) => (args[0] === "show" ? "---\nid: EM-07\nestado: hecha\n---\n" : "abc\n");
-  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", git), "hecha");
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", git, EN_LA_CI), "hecha");
   // La tarea no existía en main (la crea el PR) o no hay commit de integración.
-  assert.equal(estadoEnMain("docs/plan/tareas/EM-17-x.md", (args) => { if (args[0] === "show") throw new Error("no existe"); return "abc"; }), null);
-  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", () => { throw new Error("sin HEAD^2"); }), null);
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-17-x.md", (args) => { if (args[0] === "show") throw new Error("no existe"); return "abc"; }, EN_LA_CI), null);
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", () => { throw new Error("sin HEAD^2"); }, EN_LA_CI), null);
 });

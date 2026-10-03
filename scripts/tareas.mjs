@@ -316,25 +316,38 @@ export function validarCierrePr(titulo, tarea, textoTarea, archivos, estadoAnter
   return errores;
 }
 
+const gitPorDefecto = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+
 /**
- * Los archivos que cambia el PR. En la CI de un pull_request, actions/checkout deja el commit de prueba de la
- * integración, cuyo primer padre es la punta actual de main (hace falta fetch-depth: 2). Fuera de ese caso (por
- * ejemplo, en local) devuelve null.
+ * Contra qué se compara el PR. En la CI de un pull_request, actions/checkout deja el commit de prueba de la
+ * integración, cuyo primer padre es la punta actual de main (hace falta fetch-depth: 2). En local (B11, antes del
+ * push) se compara contra origin/main, así que no importa si el último commit de la rama es un merge de main; los
+ * cambios sin commit no cuentan. Lanza un error si no hay contra qué comparar.
  */
-export function archivosDelPr(git = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) {
-  try {
+export function baseDelPr(entorno = process.env, git = gitPorDefecto) {
+  if (entorno.GITHUB_EVENT_NAME === "pull_request") {
     git(["rev-parse", "--verify", "--quiet", "HEAD^2"]);
-    return git(["diff", "--name-only", "HEAD^1", "HEAD"]).split(/\r?\n/).filter(Boolean);
+    return { main: "HEAD^1", rango: ["HEAD^1", "HEAD"] };
+  }
+  git(["rev-parse", "--verify", "--quiet", "origin/main"]);
+  return { main: "origin/main", rango: ["origin/main...HEAD"] };
+}
+
+/** Los archivos que cambia el PR, o null si no se sabe. */
+export function archivosDelPr(git = gitPorDefecto, entorno = process.env) {
+  try {
+    const { rango } = baseDelPr(entorno, git);
+    return git(["diff", "--name-only", ...rango]).split(/\r?\n/).filter(Boolean);
   } catch {
     return null;
   }
 }
 
-/** El estado de la tarea en la punta de main (el primer padre del commit de integración), o null si no se sabe. */
-export function estadoEnMain(archivo, git = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) {
+/** El estado de la tarea en main, o null si la tarea no existía ahí (la crea el PR) o no se sabe. */
+export function estadoEnMain(archivo, git = gitPorDefecto, entorno = process.env) {
   try {
-    git(["rev-parse", "--verify", "--quiet", "HEAD^2"]);
-    return /^estado:\s*(\S+)/m.exec(git(["show", `HEAD^1:${archivo}`]))?.[1] ?? null;
+    const { main } = baseDelPr(entorno, git);
+    return /^estado:\s*(\S+)/m.exec(git(["show", `${main}:${archivo}`]))?.[1] ?? null;
   } catch {
     return null;
   }

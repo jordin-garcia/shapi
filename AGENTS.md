@@ -34,7 +34,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 | Calendario por día | `node scripts/tareas.mjs --calendario` (para reescribirlo en `docs/plan/calendario.md` tras cambiar fechas: `--calendario --escribir`) |
 | Infraestructura local | `docker compose --env-file .env -f infra/compose.yml up -d` · `docker compose --env-file .env -f infra/compose.yml down` |
 | Backend: compilar | `dotnet build Shapi.slnx` |
-| Backend: pruebas | En local, las de lo que tocaste: `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.<Modulo>"` (protocolo B7). La suite completa, `dotnet test Shapi.slnx`, la corre el check `backend` de la CI. Las pruebas usan Docker por Testcontainers. Si en Windows fallan con errores de Docker, agrega `-m:1`, que corre un proyecto a la vez |
+| Backend: pruebas | En local, las de lo que tocaste: `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.<Modulo>"` (protocolo B7). La suite completa, `dotnet test Shapi.slnx`, la corre el check `backend` de la CI. Las pruebas usan Docker por Testcontainers. Si en Windows `dotnet test Shapi.slnx` falla con errores de Docker, agrega `-m:1`, que corre un proyecto a la vez |
 | Backend: formato | `dotnet format Shapi.slnx --verify-no-changes` (para corregir: sin `--verify-no-changes`) |
 | Backend: ejecutar | `dotnet run --project src/Shapi.Api` · `src/Shapi.Compuerta` · `src/Shapi.Trabajador` |
 | Migraciones | `dotnet ef migrations add <Nombre> -p src/Shapi.Infraestructura -s src/Shapi.Api` |
