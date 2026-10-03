@@ -227,7 +227,7 @@ public sealed class SiembraDemo(
             ClaveConocida(suscripcionesApi[2].Id, TipoClave.Produccion, "shp_prod_FerreteriaZona11Demo0090fb", ahora),
             ClaveConocida(suscripcionesApi[2].Id, TipoClave.Pruebas, "shp_prueba_FerreteriaZona11De00005e28", ahora),
             ClaveConocida(suscripcionesApi[3].Id, TipoClave.Produccion, "shp_prod_TiendaSololaDemo000000b3a4", ahora),
-            ClaveConocida(suscripcionesApi[3].Id, TipoClave.Pruebas, "shp_prueba_TiendaSololaDemo000000d6f1", ahora, EstadoClave.Revocada),
+            ClaveConocida(suscripcionesApi[3].Id, TipoClave.Pruebas, "shp_prueba_TiendaSololaDemo000000d6f1", ahora, EstadoClave.Revocada, ahora.AddDays(-3).AddHours(-8)),
             ClaveConocida(suscripcionesApi[4].Id, TipoClave.Produccion, "shp_prod_AgroPreciosDemo0000000a7f2", ahora),
             ClaveConocida(suscripcionesApi[4].Id, TipoClave.Pruebas, "shp_prueba_AgroPreciosDemo00000004c8d", ahora),
         };
@@ -277,7 +277,8 @@ public sealed class SiembraDemo(
         var consumoEnvios = consumoMercadito.Concat(consumoOtros).ToList();
         ConfigurarMetricasB1(consumoEnvios, rutasEnvios, ahora);
         db.AddRange(consumoEnvios);
-        var entradasBitacora = CrearBitacora(ahora, personal, propietarios, diego, consumidores, casos).ToList();
+        var entradasBitacora = CrearBitacora(ahora, personal, propietarios, diego, consumidores, casos,
+            envios.Id, cafetalera.Id, datos.Id).ToList();
         if (reiniciar)
         {
             db.AddRange(entradasBitacora);
@@ -408,14 +409,14 @@ public sealed class SiembraDemo(
     }
 
     private static Clave ClaveConocida(Guid suscripcionId, TipoClave tipo, string valor,
-        DateTimeOffset ahora, EstadoClave estado = EstadoClave.Activa) =>
+        DateTimeOffset ahora, EstadoClave estado = EstadoClave.Activa, DateTimeOffset? eventoEstado = null) =>
         Crear<Clave>(
             (nameof(Clave.Id), Guid.CreateVersion7()), (nameof(Clave.SuscripcionId), suscripcionId),
             (nameof(Clave.Tipo), tipo), (nameof(Clave.Prefijo), GeneradorClave.Prefijo(tipo)),
             (nameof(Clave.Ultimos4), valor[^4..]), (nameof(Clave.HashSha256), GeneradorClave.CalcularHash(valor)),
             (nameof(Clave.Estado), estado),
             (nameof(Clave.ExpiraEn), estado == EstadoClave.Rotada ? ahora.AddHours(15) : null),
-            (nameof(Clave.RevocadaEn), estado == EstadoClave.Revocada ? ahora.AddDays(-1) : null),
+            (nameof(Clave.RevocadaEn), estado == EstadoClave.Revocada ? eventoEstado ?? ahora.AddDays(-1) : null),
             (nameof(Clave.RevocadaPor), estado == EstadoClave.Revocada ? RevocadaPor.Proveedor : null));
 
     private static Pago CrearPago(SuscripcionApi suscripcion, Guid medioPagoId, string descripcion, decimal monto,
@@ -644,24 +645,27 @@ public sealed class SiembraDemo(
     }
 
     private static IEnumerable<EntradaBitacoraDominio> CrearBitacora(DateTimeOffset ahora, Usuario[] personal,
-        Usuario[] propietarios, Usuario diego, Consumidor[] consumidores, Caso[] casos)
+        Usuario[] propietarios, Usuario diego, Consumidor[] consumidores, Caso[] casos,
+        Guid enviosId, Guid cafetaleraId, Guid datosId)
     {
-        yield return Entrada(ahora.AddDays(-2), personal[0], "organizacion.suspendida", "Suspendió la organización Datos Chapines, S.A.");
-        yield return Entrada(ahora.AddDays(-2).AddHours(-3), personal[2], "caso.abierto", "Abrió el caso CAS-104 de Envíos Xelajú, S.A.", casos[4].Id);
-        yield return Entrada(ahora.AddDays(-3).AddHours(1), personal[0], "cuenta.desactivada", "Desactivó la cuenta de plataforma de Julio Estrada Ixcot");
-        yield return Entrada(ahora.AddDays(-3), personal[0], "pago.revertido", "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A.");
-        yield return Entrada(ahora.AddDays(-3).AddHours(-5), propietarios[0], "suscripcion.cambiada", "Cambió su suscripción de plataforma de Lanzamiento a Producto");
+        yield return Entrada(ahora.AddDays(-2), personal[0], AccionesBitacora.OrganizacionSuspendida, "Suspendió la organización Datos Chapines, S.A.", datosId);
+        yield return Entrada(ahora.AddDays(-2).AddHours(-3), personal[2], AccionesBitacora.CasoAbierto, "Abrió el caso CAS-104 de Envíos Xelajú, S.A.", enviosId, casos[4].Id);
+        yield return Entrada(ahora.AddDays(-3).AddHours(1), personal[0], AccionesBitacora.CuentaPlataformaDesactivada, "Desactivó la cuenta de plataforma de Julio Estrada Ixcot");
+        yield return Entrada(ahora.AddDays(-3), personal[0], AccionesBitacora.PagoRevertido, "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A.", datosId);
+        yield return Entrada(ahora.AddDays(-3).AddHours(-5), propietarios[0], AccionesBitacora.SuscripcionPlataformaCambiada, "Cambió su suscripción de plataforma de Lanzamiento a Producto", enviosId);
         yield return new EntradaBitacoraDominio(ahora.AddHours(-9), ActorTipo.Consumidor, consumidores[1].Id,
-            consumidores[1].NombreEmpresa, null, "clave.rotada", "clave", null,
+            consumidores[1].NombreEmpresa, enviosId, AccionesBitacora.ClaveRotada, null, null,
             "Rotó su clave de producción en la API de Cotización de Envíos", null, null);
-        yield return Entrada(ahora.AddDays(-3).AddHours(-8), propietarios[0], "clave.revocada", "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos");
-        yield return Entrada(ahora.AddDays(-4), diego, "ruta.ocultada", "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos");
-        yield return Entrada(ahora.AddDays(-5), propietarios[0], "miembro.invitado", "Invitó a karla.batres@enviosxelaju.com con el rol de lector");
-        yield return Entrada(ahora.AddDays(-7), personal[2], "caso.cerrado", "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A.", casos[1].Id);
-        yield return Entrada(ahora.AddDays(-8), personal[0], "cuenta.creada", "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador");
+        yield return Entrada(ahora.AddDays(-3).AddHours(-8), propietarios[0], AccionesBitacora.ClaveRevocadaPorProveedor, "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos", enviosId);
+        yield return Entrada(ahora.AddDays(-4), diego, AccionesBitacora.RutaOcultada, "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos", enviosId);
+        yield return Entrada(ahora.AddDays(-5), propietarios[0], AccionesBitacora.MiembroInvitado, "Invitó a karla.batres@enviosxelaju.com con el rol de lector", enviosId);
+        yield return Entrada(ahora.AddDays(-7), personal[2], AccionesBitacora.CasoCerrado, "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A.", cafetaleraId, casos[1].Id);
+        yield return Entrada(ahora.AddDays(-8), personal[0], AccionesBitacora.CuentaPlataformaCreada, "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador");
 
-        static EntradaBitacoraDominio Entrada(DateTimeOffset fecha, Usuario actor, string accion, string descripcion, Guid? objetivo = null) =>
-            new(fecha, ActorTipo.Usuario, actor.Id, actor.Nombre, null, accion, objetivo is null ? null : "caso", objetivo, descripcion, null, null);
+        static EntradaBitacoraDominio Entrada(DateTimeOffset fecha, Usuario actor, string accion, string descripcion,
+            Guid? organizacionId = null, Guid? objetivo = null) =>
+            new(fecha, ActorTipo.Usuario, actor.Id, actor.Nombre, organizacionId, accion,
+                objetivo is null ? null : "caso", objetivo, descripcion, null, null);
     }
 
     private static Organizacion ObtenerOCrearOrganizacion(

@@ -348,9 +348,24 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         }, opciones => opciones.WithStrictOrdering());
 
         var eventos = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToDictionaryAsync(e => e.Accion);
-        caso101.CerradoEn.Should().Be(eventos["caso.cerrado"].Fecha);
+        eventos.Values.Should().OnlyContain(e => AccionesBitacora.Todas.Contains(e.Accion));
+        var enviosId = organizaciones.Single(o => o.Value == "Envíos Xelajú, S.A.").Key;
+        var cafetaleraId = organizaciones.Single(o => o.Value == "Cafetalera del Altiplano, S.A.").Key;
+        var datosId = organizaciones.Single(o => o.Value == "Datos Chapines, S.A.").Key;
+        eventos[AccionesBitacora.ClaveRotada].OrganizacionId.Should().Be(enviosId);
+        eventos[AccionesBitacora.ClaveRevocadaPorProveedor].OrganizacionId.Should().Be(enviosId);
+        eventos[AccionesBitacora.RutaOcultada].OrganizacionId.Should().Be(enviosId);
+        eventos[AccionesBitacora.MiembroInvitado].OrganizacionId.Should().Be(enviosId);
+        eventos[AccionesBitacora.CasoAbierto].OrganizacionId.Should().Be(enviosId);
+        eventos[AccionesBitacora.OrganizacionSuspendida].OrganizacionId.Should().Be(datosId);
+        eventos[AccionesBitacora.PagoRevertido].OrganizacionId.Should().Be(datosId);
+        eventos[AccionesBitacora.CasoCerrado].OrganizacionId.Should().Be(cafetaleraId);
+        caso101.CerradoEn.Should().Be(eventos[AccionesBitacora.CasoCerrado].Fecha);
         pagosConPeriodo.Single(p => p.Estado == EstadoPago.Revertido).RevertidoEn
-            .Should().Be(eventos["pago.revertido"].Fecha);
+            .Should().Be(eventos[AccionesBitacora.PagoRevertido].Fecha);
+        var claveRevocada = await db.Set<Clave>().IgnoreQueryFilters()
+            .SingleAsync(c => c.Estado == EstadoClave.Revocada && c.Ultimos4 == "d6f1");
+        claveRevocada.RevocadaEn.Should().Be(eventos[AccionesBitacora.ClaveRevocadaPorProveedor].Fecha);
     }
 
     [Fact]
