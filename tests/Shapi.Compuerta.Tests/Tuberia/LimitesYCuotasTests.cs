@@ -257,6 +257,7 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
         await VerificarErrorAsync(respuesta, "origen_inaccesible", HttpStatusCode.BadGateway);
         (await Contador(CuotaSuscripcion(escenario))).Should().Be(0);
         (await Contador(CuotaOrganizacion(escenario))).Should().Be(0);
+        VerificarCabecerasCuota(respuesta);
         Cabecera(respuesta, "X-Cuota-Restante").Should().Be("50000", "la cuota se devolvió");
     }
 
@@ -294,6 +295,8 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
         var respuesta = await EnviarAsync(escenario, fabrica: fabrica, olvidar: false);
 
         await VerificarErrorAsync(respuesta, "origen_sin_respuesta", HttpStatusCode.GatewayTimeout);
+        VerificarCabecerasCuota(respuesta);
+        Cabecera(respuesta, "X-Cuota-Restante").Should().Be("49997");
         (await Contador(CuotaSuscripcion(escenario))).Should().Be(3);
         (await Contador(CuotaOrganizacion(escenario))).Should().Be(1);
     }

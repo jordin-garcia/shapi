@@ -254,7 +254,7 @@ public sealed class FiltroLimitesYCuotas(
             await Task.WhenAll(pendientes);
             conteo.Cuota -= reserva.Peso;
         }
-        catch (Exception excepcion) when (excepcion is RedisConnectionException or RedisTimeoutException)
+        catch (RedisException excepcion)
         {
             registro.LogWarning("No se pudo devolver la cuota de una petición que no llegó al origen: {Motivo}", excepcion.Message);
         }

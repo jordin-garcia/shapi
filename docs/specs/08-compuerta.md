@@ -68,12 +68,14 @@ flowchart LR
 Es una sola llamada a Redis, que es atómica:
 
 ```
-ENTRADAS: rl_s, rl_r (opcional), cuota_s, cuota_o, limite_plan, limite_ruta, peso, cuota_llamadas, cuota_peticiones, ttl_s, ttl_o
-1. n_s = INCR rl_s (EXPIRE 120 si es la primera vez); si n_s > limite_plan         → DECR rl_s; devolver {429, 'limite_por_minuto'}
-2. si rl_r: n_r = INCR rl_r (EXPIRE 120); si n_r > limite_ruta                      → revertir 1 y 2; devolver {429, 'limite_por_minuto'}
-3. c_s = INCRBY cuota_s peso (EXPIREAT ttl_s); si c_s > cuota_llamadas              → revertir 1, 2 y 3; devolver {429, 'cuota_agotada'}
-4. c_o = INCR cuota_o (EXPIREAT ttl_o); si c_o > cuota_peticiones                   → revertir 1 a 4; devolver {429, 'cuota_plataforma_agotada'}
-5. devolver {200, restante_minuto, restante_cuota, segundos_para_reiniciar}
+ENTRADAS: rl_s, rl_r (opcional), cuota_s, cuota_o (opcional), limite_plan, limite_ruta, peso, cuota_llamadas, cuota_peticiones, ttl_s, ttl_o
+1. n_s = INCR rl_s (EXPIRE 120 si es la primera vez); si n_s > limite_plan         → DECR rl_s; devolver {1, contadores}  (limite_por_minuto, del plan)
+2. si rl_r: n_r = INCR rl_r (EXPIRE 120); si n_r > limite_ruta                      → revertir 1 y 2; devolver {2, contadores}  (limite_por_minuto, de la ruta)
+3. c_s = INCRBY cuota_s peso (EXPIREAT ttl_s); si c_s > cuota_llamadas              → revertir 1, 2 y 3; devolver {3, contadores}  (cuota_agotada)
+4. si cuota_o: c_o = INCR cuota_o (EXPIREAT ttl_o); si c_o > cuota_peticiones                   → revertir 1 a 4; devolver {4, contadores}  (cuota_plataforma_agotada)
+5. devolver {0, contadores}
+
+contadores = n_s, n_r, c_s, c_o, leídos después de reservar o de revertir (0 si la llave no aplica)
 ```
 
 - Como la reserva es atómica, **la cuota nunca se excede**, ni siquiera con peticiones concurrentes ([ADR-21](12-decisiones.md)).

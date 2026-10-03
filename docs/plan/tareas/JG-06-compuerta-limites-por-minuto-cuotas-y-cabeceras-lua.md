@@ -73,7 +73,7 @@ dotnet format Shapi.slnx --verify-no-changes
 - Si el `fin` del ciclo ya pasó, por ejemplo con el trabajador caído, los contadores de cuota vencen 8 días después de ahora en vez de `fin + 8 días`. Si no, el `EXPIREAT` en el pasado borraría el contador y la cuota se reiniciaría en cada petición. En ese caso, `Retry-After` es 1.
 - `X-RateLimit-Remaining` es lo que queda del menor de los dos límites. `X-Cuota-Reinicio` va en UTC (`2026-10-31T06:00:00Z`).
 - Un 502 devuelve las cuotas, pero no los contadores por minuto, como dice 08 §3.
-- Los rechazos de los filtros 1 a 5 no llevan las cabeceras: el filtro 6 no se ejecutó y calcularlas costaría otro viaje a Redis.
+- Criterio 7, precisado en 08 §5: "toda respuesta con una clave válida" son las que llegan al filtro 6 (el reenvío, sus 502 y 504, y los 429). Los rechazos de los filtros 1 a 5, como un 403 `ruta_no_permitida` con una clave válida, no llevan las cabeceras: el filtro 6 no se ejecutó y calcularlas costaría otro viaje a Redis.
 - Los mensajes escriben las fechas y los miles sin depender de la cultura del sistema, porque la imagen Alpine no trae ICU.
 
 **Archivos principales:** `src/Shapi.Compuerta/Filtros/FiltroLimitesYCuotas.cs`, `src/Shapi.Compuerta/Lua/evaluar_limites.lua`, `src/Shapi.Compuerta/{TuberiaCompuerta,ContextoPeticion,CabecerasCompuerta}.cs`, `src/Shapi.Compuerta/Reenvio/ReenvioOrigen.cs`, `src/Shapi.Compuerta/Shapi.Compuerta.csproj` y `tests/Shapi.Compuerta.Tests/**`.
