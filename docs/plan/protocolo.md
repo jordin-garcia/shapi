@@ -80,8 +80,12 @@ Si el coordinador termina el PR abierto de otra persona (§E4), la rama parte de
 ### B7. Verificar
 - Ejecuta **todos** los comandos de la sección **Verificación** de la tarea, además de estos:
   - `node scripts/tareas.mjs --validar`
-  - `dotnet build Shapi.slnx`, `dotnet test Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes`, si tocaste el backend
-  - `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build`, en `frontend/`, si tocaste el frontend
+  - si tocaste el backend: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes`, completos, y las **pruebas de lo que tocaste**. Por ejemplo:
+    - `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.Planes"`, para el módulo `Planes`;
+    - `dotnet test tests/Shapi.Compuerta.Tests` o `dotnet test tests/Shapi.Dominio.Tests`, si tocaste la compuerta o el dominio;
+    - todo el proyecto (`dotnet test tests/Shapi.Api.Tests`) si tocaste algo compartido: `Persistencia/`, las migraciones, la siembra, `Program.cs`, `Shapi.Infraestructura/Comun/`, `Shapi.Aplicacion/Comun/` o `Directory.*.props`. También si no sabes qué pruebas lo cubren.
+  - si tocaste el frontend: `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build`, en `frontend/`.
+- **La suite completa del backend la ejecuta la CI** (JG-18). El check obligatorio `backend` corre `dotnet test Shapi.slnx` en cada *push*, sobre la rama al día con `main`. Por eso, donde la sección **Verificación** de una tarea dice `dotnet test Shapi.slnx`, en local bastan las pruebas dirigidas. La evidencia de la suite completa es ese check en verde. En una PC lenta, la suite completa tarda varios minutos, y la CI la corre de todos modos.
 - Si algo falla, **corrige la causa**. Nunca debilites las pruebas.
 - Guarda la salida resumida de cada comando: es la evidencia del PR.
 
@@ -113,12 +117,14 @@ Si el coordinador termina el PR abierto de otra persona (§E4), la rama parte de
 
 ### B11. Abrir el PR e integrarlo
 ```
+node scripts/tareas.mjs --validar-cierre "[<ID>] <título>"
 git push -u origin <rama>
 gh pr create --title "[<ID>] <título>" --body-file <archivo con la plantilla completada>
 gh pr merge --auto --squash --delete-branch
 gh pr checks --watch
 ```
 - **El título es obligatorio en el formato `[<ID>] <título>`**, con el ID de una tarea que existe; por ejemplo, `[EM-03] Pantallas de registro, verificación y acceso`. El check `titulo` rechaza cualquier otro, porque sin el ID la revisión automática no revisa criterios ni alcance. Una corrección posterior de una tarea ya hecha usa el ID de esa tarea. Si el título está mal, edítalo con `gh pr edit --title "[<ID>] <título>"`: el check `titulo` y la revisión se vuelven a ejecutar solos. Editar el PR no repite `plan`, `backend` ni `frontend`, porque el código no cambió.
+- **El cierre de la tarea se valida antes del *push*** (JG-18). `--validar-cierre` comprueba lo de B10: `estado: hecha`, `## Resultado` y, en una corrección de auditoría, su subsección; en un PR `Bloqueada:`, que la tarea quede bloqueada. El check `titulo` repite esa validación en la CI y, además, exige una entrada nueva en alguna bitácora. Falla en segundos, antes de gastar una revisión con Claude.
 - El cuerpo del PR sigue `.github/pull_request_template.md`, con la evidencia de B7 y B8 y el resultado de B9.
 - **Si falla una verificación de la CI:** lee el registro (`gh run view --log-failed`), corrige, haz *commit* y *push*, y vuelve a esperar. Tienes como máximo 5 intentos; después aplica §C.
 - **Si GitHub dice que la rama está desactualizada:** ejecuta `gh pr update-branch`, o haz `git pull --rebase origin main`, resuelve los conflictos según `docs/plan/convenciones.md` §3 y haz `git push --force-with-lease` **sobre tu rama**. Luego espera la CI otra vez. Si tu rama parte de la de otra persona (§E4), ponla al día con `gh pr update-branch` sobre **tu** PR o con un *merge* de `main` en tu rama, sin *rebase* ni *push* forzado. Nunca hagas *push* a la rama del dueño.
