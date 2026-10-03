@@ -82,4 +82,15 @@ dotnet format Shapi.slnx --verify-no-changes
   - Donde la Verificación de una tarea dice `dotnet test Shapi.slnx`, la evidencia es el check `backend`.
   - B11 corre `--validar-cierre` antes del *push*. Se actualizaron también `AGENTS.md` (comandos, "Siempre" y la Definición de terminado), `instalacion.md` y la plantilla del PR.
 - **Decisiones de Jordin (3 oct 2026):** tarea nueva JG-18; pruebas dirigidas en local; todo en un solo PR.
-- **Pendiente de decisión:** omitir los pasos de los jobs `backend` o `frontend` cuando el PR no toca nada que lean. El clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI, y no se aplicó. Está descrito en la bitácora de Jordin.
+- **Pendiente de decisión:** omitir los pasos de los jobs `backend` o `frontend` cuando el PR no toca nada que lean. El clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI, y no se aplicó en el PR #58. Jordin lo autorizó después (ver abajo).
+
+### Ampliación (2026-10-03)
+Segundo PR de JG-18, autorizado por Jordin después del PR #58:
+- **Verificaciones según el área:** `scripts/cambios-ci.mjs` decide si un PR afecta al backend o al frontend. Los jobs `backend` y `frontend` de `ci.yml` siempre se ejecutan, porque son checks obligatorios y uno omitido cuenta como aprobado, pero omiten sus pasos si el PR no los afecta.
+  - Cada área tiene una lista de rutas que seguro no le afectan. Cualquier otra ruta, incluido `ci.yml` o una carpeta nueva, ejecuta todo, y en `main` se verifica siempre todo.
+  - El backend lee también `docs/specs/`, `mockups/`, `infra/`, `contratos/` y `origenes-demo/`. El frontend lee `contratos/` y `docs/specs/11-interfaz.md`.
+  - Con los últimos PR: DC-08 no habría corrido el backend; EM-06, JZ-06, JG-06 y el PR #58 no habrían corrido el frontend; JZ-07 y JG-03 no habrían corrido ninguno.
+  - Pruebas en `scripts/cambios-ci.test.mjs` y una regla en `scripts/reglas-repositorio.test.mjs`: sin `if` en el job, `fetch-depth: 2`, y todos los pasos posteriores condicionados a la decisión.
+- **Pruebas de humo:** se borraron `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs`.
+  - Las dos primeras eran lo único que comprobaba que `/salud` responde 200, y esa comprobación pasó a `ApisTests.Salud_ApiEnEjecucion_Responde200` y `CompuertaTests.Salud_CompuertaEnEjecucion_Responde200`.
+  - `HumoTests` solo comprobaba que el ensamblado carga, algo que ya demuestran las otras 48 pruebas del dominio.

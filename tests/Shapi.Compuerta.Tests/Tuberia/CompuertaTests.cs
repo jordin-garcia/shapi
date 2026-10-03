@@ -15,6 +15,17 @@ public class CompuertaTests(EntornoCompuerta entorno) : IClassFixture<EntornoCom
     // SHA-256 de ClaveDemo, calculado aparte con sha256sum.
     private const string HashClaveDemo = "47d162d7ace0b83b8235011dc58124d30b62dd0fde19b1f38b99ca7d3195a971";
 
+    // RNF-15: la compuerta responde /salud con el host localhost (antes en SaludTests; JG-18).
+    [Fact]
+    public async Task Salud_CompuertaEnEjecucion_Responde200()
+    {
+        using var cliente = entorno.Cliente("localhost");
+
+        var respuesta = await cliente.GetAsync("/salud");
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task RF_31_Reenviar_ClaveValida_ConservaMetodoRutaQueryYCuerpoYDevuelveLaRespuestaDelOrigen()
     {

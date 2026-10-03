@@ -133,6 +133,15 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
+    // RNF-15: la API responde /salud (antes en SaludTests, que arrancaba su propio contenedor; JG-18).
+    [Fact]
+    public async Task Salud_ApiEnEjecucion_Responde200()
+    {
+        var respuesta = await _cliente.GetAsync("/salud");
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task RF_08_Registrar_DatosValidos_GuardaBorradorSecretoCifradoYBitacora()
     {

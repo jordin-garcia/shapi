@@ -564,4 +564,15 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - Cambié los fixtures de `tests/Shapi.Api.Tests/Bitacora/BitacoraTests.cs` y `Correo/EnvioCorreoTests.cs`: `EntornoCorreo` ya no tiene la propiedad `Postgres`, y su base vive en el servidor compartido. Las pruebas no cambiaron.
     - En `.github/workflows/publicar-imagenes.yml`, el job `ambiente-productivo` ahora instala Playwright y corre `tests/e2e` después de `infra/verificar.mjs`. `e2e.yml` sigue igual.
     - Actualiza tu rama desde `main`.
-  - **Pendiente (Jordin):** omitir los pasos de los jobs `backend` y `frontend` cuando el PR no toca nada que lean. Por ejemplo, un PR solo de frontend como DC-08 corrió el backend completo 4 veces. El job seguiría existiendo y en `main` se verificaría todo. No se aplicó: el clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI. Si se aprueba, se hace en otro PR.
+  - **Pendiente (Jordin):** omitir los pasos de los jobs `backend` y `frontend` cuando el PR no toca nada que lean. Por ejemplo, un PR solo de frontend como DC-08 corrió el backend completo 4 veces. El job seguiría existiendo y en `main` se verificaría todo. No se aplicó: el clasificador de permisos de Claude Code lo bloqueó por reducir verificaciones de la CI. Si se aprueba, se hace en otro PR. (Resuelto en la entrada siguiente.)
+
+## 2026-10-03 · JG-18 · Verificaciones según el área y pruebas de humo
+- Hecho:
+  - En los PR, los jobs `backend` y `frontend` omiten sus pasos si el PR no cambia nada que lean sus verificaciones (`scripts/cambios-ci.mjs`). El job siempre se ejecuta y en `main` se verifica todo.
+  - Se borraron las tres pruebas de humo (`SaludTests` de la API y de la compuerta, `HumoTests` del dominio). La comprobación de que `/salud` responde 200 pasó a `ApisTests` y `CompuertaTests`.
+- Decisiones: lo autoricé después del PR #58. La regla es conservadora: cada área enumera las rutas que seguro no le afectan, y cualquier otra la ejecuta.
+- Pendiente o aviso para otros:
+  - **Todos:**
+    - Un PR que solo toca `frontend/` ya no corre las pruebas de .NET, y uno que solo toca el backend no corre las de Vitest. En los checks aparecen en verde, con pasos omitidos y el motivo en el resumen del job.
+    - Si una prueba empieza a leer un archivo de otra carpeta (por ejemplo, una de Vitest que lea una especificación distinta de `11-interfaz.md`), hay que quitar esa ruta de la lista de `scripts/cambios-ci.mjs` en el mismo PR.
+  - **Dominique:** agregué `Salud_ApiEnEjecucion_Responde200` en `tests/Shapi.Api.Tests/Apis/ApisTests.cs`, que reemplaza a `SaludTests`. Actualiza tu rama desde `main`.
