@@ -13,9 +13,11 @@
 //   node scripts/tareas.mjs --validar           valida el formato de todas las tareas (se usa en la CI)
 //   node scripts/tareas.mjs --json              todas las tareas con su situación, en JSON (lo usa scripts/tablero.mjs)
 //   node scripts/tareas.mjs --validar-titulo    valida el título de un PR (argumento o variable TITULO_PR; se usa en la CI)
+//   node scripts/tareas.mjs --validar-cierre    valida que el PR cierre su tarea (variable TITULO_PR; se usa en la CI)
 //
 // Personas válidas: jordin, emilio, dominique, jose-pablo
 
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -285,6 +287,59 @@ export function validarTituloPr(titulo, ids) {
   return [];
 }
 
+// Cierre de la tarea en el PR (protocolo B10, JG-18). La revisión con Claude también lo revisa, pero aquí falla en
+// segundos y sin gastar la cuota: era el hallazgo que más se repetía en las revisiones. Devuelve los errores.
+//   - "[<ID>] Bloqueada: …" (§C): la tarea queda con estado: bloqueada (validar() exige además el campo bloqueo).
+//   - "[JG-01] Plan de la auditoría …" (§E2.6): solo integra el plan; no cierra ninguna tarea.
+//   - Cualquier otro: la tarea queda con estado: hecha y tiene "## Resultado". En una corrección de auditoría (§E3) de
+//     una tarea que ya estaba hecha en main (estadoAnterior), además, la subsección "### Correcciones de la auditoría
+//     (AAAA-MM-DD)"; una tarea nueva que el mismo PR crea y cierra no la necesita.
+//   - Todos agregan una entrada en una bitácora. Si no se conocen los archivos del PR (archivos = null), eso no se revisa.
+export function validarCierrePr(titulo, tarea, textoTarea, archivos, estadoAnterior = null) {
+  const id = FORMATO_TITULO.exec(titulo ?? "")?.[1];
+  if (!id || !tarea) return []; // el formato del título y la existencia de la tarea los valida --validar-titulo
+  const resto = titulo.replace(/^\[[^\]]+\] +/, "");
+  if (/^Plan de la auditoría\b/.test(resto)) return [];
+  const errores = [];
+  if (/^Bloqueada:/.test(resto)) {
+    if (tarea.estado !== "bloqueada") errores.push(`${tarea.archivo}: un PR "Bloqueada:" deja la tarea con "estado: bloqueada" y el campo "bloqueo" (protocolo §C).`);
+  } else {
+    if (tarea.estado !== "hecha") errores.push(`${tarea.archivo}: el PR debe cerrar la tarea con "estado: hecha" (protocolo B10).`);
+    if (!/^## Resultado[ \t]*\r?$/m.test(textoTarea)) errores.push(`${tarea.archivo}: falta la sección "## Resultado" al final (protocolo B10).`);
+    if (/^Correcciones de la auditoría\b/.test(resto) && estadoAnterior === "hecha" && !/^### Correcciones de la auditoría \(\d{4}-\d{2}-\d{2}\)/m.test(textoTarea)) {
+      errores.push(`${tarea.archivo}: falta la subsección "### Correcciones de la auditoría (AAAA-MM-DD)" dentro de "## Resultado" (protocolo §E3).`);
+    }
+  }
+  if (archivos && !archivos.some((a) => /^docs\/plan\/bitacora\/[^/]+\.md$/.test(a))) {
+    errores.push(`El PR no agrega ninguna entrada en docs/plan/bitacora/<persona>.md (protocolo B10).`);
+  }
+  return errores;
+}
+
+/**
+ * Los archivos que cambia el PR. En la CI de un pull_request, actions/checkout deja el commit de prueba de la
+ * integración, cuyo primer padre es la punta actual de main (hace falta fetch-depth: 2). Fuera de ese caso (por
+ * ejemplo, en local) devuelve null.
+ */
+export function archivosDelPr(git = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) {
+  try {
+    git(["rev-parse", "--verify", "--quiet", "HEAD^2"]);
+    return git(["diff", "--name-only", "HEAD^1", "HEAD"]).split(/\r?\n/).filter(Boolean);
+  } catch {
+    return null;
+  }
+}
+
+/** El estado de la tarea en la punta de main (el primer padre del commit de integración), o null si no se sabe. */
+export function estadoEnMain(archivo, git = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) {
+  try {
+    git(["rev-parse", "--verify", "--quiet", "HEAD^2"]);
+    return /^estado:\s*(\S+)/m.exec(git(["show", `HEAD^1:${archivo}`]))?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Forma pública de una tarea (--json y scripts/tablero.mjs).
 export function aJson(t) {
   return {
@@ -330,6 +385,18 @@ if (esPrincipal) {
       process.exit(1);
     }
     console.log(`Título válido: ${titulo}`);
+    process.exit(0);
+  }
+  if (args[0] === "--validar-cierre") {
+    const titulo = args[1] ?? process.env.TITULO_PR;
+    const tarea = tareas.find((t) => t.id === FORMATO_TITULO.exec(titulo ?? "")?.[1]);
+    const texto = tarea ? readFileSync(join(RAIZ, tarea.archivo), "utf8") : "";
+    const erroresCierre = validarCierrePr(titulo, tarea, texto, archivosDelPr(), tarea ? estadoEnMain(tarea.archivo) : null);
+    if (erroresCierre.length) {
+      console.error(`El PR no cierra su tarea:\n- ${erroresCierre.join("\n- ")}\nCorríjalo y haga push: el check «titulo» se vuelve a ejecutar solo.`);
+      process.exit(1);
+    }
+    console.log(tarea ? `Cierre válido: ${tarea.id} (${tarea.estado}).` : "Sin tarea en el título: lo rechaza --validar-titulo.");
     process.exit(0);
   }
   if (errores.length) console.error("Advertencia, el plan tiene errores de formato (corra --validar):\n- " + errores.join("\n- ") + "\n");

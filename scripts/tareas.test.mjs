@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cargar, clasificar, fechaCorta, reemplazarCalendario, tablaCalendario, validar, validarTituloPr } from "./tareas.mjs";
+import { archivosDelPr, cargar, clasificar, estadoEnMain, fechaCorta, reemplazarCalendario, tablaCalendario, validar, validarCierrePr, validarTituloPr } from "./tareas.mjs";
 
 const IDS = ["JG-01", "EM-03", "DC-04", "JZ-12"];
 
@@ -126,4 +126,71 @@ test("JG-03: el plan real tiene fechas válidas y calendario.md coincide con ell
   assert.deepEqual(validar(tareas, errores), []);
   const actual = readFileSync(new URL("../docs/plan/calendario.md", import.meta.url), "utf8");
   assert.equal(reemplazarCalendario(actual, tablaCalendario(tareas)), actual);
+});
+
+// ---------- JG-18: cierre de la tarea en el PR (protocolo B10) ----------
+
+const HECHA = { id: "EM-07", estado: "hecha", archivo: "docs/plan/tareas/EM-07-planes.md" };
+const CON_RESULTADO = "---\nestado: hecha\n---\n# EM-07\n\n## Resultado\n- Hecho.\n";
+const CON_BITACORA = ["src/a.cs", "docs/plan/tareas/EM-07-planes.md", "docs/plan/bitacora/emilio.md"];
+
+test("JG-18: un PR que cierra su tarea con Resultado y bitácora es válido", () => {
+  assert.deepEqual(validarCierrePr("[EM-07] Planes de API", HECHA, CON_RESULTADO, CON_BITACORA), []);
+});
+
+test("JG-18: la tarea tiene que quedar hecha y con ## Resultado", () => {
+  const errores = validarCierrePr("[EM-07] Planes de API", { ...HECHA, estado: "pendiente" }, "# EM-07\n## Resultados\n", CON_BITACORA);
+  assert.equal(errores.length, 2);
+  assert.match(errores[0], /estado: hecha/);
+  assert.match(errores[1], /## Resultado/);
+  // Con saltos de línea de Windows también se reconoce la sección.
+  assert.deepEqual(validarCierrePr("[EM-07] Planes", HECHA, "# EM-07\r\n\r\n## Resultado\r\n- Hecho.\r\n", CON_BITACORA), []);
+});
+
+test("JG-18: el PR tiene que agregar una entrada en alguna bitácora", () => {
+  const errores = validarCierrePr("[EM-07] Planes de API", HECHA, CON_RESULTADO, ["src/a.cs", "docs/plan/bitacora/README/otro.md"]);
+  assert.equal(errores.length, 1);
+  assert.match(errores[0], /bitacora/);
+  // Si no se conocen los archivos del PR (fuera de la CI), la bitácora no se revisa.
+  assert.deepEqual(validarCierrePr("[EM-07] Planes de API", HECHA, CON_RESULTADO, null), []);
+});
+
+test("JG-18: un PR «Bloqueada:» deja la tarea bloqueada, sin Resultado", () => {
+  const bloqueada = { ...HECHA, estado: "bloqueada" };
+  assert.deepEqual(validarCierrePr("[EM-07] Bloqueada: falta la cuenta", bloqueada, "# EM-07\n", ["docs/plan/tareas/EM-07-planes.md", "docs/plan/bitacora/emilio.md"]), []);
+  assert.match(validarCierrePr("[EM-07] Bloqueada: falta la cuenta", { ...HECHA, estado: "pendiente" }, "# EM-07\n", CON_BITACORA)[0], /estado: bloqueada/);
+});
+
+test("JG-18: una corrección de auditoría de una tarea ya hecha necesita su subsección", () => {
+  const titulo = "[EM-07] Correcciones de la auditoría: planes";
+  assert.match(validarCierrePr(titulo, HECHA, CON_RESULTADO, CON_BITACORA, "hecha")[0], /### Correcciones de la auditoría/);
+  const conSubseccion = CON_RESULTADO + "\n### Correcciones de la auditoría (2026-10-03)\n- H-01.\n";
+  assert.deepEqual(validarCierrePr(titulo, HECHA, conSubseccion, CON_BITACORA, "hecha"), []);
+  // Una tarea nueva que el mismo PR crea y cierra (como EM-17 en la auditoría del 25 sep) no la necesita.
+  assert.deepEqual(validarCierrePr(titulo, HECHA, CON_RESULTADO, CON_BITACORA, null), []);
+});
+
+test("JG-18: el plan de la auditoría y los títulos sin tarea no se revisan aquí", () => {
+  assert.deepEqual(validarCierrePr("[JG-01] Plan de la auditoría 2026-10-03", HECHA, "", ["docs/plan/auditoria-2026-10-03.md"]), []);
+  assert.deepEqual(validarCierrePr("sin ID", HECHA, "", []), []);
+  assert.deepEqual(validarCierrePr("[EM-99] No existe", undefined, "", []), []);
+});
+
+test("JG-18: los archivos del PR son el diff del commit de integración contra la punta de main", () => {
+  const llamadas = [];
+  const git = (args) => {
+    llamadas.push(args.join(" "));
+    return args[0] === "diff" ? "src/a.cs\r\ndocs/plan/bitacora/emilio.md\n" : "abc\n";
+  };
+  assert.deepEqual(archivosDelPr(git), ["src/a.cs", "docs/plan/bitacora/emilio.md"]);
+  assert.deepEqual(llamadas, ["rev-parse --verify --quiet HEAD^2", "diff --name-only HEAD^1 HEAD"]);
+  assert.equal(archivosDelPr(() => { throw new Error("sin HEAD^2"); }), null);
+});
+
+test("JG-18: el estado anterior de la tarea se lee de la punta de main", () => {
+  const git = (args) => (args[0] === "show" ? "---\nid: EM-07\nestado: hecha\n---\n" : "abc\n");
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", git), "hecha");
+  // La tarea no existía en main (la crea el PR) o no hay commit de integración.
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-17-x.md", (args) => { if (args[0] === "show") throw new Error("no existe"); return "abc"; }), null);
+  assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", () => { throw new Error("sin HEAD^2"); }), null);
 });
