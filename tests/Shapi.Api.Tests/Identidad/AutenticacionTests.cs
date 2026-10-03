@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Shapi.Api.Identidad;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Correo;
 using Shapi.Dominio.Identidad;
@@ -22,7 +23,6 @@ using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Shapi.Api.Tests.Identidad;
@@ -34,15 +34,8 @@ public class RelojFalso : IReloj
     public void Avanzar(TimeSpan tiempo) => Ahora += tiempo;
 }
 
-/// <summary>Un solo contenedor de PostgreSQL para toda la clase; cada prueba usa su propia base de datos.</summary>
-public sealed class ContenedorPostgres : IAsyncLifetime
-{
-    public PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
-
-    public Task InitializeAsync() => Contenedor.StartAsync();
-
-    public Task DisposeAsync() => Contenedor.DisposeAsync().AsTask();
-}
+/// <summary>Cada prueba usa su propia base de datos en el PostgreSQL compartido (JG-18).</summary>
+public sealed class ContenedorPostgres : PostgresDePrueba;
 
 public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<ContenedorPostgres>, IAsyncLifetime
 {

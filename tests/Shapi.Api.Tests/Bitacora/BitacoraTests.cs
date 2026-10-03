@@ -6,25 +6,19 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Bitacora;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
 using Shapi.Infraestructura.Identidad;
 using Shapi.Infraestructura.Persistencia;
-using Testcontainers.PostgreSql;
 using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 
 namespace Shapi.Api.Tests.Bitacora;
 
-public sealed class ContenedorPostgresBitacora : IAsyncLifetime
-{
-    public PostgreSqlContainer Contenedor { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
-
-    public Task InitializeAsync() => Contenedor.StartAsync();
-
-    public Task DisposeAsync() => Contenedor.DisposeAsync().AsTask();
-}
+/// <summary>Cada prueba usa su propia base de datos en el PostgreSQL compartido (JG-18).</summary>
+public sealed class ContenedorPostgresBitacora : PostgresDePrueba;
 
 public sealed class RelojBitacora : IReloj
 {

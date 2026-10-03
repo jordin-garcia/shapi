@@ -9,12 +9,12 @@ using DotNet.Testcontainers.Containers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Dominio.Correo;
 using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Correo;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.Correo;
-using Testcontainers.PostgreSql;
 
 namespace Shapi.Api.Tests.Correo;
 
@@ -53,7 +53,8 @@ public sealed class EntornoCorreo : IAsyncLifetime
             .Build();
     }
 
-    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16-alpine").Build();
+    /// <summary>La base de la colección, en el PostgreSQL compartido (JG-18). Se conoce al arrancar el contenedor.</summary>
+    private string _cadena = null!;
 
     public IContainer Mailpit { get; } = new ContainerBuilder("axllent/mailpit:v1.27")
         .WithPortBinding(1025, true)
@@ -70,7 +71,8 @@ public sealed class EntornoCorreo : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(Postgres.StartAsync(), Mailpit.StartAsync(), MailpitSeguro.StartAsync());
+        await Task.WhenAll(PostgresCompartido.IniciarAsync(), Mailpit.StartAsync(), MailpitSeguro.StartAsync());
+        _cadena = PostgresCompartido.NuevaCadena("correo");
         await using var db = CrearDb();
         await db.Database.MigrateAsync();
     }
@@ -78,7 +80,6 @@ public sealed class EntornoCorreo : IAsyncLifetime
     public async Task DisposeAsync()
     {
         await Task.WhenAll(
-            Postgres.DisposeAsync().AsTask(),
             Mailpit.DisposeAsync().AsTask(),
             MailpitSeguro.DisposeAsync().AsTask());
     }
@@ -86,7 +87,7 @@ public sealed class EntornoCorreo : IAsyncLifetime
     public ShapiDbContext CrearDb()
     {
         var opciones = new DbContextOptionsBuilder<ShapiDbContext>()
-            .UseNpgsql(Postgres.GetConnectionString())
+            .UseNpgsql(_cadena)
             .Options;
         return new ShapiDbContext(opciones, new ContextoOrganizacionNulo());
     }
