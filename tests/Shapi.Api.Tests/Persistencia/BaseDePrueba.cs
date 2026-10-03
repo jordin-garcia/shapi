@@ -44,10 +44,10 @@ public abstract class BaseDePrueba(PostgresPersistencia postgres) : IAsyncLifeti
         await db.Database.MigrateAsync();
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
         NpgsqlConnection.ClearAllPools();
-        return Task.CompletedTask;
+        await PostgresCompartido.EliminarBaseAsync(Cadena);
     }
 
     /// <summary>Un DbContext configurado como en la aplicación: con el contexto de organización y el interceptor de fechas.</summary>

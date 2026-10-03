@@ -130,6 +130,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         _cliente.Dispose();
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     [Fact]

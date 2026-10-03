@@ -23,7 +23,7 @@ public class SaludTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncL
         _cadena = PostgresCompartido.NuevaCadena();
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync() => PostgresCompartido.EliminarBaseAsync(_cadena);
 
     [Fact]
     public async Task Salud_ApiEnEjecucion_Responde200()

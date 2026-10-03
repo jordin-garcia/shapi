@@ -31,7 +31,7 @@ public class ServiciosComunesTests : IClassFixture<WebApplicationFactory<Program
         _cadena = PostgresCompartido.NuevaCadena();
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync() => PostgresCompartido.EliminarBaseAsync(_cadena);
 
     private WebApplicationFactory<Program> CrearFabrica()
     {

@@ -45,10 +45,11 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     private readonly RelojFalso _reloj = new();
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
+    private string _cadena = null!;
 
     public Task InitializeAsync()
     {
-        var cadena = new NpgsqlConnectionStringBuilder(postgres.Contenedor.GetConnectionString())
+        _cadena = new NpgsqlConnectionStringBuilder(postgres.Contenedor.GetConnectionString())
         {
             Database = $"prueba_{Guid.NewGuid():N}",
         }.ConnectionString;
@@ -56,7 +57,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         _fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("SHAPI_APLICAR_MIGRACIONES", "true");
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", cadena);
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", _cadena);
             builder.UseSetting("SHAPI_ADMIN_CORREO", CorreoAdmin);
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "SuperSecreto123!");
@@ -71,6 +72,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     {
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools(); // cada prueba usa otra base: que no se acumulen conexiones inactivas
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     // ---------- RF-01 · Registro ----------

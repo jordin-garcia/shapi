@@ -81,7 +81,8 @@ public sealed class EntornoCorreo : IAsyncLifetime
     {
         await Task.WhenAll(
             Mailpit.DisposeAsync().AsTask(),
-            MailpitSeguro.DisposeAsync().AsTask());
+            MailpitSeguro.DisposeAsync().AsTask(),
+            PostgresCompartido.EliminarBaseAsync(_cadena));
     }
 
     public ShapiDbContext CrearDb()

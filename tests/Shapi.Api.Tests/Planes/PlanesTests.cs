@@ -110,6 +110,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         _cliente.Dispose();
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     // RF-18

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Dominio.Correo;
 using Shapi.Dominio.Identidad;
@@ -25,10 +26,11 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
     private readonly RelojFalso _reloj = new();
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
+    private string _cadena = null!;
 
     public Task InitializeAsync()
     {
-        var cadena = new NpgsqlConnectionStringBuilder(postgres.Contenedor.GetConnectionString())
+        _cadena = new NpgsqlConnectionStringBuilder(postgres.Contenedor.GetConnectionString())
         {
             Database = $"prueba_{Guid.NewGuid():N}",
         }.ConnectionString;
@@ -36,7 +38,7 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
         _fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("SHAPI_APLICAR_MIGRACIONES", "true");
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", cadena);
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", _cadena);
             builder.UseSetting("SHAPI_ADMIN_CORREO", "admin@shapi.test");
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "SuperSecreto123!");
@@ -50,6 +52,7 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
     {
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     // ---------- RF-03 · Recuperar contraseña ----------

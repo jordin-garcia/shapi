@@ -31,10 +31,11 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
     private readonly RelojBitacora _reloj = new();
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
+    private string _cadena = null!;
 
     public Task InitializeAsync()
     {
-        var cadena = new NpgsqlConnectionStringBuilder(postgres.Contenedor.GetConnectionString())
+        _cadena = new NpgsqlConnectionStringBuilder(postgres.Contenedor.GetConnectionString())
         {
             Database = $"prueba_{Guid.NewGuid():N}",
         }.ConnectionString;
@@ -42,7 +43,7 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
         _fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("SHAPI_APLICAR_MIGRACIONES", "true");
-            builder.UseSetting("SHAPI_POSTGRES_CADENA", cadena);
+            builder.UseSetting("SHAPI_POSTGRES_CADENA", _cadena);
             builder.UseSetting("SHAPI_ADMIN_CORREO", "admin@shapi.test");
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Rodrigo Alvarado");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "SuperSecreto123!");
@@ -56,6 +57,7 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
     {
         await _fabrica.DisposeAsync();
         NpgsqlConnection.ClearAllPools();
+        await PostgresCompartido.EliminarBaseAsync(_cadena);
     }
 
     [Fact]

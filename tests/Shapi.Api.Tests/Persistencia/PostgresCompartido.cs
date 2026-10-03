@@ -13,7 +13,8 @@ namespace Shapi.Api.Tests.Persistencia;
 /// Al arrancar, se aplican las migraciones a <c>template1</c>, la plantilla de la que PostgreSQL copia toda base
 /// nueva. Así, la base propia de cada prueba (<c>prueba_&lt;guid&gt;</c>) nace ya migrada: EF Core la crea con
 /// <c>CREATE DATABASE</c>, encuentra todas las migraciones en <c>__EFMigrationsHistory</c> y no aplica nada. Cada
-/// prueba sigue teniendo su propia base, y la siembra se ejecuta igual que antes.
+/// prueba sigue teniendo su propia base, y la siembra se ejecuta igual que antes. Al terminar, cada clase la borra con
+/// <see cref="EliminarBaseAsync"/>.
 /// </para>
 /// <para>
 /// Nadie más se conecta a <c>template1</c>: PostgreSQL no copia una plantilla que tiene conexiones abiertas. El
@@ -41,6 +42,20 @@ public static class PostgresCompartido
 
     /// <summary>La cadena de conexión a una base nueva y única, que EF Core crea ya migrada al usarla.</summary>
     public static string NuevaCadena(string prefijo = "prueba") => Cadena($"{prefijo}_{Guid.NewGuid():N}");
+
+    /// <summary>
+    /// Borra la base de una prueba al terminar. Sin esto, las unas 300 bases (7 MB o más cada una) se acumulaban en el
+    /// contenedor, y Ryuk borraba varios GB de golpe al final, justo cuando empezaban las pruebas de la compuerta, que
+    /// miden tiempos y fallaban por el disco saturado (PR #58).
+    /// </summary>
+    public static async Task EliminarBaseAsync(string cadena)
+    {
+        var baseDeDatos = new NpgsqlConnectionStringBuilder(cadena).Database;
+        await using var conexion = new NpgsqlConnection(Cadena("postgres"));
+        await conexion.OpenAsync();
+        await using var comando = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{baseDeDatos}\" WITH (FORCE)", conexion);
+        await comando.ExecuteNonQueryAsync();
+    }
 
     private static string Cadena(string baseDeDatos) =>
         new NpgsqlConnectionStringBuilder(Contenedor.GetConnectionString()) { Database = baseDeDatos }.ConnectionString;
