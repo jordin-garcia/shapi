@@ -17,6 +17,9 @@ namespace Shapi.Api.Modulos;
 
 public static class IdentidadModulo
 {
+    /// <summary>Las rutas del portal del consumidor: solo aceptan la sesión del consumidor (04).</summary>
+    public const string RutaPortal = "/api/portal";
+
     /// <summary>Redes desde las que llega el borde (Caddy), en CIDR y separadas por comas (10 §1).</summary>
     public const string VariableRedesBorde = "SHAPI_REDES_BORDE";
 
@@ -37,8 +40,10 @@ public static class IdentidadModulo
         services.AgregarPoliticasShapi();
 
         services.AddAuthentication(EsquemaAutenticacionPortal.Esquema)
+            // 04: una sesión de un ámbito nunca da acceso a las rutas del otro. El esquema se elige por la ruta y no por la
+            // cookie: /api/portal/* solo lee portal_sesion y todo lo demás solo shapi_sesion, aunque lleguen las dos.
             .AddPolicyScheme(EsquemaAutenticacionPortal.Esquema, null, opciones => opciones.ForwardDefaultSelector = contexto =>
-                contexto.Request.Cookies.ContainsKey(ConsumidorAutenticacionOpciones.Cookie)
+                contexto.Request.Path.StartsWithSegments(RutaPortal)
                     ? ConsumidorAutenticacionOpciones.Esquema
                     : PersonalAutenticacionOpciones.Esquema)
             .AddScheme<PersonalAutenticacionOpciones, PersonalAutenticacionHandler>(PersonalAutenticacionOpciones.Esquema, null)

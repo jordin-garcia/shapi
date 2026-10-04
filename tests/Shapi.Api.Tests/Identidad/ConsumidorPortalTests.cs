@@ -76,10 +76,18 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
 
         var inicio = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "dos.shapi.localhost", new { correo = "ana@tienda.test", contrasena = "OtraContrasena456" });
         Assert.Equal(HttpStatusCode.OK, inicio.StatusCode);
+
+        // Auditoría 2026-10-03, H-06: cada cuenta tiene su contraseña; la del otro portal no sirve en ningún sentido.
+        var contrasenaDeDosEnUno = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "uno.shapi.localhost", new { correo = "ana@tienda.test", contrasena = "OtraContrasena456" });
+        var contrasenaDeUnoEnDos = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "dos.shapi.localhost", new { correo = "ana@tienda.test", contrasena = "ContrasenaValida123" });
+        var propiaEnUno = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "uno.shapi.localhost", new { correo = "ana@tienda.test", contrasena = "ContrasenaValida123" });
+        Assert.Equal(HttpStatusCode.Unauthorized, contrasenaDeDosEnUno.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, contrasenaDeUnoEnDos.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, propiaEnUno.StatusCode);
     }
 
     [Fact]
-    public async Task RF_05_SesionDePortal_AutorizaClavesEnSuHostYSeRechazaEnOtro()
+    public async Task RF_04_SesionDePortal_AutorizaClavesEnSuHostYSeRechazaEnOtro()
     {
         await InsertarApi("claves-portal");
         await InsertarApi("claves-otro");
@@ -123,7 +131,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     }
 
     [Fact]
-    public async Task RF_05_CincoIntentosFallidosEnParalelo_BloqueanAlConsumidor()
+    public async Task RF_04_CincoIntentosFallidosEnParalelo_BloqueanAlConsumidor()
     {
         await InsertarApi("bloqueo");
         await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "bloqueo.shapi.localhost",
@@ -139,7 +147,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     }
 
     [Fact]
-    public async Task RF_05_RecuperarConCorreoCompartido_EmiteTokenSoloParaElConsumidor()
+    public async Task RF_03_RecuperarConCorreoCompartido_EmiteTokenSoloParaElConsumidor()
     {
         var organizacionId = await InsertarApi("recuperar");
         await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "recuperar.shapi.localhost",
@@ -167,7 +175,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     }
 
     [Fact]
-    public async Task RF_05_SalirEnPortal_NoRevocaUnaSesionPersonal()
+    public async Task RF_04_SalirEnPortal_NoRevocaUnaSesionPersonal()
     {
         await InsertarApi("salir");
         var valorCookie = SeguridadTokens.GenerarToken();
@@ -189,20 +197,142 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.Null((await contexto.Set<Sesion>().IgnoreQueryFilters().SingleAsync(s => s.Id == sesion.Id)).RevocadaEn);
     }
 
-    [Fact]
-    public async Task RF_05_Entrar_LimitaDiezPeticionesPorMinutoPorIp()
+    [Theory]
+    [InlineData("POST", "/api/portal/auth/registro")]
+    [InlineData("POST", "/api/portal/auth/verificar-correo")]
+    [InlineData("POST", "/api/portal/auth/reenviar-verificacion")]
+    [InlineData("POST", "/api/portal/auth/entrar")]
+    [InlineData("POST", "/api/portal/auth/recuperar")]
+    [InlineData("GET", "/api/portal/auth/invitacion/inexistente")]
+    [InlineData("POST", "/api/portal/auth/invitacion/inexistente/aceptar")]
+    public async Task RF_04_LimitePorIp_EndpointsDelPortal_DiezPeticionesPorMinuto(string metodo, string ruta)
     {
+        // Criterio 5 de EM-05 y 10 §1 (auditoría 2026-10-03, H-09): el mismo límite por IP que en el personal.
         await InsertarApi("limite");
+        object? cuerpo = metodo == "POST"
+            ? new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "desconocido@limite.test", contrasena = "ContrasenaValida123", token = "inexistente" }
+            : null;
         for (var i = 0; i < 10; i++)
         {
-            var respuesta = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "limite.shapi.localhost",
-                new { correo = $"desconocido{i}@limite.test", contrasena = "ContrasenaValida123" });
+            var respuesta = await Enviar(new HttpMethod(metodo), ruta, "limite.shapi.localhost", cuerpo);
             Assert.NotEqual(HttpStatusCode.TooManyRequests, respuesta.StatusCode);
         }
-        var limitada = await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", "limite.shapi.localhost",
-            new { correo = "otro@limite.test", contrasena = "ContrasenaValida123" });
+
+        var limitada = await Enviar(new HttpMethod(metodo), ruta, "limite.shapi.localhost", cuerpo);
         Assert.Equal(HttpStatusCode.TooManyRequests, limitada.StatusCode);
         Assert.Equal("demasiadas_peticiones", (await limitada.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+    }
+
+    [Theory]
+    [InlineData("GET", "/api/auth/sesion", "ambitos.shapi.localhost")]
+    [InlineData("GET", "/api/auth/sesion", "shapi.localhost")]
+    [InlineData("GET", "/api/perfil", "ambitos.shapi.localhost")]
+    [InlineData("GET", "/api/perfil", "shapi.localhost")]
+    [InlineData("PUT", "/api/perfil", "ambitos.shapi.localhost")]
+    [InlineData("PUT", "/api/perfil", "shapi.localhost")]
+    [InlineData("POST", "/api/perfil/contrasena", "ambitos.shapi.localhost")]
+    [InlineData("POST", "/api/perfil/contrasena", "shapi.localhost")]
+    public async Task RF_04_SesionDelPortal_NoSirveEnLasRutasDelPersonal(string metodo, string ruta, string host)
+    {
+        // 04 y criterio 2 de EM-05 (auditoría 2026-10-03, H-05): antes, la cookie del portal elegía el esquema del
+        // consumidor también en el panel, y estas rutas respondían 500 o 200 sin hacer nada.
+        await InsertarApi("ambitos");
+        var (cookie, _) = await ConsumidorConSesion("ana@ambitos.test", "ambitos.shapi.localhost");
+        object? cuerpo = ruta == "/api/perfil/contrasena"
+            ? new { contrasenaActual = "ContrasenaValida123", contrasenaNueva = "OtraContrasena456" }
+            : metodo == "PUT" ? new { nombre = "Otro nombre" } : null;
+
+        var respuesta = await Enviar(new HttpMethod(metodo), ruta, host, cuerpo, cookie);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_ConLasDosCookies_CadaRutaUsaLaSesionDeSuAmbito()
+    {
+        // 04 (auditoría 2026-10-03, H-05): antes, una cookie del portal desplazaba a una sesión válida del panel.
+        await InsertarApi("dos-cookies");
+        var (cookiePortal, _) = await ConsumidorConSesion("ana@dos-cookies.test", "dos-cookies.shapi.localhost");
+        var entrar = await Enviar(HttpMethod.Post, "/api/auth/entrar", "shapi.localhost",
+            new { correo = "admin@shapi.test", contrasena = "AdminSuperSecreto123!" });
+        Assert.Equal(HttpStatusCode.OK, entrar.StatusCode);
+        var ambas = $"{cookiePortal}; {Cookie(entrar, "shapi_sesion")}";
+
+        var sesionPanel = await Enviar(HttpMethod.Get, "/api/auth/sesion", "shapi.localhost", cookie: ambas);
+        var sesionPortal = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "dos-cookies.shapi.localhost", cookie: ambas);
+
+        Assert.Equal(HttpStatusCode.OK, sesionPanel.StatusCode);
+        Assert.Equal("administrador", (await sesionPanel.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("rol").GetString());
+        Assert.Equal(HttpStatusCode.OK, sesionPortal.StatusCode);
+        Assert.Equal("Ana", (await sesionPortal.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("consumidor").GetProperty("nombre").GetString());
+    }
+
+    [Fact]
+    public async Task RF_04_SalirEnPortal_RevocaLaSesionDelConsumidorYBorraLaCookie()
+    {
+        // Criterio 2 de EM-05 (auditoría 2026-10-03, H-07).
+        await InsertarApi("salir-consumidor");
+        var (cookie, consumidorId) = await ConsumidorConSesion("ana@salir.test", "salir-consumidor.shapi.localhost");
+
+        var salir = await Enviar(HttpMethod.Post, "/api/portal/auth/salir", "salir-consumidor.shapi.localhost", cookie: cookie);
+
+        Assert.Equal(HttpStatusCode.OK, salir.StatusCode);
+        var borrado = salir.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("portal_sesion=", StringComparison.Ordinal));
+        Assert.Contains("expires=Thu, 01 Jan 1970", borrado, StringComparison.OrdinalIgnoreCase);
+        var despues = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "salir-consumidor.shapi.localhost", cookie: cookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, despues.StatusCode);
+        await using var alcance = _fabrica.Services.CreateAsyncScope();
+        var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var sesiones = await db.Set<Sesion>().IgnoreQueryFilters().Where(s => s.ConsumidorId == consumidorId).ToListAsync();
+        Assert.NotEmpty(sesiones);
+        Assert.All(sesiones, sesion => Assert.NotNull(sesion.RevocadaEn));
+    }
+
+    [Fact]
+    public async Task RF_04_CookieDelPortal_HttpOnlySecureLaxYSoloDelHost()
+    {
+        // Criterio 2 de EM-05 y 10 §1 (auditoría 2026-10-03, H-08): sin Domain, la cookie queda limitada al host.
+        await InsertarApi("cookie");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "cookie.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@cookie.test", contrasena = "ContrasenaValida123" });
+        var token = await TokenCorreo("ana@cookie.test", "cookie.shapi.localhost");
+
+        var verificar = await Enviar(HttpMethod.Post, "/api/portal/auth/verificar-correo", "cookie.shapi.localhost", new { token });
+
+        var cookie = verificar.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("portal_sesion=", StringComparison.Ordinal)).ToLowerInvariant();
+        Assert.Contains("httponly", cookie);
+        Assert.Contains("secure", cookie);
+        Assert.Contains("samesite=lax", cookie);
+        Assert.Contains("path=/", cookie);
+        Assert.DoesNotContain("domain=", cookie);
+    }
+
+    [Fact]
+    public async Task RF_05_Registro_CorreoConElHostCanonicoYLaMarcaDelPortal()
+    {
+        // Criterio 1 de EM-05 y 10 §6 (auditoría 2026-10-03, H-10): hostPortal sale del subdominio guardado y no de
+        // la cabecera Host, y el correo lleva el color y el logotipo del portal.
+        await InsertarApi("marca");
+        await using (var conexion = new NpgsqlConnection(_cadena))
+        {
+            await conexion.OpenAsync();
+            await using var comando = conexion.CreateCommand();
+            comando.CommandText = "UPDATE api SET portal_logo = @logo, portal_logo_tipo = 'image/png' WHERE subdominio = 'marca'";
+            comando.Parameters.AddWithValue("logo", new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+            Assert.Equal(1, await comando.ExecuteNonQueryAsync());
+        }
+
+        var registro = await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "MARCA.SHAPI.LOCALHOST.",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@marca.test", contrasena = "ContrasenaValida123" });
+
+        Assert.Equal(HttpStatusCode.OK, registro.StatusCode);
+        await using var alcance = _fabrica.Services.CreateAsyncScope();
+        var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var correo = await db.Set<CorreoSaliente>().IgnoreQueryFilters().SingleAsync(c => c.Destinatario == "ana@marca.test");
+        using var datos = JsonDocument.Parse(correo.Datos);
+        Assert.Equal("marca.shapi.localhost", datos.RootElement.GetProperty("hostPortal").GetString());
+        Assert.Equal("#3B6FF0", datos.RootElement.GetProperty("colorPortal").GetString());
+        Assert.Equal("true", datos.RootElement.GetProperty("logoPortal").GetString());
     }
 
     [Fact]

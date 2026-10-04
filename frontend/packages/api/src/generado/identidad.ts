@@ -237,12 +237,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Token vencido */
+                /** @description El enlace venció, ya se usó o es de otra organización (`token_invalido`). */
                 422: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
                 };
                 429: components["responses"]["DemasiadasPeticiones"];
             };
@@ -444,13 +446,6 @@ export interface paths {
                     };
                 };
                 401: components["responses"]["SinSesion"];
-                /** @description Portal no disponible. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
             };
         };
         put?: never;
@@ -549,12 +544,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Token inválido o vencido. */
+                /** @description El enlace no existe, venció o ya se usó (`token_invalido`). */
                 422: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
                 };
             };
         };
@@ -634,12 +631,14 @@ export interface paths {
                         "application/problem+json": components["schemas"]["Problema"];
                     };
                 };
-                /** @description Invitación vencida */
+                /** @description La invitación venció, ya se usó o es de otra organización (`token_invalido`). */
                 422: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["Problema"];
+                    };
                 };
                 429: components["responses"]["DemasiadasPeticiones"];
             };
@@ -1228,12 +1227,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Invitación vencida */
+            /** @description La invitación venció, ya se usó o es de otra organización (`token_invalido`). */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
             429: components["responses"]["DemasiadasPeticiones"];
         };
