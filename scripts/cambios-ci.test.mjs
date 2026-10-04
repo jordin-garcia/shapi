@@ -78,3 +78,13 @@ test("JG-18: un PR vacío no ejecuta nada", () => {
 test("JG-18: un área desconocida es un error", () => {
   assert.throws(() => afectaA("compuerta", []), /Área desconocida/);
 });
+
+test("auditoría 2026-10-03, H-36: mover una especificación que leen las pruebas a una carpeta libre sí verifica", () => {
+  // Con --no-renames, archivosDelPr da la ruta de origen y la de destino.
+  const movida = ["docs/specs/08-compuerta.md", "docs/plan/08-compuerta.md"];
+  assert.equal(decidir("backend", "pull_request", movida).ejecutar, true);
+  const movidaInterfaz = ["docs/specs/11-interfaz.md", "docs/plan/11-interfaz.md"];
+  assert.equal(decidir("frontend", "pull_request", movidaInterfaz).ejecutar, true);
+  // Solo con la ruta de destino (lo que daba el diff con detección de renombres) no se verificaba.
+  assert.equal(decidir("backend", "pull_request", ["docs/plan/08-compuerta.md"]).ejecutar, false);
+});

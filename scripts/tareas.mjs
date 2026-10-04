@@ -201,22 +201,34 @@ export function laEsperan(t, tareas) {
   return [...porPersona].map(([p, ids]) => `${PERSONAS[p]?.nombre ?? p} (${ids.join(", ")})`).join(", ");
 }
 
+/**
+ * El calendario de hoy por persona (criterio 13 de JG-03): lo programado para hoy, lo atrasado, la siguiente tarea
+ * después de hoy y, de cada una, quién la espera. Las tareas llegan ordenadas por `programada` (clasificar).
+ */
+export function resumenHoy(tareas, persona, fecha) {
+  return Object.entries(PERSONAS)
+    .filter(([clave]) => !persona || clave === persona)
+    .map(([clave, p]) => {
+      const pendientes = tareas.filter((t) => t.persona === clave && t.estado !== "hecha" && t.programada);
+      const conEspera = (t) => ({ tarea: t, laEsperan: laEsperan(t, tareas) });
+      return {
+        persona: clave,
+        nombre: p.nombre,
+        deHoy: pendientes.filter((t) => t.programada === fecha).map(conEspera),
+        atrasadas: pendientes.filter((t) => t.atrasada).map(conEspera),
+        proxima: pendientes.find((t) => t.programada > fecha) ?? null,
+      };
+    });
+}
+
 function mostrarHoy(tareas, persona) {
   if (persona && !PERSONAS[persona]) { console.error(`Persona desconocida "${persona}". Use: ${Object.keys(PERSONAS).join(", ")}`); process.exit(2); }
   const fecha = hoy();
   const porId = Object.fromEntries(tareas.map((t) => [t.id, t]));
-  const describir = (t) => {
-    const esperan = laEsperan(t, tareas);
-    return linea(t, porId) + (esperan ? `\n         ↳ la esperan: ${esperan}` : "");
-  };
+  const describir = ({ tarea, laEsperan: esperan }) => linea(tarea, porId) + (esperan ? `\n         ↳ la esperan: ${esperan}` : "");
   console.log(`\nCalendario de hoy, ${fechaCorta(fecha)} (${fecha})`);
-  for (const [clave, p] of Object.entries(PERSONAS)) {
-    if (persona && clave !== persona) continue;
-    const pendientes = tareas.filter((t) => t.persona === clave && t.estado !== "hecha" && t.programada);
-    const deHoy = pendientes.filter((t) => t.programada === fecha);
-    const atrasadas = pendientes.filter((t) => t.atrasada);
-    const proxima = pendientes.find((t) => t.programada > fecha);
-    console.log(`\n${p.nombre}`);
+  for (const { nombre, deHoy, atrasadas, proxima } of resumenHoy(tareas, persona, fecha)) {
+    console.log(`\n${nombre}`);
     console.log(`  HOY:${deHoy.length ? "" : " nada programado"}`);
     for (const t of deHoy) console.log(describir(t));
     if (atrasadas.length) { console.log(`  ATRASADAS:`); for (const t of atrasadas) console.log(describir(t)); }
@@ -295,7 +307,7 @@ export function validarTituloPr(titulo, ids) {
 //     una tarea que ya estaba hecha en main (estadoAnterior), además, la subsección "### Correcciones de la auditoría
 //     (AAAA-MM-DD)"; una tarea nueva que el mismo PR crea y cierra no la necesita.
 //   - Todos agregan una entrada en una bitácora. Si no se conocen los archivos del PR (archivos = null), eso no se revisa.
-export function validarCierrePr(titulo, tarea, textoTarea, archivos, estadoAnterior = null) {
+export function validarCierrePr(titulo, tarea, textoTarea, archivos, estadoAnterior = null, enLaCi = false) {
   const id = FORMATO_TITULO.exec(titulo ?? "")?.[1];
   if (!id || !tarea) return []; // el formato del título y la existencia de la tarea los valida --validar-titulo
   const resto = titulo.replace(/^\[[^\]]+\] +/, "");
@@ -309,6 +321,11 @@ export function validarCierrePr(titulo, tarea, textoTarea, archivos, estadoAnter
     if (/^Correcciones de la auditoría\b/.test(resto) && estadoAnterior === "hecha" && !/^### Correcciones de la auditoría \(\d{4}-\d{2}-\d{2}\)/m.test(textoTarea)) {
       errores.push(`${tarea.archivo}: falta la subsección "### Correcciones de la auditoría (AAAA-MM-DD)" dentro de "## Resultado" (protocolo §E3).`);
     }
+  }
+  // En la CI de un PR siempre debe poder leerse el diff (fetch-depth: 2): si no, el check obligatorio aprobaría sin
+  // revisar la bitácora ni la subsección de la auditoría (auditoría 2026-10-03, H-40).
+  if (enLaCi && archivos === null) {
+    errores.push("No se pudo leer el diff del PR en la CI (¿falta fetch-depth: 2 en actions/checkout?): no se puede comprobar el cierre.");
   }
   if (archivos && !archivos.some((a) => /^docs\/plan\/bitacora\/[^/]+\.md$/.test(a))) {
     errores.push(`El PR no agrega ninguna entrada en docs/plan/bitacora/<persona>.md (protocolo B10).`);
@@ -333,11 +350,15 @@ export function baseDelPr(entorno = process.env, git = gitPorDefecto) {
   return { main: "origin/main", rango: ["origin/main...HEAD"] };
 }
 
-/** Los archivos que cambia el PR, o null si no se sabe. */
+/**
+ * Los archivos que cambia el PR, o null si no se sabe. Con --no-renames, un archivo movido aparece con su ruta de
+ * origen y con la de destino: si no, mover una especificación que leen las pruebas a una carpeta libre omitiría esas
+ * verificaciones (auditoría 2026-10-03, H-36).
+ */
 export function archivosDelPr(git = gitPorDefecto, entorno = process.env) {
   try {
     const { rango } = baseDelPr(entorno, git);
-    return git(["diff", "--name-only", ...rango]).split(/\r?\n/).filter(Boolean);
+    return git(["diff", "--name-only", "--no-renames", ...rango]).split(/\r?\n/).filter(Boolean);
   } catch {
     return null;
   }
@@ -404,7 +425,8 @@ if (esPrincipal) {
     const titulo = args[1] ?? process.env.TITULO_PR;
     const tarea = tareas.find((t) => t.id === FORMATO_TITULO.exec(titulo ?? "")?.[1]);
     const texto = tarea ? readFileSync(join(RAIZ, tarea.archivo), "utf8") : "";
-    const erroresCierre = validarCierrePr(titulo, tarea, texto, archivosDelPr(), tarea ? estadoEnMain(tarea.archivo) : null);
+    const erroresCierre = validarCierrePr(titulo, tarea, texto, archivosDelPr(), tarea ? estadoEnMain(tarea.archivo) : null,
+      process.env.GITHUB_EVENT_NAME === "pull_request");
     if (erroresCierre.length) {
       console.error(`El PR no cierra su tarea:\n- ${erroresCierre.join("\n- ")}\nCorríjalo y haga push: el check «titulo» se vuelve a ejecutar solo.`);
       process.exit(1);

@@ -679,3 +679,18 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     Actualiza tu rama desde `main`.
   - **JZ-13:** el entorno E2E es el productivo, sin PostgreSQL publicado. Para reconstruir los datos antes de los flujos, usa `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar`, no `dotnet run` (el aviso de la bitácora de José Pablo del 3 oct).
   - **JZ-08 y EM-14:** la siembra ya tiene las APIs de Cafetalera, Petén y Datos Chapines, y los ciclos y pagos de plataforma de A6.2 y A6.3.
+
+## 2026-10-04 · JG-18 · Correcciones de la auditoría: CI y plan
+- Hecho: paso 5 de la auditoría del 3 oct para JG-18 y JG-03 (H-36 a H-42).
+  - Un archivo movido ya no omite las verificaciones (`--no-renames`).
+  - `--validar-cierre` falla en la CI si no puede leer el diff.
+  - 06 §7.3, §9 y los textos del protocolo, `AGENTS.md`, la plantilla e `instalacion.md` describen la verificación según el área.
+  - `--hoy` usa `resumenHoy`, con prueba.
+- Decisiones:
+  - `ambiente-productivo` pasa a ser check obligatorio;
+  - el decisor es parte del PR, como `ci.yml`;
+  - un solo PR para JG-18 y JG-03.
+- Pendiente o aviso para otros:
+  - **Jordin:** agrega `ambiente-productivo` a la protección de `main` (el modo automático no deja que el agente lo haga): `gh api -X POST repos/jordin-garcia/shapi/branches/main/protection/required_status_checks/contexts -f "contexts[]=ambiente-productivo"`.
+  - **José Pablo:** cambié el `if` del job `verificar-ambiente` (`ambiente-productivo`) en `.github/workflows/publicar-imagenes.yml`: ahora es `${{ !cancelled() && github.event_name == 'pull_request' }}`, para que no se omita si falla una imagen, y `scripts/reglas-repositorio.test.mjs` lo vigila. Actualiza tu rama desde `main`.
+  - **Todos:** cuando se agregue a la protección de `main`, `ambiente-productivo` (las E2E en el ambiente productivo simulado) bloqueará la integración si falla.

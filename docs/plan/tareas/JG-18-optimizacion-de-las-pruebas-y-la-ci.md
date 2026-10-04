@@ -102,3 +102,14 @@ Segundo PR de JG-18, autorizado por Jordin después del PR #58:
 - **Pruebas de humo:** se borraron `tests/Shapi.Api.Tests/SaludTests.cs`, `tests/Shapi.Compuerta.Tests/SaludTests.cs` y `tests/Shapi.Dominio.Tests/HumoTests.cs`.
   - Las dos primeras eran lo único que comprobaba que `/salud` responde 200, y esa comprobación pasó a `ApisTests.Salud_ApiEnEjecucion_Responde200` y `CompuertaTests.Salud_CompuertaEnEjecucion_Responde200`.
   - `HumoTests` solo comprobaba que el ensamblado carga, algo que ya demuestran las otras 48 pruebas del dominio.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 5 de `docs/plan/auditoria-2026-10-03.md` (H-36 a H-40):
+- **Archivos movidos (H-36).** `archivosDelPr` usaba `git diff --name-only`, que detecta renombres y solo da la ruta nueva. Si un PR movía `docs/specs/08-compuerta.md` o `11-interfaz.md` a una carpeta libre, se omitían el backend o el frontend, y el PR podía integrarse con pruebas rotas (RNF-15). Ahora usa `--no-renames`, con pruebas en `tareas.test.mjs` y `cambios-ci.test.mjs`.
+- **Especificación (H-37 y H-39).** 06 §7.3 describe la verificación según el área, y 06 §9 nombra `cambios-ci.mjs`.
+- **Textos (H-38).** Protocolo B7, `AGENTS.md`, la plantilla del PR e `instalacion.md` ya no dicen que la suite completa corre en cada *push*: en un PR, según el área; en `main`, siempre.
+- **Cierre sin diff (H-40).** En la CI de un PR, si no se puede leer el diff, `--validar-cierre` falla en vez de aprobar sin revisar la bitácora.
+- **Decisiones del paso 5:**
+  - `ambiente-productivo` es check obligatorio (protocolo B11, convenciones y `reglas-repositorio.test.mjs`). Su `if` empieza con `!cancelled()`: con `needs: publicar`, si fallaba una imagen el job se omitía y contaba como aprobado. Falta que Jordin lo agregue a la protección de `main`;
+  - el decisor es parte del PR, como `ci.yml` (06 §7.3).

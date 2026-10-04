@@ -371,7 +371,7 @@ Los orígenes de demostración (`origen-envios` y `origen-agro`) son dos APIs m�
 
 ### 7.3 Integración continua
 
-- En cada *pull request*: compilar, ejecutar las pruebas del backend (xUnit con Testcontainers) y del frontend (Vitest), revisar formato y *lint*, y hacer un *build* de las imágenes.
+- En cada *pull request*: compilar, ejecutar las pruebas del backend (xUnit con Testcontainers) y del frontend (Vitest), revisar formato y *lint*, y hacer un *build* de las imágenes. Los jobs `backend` y `frontend` siempre corren, pero omiten sus pasos si el PR no cambia nada que lean sus verificaciones: lo decide `scripts/cambios-ci.mjs` con una lista de rutas que seguro no les afectan, y cualquier otra ruta, un archivo movido (con su ruta de origen y la de destino) o un cambio en `ci.yml` o en el propio decisor ejecuta todo. En cada *merge* a `main` se verifica todo. El decisor es parte del PR, como `ci.yml`: un cambio en él lo revisan `revision-claude` y la CI completa de `main`.
 - En cada *merge* a `main`: publicar las imágenes `shapi-api`, `shapi-compuerta`, `shapi-trabajador` y `shapi-borde` en GHCR, que es gratis para repositorios públicos.
 - Pruebas de extremo a extremo con Playwright contra el ambiente productivo simulado: en cada *pull request*, en el ambiente que se levanta para verificarlo, y en cada *merge* a `main`.
 
@@ -404,7 +404,7 @@ shapi/
 │  └─ manual-usuario.md
 ├─ mockups/             ← diseños aprobados (ver 11 · Interfaz)
 ├─ contratos/openapi/   ← contratos HTTP de la API de control, uno por módulo
-├─ scripts/             ← tareas.mjs, tablero.mjs, veredicto-revision.mjs, verificar-entorno.mjs, generar-pdf.mjs
+├─ scripts/             ← tareas.mjs, tablero.mjs, veredicto-revision.mjs, cambios-ci.mjs, verificar-entorno.mjs, generar-pdf.mjs
 ├─ AGENTS.md            ← instrucciones para cualquier agente de IA (CLAUDE.md lo importa)
 ├─ src/
 │  ├─ Shapi.Dominio/          ← capa de lógica: entidades, reglas y máquinas de estado (sin dependencias)

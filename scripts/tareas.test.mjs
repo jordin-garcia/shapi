@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { archivosDelPr, cargar, clasificar, estadoEnMain, fechaCorta, reemplazarCalendario, tablaCalendario, validar, validarCierrePr, validarTituloPr } from "./tareas.mjs";
+import { archivosDelPr, cargar, clasificar, estadoEnMain, fechaCorta, reemplazarCalendario, resumenHoy, tablaCalendario, validar, validarCierrePr, validarTituloPr } from "./tareas.mjs";
 
 const IDS = ["JG-01", "EM-03", "DC-04", "JZ-12"];
 
@@ -185,7 +185,8 @@ test("JG-18: en la CI, los archivos del PR son el diff del commit de integració
     return args[0] === "diff" ? "src/a.cs\r\ndocs/plan/bitacora/emilio.md\n" : "abc\n";
   };
   assert.deepEqual(archivosDelPr(git, EN_LA_CI), ["src/a.cs", "docs/plan/bitacora/emilio.md"]);
-  assert.deepEqual(llamadas, ["rev-parse --verify --quiet HEAD^2", "diff --name-only HEAD^1 HEAD"]);
+  // Auditoría 2026-10-03, H-36: --no-renames, para que un archivo movido aparezca también con su ruta de origen.
+  assert.deepEqual(llamadas, ["rev-parse --verify --quiet HEAD^2", "diff --name-only --no-renames HEAD^1 HEAD"]);
   assert.equal(archivosDelPr(() => { throw new Error("sin HEAD^2"); }, EN_LA_CI), null);
 });
 
@@ -200,7 +201,7 @@ test("JG-18: en local, el PR se compara contra origin/main, aunque el último co
   assert.deepEqual(archivosDelPr(git, {}), ["docs/plan/tareas/EM-07-planes.md", "docs/plan/bitacora/emilio.md"]);
   assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", git, {}), "pendiente");
   assert.deepEqual(llamadas, [
-    "rev-parse --verify --quiet origin/main", "diff --name-only origin/main...HEAD",
+    "rev-parse --verify --quiet origin/main", "diff --name-only --no-renames origin/main...HEAD",
     "rev-parse --verify --quiet origin/main", "show origin/main:docs/plan/tareas/EM-07-planes.md",
   ]);
   // Sin origin/main no hay contra qué comparar.
@@ -222,4 +223,37 @@ test("JG-18: el estado anterior de la tarea se lee de la punta de main", () => {
   // La tarea no existía en main (la crea el PR) o no hay commit de integración.
   assert.equal(estadoEnMain("docs/plan/tareas/EM-17-x.md", (args) => { if (args[0] === "show") throw new Error("no existe"); return "abc"; }, EN_LA_CI), null);
   assert.equal(estadoEnMain("docs/plan/tareas/EM-07-planes.md", () => { throw new Error("sin HEAD^2"); }, EN_LA_CI), null);
+});
+
+test("auditoría 2026-10-03, H-40: en la CI de un PR, si no se puede leer el diff, el cierre falla", () => {
+  const errores = validarCierrePr("[EM-07] Planes de API", HECHA, CON_RESULTADO, null, null, true);
+  assert.equal(errores.length, 1);
+  assert.match(errores[0], /No se pudo leer el diff del PR en la CI/);
+  // Fuera de la CI (sin origin/main en local) sigue sin exigirse.
+  assert.deepEqual(validarCierrePr("[EM-07] Planes de API", HECHA, CON_RESULTADO, null, null, false), []);
+  assert.deepEqual(validarCierrePr("[EM-07] Planes de API", HECHA, CON_RESULTADO, CON_BITACORA, null, true), []);
+});
+
+test("JG-03 criterio 13 (auditoría 2026-10-03, H-41): --hoy da lo de hoy, lo atrasado, quién lo espera y la siguiente", () => {
+  const tareas = [
+    { id: "EM-01", persona: "emilio", estado: "pendiente", programada: "2026-10-01", atrasada: true, titulo: "Atrasada", depende_de: [] },
+    { id: "EM-02", persona: "emilio", estado: "pendiente", programada: "2026-10-04", atrasada: false, titulo: "De hoy", depende_de: [] },
+    { id: "EM-03", persona: "emilio", estado: "pendiente", programada: "2026-10-06", atrasada: false, titulo: "Siguiente", depende_de: [] },
+    { id: "EM-04", persona: "emilio", estado: "hecha", programada: "2026-10-04", atrasada: false, titulo: "Ya hecha", depende_de: [] },
+    { id: "DC-01", persona: "dominique", estado: "pendiente", programada: "2026-10-08", atrasada: false, titulo: "Espera", depende_de: ["EM-02"] },
+  ];
+
+  const [emilio] = resumenHoy(tareas, "emilio", "2026-10-04");
+
+  assert.equal(emilio.nombre, "Emilio Méndez");
+  assert.deepEqual(emilio.deHoy.map((x) => x.tarea.id), ["EM-02"]);
+  assert.match(emilio.deHoy[0].laEsperan, /Dominique Contreras \(DC-01\)/);
+  assert.deepEqual(emilio.atrasadas.map((x) => x.tarea.id), ["EM-01"]);
+  assert.equal(emilio.atrasadas[0].laEsperan, "");
+  assert.equal(emilio.proxima.id, "EM-03");
+  // Sin persona, una entrada por cada una; sin nada programado, listas vacías y sin siguiente.
+  const todas = resumenHoy(tareas, undefined, "2026-10-04");
+  assert.equal(todas.length, 4);
+  const jose = todas.find((x) => x.persona === "jose-pablo");
+  assert.deepEqual([jose.deHoy, jose.atrasadas, jose.proxima], [[], [], null]);
 });
