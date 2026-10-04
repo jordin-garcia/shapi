@@ -191,8 +191,11 @@ docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml ex
 
 El comando exige `SHAPI_MODO_DEMO=true`, es idempotente y toma las URL de los
 orígenes de `SHAPI_URL_ORIGEN_ENVIOS` y `SHAPI_URL_ORIGEN_AGRO`. Sin esas
-variables usa `localhost:5101` y `localhost:5102` en desarrollo, y
-`origen-envios:8080` y `origen-agro:8080` en producción. Para recrear
+variables usa `localhost:5101` y `localhost:5102` en desarrollo. En el ambiente
+productivo simulado, `infra/compose.prod.yml` las fija en `origen-envios:8080` y
+`origen-agro:8080`, sin tomar las del `.env`, que son las de desarrollo. Ese
+ambiente es el de la exposición, así que `SHAPI_MODO_DEMO` vale `true` por defecto
+(06 §7.1); en un despliegue real se cambia a `false`. Para recrear
 únicamente los datos de demostración, conservando los datos base y la bitácora
 append-only, agregue `--reiniciar`. Al terminar resincroniza la configuración de
 la compuerta en Redis. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o

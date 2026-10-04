@@ -28,6 +28,15 @@ public sealed class SiembraDemo(
 {
     public const string Contrasena = "Shapi2026!demo";
 
+    /// <summary>Las cuentas del personal y de los proveedores de la demostración.</summary>
+    private static readonly string[] CorreosUsuariosDemo =
+    [
+        "rodrigo.alvarado@shapi.localhost", "lucia.ramirez@shapi.localhost", "sofia.menchu@shapi.localhost",
+        "julio.estrada@shapi.localhost", "ana.morales@enviosxelaju.com", "diego.us@enviosxelaju.com",
+        "karla.batres@enviosxelaju.com", "carlos.tzul@agroprecios.com", "lucia.cotom@cafetaleraaltiplano.com",
+        "mario.pop@transportespeten.com", "gabriela.sac@datoschapines.com"
+    ];
+
     private static readonly string[] OrganizacionesDemo =
     [
         "Envíos Xelajú, S.A.", "Agro Precios, S.A.", "Cafetalera del Altiplano, S.A.",
@@ -70,14 +79,18 @@ public sealed class SiembraDemo(
 
         var plataforma = await db.Set<Organizacion>().IgnoreQueryFilters()
             .SingleAsync(o => o.Tipo == TipoOrganizacion.Plataforma, cancelacion);
+        // Si ya existen (un reinicio), se restablecen en vez de crearse otra vez (auditoría 2026-10-03, H-29).
+        var usuariosExistentes = await db.Set<Usuario>().IgnoreQueryFilters()
+            .Where(u => CorreosUsuariosDemo.Contains(u.Correo))
+            .ToDictionaryAsync(u => u.Correo, cancelacion);
         var personal = new[]
         {
-            CrearUsuario("Rodrigo Alvarado", "rodrigo.alvarado@shapi.localhost", hashUsuarios, ahora),
-            CrearUsuario("Lucía Ramírez Pineda", "lucia.ramirez@shapi.localhost", hashUsuarios, ahora),
-            CrearUsuario("Sofía Menchú Cojtí", "sofia.menchu@shapi.localhost", hashUsuarios, ahora),
-            CrearUsuario("Julio Estrada Ixcot", "julio.estrada@shapi.localhost", hashUsuarios, ahora, desactivado: true),
+            CrearUsuario("Rodrigo Alvarado", "rodrigo.alvarado@shapi.localhost", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Lucía Ramírez Pineda", "lucia.ramirez@shapi.localhost", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Sofía Menchú Cojtí", "sofia.menchu@shapi.localhost", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Julio Estrada Ixcot", "julio.estrada@shapi.localhost", hashUsuarios, ahora, usuariosExistentes, desactivado: true),
         };
-        db.AddRange(personal);
+        db.AddRange(Nuevas(personal));
         db.AddRange(
             new Membresia(personal[0].Id, plataforma.Id, Rol.Administrador),
             new Membresia(personal[1].Id, plataforma.Id, Rol.Administrador),
@@ -104,16 +117,16 @@ public sealed class SiembraDemo(
 
         var propietarios = new[]
         {
-            CrearUsuario("Ana Lucía Morales", "ana.morales@enviosxelaju.com", hashUsuarios, ahora),
-            CrearUsuario("Carlos Tzul", "carlos.tzul@agroprecios.com", hashUsuarios, ahora),
-            CrearUsuario("Lucía Cotom", "lucia.cotom@cafetaleraaltiplano.com", hashUsuarios, ahora),
-            CrearUsuario("Mario Pop", "mario.pop@transportespeten.com", hashUsuarios, ahora),
-            CrearUsuario("Gabriela Sac", "gabriela.sac@datoschapines.com", hashUsuarios, ahora),
+            CrearUsuario("Ana Lucía Morales", "ana.morales@enviosxelaju.com", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Carlos Tzul", "carlos.tzul@agroprecios.com", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Lucía Cotom", "lucia.cotom@cafetaleraaltiplano.com", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Mario Pop", "mario.pop@transportespeten.com", hashUsuarios, ahora, usuariosExistentes),
+            CrearUsuario("Gabriela Sac", "gabriela.sac@datoschapines.com", hashUsuarios, ahora, usuariosExistentes),
         };
-        var diego = CrearUsuario("Diego Us Pérez", "diego.us@enviosxelaju.com", hashUsuarios, ahora);
-        var karla = CrearUsuario("Karla Batres", "karla.batres@enviosxelaju.com", hashUsuarios, ahora);
-        db.AddRange(propietarios);
-        db.AddRange(diego, karla);
+        var diego = CrearUsuario("Diego Us Pérez", "diego.us@enviosxelaju.com", hashUsuarios, ahora, usuariosExistentes);
+        var karla = CrearUsuario("Karla Batres", "karla.batres@enviosxelaju.com", hashUsuarios, ahora, usuariosExistentes);
+        db.AddRange(Nuevas(propietarios));
+        db.AddRange(Nuevas([diego, karla]));
         var organizaciones = new[] { envios, agro, cafetalera, peten, datos };
         for (var i = 0; i < organizaciones.Length; i++)
         {
@@ -136,13 +149,15 @@ public sealed class SiembraDemo(
 
         var planesPlataforma = await db.Set<PlanPlataforma>().IgnoreQueryFilters()
             .ToDictionaryAsync(p => p.Nombre, cancelacion);
+        // 07 §6: los ciclos y los pagos de plataforma siguen A6.2, A6.3 y B1.3, cuyo «hoy» es el 13 de septiembre.
+        // Cada pago cubre el ciclo que empieza ese día; una renovación rechazada, el ciclo siguiente.
         var suscripcionesPlataforma = new[]
         {
-            CrearSuscripcionPlataforma(envios.Id, planesPlataforma["Producto"].Id, EstadoSuscripcion.Activa, ahora.AddDays(-21), 30, mediosOrganizacion[0].Id),
+            CrearSuscripcionPlataforma(envios.Id, planesPlataforma["Producto"].Id, EstadoSuscripcion.Activa, ahora.AddDays(-20), 30, mediosOrganizacion[0].Id),
             CrearSuscripcionPlataforma(agro.Id, planesPlataforma["Lanzamiento"].Id, EstadoSuscripcion.Activa, ahora.AddDays(-12), 30, mediosOrganizacion[1].Id),
-            CrearSuscripcionPlataforma(cafetalera.Id, planesPlataforma["Prueba"].Id, EstadoSuscripcion.Activa, ahora.AddDays(-8), 30, mediosOrganizacion[2].Id),
-            CrearSuscripcionPlataforma(peten.Id, planesPlataforma["Lanzamiento"].Id, EstadoSuscripcion.EnGracia, ahora.AddDays(-33), 30, mediosOrganizacion[3].Id, ahora.AddDays(4)),
-            CrearSuscripcionPlataforma(datos.Id, planesPlataforma["Lanzamiento"].Id, EstadoSuscripcion.Suspendida, ahora.AddDays(-40), 30, mediosOrganizacion[4].Id),
+            CrearSuscripcionPlataforma(cafetalera.Id, planesPlataforma["Prueba"].Id, EstadoSuscripcion.Activa, ahora.AddDays(-16), 30, mediosOrganizacion[2].Id),
+            CrearSuscripcionPlataforma(peten.Id, planesPlataforma["Lanzamiento"].Id, EstadoSuscripcion.EnGracia, ahora.AddDays(-32), 30, mediosOrganizacion[3].Id, Suscripcion.InicioDeCiclo(ahora.AddDays(-32)).AddDays(30 + 7)),
+            CrearSuscripcionPlataforma(datos.Id, planesPlataforma["Lanzamiento"].Id, EstadoSuscripcion.Suspendida, ahora.AddDays(-39), 30, mediosOrganizacion[4].Id),
         };
         db.AddRange(suscripcionesPlataforma);
 
@@ -154,7 +169,16 @@ public sealed class SiembraDemo(
         var apiAgro = CrearApi(agro.Id, "API de Precios de Mercado", "agro", urlOrigenAgro,
             secretoOrigenAgro, EstadoApi.Publicada, ahora, "Agro Precios", "#3F7021",
             "Consulte los precios del día en los mercados mayoristas de Guatemala.");
+        // A6.2 cuenta 1, 2 y 1 APIs para Cafetalera, Petén y Datos Chapines (auditoría 2026-10-03, H-31).
+        var apisOtras = new[]
+        {
+            CrearApi(cafetalera.Id, "API de Lotes de Café", "lotes-cafe", urlOrigenAgro, null, EstadoApi.Borrador, ahora),
+            CrearApi(peten.Id, "API de Rutas de Carga", "rutas-carga", urlOrigenEnvios, null, EstadoApi.Borrador, ahora),
+            CrearApi(peten.Id, "API de Seguimiento de Flota", "seguimiento-flota", urlOrigenEnvios, null, EstadoApi.Borrador, ahora),
+            CrearApi(datos.Id, "API de Datos Demográficos", "datos-demograficos", urlOrigenAgro, null, EstadoApi.Borrador, ahora),
+        };
         db.AddRange(apiEnvios, apiRecolecciones, apiAgro);
+        db.AddRange(apisOtras);
         db.Add(Crear<DominioPropio>(
             (nameof(DominioPropio.Id), Guid.CreateVersion7()), (nameof(DominioPropio.ApiId), apiEnvios.Id),
             (nameof(DominioPropio.Dominio), "api.enviosxelaju.localhost"),
@@ -240,21 +264,25 @@ public sealed class SiembraDemo(
             CrearPago(suscripcionesApi[3], mediosConsumidor[3].Id, "Suscripción al plan Básico", 149m, ahora.AddDays(-13)),
             CrearPago(suscripcionesApi[4], mediosConsumidor[4].Id, "Suscripción al plan Mayorista", 350m, ahora.AddDays(-10)));
         db.AddRange(
-            CrearPagoPlataforma(suscripcionesPlataforma[3], mediosOrganizacion[3].Id, "Lanzamiento", 199m, EstadoPago.Rechazado, ahora.AddDays(-2)),
+            CrearPagoPlataforma(suscripcionesPlataforma[3], mediosOrganizacion[3].Id, "Lanzamiento", 199m, EstadoPago.Rechazado, ahora.AddDays(-2), periodoInicio: suscripcionesPlataforma[3].Fin),
             CrearPagoPlataforma(suscripcionesPlataforma[0], mediosOrganizacion[0].Id, "Lanzamiento → Producto · diferencia prorrateada", 173.34m, EstadoPago.Autorizado, ahora.AddDays(-3), ConceptoPago.CambioPlan),
-            CrearPagoPlataforma(suscripcionesPlataforma[4], mediosOrganizacion[4].Id, "Lanzamiento", 199m, EstadoPago.Rechazado, ahora.AddDays(-9)),
+            CrearPagoPlataforma(suscripcionesPlataforma[4], mediosOrganizacion[4].Id, "Lanzamiento", 199m, EstadoPago.Rechazado, ahora.AddDays(-9), periodoInicio: suscripcionesPlataforma[4].Fin),
             CrearPagoPlataforma(suscripcionesPlataforma[1], mediosOrganizacion[1].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-12)),
-            CrearPagoPlataforma(suscripcionesPlataforma[0], mediosOrganizacion[0].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-20), periodoInicio: ahora.AddDays(-34)),
-            CrearPagoPlataforma(suscripcionesPlataforma[3], mediosOrganizacion[3].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-32), periodoInicio: ahora.AddDays(-63)),
-            CrearPagoPlataforma(suscripcionesPlataforma[4], mediosOrganizacion[4].Id, "Lanzamiento", 199m, EstadoPago.Revertido, ahora.AddDays(-39), ConceptoPago.Renovacion, personal[0].Id, ahora.AddDays(-70), ahora.AddDays(-3)));
+            CrearPagoPlataforma(suscripcionesPlataforma[0], mediosOrganizacion[0].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-20)),
+            CrearPagoPlataforma(suscripcionesPlataforma[3], mediosOrganizacion[3].Id, "Lanzamiento", 199m, EstadoPago.Autorizado, ahora.AddDays(-32)),
+            CrearPagoPlataforma(suscripcionesPlataforma[4], mediosOrganizacion[4].Id, "Lanzamiento", 199m, EstadoPago.Revertido, ahora.AddDays(-39), ConceptoPago.Renovacion, personal[0].Id, null, ahora.AddDays(-3)));
 
+        // 07 §6: CAS-100 a CAS-104. Si otra organización ya tiene alguno de esos números (un caso creado antes de
+        // sembrar), los de la demostración toman los siguientes libres (auditoría 2026-10-03, H-32).
+        var numeroOcupado = await db.Set<Caso>().IgnoreQueryFilters().AnyAsync(c => c.Numero >= 100 && c.Numero <= 104, cancelacion);
+        var primerCaso = numeroOcupado ? await db.Set<Caso>().IgnoreQueryFilters().MaxAsync(c => c.Numero, cancelacion) + 1 : 100;
         var casos = new[]
         {
-            CrearCaso(100, envios.Id, apiEnvios.Id, propietarios[0].Id, personal[2].Id, "Cómo rotar una clave de producción", EstadoCaso.Cerrado, ahora.AddDays(-11)),
-            CrearCaso(101, cafetalera.Id, null, propietarios[2].Id, personal[2].Id, "No llegó el correo de verificación", EstadoCaso.Cerrado, ahora.AddDays(-8)),
-            CrearCaso(102, datos.Id, null, propietarios[4].Id, personal[3].Id, "Sus APIs dejaron de responder", EstadoCaso.Abierto, ahora.AddDays(-4)),
-            CrearCaso(103, agro.Id, apiAgro.Id, propietarios[1].Id, personal[2].Id, "Un consumidor recibe 429 con cuota disponible", EstadoCaso.Abierto, ahora.AddDays(-3)),
-            CrearCaso(104, envios.Id, apiEnvios.Id, propietarios[0].Id, personal[2].Id, "El dominio propio no verifica", EstadoCaso.Abierto, ahora.AddDays(-2)),
+            CrearCaso(primerCaso, envios.Id, apiEnvios.Id, propietarios[0].Id, personal[2].Id, "Cómo rotar una clave de producción", EstadoCaso.Cerrado, ahora.AddDays(-11)),
+            CrearCaso(primerCaso + 1, cafetalera.Id, null, propietarios[2].Id, personal[2].Id, "No llegó el correo de verificación", EstadoCaso.Cerrado, ahora.AddDays(-8)),
+            CrearCaso(primerCaso + 2, datos.Id, null, propietarios[4].Id, personal[3].Id, "Sus APIs dejaron de responder", EstadoCaso.Abierto, ahora.AddDays(-4)),
+            CrearCaso(primerCaso + 3, agro.Id, apiAgro.Id, propietarios[1].Id, personal[2].Id, "Un consumidor recibe 429 con cuota disponible", EstadoCaso.Abierto, ahora.AddDays(-3)),
+            CrearCaso(primerCaso + 4, envios.Id, apiEnvios.Id, propietarios[0].Id, personal[2].Id, "El dominio propio no verifica", EstadoCaso.Abierto, ahora.AddDays(-2)),
         };
         db.AddRange(casos);
         await db.SaveChangesAsync(cancelacion);
@@ -279,19 +307,14 @@ public sealed class SiembraDemo(
         db.AddRange(consumoEnvios);
         var entradasBitacora = CrearBitacora(ahora, personal, propietarios, diego, consumidores, casos,
             envios.Id, cafetalera.Id, datos.Id).ToList();
-        if (reiniciar)
-        {
-            db.AddRange(entradasBitacora);
-        }
-        else
-        {
-            var descripcionesDemo = entradasBitacora.Select(e => e.Descripcion).ToArray();
-            var descripcionesExistentes = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters()
-                .Where(e => descripcionesDemo.Contains(e.Descripcion))
-                .Select(e => e.Descripcion)
-                .ToHashSetAsync(cancelacion);
-            db.AddRange(entradasBitacora.Where(e => !descripcionesExistentes.Contains(e.Descripcion)));
-        }
+        // La bitácora es solo de inserción (07 §3.6): tampoco al reiniciar se repiten las entradas que ya existen
+        // (auditoría 2026-10-03, decisión del paso 4).
+        var descripcionesDemo = entradasBitacora.Select(e => e.Descripcion).ToArray();
+        var descripcionesExistentes = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters()
+            .Where(e => descripcionesDemo.Contains(e.Descripcion))
+            .Select(e => e.Descripcion)
+            .ToHashSetAsync(cancelacion);
+        db.AddRange(entradasBitacora.Where(e => !descripcionesExistentes.Contains(e.Descripcion)));
         await db.SaveChangesAsync(cancelacion);
         await db.Database.ExecuteSqlRawAsync(
             $"SELECT setval('{ShapiDbContext.SecuenciaNumeroCaso}', GREATEST((SELECT COALESCE(MAX(numero), 99) FROM caso), 99), true)",
@@ -327,19 +350,26 @@ public sealed class SiembraDemo(
         return api;
     }
 
+    /// <summary>
+    /// Crea la cuenta o, si ya existe, la restablece: el nombre, la contraseña de la demostración, el correo
+    /// verificado, sin bloqueo y en su estado. No se borra al reiniciar, porque pudo dejar casos, mensajes o
+    /// reversiones en otras organizaciones (auditoría 2026-10-03, H-29).
+    /// </summary>
     private static Usuario CrearUsuario(string nombre, string correo, PasswordHasher<Usuario> hasher,
-        DateTimeOffset ahora, bool desactivado = false)
+        DateTimeOffset ahora, IReadOnlyDictionary<string, Usuario> existentes, bool desactivado = false)
     {
-        var usuario = new Usuario(nombre, correo);
+        var usuario = existentes.GetValueOrDefault(Usuario.NormalizarCorreo(correo)) ?? new Usuario(nombre, correo);
+        Poner(usuario, nameof(Usuario.Nombre), nombre);
         usuario.DefinirHashContrasena(hasher.HashPassword(usuario, Contrasena));
         usuario.VerificarCorreo(ahora);
-        if (desactivado)
-        {
-            Poner(usuario, nameof(Usuario.Estado), EstadoCuenta.Desactivado);
-        }
-
+        usuario.RegistrarInicioExitoso();
+        Poner(usuario, nameof(Usuario.Estado), desactivado ? EstadoCuenta.Desactivado : EstadoCuenta.Activo);
         return usuario;
     }
+
+    /// <summary>Las entidades que todavía no están en el contexto: las que ya existían se actualizan, no se agregan.</summary>
+    private IEnumerable<T> Nuevas<T>(IEnumerable<T> entidades) where T : class =>
+        entidades.Where(e => db.Entry(e).State == EntityState.Detached);
 
     private static Consumidor CrearConsumidor(Guid organizacionId, string nombre, string empresa, string correo,
         PasswordHasher<Consumidor> hasher, DateTimeOffset ahora)
@@ -363,25 +393,27 @@ public sealed class SiembraDemo(
             (nameof(Suscripcion.GraciaHasta), graciaHasta));
 
     private static SuscripcionApi CrearSuscripcionApi(Guid consumidorId, Guid apiId, Guid planId,
-        DateTimeOffset inicio, int dias, Guid medioPagoId) =>
-        Crear<SuscripcionApi>(
-            (nameof(Suscripcion.Id), Guid.CreateVersion7()),
-            (nameof(Shapi.Dominio.Suscripciones.SuscripcionApi.ConsumidorId), consumidorId),
-            (nameof(Shapi.Dominio.Suscripciones.SuscripcionApi.ApiId), apiId),
-            (nameof(Suscripcion.PlanId), planId), (nameof(Suscripcion.Estado), EstadoSuscripcion.Activa),
-            (nameof(Suscripcion.Inicio), Suscripcion.InicioDeCiclo(inicio)),
-            (nameof(Suscripcion.Fin), Suscripcion.InicioDeCiclo(inicio).AddDays(dias)),
-            (nameof(Suscripcion.MedioPagoId), medioPagoId));
+        DateTimeOffset inicio, int dias, Guid medioPagoId)
+    {
+        var inicioCiclo = Suscripcion.InicioDeCiclo(inicio);
+        return SuscripcionApi.Crear(consumidorId, apiId, planId, inicioCiclo, inicioCiclo.AddDays(dias), medioPagoId);
+    }
 
     private static MedioPago CrearMedioPago(Guid? organizacionId, Guid? consumidorId, MarcaTarjeta marca,
-        string ultimos4, string titular, DateTimeOffset ahora) =>
-        Crear<MedioPago>(
-            (nameof(MedioPago.Id), Guid.CreateVersion7()), (nameof(MedioPago.OrganizacionId), organizacionId),
-            (nameof(MedioPago.ConsumidorId), consumidorId),
-            (nameof(MedioPago.TokenPasarela), $"demo-{Guid.NewGuid():N}"), (nameof(MedioPago.Marca), marca),
-            (nameof(MedioPago.Ultimos4), ultimos4), (nameof(MedioPago.Titular), titular),
-            (nameof(MedioPago.MesVencimiento), (short)12), (nameof(MedioPago.AnioVencimiento), (short)2030),
-            (nameof(MedioPago.CreadoEn), ahora));
+        string ultimos4, string titular, DateTimeOffset ahora)
+    {
+        // El dominio solo tiene fábrica para la tarjeta de un consumidor; la de una organización la agrega EM-09.
+        var medio = consumidorId is { } consumidor
+            ? MedioPago.CrearParaConsumidor(consumidor, $"demo-{Guid.NewGuid():N}",
+                marca == MarcaTarjeta.AmericanExpress ? "American Express" : marca.ToString(), ultimos4, titular, 12, 2030)
+            : Crear<MedioPago>(
+                (nameof(MedioPago.Id), Guid.CreateVersion7()), (nameof(MedioPago.OrganizacionId), organizacionId),
+                (nameof(MedioPago.TokenPasarela), $"demo-{Guid.NewGuid():N}"), (nameof(MedioPago.Marca), marca),
+                (nameof(MedioPago.Ultimos4), ultimos4), (nameof(MedioPago.Titular), titular),
+                (nameof(MedioPago.MesVencimiento), (short)12), (nameof(MedioPago.AnioVencimiento), (short)2030));
+        Poner(medio, nameof(MedioPago.CreadoEn), ahora);
+        return medio;
+    }
 
     private async Task<List<Ruta>> CrearRutas(Api api, string contenido, string archivo, DateTimeOffset ahora,
         CancellationToken cancelacion)
@@ -420,14 +452,13 @@ public sealed class SiembraDemo(
             (nameof(Clave.RevocadaPor), estado == EstadoClave.Revocada ? RevocadaPor.Proveedor : null));
 
     private static Pago CrearPago(SuscripcionApi suscripcion, Guid medioPagoId, string descripcion, decimal monto,
-        DateTimeOffset fecha) =>
-        Crear<Pago>((nameof(Pago.Id), Guid.CreateVersion7()), (nameof(Pago.SuscripcionApiId), suscripcion.Id),
-            (nameof(Pago.MedioPagoId), medioPagoId),
-            (nameof(Pago.Concepto), ConceptoPago.Contratacion), (nameof(Pago.Descripcion), descripcion),
-            (nameof(Pago.Monto), monto), (nameof(Pago.Estado), EstadoPago.Autorizado),
-            (nameof(Pago.ReferenciaPasarela), $"demo-{Guid.NewGuid():N}"),
-            (nameof(Pago.PeriodoInicio), suscripcion.Inicio), (nameof(Pago.PeriodoFin), suscripcion.Fin),
-            (nameof(Pago.CreadoEn), fecha));
+        DateTimeOffset fecha)
+    {
+        var pago = Pago.ContratacionAutorizada(suscripcion.Id, medioPagoId, monto, descripcion, $"demo-{Guid.NewGuid():N}",
+            suscripcion.Inicio, suscripcion.Fin);
+        Poner(pago, nameof(Pago.CreadoEn), fecha); // la fecha del cobro, en el pasado
+        return pago;
+    }
 
     private static Pago CrearPagoPlataforma(SuscripcionPlataforma suscripcion, Guid medioPagoId, string descripcion, decimal monto,
         EstadoPago estado, DateTimeOffset fecha, ConceptoPago concepto = ConceptoPago.Renovacion,
@@ -649,7 +680,7 @@ public sealed class SiembraDemo(
         Guid enviosId, Guid cafetaleraId, Guid datosId)
     {
         yield return Entrada(ahora.AddDays(-2), personal[0], AccionesBitacora.OrganizacionSuspendida, "Suspendió la organización Datos Chapines, S.A.", datosId);
-        yield return Entrada(ahora.AddDays(-2).AddHours(-3), personal[2], AccionesBitacora.CasoAbierto, "Abrió el caso CAS-104 de Envíos Xelajú, S.A.", enviosId, casos[4].Id);
+        yield return Entrada(ahora.AddDays(-2).AddHours(-3), personal[2], AccionesBitacora.CasoAbierto, $"Abrió el caso CAS-{casos[4].Numero} de Envíos Xelajú, S.A.", enviosId, casos[4].Id);
         yield return Entrada(ahora.AddDays(-3).AddHours(1), personal[0], AccionesBitacora.CuentaPlataformaDesactivada, "Desactivó la cuenta de plataforma de Julio Estrada Ixcot");
         yield return Entrada(ahora.AddDays(-3), personal[0], AccionesBitacora.PagoRevertido, "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A.", datosId);
         yield return Entrada(ahora.AddDays(-3).AddHours(-5), propietarios[0], AccionesBitacora.SuscripcionPlataformaCambiada, "Cambió su suscripción de plataforma de Lanzamiento a Producto", enviosId);
@@ -659,7 +690,7 @@ public sealed class SiembraDemo(
         yield return Entrada(ahora.AddDays(-3).AddHours(-8), propietarios[0], AccionesBitacora.ClaveRevocadaPorProveedor, "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos", enviosId);
         yield return Entrada(ahora.AddDays(-4), diego, AccionesBitacora.RutaOcultada, "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos", enviosId);
         yield return Entrada(ahora.AddDays(-5), propietarios[0], AccionesBitacora.MiembroInvitado, "Invitó a karla.batres@enviosxelaju.com con el rol de lector", enviosId);
-        yield return Entrada(ahora.AddDays(-7), personal[2], AccionesBitacora.CasoCerrado, "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A.", cafetaleraId, casos[1].Id);
+        yield return Entrada(ahora.AddDays(-7), personal[2], AccionesBitacora.CasoCerrado, $"Cerró el caso CAS-{casos[1].Numero} de Cafetalera del Altiplano, S.A.", cafetaleraId, casos[1].Id);
         yield return Entrada(ahora.AddDays(-8), personal[0], AccionesBitacora.CuentaPlataformaCreada, "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador");
 
         static EntradaBitacoraDominio Entrada(DateTimeOffset fecha, Usuario actor, string accion, string descripcion,
@@ -685,6 +716,8 @@ public sealed class SiembraDemo(
             DELETE FROM clave WHERE suscripcion_id IN (SELECT id FROM suscripcion_api WHERE api_id IN (SELECT id FROM api WHERE organizacion_id IN (SELECT id FROM demo_org)));
             DELETE FROM pago WHERE suscripcion_api_id IN (SELECT id FROM suscripcion_api WHERE api_id IN (SELECT id FROM api WHERE organizacion_id IN (SELECT id FROM demo_org)))
                 OR suscripcion_plataforma_id IN (SELECT id FROM suscripcion_plataforma WHERE organizacion_id IN (SELECT id FROM demo_org));
+            DELETE FROM pago WHERE consumidor_id IN (SELECT id FROM consumidor WHERE organizacion_id IN (SELECT id FROM demo_org))
+                OR api_id IN (SELECT id FROM api WHERE organizacion_id IN (SELECT id FROM demo_org));
             DELETE FROM caso_mensaje WHERE caso_id IN (SELECT id FROM caso WHERE organizacion_id IN (SELECT id FROM demo_org));
             DELETE FROM caso WHERE organizacion_id IN (SELECT id FROM demo_org);
             DELETE FROM suscripcion_api WHERE api_id IN (SELECT id FROM api WHERE organizacion_id IN (SELECT id FROM demo_org));
@@ -694,13 +727,18 @@ public sealed class SiembraDemo(
             DELETE FROM consumidor WHERE organizacion_id IN (SELECT id FROM demo_org);
             DELETE FROM membresia WHERE organizacion_id IN (SELECT id FROM demo_org);
             DELETE FROM api WHERE organizacion_id IN (SELECT id FROM demo_org);
-            DELETE FROM membresia WHERE usuario_id IN (SELECT id FROM usuario WHERE correo IN
-              ('rodrigo.alvarado@shapi.localhost','lucia.ramirez@shapi.localhost','sofia.menchu@shapi.localhost','julio.estrada@shapi.localhost'));
-            DELETE FROM usuario WHERE correo IN
-              ('rodrigo.alvarado@shapi.localhost','lucia.ramirez@shapi.localhost','sofia.menchu@shapi.localhost','julio.estrada@shapi.localhost',
-               'ana.morales@enviosxelaju.com','diego.us@enviosxelaju.com','karla.batres@enviosxelaju.com',
-               'carlos.tzul@agroprecios.com','lucia.cotom@cafetaleraaltiplano.com','mario.pop@transportespeten.com','gabriela.sac@datoschapines.com');
             """, cancelacion);
+        // Las cuentas de la demostración no se borran: pueden ser autoras de casos, mensajes o reversiones en otras
+        // organizaciones (FK sin cascada). Se quitan sus sesiones, sus enlaces y sus membresías, y la siembra las
+        // restablece (auditoría 2026-10-03, H-29).
+        var cuentas = await db.Set<Usuario>().IgnoreQueryFilters()
+            .Where(u => CorreosUsuariosDemo.Contains(u.Correo)).Select(u => u.Id).ToListAsync(cancelacion);
+        await db.Set<Sesion>().IgnoreQueryFilters().Where(x => x.UsuarioId != null && cuentas.Contains(x.UsuarioId.Value))
+            .ExecuteDeleteAsync(cancelacion);
+        await db.Set<Token>().IgnoreQueryFilters().Where(x => x.UsuarioId != null && cuentas.Contains(x.UsuarioId.Value))
+            .ExecuteDeleteAsync(cancelacion);
+        await db.Set<Membresia>().IgnoreQueryFilters().Where(x => cuentas.Contains(x.UsuarioId))
+            .ExecuteDeleteAsync(cancelacion);
     }
 
     private static T Crear<T>(params (string Propiedad, object? Valor)[] valores) where T : class

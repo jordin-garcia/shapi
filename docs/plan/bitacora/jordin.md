@@ -654,3 +654,28 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
     Actualiza tu rama desde `main`.
   - **Todos:** `POST /api/perfil/contrasena` ya no responde 401 con la contraseña actual incorrecta, sino 400 con `errores.contrasenaActual`. Los tipos de `identidad.ts` se regeneraron.
+
+## 2026-10-04 · JZ-05 · Correcciones de la auditoría: siembra de demostración
+- Hecho: paso 4 de la auditoría del 3 oct para JZ-05 (H-27 a H-35).
+  - En producción, los orígenes de la siembra son los nombres de servicio y no el `localhost` del `.env`.
+  - `--reiniciar` funciona con pagos rechazados y con actividad del personal en otras organizaciones: las cuentas de la demo se restablecen, no se borran.
+  - Los ciclos y los pagos de plataforma coinciden con A6.
+  - Las otras organizaciones tienen sus APIs.
+  - Los casos no chocan con uno previo.
+  - El comando `sembrar-demo` tiene pruebas.
+  - Se usan las fábricas del dominio que existen.
+- Decisiones:
+  - la bitácora no se duplica al reiniciar;
+  - los «hoy» de los mockups quedan en 07 §6;
+  - `SHAPI_MODO_DEMO=true` en el ambiente de la exposición, anotado en el manual.
+- Pendiente o aviso para otros:
+  - **José Pablo:** cambié estos archivos tuyos:
+    - `src/Shapi.Infraestructura/Siembra/Demo/SiembraDemo.cs`;
+    - `src/Shapi.Trabajador/Program.cs` y el nuevo `src/Shapi.Trabajador/Siembra/ComandoSembrarDemo.cs`;
+    - `infra/compose.prod.yml` y `infra/verificar.mjs`;
+    - `tests/Shapi.Api.Tests/Siembra/SiembraDemoTests.cs` y el nuevo `ComandoSembrarDemoTests.cs`;
+    - `docs/manual-tecnico.md` y tu archivo de tarea.
+
+    Actualiza tu rama desde `main`.
+  - **JZ-13:** el entorno E2E es el productivo, sin PostgreSQL publicado. Para reconstruir los datos antes de los flujos, usa `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar`, no `dotnet run` (el aviso de la bitácora de José Pablo del 3 oct).
+  - **JZ-08 y EM-14:** la siembra ya tiene las APIs de Cafetalera, Petén y Datos Chapines, y los ciclos y pagos de plataforma de A6.2 y A6.3.

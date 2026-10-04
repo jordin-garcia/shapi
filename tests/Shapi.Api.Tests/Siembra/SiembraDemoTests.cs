@@ -37,8 +37,10 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
 
         var composeProduccion = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
             "../../../../..", "infra", "compose.prod.yml")));
-        composeProduccion.Should().Contain("SHAPI_URL_ORIGEN_ENVIOS: ${SHAPI_URL_ORIGEN_ENVIOS:-http://origen-envios:8080}");
-        composeProduccion.Should().Contain("SHAPI_URL_ORIGEN_AGRO: ${SHAPI_URL_ORIGEN_AGRO:-http://origen-agro:8080}");
+        // Auditoría 2026-10-03, H-27: sin interpolar, porque el .env trae los de desarrollo (localhost).
+        composeProduccion.Should().Contain("SHAPI_URL_ORIGEN_ENVIOS: http://origen-envios:8080");
+        composeProduccion.Should().Contain("SHAPI_URL_ORIGEN_AGRO: http://origen-agro:8080");
+        composeProduccion.Should().NotContain("${SHAPI_URL_ORIGEN_");
         composeProduccion.Should().Contain("SHAPI_SECRETO_ORIGEN_ENVIOS: ${SHAPI_SECRETO_ORIGEN_ENVIOS:-}");
         composeProduccion.Should().Contain("SHAPI_SECRETO_ORIGEN_AGRO: ${SHAPI_SECRETO_ORIGEN_AGRO:-}");
     }
@@ -91,11 +93,158 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         enviosNuevo.Id.Should().Be(enviosAnterior.Id);
         (await db.Set<Organizacion>().SingleAsync(o => o.Tipo == TipoOrganizacion.Plataforma)).Id
             .Should().Be(plataformaAnterior.Id);
-        (await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().CountAsync()).Should().Be(23);
+        // Auditoría 2026-10-03, decisión del paso 4: las 11 de la siembra no se repiten; queda también la acción real.
+        (await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().CountAsync()).Should().Be(12);
         (await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters()
             .SingleAsync(e => e.Accion == "demostracion.usada")).OrganizacionId.Should().Be(enviosAnterior.Id);
         (await db.Set<Token>().IgnoreQueryFilters().CountAsync(t => t.OrganizacionId == enviosAnterior.Id))
             .Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RNF_14_Reiniciar_ConUnPagoRechazadoDeContratacion_Funciona()
+    {
+        // Auditoría 2026-10-03, H-28: el rechazo de EM-08 guarda el consumidor y la API, sin suscripción.
+        await using var db = CrearDb();
+        var siembra = CrearSiembra(db);
+        await siembra.EjecutarAsync(true, false, "http://envios", "http://agro");
+        var consumidor = await db.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.NombreEmpresa == "Mercadito Antigua");
+        var api = await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(a => a.Subdominio == "envios");
+        db.Add(Pago.ContratacionRechazada(consumidor.Id, api.Id, 450m, "Suscripción al plan Comercio", "fondos_insuficientes"));
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        await siembra.EjecutarAsync(true, true, "http://envios", "http://agro");
+
+        (await db.Set<Pago>().IgnoreQueryFilters().CountAsync(p => p.ConsumidorId != null)).Should().Be(0);
+        (await db.Set<Consumidor>().IgnoreQueryFilters().CountAsync(c => c.NombreEmpresa == "Mercadito Antigua")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RNF_14_Reiniciar_ConservaAlPersonalQueAtendioOtraOrganizacion()
+    {
+        // Auditoría 2026-10-03, H-29: un proveedor registrado en vivo abre un caso que atiende Sofía. Su caso y su
+        // mensaje apuntan a ella sin cascada, así que el reinicio la restablece en vez de borrarla.
+        await using var db = CrearDb();
+        var siembra = CrearSiembra(db);
+        await siembra.EjecutarAsync(true, false, "http://envios", "http://agro");
+        var sofia = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == "sofia.menchu@shapi.localhost");
+        var tienda = new Organizacion("Tienda en vivo, S.A.", TipoOrganizacion.Proveedor);
+        var duena = new Usuario("Dueña en vivo", "duena@envivo.test");
+        db.AddRange(tienda, duena);
+        db.Add(new Membresia(duena.Id, tienda.Id, Rol.Propietario));
+        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            WITH nuevo AS (
+              INSERT INTO caso (id, organizacion_id, creado_por, asignado_a, asunto, estado)
+              VALUES (gen_random_uuid(), {tienda.Id}, {duena.Id}, {sofia.Id}, 'Ayuda en vivo', 'abierto') RETURNING id
+            )
+            INSERT INTO caso_mensaje (id, caso_id, autor_id, cuerpo) SELECT gen_random_uuid(), id, {sofia.Id}, 'Con gusto le ayudo.' FROM nuevo
+            """);
+        await db.Set<Usuario>().IgnoreQueryFilters().Where(u => u.Id == sofia.Id)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.Nombre, "Cambiado en la demostración"));
+        db.ChangeTracker.Clear();
+
+        await siembra.EjecutarAsync(true, true, "http://envios", "http://agro");
+
+        var sofiaDespues = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == "sofia.menchu@shapi.localhost");
+        sofiaDespues.Id.Should().Be(sofia.Id);
+        sofiaDespues.Nombre.Should().Be("Sofía Menchú Cojtí");
+        (await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync(m => m.UsuarioId == sofia.Id)).Rol.Should().Be(Rol.Soporte);
+        (await db.Set<CasoMensaje>().IgnoreQueryFilters().CountAsync(m => m.AutorId == sofia.Id && m.Cuerpo == "Con gusto le ayudo."))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RNF_14_CiclosYPeriodosDePlataforma_CoincidenConA6()
+    {
+        // Auditoría 2026-10-03, H-30: A6.2, A6.3 y B1.3, con «hoy» el 13 de septiembre (07 §6). Cada pago cubre el
+        // ciclo que empieza ese día; una renovación rechazada, el siguiente.
+        await using var db = CrearDb();
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro");
+
+        var organizaciones = await db.Set<Organizacion>().IgnoreQueryFilters().ToDictionaryAsync(o => o.Id, o => o.Nombre);
+        var ciclos = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters()
+            .ToDictionaryAsync(s => organizaciones[s.OrganizacionId], s => (s.Inicio, s.Fin, s.Id));
+        var esperados = new Dictionary<string, int>
+        {
+            ["Envíos Xelajú, S.A."] = -20,
+            ["Agro Precios, S.A."] = -12,
+            ["Cafetalera del Altiplano, S.A."] = -16,
+            ["Transportes Petén, S.A."] = -32,
+            ["Datos Chapines, S.A."] = -39,
+        };
+        foreach (var (nombre, dias) in esperados)
+        {
+            ciclos[nombre].Inicio.Should().Be(Suscripcion.InicioDeCiclo(Reloj.Ahora.AddDays(dias)), nombre);
+            ciclos[nombre].Fin.Should().Be(ciclos[nombre].Inicio.AddDays(30), nombre);
+        }
+
+        // B1.4 y A6.2: la gracia de Transportes Petén termina 7 días después del fin de su ciclo.
+        (await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters().SingleAsync(s => s.Id == ciclos["Transportes Petén, S.A."].Id))
+            .GraciaHasta.Should().Be(ciclos["Transportes Petén, S.A."].Fin.AddDays(7));
+
+        var pagos = await db.Set<Pago>().IgnoreQueryFilters().Where(p => p.SuscripcionPlataformaId != null).ToListAsync();
+        var lanzamientoEnvios = pagos.Single(p => p.CreadoEn == Reloj.Ahora.AddDays(-20));
+        lanzamientoEnvios.PeriodoInicio.Should().Be(ciclos["Envíos Xelajú, S.A."].Inicio);
+        lanzamientoEnvios.PeriodoFin.Should().Be(ciclos["Envíos Xelajú, S.A."].Fin);
+        pagos.Single(p => p.CreadoEn == Reloj.Ahora.AddDays(-32)).PeriodoInicio.Should().Be(ciclos["Transportes Petén, S.A."].Inicio);
+        pagos.Single(p => p.CreadoEn == Reloj.Ahora.AddDays(-39)).PeriodoInicio.Should().Be(ciclos["Datos Chapines, S.A."].Inicio);
+        pagos.Single(p => p.CreadoEn == Reloj.Ahora.AddDays(-2)).PeriodoInicio.Should().Be(ciclos["Transportes Petén, S.A."].Fin);
+        pagos.Single(p => p.CreadoEn == Reloj.Ahora.AddDays(-9)).PeriodoInicio.Should().Be(ciclos["Datos Chapines, S.A."].Fin);
+    }
+
+    [Fact]
+    public async Task RNF_14_ApisPorOrganizacion_CoincidenConA62()
+    {
+        // Auditoría 2026-10-03, H-31: A6.2 muestra 2, 1, 1, 2 y 1 APIs.
+        await using var db = CrearDb();
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro");
+
+        var organizaciones = await db.Set<Organizacion>().IgnoreQueryFilters().ToDictionaryAsync(o => o.Id, o => o.Nombre);
+        var conteos = (await db.Set<ApiDominio>().IgnoreQueryFilters().ToListAsync())
+            .GroupBy(a => organizaciones[a.OrganizacionId]).ToDictionary(g => g.Key, g => g.Count());
+        conteos.Should().BeEquivalentTo(new Dictionary<string, int>
+        {
+            ["Envíos Xelajú, S.A."] = 2,
+            ["Agro Precios, S.A."] = 1,
+            ["Cafetalera del Altiplano, S.A."] = 1,
+            ["Transportes Petén, S.A."] = 2,
+            ["Datos Chapines, S.A."] = 1,
+        });
+    }
+
+    [Fact]
+    public async Task RNF_14_DespuesDeSembrar_ElSiguienteCasoEsCas105()
+    {
+        // Auditoría 2026-10-03, H-32: la siembra inserta CAS-100 a CAS-104 con su número, y el setval deja la
+        // secuencia lista para el siguiente caso que cree la aplicación.
+        await using var db = CrearDb();
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro");
+
+        var agro = await db.Set<Organizacion>().IgnoreQueryFilters().SingleAsync(o => o.Nombre == "Agro Precios, S.A.");
+        var carlos = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == "carlos.tzul@agroprecios.com");
+        (await NuevoCasoAsync(db, agro.Id, carlos.Id)).Should().Be(105);
+    }
+
+    [Fact]
+    public async Task RNF_14_ConUnCasoPrevio_LosCasosDeLaDemoTomanNumerosLibres()
+    {
+        // Auditoría 2026-10-03, H-32: si alguien creó CAS-100 antes de sembrar, la siembra no choca con él.
+        await using var db = CrearDb();
+        var tienda = new Organizacion("Tienda previa, S.A.", TipoOrganizacion.Proveedor);
+        var duena = new Usuario("Dueña previa", "duena@previa.test");
+        db.AddRange(tienda, duena);
+        db.Add(new Membresia(duena.Id, tienda.Id, Rol.Propietario));
+        await db.SaveChangesAsync();
+        var previo = await NuevoCasoAsync(db, tienda.Id, duena.Id);
+
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro");
+
+        previo.Should().Be(100);
+        var numeros = await db.Set<Caso>().IgnoreQueryFilters().Select(c => c.Numero).OrderBy(n => n).ToListAsync();
+        numeros.Should().Equal(100, 101, 102, 103, 104, 105);
+        (await NuevoCasoAsync(db, tienda.Id, duena.Id)).Should().Be(106);
     }
 
     [Fact]
@@ -488,6 +637,13 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         }
         return 2_501;
     }
+
+    /// <summary>Crea un caso como lo hará la aplicación: sin número, para que lo dé la secuencia (07 §3.6).</summary>
+    private static async Task<int> NuevoCasoAsync(ShapiDbContext db, Guid organizacionId, Guid autorId) =>
+        (await db.Database.SqlQuery<int>($"""
+            INSERT INTO caso (id, organizacion_id, creado_por, asunto, estado)
+            VALUES (gen_random_uuid(), {organizacionId}, {autorId}, 'Caso nuevo', 'abierto') RETURNING numero AS "Value"
+            """).ToListAsync()).Single();
 
     private SiembraDemo CrearSiembra(ShapiDbContext db) => new(
         db,

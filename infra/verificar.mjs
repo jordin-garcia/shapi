@@ -399,7 +399,11 @@ exigirTexto(leer(rutaGitignore), [".shapi/"], ".gitignore");
 const carpetaTemporal = mkdtempSync(join(tmpdir(), "shapi-verificar-"));
 try {
   const entornoPrueba = join(carpetaTemporal, ".env");
-  writeFileSync(entornoPrueba, "SHAPI_POSTGRES_PUERTO=5999\n");
+  // Como el .env de ejemplo: los orígenes de desarrollo en localhost, que producción no debe tomar (auditoría H-27).
+  writeFileSync(
+    entornoPrueba,
+    "SHAPI_POSTGRES_PUERTO=5999\nSHAPI_URL_ORIGEN_ENVIOS=http://localhost:5101\nSHAPI_URL_ORIGEN_AGRO=http://localhost:5102\n",
+  );
   // Una variable de la terminal le gana al archivo: se quita para que valga la del .env de prueba.
   const { SHAPI_POSTGRES_PUERTO: _, ...entornoSinPuerto } = process.env;
   const configuracionDesarrollo = JSON.parse(
@@ -444,6 +448,18 @@ try {
       "--format",
       "json",
     ], entornoSinPuerto),
+  );
+
+  const entornoTrabajador = configuracionProduccion.services.trabajador.environment;
+  assert.equal(
+    entornoTrabajador.SHAPI_URL_ORIGEN_ENVIOS,
+    "http://origen-envios:8080",
+    "En producción, la siembra debe usar el nombre de servicio del origen de envíos, no el del .env",
+  );
+  assert.equal(
+    entornoTrabajador.SHAPI_URL_ORIGEN_AGRO,
+    "http://origen-agro:8080",
+    "En producción, la siembra debe usar el nombre de servicio del origen de agro, no el del .env",
   );
 
   for (const [nombre, servicio] of Object.entries(configuracionProduccion.services)) {
