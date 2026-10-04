@@ -85,7 +85,7 @@ Los 7 de severidad alta:
 - [x] **H-11 (baja, EM-05)** Pruebas con el requisito equivocado: `RF_05_CincoIntentosFallidos…`, `RF_05_Entrar_LimitaDiez…`, `RF_05_SalirEnPortal…` y `RF_05_SesionDePortal…` son RF-04; `RF_05_RecuperarConCorreoCompartido…` es RF-03.
 - [x] **H-12 (baja, EM-05 y EM-18)** `contratos/openapi/identidad.yaml:353`: `GET /api/portal/auth/sesion` declara un 404 al que nunca se llega. Además, los 422 del portal (`:285`, `:384`, `:403` y `:427`) no declaran el contenido `Problema` con `token_invalido`, a diferencia de los del personal.
 - [x] **H-13 (baja, EM-05)** 10 §1 no menciona el límite por IP de `/api/portal/auth/*`, y el `## Resultado` no menciona el cambio a `Modulos/IdentidadModulo.cs`.
-- [ ] **H-14 (baja, EM-18)** `src/Shapi.Api/Identidad/EndpointsPortal.cs:230`: usa `IgnoreQueryFilters()` en un endpoint con sesión. 10 §2 lo reserva a la administración, al trabajador y a la compuerta, y aquí el filtro global funciona.
+- [x] **H-14 (baja, EM-18)** `src/Shapi.Api/Identidad/EndpointsPortal.cs:230`: usa `IgnoreQueryFilters()` en un endpoint con sesión. 10 §2 lo reserva a la administración, al trabajador y a la compuerta, y aquí el filtro global funciona.
 
 ## Paso 3 · [EM-04] Recuperación de contraseña y Mi perfil
 
