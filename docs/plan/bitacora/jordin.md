@@ -702,7 +702,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - El borde corre sin privilegios.
   - `verificar.mjs` comprueba el puerto 8080.
   - La E2E vuelve a entrar por A1.3.
-  - `AGENTS.md`, el README y el manual explican cómo preparar las E2E.
+  - `AGENTS.md` y el manual explican cómo preparar las E2E.
 - Decisiones: un solo PR para JZ-06 y JZ-07.
 - Pendiente o aviso para otros:
   - **José Pablo:** cambié estos archivos tuyos:
@@ -712,4 +712,4 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - `docs/manual-tecnico.md` y tus archivos de tarea JZ-06 y JZ-07.
 
     Actualiza tu rama desde `main`.
-  - **Todos:** el borde ahora corre sin privilegios. Si ya tenían el ambiente productivo levantado, bórrenlo una vez con `down -v` (manual técnico, «Pruebas de extremo a extremo»), porque el volumen `caddydata` anterior es de root.
+  - **Todos:** en el ambiente productivo, Caddy ahora corre sin privilegios. No hay que hacer nada: el contenedor ajusta solo los permisos del volumen `caddydata`, que sigue compartido con desarrollo, y se usa la misma autoridad certificadora.

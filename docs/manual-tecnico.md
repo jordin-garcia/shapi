@@ -181,6 +181,11 @@ La API aplica las migraciones al iniciar. La API y el trabajador comparten el
 volumen `dpkeys`, que conserva las llaves con las que se protegen los secretos de
 origen.
 
+El borde comparte con el entorno de desarrollo el volumen `caddydata`, así que usa
+la misma autoridad certificadora que ya importó. Caddy corre sin privilegios, con el
+usuario `caddy`: al arrancar, el contenedor le da los archivos del volumen, aunque
+los haya creado el borde de desarrollo, que corre como root.
+
 ### Sembrar la demostración
 
 Cargue los datos de demostración con:
@@ -258,10 +263,6 @@ pnpm exec playwright install chromium
 ```
 
 Después, con el ambiente levantado, `pnpm test` en `tests/e2e/`. Para una captura de una pantalla, `pnpm captura <url> <archivo.png>`.
-
-Desde la auditoría del 3 de octubre, la imagen del borde corre sin privilegios. Si el volumen `caddydata` lo creó una
-versión anterior (como root), Caddy no puede escribir sus certificados: bórrelo una vez con el comando de «Apagar»
-que borra los datos (`down -v`) y vuelva a levantar el ambiente.
 
 ### Consultar registros
 

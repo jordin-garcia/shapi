@@ -62,5 +62,5 @@ Archivos principales: `tests/e2e/playwright.config.ts`, `tests/e2e/scripts/captu
 
 Paso 6 de `docs/plan/auditoria-2026-10-03.md` (H-46 y H-47), en el PR de JZ-06:
 - **`AGENTS.md` (H-46).** Se quitó «Los de `tests/e2e/` todavía no existen: los crea JZ-07».
-- **Preparación de las E2E (H-47).** `AGENTS.md`, el README y el manual técnico (nueva sección «Pruebas de extremo a extremo») dicen cómo prepararlas la primera vez: `pnpm install` y `pnpm exec playwright install chromium` en `tests/e2e/`.
+- **Preparación de las E2E (H-47).** `AGENTS.md` y el manual técnico (nueva sección «Pruebas de extremo a extremo») dicen cómo prepararlas; el README nombra `tests/e2e/` la primera vez: `pnpm install` y `pnpm exec playwright install chromium` en `tests/e2e/`.
 - **CU-02 (decisión del paso 6).** La E2E de registro cierra la sesión y vuelve a entrar con el correo y la contraseña en A1.3.
