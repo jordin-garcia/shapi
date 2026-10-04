@@ -392,7 +392,7 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
     {
         // Criterio 7 (auditoría 2026-10-03, H-01): Kestrel rechaza las cabeceras de respuesta que no son ASCII, y la
         // siembra de demostración tiene el plan "Básico". TestServer no valida las cabeceras: por eso esta prueba usa
-        // Kestrel real. El origen no resuelve (502), y el 502 también lleva las cabeceras de 08 §5.
+        // Kestrel real. El cliente real de YARP no puede conectar con el origen de prueba (502), y el 502 también lleva las cabeceras de 08 §5.
         using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
         {
             web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
