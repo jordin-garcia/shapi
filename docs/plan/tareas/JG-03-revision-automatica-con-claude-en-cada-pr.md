@@ -222,8 +222,14 @@ Jordin pidió que los agentes y el equipo sigan un calendario por día para cump
 
 **Resultado:**
 - 52 tareas con `programada`, del 28 sep al 29 oct. Adelantan tareas de un avance posterior para repartir la carga: JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14.
-- `generar(tareas, cuerpoAnterior, fecha, hora)` recibe la hora para poder probarla; el workflow no cambió: ya corría a las 07:00 con `TZ=America/Guatemala`.
+- `generar(tareas, cuerpoAnterior, fecha, hora)` recibe la hora para poder probarla; el workflow solo cambió sus comentarios: ya corría a las 07:00 con `TZ=America/Guatemala`.
 - **Decisiones:**
   - El recordatorio espera a las 07:00 para no marcar como atrasada, pasada la medianoche, una tarea que alguien está por integrar.
   - "La esperan" nombra solo a otras personas; las dependencias propias ya se ven en la tarea siguiente.
   - Las tareas hechas conservan su `programada` y siguen en la tabla por día, para que la tabla no cambie cada vez que se integra algo.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 5 de `docs/plan/auditoria-2026-10-03.md` (H-41 y H-42), en el PR de JG-18:
+- **`--hoy` (H-41).** El cálculo pasó a `resumenHoy(tareas, persona, fecha)`, una función pura, con una prueba que cubre lo de hoy, lo atrasado, quién lo espera y la siguiente tarea (criterio 13). La salida no cambia.
+- **`## Resultado` (H-42).** Ya no dice que el workflow del tablero no cambió: solo cambiaron sus comentarios.

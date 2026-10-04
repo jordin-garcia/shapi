@@ -34,7 +34,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 | Calendario por día | `node scripts/tareas.mjs --calendario` (para reescribirlo en `docs/plan/calendario.md` tras cambiar fechas: `--calendario --escribir`) |
 | Infraestructura local | `docker compose --env-file .env -f infra/compose.yml up -d` · `docker compose --env-file .env -f infra/compose.yml down` |
 | Backend: compilar | `dotnet build Shapi.slnx` |
-| Backend: pruebas | En local, las de lo que tocaste: `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.<Modulo>"` (protocolo B7). La suite completa, `dotnet test Shapi.slnx`, la corre el check `backend` de la CI. Las pruebas usan Docker por Testcontainers. Si en Windows `dotnet test Shapi.slnx` falla con errores de Docker, agrega `-m:1`, que corre un proyecto a la vez |
+| Backend: pruebas | En local, las de lo que tocaste: `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.<Modulo>"` (protocolo B7). La suite completa, `dotnet test Shapi.slnx`, la corre el check `backend` de la CI (en un PR, si toca algo del backend; en `main`, siempre). Las pruebas usan Docker por Testcontainers. Si en Windows `dotnet test Shapi.slnx` falla con errores de Docker, agrega `-m:1`, que corre un proyecto a la vez |
 | Backend: formato | `dotnet format Shapi.slnx --verify-no-changes` (para corregir: sin `--verify-no-changes`) |
 | Backend: ejecutar | `dotnet run --project src/Shapi.Api` · `src/Shapi.Compuerta` · `src/Shapi.Trabajador` |
 | Migraciones | `dotnet ef migrations add <Nombre> -p src/Shapi.Infraestructura -s src/Shapi.Api` |
@@ -81,7 +81,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 
 Una tarea está terminada cuando se cumplen todas estas condiciones:
 1. Todos sus criterios de aceptación tienen una prueba automatizada que pasa.
-2. La compilación, el formato, el lint, el *typecheck* y las pruebas pasan. En local, las pruebas de lo que se tocó (protocolo B7); en la CI, todas.
+2. La compilación, el formato, el lint, el *typecheck* y las pruebas pasan. En local, las pruebas de lo que se tocó (protocolo B7); en la CI, las de cada área que el PR toca, y en `main`, todas.
 3. Si la tarea tiene pantallas, coinciden con su mockup: mismos textos, datos, orden y estados.
 4. Si la tarea tiene endpoints, el contrato OpenAPI está actualizado.
 5. Si se precisó algún comportamiento, las especificaciones quedaron actualizadas.

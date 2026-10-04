@@ -175,7 +175,12 @@ test("JG-18: el check titulo valida el cierre de la tarea con el diff del PR", (
 test("JG-18: el PR ejecuta las pruebas E2E en el ambiente productivo simulado, antes de integrar", () => {
   const ambiente = jobs(leer(".github", "workflows", "publicar-imagenes.yml"))["verificar-ambiente"];
   assert.ok(ambiente, "falta el job verificar-ambiente");
+  // Es un check obligatorio (auditoría 2026-10-03, paso 5): su único if es por el evento, así que en un PR nunca se omite.
+  assert.match(ambiente, /^ {4}name: ambiente-productivo$/m);
   assert.match(ambiente, /^ {4}if: github\.event_name == 'pull_request'$/m);
+  for (const doc of ["protocolo.md", "convenciones.md"]) {
+    assert.match(leer("docs", "plan", doc), /`revision-claude` y `ambiente-productivo`/, `${doc} debe nombrar el check ambiente-productivo`);
+  }
   const pasos = ambiente.split(/\n(?= {6}- )/);
   const indice = (texto) => pasos.findIndex((paso) => paso.includes(texto));
   assert.ok(indice("node infra/verificar.mjs") >= 0 && indice("node infra/verificar.mjs") < indice("run: pnpm test"),
