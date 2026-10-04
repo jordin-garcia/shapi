@@ -57,7 +57,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     public async Task Contratar_PagoAprobado_GuardaSuscripcionPagoMedioYPublicaClaves()
     {
         var e = await CrearEscenario(verificado: true);
-        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta);
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta });
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.Created, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
@@ -78,7 +78,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     public async Task Contratar_AnioDeTarjetaConDosDigitos_SeGuardaNormalizado()
     {
         var e = await CrearEscenario(verificado: true);
-        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta with { AnioVencimiento = "28" });
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta with { AnioVencimiento = "28" } });
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.Created, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         (await Escalar<long>($"SELECT count(*) FROM medio_pago WHERE consumidor_id = '{e.ConsumidorId}' AND anio_vencimiento = 2028")).Should().Be(1);
@@ -89,7 +89,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     public async Task Contratar_TarjetaRechazada_RegistraPagoSinSuscripcion()
     {
         var e = await CrearEscenario(verificado: true);
-        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta with { Numero = "4000000000000002" });
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta with { Numero = "4000000000000002" } });
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
         var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
@@ -129,7 +129,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     {
         var e = await CrearEscenario(verificado: true);
         await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
-        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta);
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta });
         await AfirmarProblema(respuesta, HttpStatusCode.Conflict, "suscripcion_existente");
     }
 
@@ -139,7 +139,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     {
         var e = await CrearEscenario(verificado: true);
         await Ejecutar($"UPDATE plan_api SET activo = false WHERE id = '{e.PlanId}'");
-        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta);
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta });
         await AfirmarProblema(respuesta, HttpStatusCode.UnprocessableEntity, "plan_no_encontrado");
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
@@ -177,7 +177,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     {
         var e = await CrearEscenario(verificado: true);
         var intruso = await CrearEscenario(verificado: true, subdominio: "agro");
-        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", intruso, Tarjeta);
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", intruso, new { planId = intruso.PlanId, tarjeta = Tarjeta });
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
