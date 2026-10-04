@@ -1318,13 +1318,7 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["DatosInvalidos"];
-            /** @description Sin sesión del personal. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+            401: components["responses"]["SinSesion"];
             403: components["responses"]["Csrf"];
             /** @description La cuenta está bloqueada por intentos fallidos (`cuenta_bloqueada`). */
             423: {

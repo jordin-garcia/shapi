@@ -83,7 +83,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A1.2 | Aviso de verificación de correo | `Verificacion.dc.html` | `/verificar-correo` | RF-02 | ✎ (peticiones, vence en 24 h, reenviar) |
 | A1.3 | Inicio de sesión | `Sesion.dc.html` | `/entrar` | RF-04 | = |
 | A1.4a | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | = |
-| A1.4b | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ✎ (se cierran las demás sesiones; el correo no se muestra — ver §4, «Recuperación y Mi perfil») |
+| A1.4b | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ✎ (se cierran las demás sesiones; el correo no se muestra — ver §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)») |
 
 ### A2 · Plan de plataforma (`a2-contratacion-plan.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
@@ -130,7 +130,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A5.7 | Inicio de sesión del consumidor | `Acceso.dc.html` | `/entrar` | RF-04 | ✎ (enlace para recuperar la contraseña) |
 | A5.8 | Verificación de correo del consumidor | `Verificacion.dc.html` | `/verificar-correo` | RF-02 | ★ |
 | A5.9 | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | ★ |
-| A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ (correo no visible — ver §4, «Recuperación y Mi perfil») |
+| A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ (correo no visible — ver §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)») |
 
 ### A6 · Administración y soporte (`a6-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |

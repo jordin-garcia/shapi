@@ -515,7 +515,7 @@ paths:
         '400':
           $ref: '#/components/responses/DatosInvalidos'
         '401':
-          description: Sin sesión del personal.
+          $ref: '#/components/responses/SinSesion'
         '403':
           $ref: '#/components/responses/Csrf'
         '423':

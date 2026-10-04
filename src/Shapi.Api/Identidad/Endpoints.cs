@@ -495,6 +495,7 @@ public static class Endpoints
 
         var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva!);
         usuario.DefinirHashContrasena(hashNuevo);
+        usuario.RegistrarInicioExitoso();
 
         // Revocar sesiones excepto la actual
         var hashActual = string.Empty;

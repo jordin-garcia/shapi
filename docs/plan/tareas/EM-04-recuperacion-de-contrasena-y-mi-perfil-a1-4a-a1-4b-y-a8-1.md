@@ -73,7 +73,7 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ### Correcciones de la auditoría (2026-10-04)
 
 Paso 3 de `docs/plan/auditoria-2026-10-03.md` (H-15 a H-26), hechas por el coordinador:
-- **Mismo tiempo exista o no la cuenta (H-15).** `ServicioRecuperacion.Solicitar` terminaba con un solo SELECT si la cuenta no existía, y si existía guardaba el token y el correo (10 §8). Ahora, si no existe, hace una escritura sobre una fila inexistente, en el mismo número de viajes a la base. Vale también para el portal, que usa el mismo servicio. Una prueba cuenta los comandos de las dos rutas, como la de H-51.
+- **Mismo tiempo exista o no la cuenta (H-15).** `ServicioRecuperacion.Solicitar` terminaba con un solo SELECT si la cuenta no existía, y si existía guardaba el token y el correo (10 §8). Ahora, si no existe, hace una escritura sobre una fila inexistente, en el mismo número de viajes a la base. Vale también para el portal, que usa el mismo servicio. Las dos ramas escriben dentro de una transacción, así que también hacen el mismo `COMMIT`. Una prueba cuenta los comandos de la cuenta inexistente, de la existente y de la cuarta solicitud en la hora, como la de H-51.
 - **Límite por IP (H-16).** `restablecer`, del personal y del portal, lleva el límite de 10 por minuto. 10 §1 ya nombra `recuperar` y `restablecer`, y las dos teorías de límite los prueban.
 - **A8.1 (H-17, H-18 y H-21):**
   - los bordes usan `border-borde-fila` y `border-borde-inactivo`; las clases anteriores no existían y salían casi negros;
@@ -99,3 +99,4 @@ Paso 3 de `docs/plan/auditoria-2026-10-03.md` (H-15 a H-26), hechas por el coord
   - 3 solicitudes de recuperación por hora por cuenta;
   - al restablecer se invalidan los demás enlaces pendientes y se reinicia el bloqueo;
   - una contraseña actual incorrecta en Mi perfil cuenta para el bloqueo de RF-04, y con la cuenta bloqueada se responde 423.
+  - un cambio correcto en Mi perfil reinicia los intentos fallidos, para que el bloqueo sea tras 5 intentos **seguidos**.

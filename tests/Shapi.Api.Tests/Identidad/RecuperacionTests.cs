@@ -119,9 +119,15 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
         var inexistente = contador.Comandos;
         contador.Comandos = 0;
         await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna }));
+        var existente = contador.Comandos;
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna }));
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna }));
+        contador.Comandos = 0;
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna }));
 
-        Assert.Equal(inexistente, contador.Comandos);
-        Assert.True(contador.Comandos > 1);
+        Assert.Equal(inexistente, existente);
+        Assert.Equal(inexistente, contador.Comandos); // la cuarta en la hora, que no se envía
+        Assert.True(existente > 1);
     }
 
     [Fact]

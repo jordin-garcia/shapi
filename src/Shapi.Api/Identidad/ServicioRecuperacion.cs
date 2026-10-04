@@ -82,13 +82,16 @@ public class ServicioRecuperacion : IServicioRecuperacion
         var valorToken = SeguridadTokens.GenerarToken();
         var hash = SeguridadTokens.HashearToken(valorToken);
 
+        // Las dos ramas escriben dentro de una transacción, para hacer los mismos viajes a la base, incluido el COMMIT.
+        await using var transaccion = await _db.Database.BeginTransactionAsync(cancelacion);
         if (nombre is null || recientes >= SolicitudesPorHora)
         {
             // 10 §8: el mismo tiempo de respuesta exista o no la cuenta. En vez de guardar el token y el correo, una
-            // escritura sobre una fila que no existe, en el mismo número de viajes a la base.
+            // escritura sobre una fila que no existe, con el mismo número de comandos.
             await _db.Set<Token>().IgnoreQueryFilters()
                 .Where(t => t.Id == Guid.Empty)
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.ActualizadoEn, ahora), cancelacion);
+            await transaccion.CommitAsync(cancelacion);
             return;
         }
 
@@ -101,6 +104,7 @@ public class ServicioRecuperacion : IServicioRecuperacion
 
         // Encolar guarda el token y el correo en el mismo SaveChanges.
         await _colaCorreo.Encolar("recuperacion", correo, datosCorreo, cancelacion);
+        await transaccion.CommitAsync(cancelacion);
     }
 
     /// <summary>10 §1: como máximo 3 solicitudes de recuperación por hora por cuenta; las demás responden igual sin enviar.</summary>
