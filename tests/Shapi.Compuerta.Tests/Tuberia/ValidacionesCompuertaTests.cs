@@ -186,7 +186,7 @@ public class ValidacionesCompuertaTests(EntornoCompuerta entorno) : IClassFixtur
     }
 
     [Fact]
-    public async Task RF_31_HaciaElOrigen_ConSecreto_AgregaXShapiSecreto()
+    public async Task RF_47_HaciaElOrigen_ConSecreto_AgregaXShapiSecreto()
     {
         // Criterio 4
         var (host, _, clave) = await SembrarAsync(secreto: "shps_secreto_de_origen");

@@ -611,3 +611,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **DC-10:** `X-Shapi-Plan` llega codificado por porcentajes (`B%C3%A1sico`). Para mostrarlo en la consola de pruebas, léelo con `decodeURIComponent` (08 §5).
   - **Todos:** el plan de la auditoría del 3 oct está en `docs/plan/auditoria-2026-10-03.md`. Lo corrijo yo, paso a paso; cada PR deja aquí el aviso con los archivos que cambié de cada uno.
+
+## 2026-10-03 · JG-05 · Correcciones de la auditoría: conexión con el origen
+- Hecho: paso 1 de la auditoría del 3 oct para JG-05. Si el origen no acepta la conexión en 10 s, la compuerta responde 502 `origen_inaccesible` y devuelve la cuota (H-02; antes, 504 y descontaba). La prueba del secreto de origen lleva RF-47 (H-04).
+- Decisiones: la cuota solo se devuelve si la petición no llegó al origen. Si el origen la recibe y corta la conexión, es 502 y se descuenta (08 §1, §3 y §4).
+- Pendiente o aviso para otros:
+  - **JZ-14:** en las pruebas de carga, un 502 por un origen que corta la conexión ahora sí cuenta en la cuota; solo los fallos de conexión la devuelven.

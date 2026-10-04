@@ -41,23 +41,49 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
             return;
         }
 
-        // YARP deja 502 (no se pudo conectar, también por una dirección prohibida), 504 o 400 (el cuerpo del
-        // cliente falló, por ejemplo al pasar de 10 MB) sin cuerpo; se traducen al contrato de errores.
+        // YARP deja 502 (falló el envío o la respuesta), 504 o 400 (el cuerpo del cliente falló, por ejemplo al pasar
+        // de 10 MB) sin cuerpo; se traducen al contrato de errores. YARP reporta el vencimiento de ConnectTimeout como
+        // RequestTimedOut (504), así que la falta de conexión se decide por la excepción y no por el código.
+        var sinConexion = !tiempoTotal.IsCancellationRequested && NoSeConecto(http);
         var rechazo = CuerpoDemasiadoGrande(http) ? TuberiaCompuerta.CuerpoDemasiadoGrande
+            : sinConexion ? Inaccesible
             : tiempoTotal.IsCancellationRequested || http.Response.StatusCode == StatusCodes.Status504GatewayTimeout ? SinRespuesta
             : http.Response.StatusCode == StatusCodes.Status502BadGateway ? Inaccesible
             : null;
         if (rechazo is not null)
         {
-            // 08 §3: si no se pudo conectar, la petición no llegó al origen y la cuota se devuelve. Los 504 sí
-            // descuentan.
-            if (rechazo == Inaccesible && contexto.DevolverReserva is { } devolver)
+            // 08 §3: si no se pudo conectar, la petición no llegó al origen y la cuota se devuelve. Si el origen cortó
+            // la conexión después de recibirla (502), o no respondió a tiempo (504), la cuota se descuenta.
+            if (sinConexion && contexto.DevolverReserva is { } devolver)
             {
                 await devolver();
             }
 
             await RespuestaError.EscribirAsync(http, rechazo);
         }
+    }
+
+    /// <summary>
+    /// Si la petición no llegó al origen porque no se pudo abrir la conexión: la dirección se rechazó o no resolvió
+    /// (<see cref="ConexionOrigen"/>), el origen no la aceptó o venció <see cref="TiemposOrigen.Conexion"/>
+    /// (<see cref="SocketsHttpHandler.ConnectTimeout"/> lanza una cancelación con un <see cref="TimeoutException"/>
+    /// adentro).
+    /// </summary>
+    private static bool NoSeConecto(HttpContext http)
+    {
+        for (var excepcion = http.Features.Get<IForwarderErrorFeature>()?.Exception; excepcion is not null;
+             excepcion = excepcion.InnerException)
+        {
+            // Un SocketException también aparece si el origen corta después de recibir la petición; por eso solo cuenta
+            // el error de conexión que arma SocketsHttpHandler (también envuelve lo que lanza ConnectCallback).
+            if (excepcion is TimeoutException
+                or HttpRequestException { HttpRequestError: HttpRequestError.ConnectionError or HttpRequestError.NameResolutionError })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Si el reenvío falló porque el cuerpo pasó del límite de <see cref="TuberiaCompuerta.LimiteCuerpo"/>.</summary>
@@ -80,7 +106,8 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
 
     /// <summary>
     /// El cliente de YARP. <see cref="SocketsHttpHandler"/> mantiene un pool de conexiones por destino (08 §8).
-    /// Si no conecta en <see cref="TiemposOrigen.Conexion"/>, YARP responde 502 (08 §1). Cada conexión pasa por
+    /// Si no conecta en <see cref="TiemposOrigen.Conexion"/>, la compuerta responde 502 (08 §1; ver
+    /// <see cref="NoSeConecto"/>). Cada conexión pasa por
     /// <see cref="ConexionOrigen"/>, que rechaza las direcciones internas (RNF-10).
     /// </summary>
     public static SocketsHttpHandler CrearManejador(TiemposOrigen tiempos, ConexionOrigen conexion) => new()

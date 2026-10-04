@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Reenvio;
 using Shapi.Compuerta.Tests.Soporte;
+using Shapi.Contratos.Red;
 using Shapi.Contratos.Redis;
 using StackExchange.Redis;
 
@@ -259,6 +260,67 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
         (await Contador(CuotaOrganizacion(escenario))).Should().Be(0);
         VerificarCabecerasCuota(respuesta);
         Cabecera(respuesta, "X-Cuota-Restante").Should().Be("50000", "la cuota se devolvió");
+    }
+
+    [Fact]
+    public async Task RF_31_ConexionQueNoTerminaEnElTiempoDeConexion_Responde502YDevuelveLaReserva()
+    {
+        // 08 §1 y criterio 6 de JG-05, criterio 5 de JG-06 (auditoría 2026-10-03, H-02): YARP reporta el vencimiento
+        // de ConnectTimeout como RequestTimedOut (504). La petición no llegó al origen: 502 y la cuota se devuelve.
+        // La resolución del host no termina nunca, así que vence el tiempo de conexión (300 ms en la prueba).
+        using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
+        {
+            web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
+            web.ConfigureTestServices(servicios =>
+            {
+                servicios.AddSingleton<TimeProvider>(_reloj);
+                servicios.AddSingleton(new TiemposOrigen(TiemposOrigen.PorDefecto.Total, TimeSpan.FromMilliseconds(300)));
+                servicios.AddSingleton(new ValidadorDireccionOrigen(async (_, cancelacion) =>
+                {
+                    await Task.Delay(Timeout.Infinite, cancelacion);
+                    return [];
+                }));
+            });
+        });
+        var escenario = await SembrarAsync(urlOrigen: "http://origen-lento.prueba",
+            rutas: [EntornoCompuerta.Ruta("GET", "/cotizaciones", peso: 3)]);
+        var reloj = System.Diagnostics.Stopwatch.StartNew();
+
+        var respuesta = await EnviarAsync(escenario, fabrica: fabrica);
+
+        reloj.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(10), "vence el tiempo de conexión, no el total");
+        await VerificarErrorAsync(respuesta, "origen_inaccesible", HttpStatusCode.BadGateway);
+        (await Contador(CuotaSuscripcion(escenario))).Should().Be(0);
+        (await Contador(CuotaOrganizacion(escenario))).Should().Be(0);
+        Cabecera(respuesta, "X-Cuota-Restante").Should().Be("50000", "la cuota se devolvió");
+    }
+
+    [Fact]
+    public async Task RF_30_OrigenQueCortaLaConexionDespuesDeRecibirLaPeticion_Responde502YSiDescuenta()
+    {
+        // 08 §3 (auditoría 2026-10-03, decisión del paso 1): la petición llegó al origen, así que la cuota no se
+        // devuelve aunque la respuesta sea 502.
+        await using var origen = await OrigenReal.IniciarAsync(http =>
+        {
+            http.Abort();
+            return Task.CompletedTask;
+        });
+        using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
+        {
+            web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
+            web.UseSetting("SHAPI_MODO_DEMO", "true");
+            web.UseSetting("SHAPI_ORIGENES_PERMITIDOS", $"localhost:{origen.Puerto}");
+            web.ConfigureTestServices(servicios => servicios.AddSingleton<TimeProvider>(_reloj));
+        });
+        var escenario = await SembrarAsync(urlOrigen: $"http://localhost:{origen.Puerto}",
+            rutas: [EntornoCompuerta.Ruta("GET", "/cotizaciones", peso: 3)]);
+
+        var respuesta = await EnviarAsync(escenario, fabrica: fabrica);
+
+        await VerificarErrorAsync(respuesta, "origen_inaccesible", HttpStatusCode.BadGateway);
+        origen.Peticiones.Should().Be(1);
+        (await Contador(CuotaSuscripcion(escenario))).Should().Be(3);
+        (await Contador(CuotaOrganizacion(escenario))).Should().Be(1);
     }
 
     [Theory]
