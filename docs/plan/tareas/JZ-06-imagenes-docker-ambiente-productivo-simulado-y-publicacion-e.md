@@ -87,3 +87,12 @@ node scripts/tareas.mjs --validar
 - El verificador usa TLS 1.2 en sus solicitudes locales para evitar una
   incompatibilidad de negociación entre Node 25 para Windows y Caddy 2.10; el
   servidor continúa admitiendo TLS 1.3 para los clientes normales.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 6 de `docs/plan/auditoria-2026-10-03.md` (H-43 a H-45), hechas por el coordinador:
+- **Acción fijada por SHA (H-43).** `docker/build-push-action` estaba en `@v7`, y corre con las credenciales de GHCR y recibe `GITHUB_TOKEN`. Era una regresión de H-109. Ahora está fijada por SHA (v7.4.0), como `login-action`.
+- **Permisos por job (H-44).** `packages: write` estaba a nivel del workflow, así que también lo recibía `verificar-ambiente`, que ejecuta código del PR. Ahora el workflow tiene `contents: read` y solo el job `publicar` tiene `packages: write`.
+- **Borde sin privilegios (H-45).** La imagen del borde corre con el usuario `caddy`, dueño de `/data` y `/config`. El binario oficial ya trae `cap_net_bind_service` para escuchar en 80 y 443. El manual técnico explica que un volumen `caddydata` creado antes se borra una vez con `down -v`.
+- **Puerto 8080 (decisión del paso 6).** `infra/verificar.mjs` comprueba, literal, que `http://localhost:8080/salud` no responda en el ambiente productivo.
+- `scripts/reglas-repositorio.test.mjs` vigila el SHA y los permisos.

@@ -246,6 +246,23 @@ Claves fijas para llamadas de demostración:
 | Agro Precios · Distribuidora San Lucas | Producción | `shp_prod_AgroPreciosDemo0000000a7f2` |
 | Agro Precios · Distribuidora San Lucas | Pruebas | `shp_prueba_AgroPreciosDemo00000004c8d` |
 
+### Pruebas de extremo a extremo
+
+Las pruebas E2E (Playwright) corren contra el ambiente productivo simulado ya levantado, en `https://shapi.localhost`.
+La primera vez, instale sus dependencias y el navegador:
+
+```bash
+cd tests/e2e
+pnpm install
+pnpm exec playwright install chromium
+```
+
+Después, con el ambiente levantado, `pnpm test` en `tests/e2e/`. Para una captura de una pantalla, `pnpm captura <url> <archivo.png>`.
+
+Desde la auditoría del 3 de octubre, la imagen del borde corre sin privilegios. Si el volumen `caddydata` lo creó una
+versión anterior (como root), Caddy no puede escribir sus certificados: bórrelo una vez con el comando de «Apagar»
+que borra los datos (`down -v`) y vuelva a levantar el ambiente.
+
 ### Consultar registros
 
 Muestre los registros estructurados de todos los procesos con:

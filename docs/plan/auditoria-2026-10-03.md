@@ -144,13 +144,14 @@ Los 7 de severidad alta:
 
 ## Paso 6 · [JZ-06] y [JZ-07] Infraestructura y pruebas E2E
 
-- [ ] **H-43 (media, JZ-06, regresión de H-109)** `.github/workflows/publicar-imagenes.yml:39`: `docker/build-push-action@v7` no está fijada por SHA. Corre después de `docker/login-action`, con las credenciales de GHCR ya guardadas, y recibe `github.token`. Corrección: fijarla por SHA con un comentario de la versión.
-- [ ] **H-44 (media, JZ-06)** `publicar-imagenes.yml:8-10`: `packages: write` está a nivel del workflow, así que también lo recibe el job `verificar-ambiente` de los PR, que ejecuta código del PR (`pnpm install`, Playwright y `infra/verificar.mjs`). Corrección: `contents: read` global y `packages: write` solo en el job `publicar`.
-- [ ] **H-45 (baja, JZ-06)** `infra/borde/Dockerfile:18-21`: la imagen del borde corre como root; las demás usan `USER app`. Corrección: un usuario no root con `/data` y `/config` propios (el binario de Caddy ya tiene `cap_net_bind_service`).
-- [ ] **H-46 (baja, JZ-07)** `AGENTS.md:29` todavía dice «Los de `tests/e2e/` todavía no existen: los crea JZ-07» (la misma clase de texto atrasado que H-23).
-- [ ] **H-47 (baja, JZ-07)** Ni el manual técnico, ni `instalacion.md`, ni el README explican cómo preparar las E2E la primera vez (`pnpm install` y `pnpm exec playwright install chromium` en `tests/e2e`).
-- **❓ Decisión pendiente (JZ-06):** la prueba obligatoria pide comprobar que `curl http://localhost:8080/salud` falle. `verificar.mjs:553` prueba el 5080, y lo demás lo cubre `compose config`. Recomiendo agregar el 8080 literal (una línea).
-- **❓ Decisión pendiente (JZ-07):** la E2E de registro llega al panel porque la verificación inicia la sesión, pero no pasa por A1.3 (CU-02). Recomiendo agregar «Salir» y luego «Entrar» en la misma prueba.
+- [x] **H-43 (media, JZ-06, regresión de H-109)** `.github/workflows/publicar-imagenes.yml:39`: `docker/build-push-action@v7` no está fijada por SHA. Corre después de `docker/login-action`, con las credenciales de GHCR ya guardadas, y recibe `github.token`. Corrección: fijarla por SHA con un comentario de la versión.
+- [x] **H-44 (media, JZ-06)** `publicar-imagenes.yml:8-10`: `packages: write` está a nivel del workflow, así que también lo recibe el job `verificar-ambiente` de los PR, que ejecuta código del PR (`pnpm install`, Playwright y `infra/verificar.mjs`). Corrección: `contents: read` global y `packages: write` solo en el job `publicar`.
+- [x] **H-45 (baja, JZ-06)** `infra/borde/Dockerfile:18-21`: la imagen del borde corre como root; las demás usan `USER app`. Corrección: un usuario no root con `/data` y `/config` propios (el binario de Caddy ya tiene `cap_net_bind_service`).
+- [x] **H-46 (baja, JZ-07)** `AGENTS.md:29` todavía dice «Los de `tests/e2e/` todavía no existen: los crea JZ-07» (la misma clase de texto atrasado que H-23).
+- [x] **H-47 (baja, JZ-07)** Ni el manual técnico, ni `instalacion.md`, ni el README explican cómo preparar las E2E la primera vez (`pnpm install` y `pnpm exec playwright install chromium` en `tests/e2e`).
+- [x] **Decidido (3 oct, JZ-06):** `infra/verificar.mjs` comprueba también, literal, que `http://localhost:8080/salud` falle en el ambiente productivo.
+- [x] **Decidido (3 oct, JZ-07):** la E2E de registro cierra la sesión y vuelve a entrar con el correo y la contraseña en A1.3 (CU-02).
+- **Decidido (4 oct):** un solo PR con el ID de JZ-06 corrige también H-46 y H-47 de JZ-07, porque las dos tareas son del ambiente productivo y sus E2E, y la verificación es la misma (`ambiente-productivo`).
 
 ## Paso 7 · [DC-05] y [DC-04] APIs
 

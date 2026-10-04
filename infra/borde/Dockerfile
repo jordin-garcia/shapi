@@ -19,3 +19,7 @@ FROM caddy:2-alpine AS final
 COPY infra/caddy/Caddyfile.prod /etc/caddy/Caddyfile
 COPY --from=frontend /fuente/frontend/apps/panel/dist /srv/panel
 COPY --from=frontend /fuente/frontend/apps/portal/dist /srv/portal
+# Sin privilegios, como las demás imágenes (auditoría 2026-10-03, H-45). El binario de la imagen oficial ya trae
+# cap_net_bind_service, así que puede escuchar en 80 y 443; /data (certificados) y /config son suyos.
+RUN addgroup -S caddy && adduser -S -D -H -G caddy caddy && chown -R caddy:caddy /data /config
+USER caddy

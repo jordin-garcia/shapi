@@ -211,3 +211,20 @@ test("JG-18: backend y frontend omiten sus pasos, nunca el job, si el PR no los 
     }
   }
 });
+
+test("auditoría 2026-10-03, H-43 y H-44: publicar-imagenes fija por SHA build-push-action y solo publicar escribe paquetes", () => {
+  const flujo = leer(".github", "workflows", "publicar-imagenes.yml");
+  // Toda acción de docker/ corre con las credenciales de GHCR: va fijada por un SHA de 40 caracteres.
+  for (const uso of flujo.match(/uses: docker\/[\w-]+@\S+/g) ?? []) {
+    if (uso.includes("setup-buildx-action")) continue; // no recibe credenciales ni el token
+    assert.match(uso, /@[0-9a-f]{40}$/, `${uso} debe ir fijada por SHA`);
+  }
+  assert.match(flujo, /uses: docker\/build-push-action@[0-9a-f]{40}/);
+  // packages: write no está a nivel del workflow, sino solo en el job publicar.
+  const cabecera = flujo.split(/\njobs:\n/)[0];
+  assert.doesNotMatch(cabecera, /^ {2}packages: write$/m);
+  const { publicar, "verificar-ambiente": ambiente } = jobs(flujo);
+  assert.match(publicar, /^ {4}permissions:\n {6}contents: read\n {6}packages: write$/m);
+  assert.match(ambiente, /^ {4}permissions:\n {6}contents: read$/m);
+  assert.doesNotMatch(ambiente, /packages: write/);
+});

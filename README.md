@@ -19,7 +19,7 @@ Proyecto final de Ingeniería de Software I, Universidad Rafael Landívar (Quetz
 | [`mockups/`](mockups/) | Diseños aprobados. Los `.html` de la raíz se abren directamente en el navegador. El catálogo está en [11 · Interfaz](docs/specs/11-interfaz.md) |
 | [`docs/lineamientos.md`](docs/lineamientos.md) | Lineamientos oficiales del curso (transcripción del PDF de la docente) |
 | [`src/`](src/) | Backend en .NET: `Shapi.Api` (API de control), `Shapi.Compuerta`, `Shapi.Trabajador` y las capas `Shapi.Aplicacion`, `Shapi.Dominio`, `Shapi.Infraestructura` y `Shapi.Contratos` |
-| [`tests/`](tests/) | Pruebas del backend (xUnit y Testcontainers). Más adelante, también las E2E y las de carga |
+| [`tests/`](tests/) | Pruebas del backend (xUnit y Testcontainers) y las E2E con Playwright (`tests/e2e/`). Más adelante, también las de carga |
 | [`frontend/`](frontend/) | Panel y portal en React (`apps/`) y los paquetes comunes `ui` y `api` (`packages/`), con pnpm |
 | [`contratos/openapi/`](contratos/openapi/) | Contratos HTTP de la API de control, uno por módulo. Los tipos del frontend se generan desde aquí |
 | [`infra/`](infra/) | Docker Compose y Caddy del entorno local |

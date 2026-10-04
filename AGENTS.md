@@ -26,8 +26,6 @@ Shapi es una plataforma como servicio para publicar APIs, controlar quién las u
 
 ## Comandos
 
-Los de `tests/e2e/` todavía no existen: los crea JZ-07.
-
 | Qué | Comando |
 |---|---|
 | Tareas | `node scripts/tareas.mjs --persona <clave>` · `--hoy [<clave>]` · `--ver <ID>` · `--validar` · `--validar-cierre "[<ID>] <título>"` (antes del *push*) |
@@ -40,7 +38,7 @@ Los de `tests/e2e/` todavía no existen: los crea JZ-07.
 | Migraciones | `dotnet ef migrations add <Nombre> -p src/Shapi.Infraestructura -s src/Shapi.Api` |
 | Frontend | En `frontend/`: `pnpm install` · `pnpm dev` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm build` |
 | Contratos → tipos TS | En `frontend/`: `pnpm generar:api` |
-| Pruebas E2E | En `tests/e2e/`: `pnpm test` (requiere el entorno levantado) |
+| Pruebas E2E | En `tests/e2e/`: la primera vez, `pnpm install` y `pnpm exec playwright install chromium`; después, `pnpm test` (requiere el entorno levantado) |
 | Capturas para comparar con mockups | En `tests/e2e/`: `pnpm captura <url> <archivo.png>` |
 | GitHub | `gh pr create` · `gh pr checks --watch` · `gh pr merge --auto --squash --delete-branch` |
 
