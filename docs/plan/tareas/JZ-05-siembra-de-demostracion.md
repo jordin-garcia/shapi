@@ -60,3 +60,24 @@ dotnet format Shapi.slnx --verify-no-changes
 - Las URLs y secretos de los orígenes son configurables; el ambiente productivo usa los nombres de servicio y al finalizar se resincroniza Redis.
 - Se documentaron las cuentas y claves de demostración y se cubrieron modo demo, idempotencia, reinicio, atomicidad, muestras, fechas, métricas y datos exactos con pruebas de integración.
 - Archivos principales: `src/Shapi.Infraestructura/Siembra/Demo/`, `src/Shapi.Trabajador/Program.cs`, `tests/Shapi.Api.Tests/Siembra/SiembraDemoTests.cs`, `infra/compose.prod.yml` y `docs/manual-tecnico.md`.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 4 de `docs/plan/auditoria-2026-10-03.md` (H-27 a H-35), hechas por el coordinador:
+- **Orígenes en producción (H-27).** `compose.prod.yml` tomaba `SHAPI_URL_ORIGEN_*` del `.env`, que trae los de desarrollo (`localhost:5101` y `:5102`). Por eso, en el ambiente productivo, las APIs sembradas apuntaban a `localhost` y la compuerta no llegaba a los orígenes. Ahora las URL van fijas en los nombres de servicio, y `infra/verificar.mjs` comprueba el valor resuelto con un `.env` como el de ejemplo.
+- **Reinicio con un pago rechazado (H-28).** EM-08 guarda el consumidor y la API de un rechazo, sin suscripción. El borrado ahora también quita esos pagos antes de borrar el consumidor y la API; antes chocaba con la FK.
+- **Reinicio con actividad del personal (H-29).** Las 11 cuentas de la demostración ya no se borran, porque pueden ser autoras o responsables de casos, mensajes o reversiones en otras organizaciones (FK sin cascada). Se quitan sus sesiones, enlaces y membresías, y la siembra las restablece: nombre, contraseña, correo verificado, sin bloqueo y en su estado.
+- **Fechas (H-30).** Los ciclos de plataforma siguen A6.2 y A6.3 («hoy» = 13 sep): Envíos −20, Cafetalera −16, Petén −32 y Datos −39, y la gracia de Petén termina 7 días después de su ciclo. Cada pago cubre el ciclo que empieza ese día; una renovación rechazada, el siguiente. Antes, los pagos cubrían el ciclo anterior. Se documentó en 07 §6.
+- **APIs de las otras organizaciones (H-31).** Cafetalera, Petén y Datos Chapines tienen 1, 2 y 1 APIs en borrador, como cuenta A6.2.
+- **Números de los casos (H-32).** Si otra organización ya tiene un número entre CAS-100 y CAS-104, los casos de la demostración toman los siguientes libres. Las pruebas comprueban que el siguiente caso que crea la aplicación después de sembrar es CAS-105, y que un caso previo no choca.
+- **Comando (H-33).** `sembrar-demo` pasó a `Shapi.Trabajador/Siembra/ComandoSembrarDemo.cs`, con pruebas que comprueban que lee `SHAPI_MODO_DEMO` y `--reiniciar`, que resincroniza después de sembrar y que no lo hace si la siembra falla.
+- **Fábricas del dominio (H-34).** Las suscripciones de API, los pagos de contratación y las tarjetas de los consumidores se crean con `SuscripcionApi.Crear`, `Pago.ContratacionAutorizada` y `MedioPago.CrearParaConsumidor`. Lo que no tiene fábrica en el dominio sigue con la reflexión (claves, casos, pagos y tarjetas de plataforma).
+- **Cierre (H-35).** Decisiones que estaban solo en la bitácora:
+  - la bitácora no se duplica al reiniciar (decisión del paso 4);
+  - la clave rotada de Boutique Cayalá vence a las 24 horas de rotarse, así que se siembra rotada hace 9 horas.
+
+  El comando correcto para el entorno E2E está en la bitácora de Jordin, con un aviso para JZ-13.
+- **Decisiones del paso 4:**
+  - el reinicio no repite las entradas de la bitácora;
+  - los dos «hoy» de los mockups quedan en 07 §6;
+  - `SHAPI_MODO_DEMO=true` por defecto en el ambiente de la exposición, anotado en el manual técnico.
