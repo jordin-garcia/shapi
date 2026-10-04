@@ -5,7 +5,8 @@ namespace Shapi.Api.Identidad;
 
 /// <summary>
 /// Organización de la petición actual (10 §2): la del claim que pone <see cref="PersonalAutenticacionHandler"/>
-/// a partir de la membresía del usuario. Sin sesión es <c>null</c> y el filtro global no deja ver ninguna fila.
+/// a partir de la membresía del usuario, o <see cref="ConsumidorAutenticacionHandler"/> con la organización del
+/// consumidor. Sin sesión es <c>null</c> y el filtro global no deja ver ninguna fila.
 /// </summary>
 public class ContextoOrganizacionHttp(IHttpContextAccessor httpContextAccessor) : IContextoOrganizacion
 {

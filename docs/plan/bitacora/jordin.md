@@ -629,4 +629,4 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: paso 2 de la auditoría del 3 oct para EM-18 (H-14). `GET /api/portal/auth/sesion` lee el consumidor y sus suscripciones con el filtro global por organización, sin `IgnoreQueryFilters()`.
 - Decisiones: ninguna.
 - Pendiente o aviso para otros:
-  - **Emilio:** cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`). Actualiza tu rama desde `main`.
+  - **Emilio:** cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`) y el comentario de `ContextoOrganizacionHttp.cs`. Actualiza tu rama desde `main`.
