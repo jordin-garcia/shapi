@@ -53,7 +53,8 @@ public sealed class ContratacionApi(
             return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.CorreoNoVerificado, "Verifique su correo antes de contratar un plan.");
         }
 
-        var plan = await db.Set<PlanApi>().SingleOrDefaultAsync(p => p.Id == peticion.PlanId && p.ApiId == portal.ApiId, cancelacion);
+        var plan = await db.Set<PlanApi>().IgnoreQueryFilters()
+            .SingleOrDefaultAsync(p => p.Id == peticion.PlanId && p.ApiId == portal.ApiId, cancelacion);
         if (plan is null)
         {
             return TypedResults.NotFound();
@@ -101,6 +102,30 @@ public sealed class ContratacionApi(
                 return RespuestaErrorTarjeta(tokenizada.Error!);
             }
 
+            try
+            {
+                var anio = int.Parse(peticion.Tarjeta.AnioVencimiento);
+                if (anio is >= 0 and < 100)
+                {
+                    anio += 2000;
+                }
+
+                var titular = tokenizada.Titular ?? peticion.Tarjeta.Titular;
+                if (string.IsNullOrWhiteSpace(titular))
+                {
+                    throw new ArgumentException("El titular es obligatorio.");
+                }
+
+                medioPago = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!,
+                    titular, int.Parse(peticion.Tarjeta.MesVencimiento), anio);
+            }
+            catch (Exception ex) when (ex is ArgumentException or OverflowException or FormatException)
+            {
+                await transaccion.RollbackAsync(cancelacion);
+                return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.DatosInvalidos,
+                    "Los datos de vencimiento o titular de la tarjeta no son válidos.");
+            }
+
             var cobro = await pasarela.CobrarAsync(tokenizada.Token!, plan.Precio, $"ct_sim_{Guid.NewGuid():N}", esRenovacion: false);
             if (!cobro.Exitoso)
             {
@@ -117,8 +142,6 @@ public sealed class ContratacionApi(
             }
 
             referencia = cobro.Referencia;
-            medioPago = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!,
-                tokenizada.Titular ?? peticion.Tarjeta.Titular, int.Parse(peticion.Tarjeta.MesVencimiento), int.Parse(peticion.Tarjeta.AnioVencimiento));
             db.Add(medioPago);
         }
 

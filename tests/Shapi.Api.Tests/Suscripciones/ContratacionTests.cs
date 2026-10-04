@@ -73,6 +73,17 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         }
     }
 
+    // RF-20: el año de tarjeta con dos dígitos se normaliza antes de cobrar.
+    [Fact]
+    public async Task Contratar_AnioDeTarjetaConDosDigitos_SeGuardaNormalizado()
+    {
+        var e = await CrearEscenario(verificado: true);
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta with { AnioVencimiento = "28" });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Escalar<long>($"SELECT count(*) FROM medio_pago WHERE consumidor_id = '{e.ConsumidorId}' AND anio_vencimiento = 2028")).Should().Be(1);
+    }
+
     // RF-20: un rechazo queda registrado sin crear una suscripción.
     [Fact]
     public async Task Contratar_TarjetaRechazada_RegistraPagoSinSuscripcion()
@@ -122,6 +133,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         await AfirmarProblema(respuesta, HttpStatusCode.Conflict, "suscripcion_existente");
     }
 
+    // RF-20: un plan inactivo no se puede contratar y no genera cobro.
     [Fact]
     public async Task Contratar_PlanInactivo_Responde422SinCobrar()
     {
@@ -132,6 +144,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
+    // RF-21: el consumidor consulta el periodo, renovación, límites y tarjeta enmascarada.
     [Fact]
     public async Task ObtenerSuscripcion_DevuelvePeriodoMostradoProximaRenovacionYLimites()
     {
@@ -158,6 +171,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         json.GetProperty("limiteMinuto").GetInt32().Should().Be(60);
     }
 
+    // RNF-08: la sesión de otra organización no revela ni modifica datos del portal.
     [Fact]
     public async Task Contratar_SesionDeOtraOrganizacionEnElHost_Responde404()
     {
@@ -170,6 +184,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
+    // RF-26: una falla antes del commit revierte suscripción y claves sin publicar en Redis.
     [Fact]
     public async Task PrepararClaves_DentroDeLaTransaccion_NoPublicaYSeRevierteConLaSuscripcion()
     {
