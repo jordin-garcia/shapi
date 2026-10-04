@@ -79,5 +79,5 @@ Paso 4 de `docs/plan/auditoria-2026-10-03.md` (H-27 a H-35), hechas por el coord
   El comando correcto para el entorno E2E está en la bitácora de Jordin, con un aviso para JZ-13.
 - **Decisiones del paso 4:**
   - el reinicio no repite las entradas de la bitácora;
-  - los dos «hoy» de los mockups quedan en 07 §6;
+  - los dos «hoy» de los mockups quedan en 07 §6 (13 sep para A6, B1.1, B1.3, B1.4 y los casos; 22 sep para B1.2 y B2);
   - `SHAPI_MODO_DEMO=true` por defecto en el ambiente de la exposición, anotado en el manual técnico.

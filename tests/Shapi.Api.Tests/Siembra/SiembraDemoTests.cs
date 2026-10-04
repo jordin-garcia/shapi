@@ -180,6 +180,10 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
             ciclos[nombre].Fin.Should().Be(ciclos[nombre].Inicio.AddDays(30), nombre);
         }
 
+        // B1.4 y A6.2: la gracia de Transportes Petén termina 7 días después del fin de su ciclo.
+        (await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters().SingleAsync(s => s.Id == ciclos["Transportes Petén, S.A."].Id))
+            .GraciaHasta.Should().Be(ciclos["Transportes Petén, S.A."].Fin.AddDays(7));
+
         var pagos = await db.Set<Pago>().IgnoreQueryFilters().Where(p => p.SuscripcionPlataformaId != null).ToListAsync();
         var lanzamientoEnvios = pagos.Single(p => p.CreadoEn == Reloj.Ahora.AddDays(-20));
         lanzamientoEnvios.PeriodoInicio.Should().Be(ciclos["Envíos Xelajú, S.A."].Inicio);
