@@ -77,3 +77,10 @@ dotnet format Shapi.slnx --verify-no-changes
 - Los mensajes escriben las fechas y los miles sin depender de la cultura del sistema, porque la imagen Alpine no trae ICU.
 
 **Archivos principales:** `src/Shapi.Compuerta/Filtros/FiltroLimitesYCuotas.cs`, `src/Shapi.Compuerta/Lua/evaluar_limites.lua`, `src/Shapi.Compuerta/{TuberiaCompuerta,ContextoPeticion,CabecerasCompuerta}.cs`, `src/Shapi.Compuerta/Reenvio/ReenvioOrigen.cs`, `src/Shapi.Compuerta/Shapi.Compuerta.csproj` y `tests/Shapi.Compuerta.Tests/**`.
+
+### Correcciones de la auditoría (2026-10-03)
+
+Paso 1 de `docs/plan/auditoria-2026-10-03.md` (H-01 y H-03):
+- **Plan con tilde (H-01).** `X-Shapi-Plan` llevaba el nombre del plan tal cual, y Kestrel rechaza las cabeceras de respuesta que no son ASCII: con el plan «Básico» de la siembra de demostración, cada respuesta de esas claves salía 500. `TestServer` no valida las cabeceras, por eso las pruebas no lo veían. Ahora el valor va codificado como componente de URI, en UTF-8 con porcentajes (`FiltroLimitesYCuotas.ValorCabeceraPlan`: «Básico» → `B%C3%A1sico`), y un nombre ASCII sin espacios queda igual. Se precisó en 08 §5. La prueba nueva usa la compuerta con Kestrel real (`WebApplicationFactory.UseKestrel`) y falla sin la corrección.
+- **Vencimiento de las llaves (H-03).** Pruebas de que `rl:s`, `rl:r` y `rl:p` viven 120 s, que `cuota:org` vence 8 días después del fin del ciclo de plataforma y que `dia:p` vence un día después de la medianoche de Guatemala (07 §4).
+- **Modo demostración.** Se anotó en 08 §3 que el `Retry-After` de las cuotas y `X-Cuota-Reinicio` se miden con la hora real, aunque el ciclo venga en la hora adelantada de `IReloj`. El código no cambió.

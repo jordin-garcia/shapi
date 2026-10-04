@@ -85,6 +85,7 @@ contadores = n_s, n_r, c_s, c_o, leídos después de reservar o de revertir (0 s
 - El límite por minuto usa una ventana fija de 60 segundos alineada al minuto (`minuto_epoch = floor(unix/60)`).
 - `rl_r` solo se usa si la ruta tiene `limite_minuto`, y `cuota_o` solo si `org:{id}` tiene `cuota_peticiones` y ciclo: la organización de la plataforma no tiene cuota de plataforma ([07 §4](07-modelo-de-datos.md#4-estructura-de-las-llaves-en-redis)).
 - `ttl_s` y `ttl_o` son `fin + 8 días`. Si el `fin` ya pasó (un ciclo que el trabajador todavía no cierra, [RNF-04](03-requisitos.md#rnf-04)), se cuentan 8 días desde ahora: un `EXPIREAT` en el pasado borraría el contador y reiniciaría la cuota en cada petición.
+- **Modo demostración** ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostración)): el `inicio` y el `fin` de `susc:{id}` y de `org:{id}` vienen en la hora de `IReloj`, que puede ir adelantada, mientras la compuerta usa la hora real. La cuota se cuenta bien, porque la llave depende del `inicio`, pero el `Retry-After` de `cuota_agotada` y de `cuota_plataforma_agotada` y `X-Cuota-Reinicio` miden contra la hora real y pueden salir más largos que en el reloj de la demostración. Se acepta así.
 - Al rechazar, el script devuelve también los contadores ya revertidos, para las cabeceras de [§5](#5-cabeceras). Así no hace falta otra llamada.
 - La compuerta lo llama siempre con `EVALSHA`. Si Redis no tiene el script, porque se reinició o vació su caché de scripts, responde `NOSCRIPT` sin ejecutar nada. Entonces la compuerta lo ejecuta una vez con `EVAL`, que lo deja guardado.
 - **Clave de pruebas** ([RF-45](03-requisitos.md#rf-45)): el mismo script, con `rl_s = rl:p:{clave_id}:{minuto_epoch}` y `limite_plan = 10`, sin `rl_r` ni `cuota_o`, y con el contador diario `dia:p:{clave_id}:{aaaammdd}` en el lugar de `cuota_s` (`peso = 1` y límite 1,000). No se usa el límite de la ruta. Al pasar las 1,000 peticiones del día se responde 429 `cuota_agotada`, con `Retry-After` hasta la medianoche de Guatemala. Como no toca las cuotas, un 502 no devuelve nada.
@@ -128,7 +129,7 @@ Las respuestas del **origen** se devuelven tal cual, incluidos sus errores. Las 
 
 | Cabecera | Valor |
 |---|---|
-| `X-Shapi-Plan` | Nombre del plan, por ejemplo `Comercio`. En las claves de pruebas es `Pruebas` |
+| `X-Shapi-Plan` | Nombre del plan, por ejemplo `Comercio`. En las claves de pruebas es `Pruebas`. Va codificado como componente de URI, en UTF-8 con porcentajes, porque una cabecera solo admite ASCII: `Básico` viaja como `B%C3%A1sico` y se lee con `decodeURIComponent` |
 | `X-RateLimit-Limit` | El límite por minuto que aplica (el menor entre el del plan y el de la ruta) |
 | `X-RateLimit-Remaining` | Peticiones que quedan en el minuto actual: la menor entre lo que queda del límite del plan y del de la ruta |
 | `X-RateLimit-Reset` | Segundos hasta el siguiente minuto |
