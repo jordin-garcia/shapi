@@ -65,3 +65,7 @@ node scripts/tareas.mjs --validar
   - `RF_04_Sesion_UnaSuscripcionDeOtraApiDeLaOrganizacionNoCuenta`.
 - **Decisiones:** "tiene suscripción" se interpreta como "tiene una suscripción vigente", que es la definición de 07 (índice único parcial `estado <> 'finalizada'`) y de ADR-19.
 - **Archivos:** `docs/specs/10-identidad-y-seguridad.md` §1 (precisión de "suscripción vigente"), `src/Shapi.Api/Identidad/EndpointsPortal.cs`, `contratos/openapi/identidad.yaml`, `frontend/packages/api/src/generado/identidad.ts` y `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 2 de `docs/plan/auditoria-2026-10-03.md` (H-14): `SesionActual` ya no usa `IgnoreQueryFilters()` para leer el consumidor ni sus suscripciones. La sesión del consumidor trae su organización, así que el filtro global de 10 §2 ya aplica, y 10 §2 reserva `IgnoreQueryFilters` a la administración, al trabajador y a la compuerta. Las pruebas de EM-18 siguen pasando sin cambios.

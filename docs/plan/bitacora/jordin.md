@@ -624,3 +624,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Emilio:** cambié `src/Shapi.Api/Modulos/IdentidadModulo.cs`, `src/Shapi.Api/Identidad/PoliticasAutorizacion.cs`, `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`, `contratos/openapi/identidad.yaml` y tu archivo de tarea EM-05. Un endpoint nuevo del consumidor debe ir bajo `/api/portal/` y declarar una política `Consumidor*`; `RequireAuthorization()` a secas solo acepta al personal. Actualiza tu rama desde `main`.
   - **Todos:** `frontend/packages/api/src/generado/identidad.ts` se regeneró (los 422 del portal tienen cuerpo `Problema`).
+
+## 2026-10-04 · EM-18 · Correcciones de la auditoría: filtro por organización en la sesión del portal
+- Hecho: paso 2 de la auditoría del 3 oct para EM-18 (H-14). `GET /api/portal/auth/sesion` lee el consumidor y sus suscripciones con el filtro global por organización, sin `IgnoreQueryFilters()`.
+- Decisiones: ninguna.
+- Pendiente o aviso para otros:
+  - **Emilio:** cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`) y el comentario de `ContextoOrganizacionHttp.cs`. Actualiza tu rama desde `main`.

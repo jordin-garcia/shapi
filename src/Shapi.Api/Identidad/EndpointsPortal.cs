@@ -218,16 +218,16 @@ public static class EndpointsPortal
     {
         var portal = await Resolver(resolver, http, ct);
         var id = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var consumidor = await db.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.Id == id, ct);
+        // Con la sesión, el filtro global por organización ya aplica (10 §2): no hace falta IgnoreQueryFilters.
+        var consumidor = await db.Set<Consumidor>().SingleAsync(c => c.Id == id, ct);
         if (portal is null || consumidor.OrganizacionId != portal.OrganizacionId)
         {
             return PortalNoDisponible();
         }
 
         // 10 §1 (EM-18): a /cuenta/suscripcion si tiene una suscripción vigente (no finalizada) a la API de este portal;
-        // si no, a /planes. Sin filtro de organización, pero acotado al consumidor y a la API del host, que ya se
-        // comprobó que son de la misma organización.
-        var tieneSuscripcion = await db.Set<SuscripcionApi>().IgnoreQueryFilters()
+        // si no, a /planes. Acotado al consumidor y a la API del host, que ya se comprobó que son de la misma organización.
+        var tieneSuscripcion = await db.Set<SuscripcionApi>()
             .AnyAsync(s => s.ConsumidorId == consumidor.Id && s.ApiId == portal.ApiId && s.Estado != EstadoSuscripcion.Finalizada, ct);
 
         return TypedResults.Ok(new
