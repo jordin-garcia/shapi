@@ -89,6 +89,113 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
     }
 
     [Fact]
+    public async Task RF_03_Recuperar_ExistaONoLaCuenta_RespuestaIdentica()
+    {
+        // 10 §1 y §8 (auditoría 2026-10-03, H-20): mismo código, mismo cuerpo y mismas cabeceras.
+        await RegistrarYVerificar(CorreoAna);
+
+        var existente = await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna });
+        var inexistente = await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = "noexiste@enviosxelaju.com" });
+
+        Assert.Equal(existente.StatusCode, inexistente.StatusCode);
+        Assert.Equal(await existente.Content.ReadAsStringAsync(), await inexistente.Content.ReadAsStringAsync());
+        Assert.Equal(existente.Content.Headers.ContentType?.ToString(), inexistente.Content.Headers.ContentType?.ToString());
+        Assert.Equal(NombresCabeceras(existente), NombresCabeceras(inexistente));
+    }
+
+    [Fact]
+    public async Task RF_03_Recuperar_ExistaONoLaCuenta_HacenLasMismasConsultas()
+    {
+        // 10 §8 (auditoría 2026-10-03, H-15): el mismo tiempo de respuesta. Se comprueba que las dos rutas hagan el
+        // mismo trabajo en la base, como en entrar (H-51).
+        await RegistrarYVerificar(CorreoAna);
+        var contador = new ContadorComandos();
+        await using var fabrica = _fabrica.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
+            s.ConfigureDbContext<ShapiDbContext>(o => o.AddInterceptors(contador))));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        contador.Comandos = 0;
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/recuperar", new { correo = "noexiste@enviosxelaju.com" }));
+        var inexistente = contador.Comandos;
+        contador.Comandos = 0;
+        await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna }));
+
+        Assert.Equal(inexistente, contador.Comandos);
+        Assert.True(contador.Comandos > 1);
+    }
+
+    [Fact]
+    public async Task RF_03_Recuperar_MasDeTresEnUnaHora_NoEncolaMasYRespondeIgual()
+    {
+        // 10 §1 (auditoría 2026-10-03, decisión del paso 3): como máximo 3 solicitudes por hora por cuenta.
+        await RegistrarYVerificar(CorreoAna);
+        for (var i = 0; i < 4; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna })).StatusCode);
+        }
+
+        Assert.Equal(3, await CorreosDeRecuperacion());
+        _reloj.Avanzar(TimeSpan.FromMinutes(61));
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna })).StatusCode);
+        Assert.Equal(4, await CorreosDeRecuperacion());
+    }
+
+    [Fact]
+    public async Task RF_03_Restablecer_InvalidaLosDemasEnlacesYReiniciaElBloqueo()
+    {
+        // 10 §1 (auditoría 2026-10-03, decisión del paso 3).
+        await RegistrarYVerificar(CorreoAna);
+        await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna });
+        var primero = await TokenDelUltimoCorreo(CorreoAna, "recuperacion");
+        await Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna });
+        var segundo = await TokenDelUltimoCorreo(CorreoAna, "recuperacion");
+        // La cuenta queda bloqueada como tras 5 intentos fallidos (sin gastar el límite de 10 peticiones por IP).
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            var ahora = _reloj.Ahora;
+            await db.Set<Usuario>().IgnoreQueryFilters().Where(u => u.Correo == CorreoAna)
+                .ExecuteUpdateAsync(u => u.SetProperty(x => x.BloqueadoHasta, ahora + Usuario.DuracionBloqueo));
+        }
+
+        await AfirmarProblema(await Entrar(CorreoAna, ContrasenaValida), HttpStatusCode.Locked, "cuenta_bloqueada");
+
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/auth/restablecer", new { token = segundo, contrasena = "NuevaContra456" })).StatusCode);
+        await AfirmarProblema(await Enviar(HttpMethod.Post, "/api/auth/restablecer", new { token = primero, contrasena = "OtraContra789" }),
+            HttpStatusCode.UnprocessableEntity, "token_invalido");
+        Assert.Equal(HttpStatusCode.OK, (await Entrar(CorreoAna, "NuevaContra456")).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_03_Restablecer_TokenQueNoExiste_Responde422TokenInvalido()
+    {
+        // Criterio 2 (auditoría 2026-10-03, H-23).
+        var respuesta = await Enviar(HttpMethod.Post, "/api/auth/restablecer", new { token = "inventado", contrasena = "NuevaContra456" });
+
+        await AfirmarProblema(respuesta, HttpStatusCode.UnprocessableEntity, "token_invalido");
+    }
+
+    [Fact]
+    public async Task RF_03_Restablecer_TokenDeUnConsumidorEnElPanel_Responde422TokenInvalido()
+    {
+        // Criterio 4 (auditoría 2026-10-03, H-23): un enlace del portal no sirve en /api/auth/restablecer.
+        var valor = SeguridadTokens.GenerarToken();
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            var organizacion = new Organizacion("Tienda de prueba", TipoOrganizacion.Proveedor);
+            var consumidor = new Consumidor(organizacion.Id, "Ana", "Tienda", "ana@tienda.test", "hash");
+            db.AddRange(organizacion, consumidor);
+            db.Add(Token.Recuperacion(SeguridadTokens.HashearToken(valor), null, consumidor.Id, organizacion.Id, consumidor.Correo, _reloj.Ahora));
+            await db.SaveChangesAsync();
+        }
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/auth/restablecer", new { token = valor, contrasena = "NuevaContra456" });
+
+        await AfirmarProblema(respuesta, HttpStatusCode.UnprocessableEntity, "token_invalido");
+    }
+
+    [Fact]
     public async Task RF_03_Restablecer_TokenValido_CambiaContrasenaRevocaSesionesEIniciaNueva()
     {
         await RegistrarYVerificar(CorreoAna);
@@ -267,15 +374,54 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
     }
 
     [Fact]
-    public async Task RF_04_CambiarContrasena_ContrasenaActualIncorrecta_Responde401()
+    public async Task RF_04_CambiarContrasena_ContrasenaActualIncorrecta_Responde400EnElCampoYNoLaCambia()
     {
+        // 11 §4 (auditoría 2026-10-03, H-19 y H-23): el error va debajo de «Contraseña actual» y la contraseña sigue
+        // igual.
         await RegistrarYVerificar(CorreoAna);
         var cookie = CookieDeSesion(await Entrar(CorreoAna, ContrasenaValida));
 
         var respuesta = await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
             new { contrasenaActual = "Incorrecta123!", contrasenaNueva = "NuevaContra456" }, cookie);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.Equal("La contraseña actual no es correcta.",
+            problema.GetProperty("errores").GetProperty("contrasenaActual")[0].GetString());
+        Assert.Equal(HttpStatusCode.OK, (await Entrar(CorreoAna, ContrasenaValida)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Entrar(CorreoAna, "NuevaContra456")).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_CambiarContrasena_CincoIntentosConLaActualIncorrecta_BloqueanLaCuenta()
+    {
+        // RF-04 y 10 §1 (auditoría 2026-10-03, decisión del paso 3): una sesión robada no puede probar contraseñas
+        // sin límite.
+        await RegistrarYVerificar(CorreoAna);
+        var cookie = CookieDeSesion(await Entrar(CorreoAna, ContrasenaValida));
+        for (var i = 0; i < 5; i++)
+        {
+            await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+                new { contrasenaActual = "Incorrecta123!", contrasenaNueva = "NuevaContra456" }, cookie);
+        }
+
+        await AfirmarProblema(await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+            new { contrasenaActual = ContrasenaValida, contrasenaNueva = "NuevaContra456" }, cookie), HttpStatusCode.Locked, "cuenta_bloqueada");
+        await AfirmarProblema(await Entrar(CorreoAna, ContrasenaValida), HttpStatusCode.Locked, "cuenta_bloqueada");
+    }
+
+    [Fact]
+    public async Task RF_04_CambiarContrasena_LaNuevaFuncionaYLaAnteriorNo()
+    {
+        // Criterio 3 (auditoría 2026-10-03, H-23).
+        await RegistrarYVerificar(CorreoAna);
+        var cookie = CookieDeSesion(await Entrar(CorreoAna, ContrasenaValida));
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+            new { contrasenaActual = ContrasenaValida, contrasenaNueva = "NuevaContra456" }, cookie);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Entrar(CorreoAna, "NuevaContra456")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Entrar(CorreoAna, ContrasenaValida)).StatusCode);
     }
 
     [Theory]
@@ -367,6 +513,16 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
             .ToListAsync();
         return System.Text.Json.JsonDocument.Parse(correos[^1].Datos).RootElement.GetProperty("token").GetString()!;
     }
+
+    private async Task<int> CorreosDeRecuperacion()
+    {
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        return await db.Set<CorreoSaliente>().CountAsync(c => c.Destinatario == CorreoAna && c.Plantilla == "recuperacion");
+    }
+
+    private static string[] NombresCabeceras(HttpResponseMessage respuesta) =>
+        respuesta.Headers.Select(c => c.Key).Where(n => n != "Date").Order(StringComparer.Ordinal).ToArray();
 
     private static async Task<JsonElement> AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
     {

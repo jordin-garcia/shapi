@@ -630,3 +630,27 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: ninguna.
 - Pendiente o aviso para otros:
   - **Emilio:** cambié `src/Shapi.Api/Identidad/EndpointsPortal.cs` (`SesionActual`) y el comentario de `ContextoOrganizacionHttp.cs`. Actualiza tu rama desde `main`.
+
+## 2026-10-04 · EM-04 · Correcciones de la auditoría: recuperación y Mi perfil
+- Hecho: paso 3 de la auditoría del 3 oct para EM-04 (H-15 a H-26).
+  - Recuperar la contraseña hace el mismo trabajo en la base exista o no la cuenta.
+  - `restablecer` lleva el límite por IP.
+  - La contraseña actual incorrecta es un error del campo.
+  - `/api/perfil` usa `EditarPerfil`.
+  - A8.1 usa los tokens de borde, el `Toast` y «Reintentar».
+  - Se agregaron pruebas de recuperación, del perfil y de A8.1.
+  - Las precisiones de 11 pasaron a §4.
+- Decisiones (10 §1):
+  - 3 solicitudes de recuperación por hora por cuenta;
+  - al restablecer se invalidan los demás enlaces y se reinicia el bloqueo;
+  - una contraseña actual incorrecta en Mi perfil cuenta para el bloqueo.
+- Pendiente o aviso para otros:
+  - **Emilio:** cambié estos archivos tuyos:
+    - `src/Shapi.Api/Identidad/{ServicioRecuperacion,Endpoints,EndpointsPortal}.cs`;
+    - `tests/Shapi.Api.Tests/Identidad/{RecuperacionTests,AutenticacionTests,ConsumidorPortalTests}.cs`, y agregué `ContadorComandos.cs`;
+    - `contratos/openapi/identidad.yaml`;
+    - `frontend/apps/panel/src/paginas/A8-1-Perfil.tsx`, `frontend/apps/panel/src/modulos/identidad/useIdentidad.ts` y `frontend/apps/panel/src/tests/Perfil.test.tsx`;
+    - tu archivo de tarea.
+
+    Actualiza tu rama desde `main`.
+  - **Todos:** `POST /api/perfil/contrasena` ya no responde 401 con la contraseña actual incorrecta, sino 400 con `errores.contrasenaActual`. Los tipos de `identidad.ts` se regeneraron.

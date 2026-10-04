@@ -136,8 +136,9 @@ export interface paths {
         put?: never;
         /**
          * Solicita un enlace de recuperación
-         * @description Genera y encola un correo con el token de recuperación si la cuenta existe. Responde siempre 200 exista o no.
-         *     Límite de 10 por minuto por IP.
+         * @description Genera y encola un correo con el token de recuperación si la cuenta existe. Responde siempre 200 exista o no,
+         *     con el mismo trabajo en la base. Límite de 10 por minuto por IP y de 3 solicitudes por hora por cuenta (las
+         *     demás responden igual sin enviar).
          */
         post: operations["solicitarRecuperacion"];
         delete?: never;
@@ -157,8 +158,9 @@ export interface paths {
         put?: never;
         /**
          * Restablece la contraseña
-         * @description Cambia la contraseña utilizando el token de un solo uso. Si es exitoso, inicia sesión y revoca todas
-         *     las sesiones previas.
+         * @description Cambia la contraseña utilizando el token de un solo uso. Si es exitoso, inicia sesión, revoca todas
+         *     las sesiones previas, invalida los demás enlaces de recuperación pendientes y reinicia el bloqueo por
+         *     intentos fallidos. Lleva el límite de 10 peticiones por minuto por IP.
          */
         post: operations["restablecerContrasena"];
         delete?: never;
@@ -467,7 +469,7 @@ export interface paths {
         put?: never;
         /**
          * Solicita la recuperación de la cuenta del portal
-         * @description Responde 200 exista o no el correo. El mensaje usa marca y host del portal.
+         * @description Responde 200 exista o no el correo, con el mismo trabajo en la base. El mensaje usa marca y host del portal. Como máximo 3 solicitudes por hora por cuenta.
          */
         post: {
             parameters: {
@@ -553,6 +555,7 @@ export interface paths {
                         "application/problem+json": components["schemas"]["Problema"];
                     };
                 };
+                429: components["responses"]["DemasiadasPeticiones"];
             };
         };
         delete?: never;
@@ -684,7 +687,9 @@ export interface paths {
         put?: never;
         /**
          * Cambia la contraseña actual
-         * @description Valida la contraseña actual y si es correcta, establece la nueva y revoca todas las demás sesiones.
+         * @description Valida la contraseña actual y, si es correcta, establece la nueva y revoca todas las demás sesiones.
+         *     Una contraseña actual incorrecta responde 400 con `errores.contrasenaActual` y cuenta como intento fallido
+         *     para el bloqueo de RF-04.
          */
         post: operations["cambiarContrasena"];
         delete?: never;
@@ -1151,6 +1156,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
+            429: components["responses"]["DemasiadasPeticiones"];
         };
     };
     registrarConsumidor: {
@@ -1312,8 +1318,16 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["DatosInvalidos"];
-            /** @description Sin sesión o la contraseña actual es incorrecta (`credenciales_invalidas`). */
+            /** @description Sin sesión del personal. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Csrf"];
+            /** @description La cuenta está bloqueada por intentos fallidos (`cuenta_bloqueada`). */
+            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1321,7 +1335,6 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            403: components["responses"]["Csrf"];
         };
     };
 }

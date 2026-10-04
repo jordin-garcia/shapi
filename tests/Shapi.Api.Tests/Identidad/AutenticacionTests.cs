@@ -444,12 +444,15 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion")).StatusCode);
     }
 
-    // 10 §1: registro, verificación, reenvío y entrada llevan el límite de 10 por minuto por IP.
+    // 10 §1: registro, verificación, reenvío, entrada, recuperación y restablecimiento llevan el límite de 10 por minuto
+    // por IP (auditoría 2026-10-03, H-16: recuperar y restablecer).
     [Theory]
     [InlineData("/api/auth/registro")]
     [InlineData("/api/auth/verificar-correo")]
     [InlineData("/api/auth/reenviar-verificacion")]
     [InlineData("/api/auth/entrar")]
+    [InlineData("/api/auth/recuperar")]
+    [InlineData("/api/auth/restablecer")]
     public async Task RF_04_Limite_CadaEndpointDeAutenticacion_LaPeticion11Responde429(string ruta)
     {
         var cuerpo = new { correo = "nadie@enviosxelaju.com", contrasena = "Incorrecta123", token = "inexistente" };
@@ -877,20 +880,6 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         await using var db = Db(out var scope);
         using var _ = scope;
         return (await db.Set<Sesion>().IgnoreQueryFilters().SingleAsync(s => s.HashIdentificador == hash)).UltimoUsoEn;
-    }
-
-    private sealed class ContadorComandos : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
-    {
-        private int _comandos;
-
-        public int Comandos { get => _comandos; set => _comandos = value; }
-
-        public override System.Data.Common.DbCommand CommandInitialized(
-            Microsoft.EntityFrameworkCore.Diagnostics.CommandEndEventData eventData, System.Data.Common.DbCommand result)
-        {
-            Interlocked.Increment(ref _comandos);
-            return result;
-        }
     }
 
     /// <summary>Un POST a <c>entrar</c> como lo manda Caddy: por http, desde <paramref name="ipBorde"/>, con las cabeceras X-Forwarded-*.</summary>

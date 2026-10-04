@@ -203,6 +203,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     [InlineData("POST", "/api/portal/auth/reenviar-verificacion")]
     [InlineData("POST", "/api/portal/auth/entrar")]
     [InlineData("POST", "/api/portal/auth/recuperar")]
+    [InlineData("POST", "/api/portal/auth/restablecer")]
     [InlineData("GET", "/api/portal/auth/invitacion/inexistente")]
     [InlineData("POST", "/api/portal/auth/invitacion/inexistente/aceptar")]
     public async Task RF_04_LimitePorIp_EndpointsDelPortal_DiezPeticionesPorMinuto(string metodo, string ruta)

@@ -33,7 +33,7 @@ public static class EndpointsPortal
         g.MapPost("/salir", Salir).AllowAnonymous();
         g.MapGet("/sesion", SesionActual).RequireAuthorization(p => p.AddAuthenticationSchemes(ConsumidorAutenticacionOpciones.Esquema).RequireAuthenticatedUser());
         g.MapPost("/recuperar", Recuperar).AllowAnonymous().RequireRateLimiting(Endpoints.PoliticaLimiteAutenticacion);
-        g.MapPost("/restablecer", Restablecer).AllowAnonymous();
+        g.MapPost("/restablecer", Restablecer).AllowAnonymous().RequireRateLimiting(Endpoints.PoliticaLimiteAutenticacion);
         g.MapGet("/invitacion/{token}", Invitacion).AllowAnonymous().RequireRateLimiting(Endpoints.PoliticaLimiteAutenticacion);
         g.MapPost("/invitacion/{token}/aceptar", AceptarInvitacion).AllowAnonymous().RequireRateLimiting(Endpoints.PoliticaLimiteAutenticacion);
         return app;
