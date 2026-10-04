@@ -623,7 +623,8 @@ Hay un índice único parcial `(suscripcion_id, tipo) WHERE estado='activa'` par
 | Columna | Tipo | Restricciones |
 |---|---|---|
 | id | uuid | PK |
-| suscripcion_plataforma_id / suscripcion_api_id | uuid | exactamente uno de los dos tiene valor (`CHECK num_nonnulls(...) = 1`) |
+| suscripcion_plataforma_id / suscripcion_api_id | uuid | exactamente uno de los dos tiene valor para pagos asociados a suscripciones; ambos son null en un intento de contratación de API rechazado |
+| consumidor_id · api_id | uuid | ambos tienen valor únicamente en un intento de contratación de API rechazado sin suscripción; en los demás pagos ambos son null |
 | medio_pago_id | uuid | FK null (los planes gratuitos no generan pago) |
 | concepto | text | `CHECK IN ('contratacion','renovacion','cambio_plan','reactivacion')` |
 | descripcion | text | not null (por ejemplo "Lanzamiento → Producto · diferencia prorrateada") |
@@ -636,6 +637,8 @@ Hay un índice único parcial `(suscripcion_id, tipo) WHERE estado='activa'` par
 | revertido_por | uuid | FK → usuario, null |
 
 Índices: `(suscripcion_plataforma_id, creado_en desc)`, `(suscripcion_api_id, creado_en desc)` y `(creado_en desc)`, este último para A6.3.
+
+La restricción `ck_pago_suscripcion` admite exactamente dos formas: un pago asociado a una suscripción de plataforma o API (sin `consumidor_id` ni `api_id`), o un intento de contratación de API rechazado (sin suscripción y con ambos `consumidor_id` y `api_id`). Esto permite conservar el rechazo exigido por EM-08 sin crear una suscripción ni perder a quién y a qué API corresponde el intento. El intento rechazado no guarda medio de pago ni datos de tarjeta.
 
 ### 3.5 Consumo
 

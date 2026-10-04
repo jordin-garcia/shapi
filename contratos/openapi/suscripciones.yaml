@@ -1,0 +1,161 @@
+openapi: 3.1.0
+info:
+  title: API de Suscripciones de Shapi
+  version: 1.0.0
+paths:
+  /api/portal/suscripciones:
+    post:
+      summary: Contrata un plan de API y emite sus claves
+      operationId: contratarPlanApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionContratarPlan"
+      responses:
+        "201":
+          description: Suscripción activa y claves mostradas una sola vez
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contratacion"
+        "400":
+          description: Petición inválida o falta la tarjeta requerida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "402":
+          description: La pasarela rechazó el pago; el motivo aparece en detalle
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "409":
+          description: Ya existe una suscripción vigente en esta API
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "422":
+          description: Correo sin verificar, plan inactivo o tarjeta inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "404":
+          description: Portal, plan o consumidor no encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+        "503":
+          description: Pasarela de pagos no disponible
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+  /api/portal/suscripcion:
+    get:
+      summary: Consulta la suscripción del consumidor en la API del portal
+      operationId: obtenerSuscripcionApi
+      responses:
+        "200":
+          description: Suscripción, periodo mostrado, renovación, tarjeta y límites
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuscripcionActual"
+        "404":
+          description: No existe una suscripción vigente
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+components:
+  schemas:
+    PeticionContratarPlan:
+      type: object
+      required: [planId]
+      properties:
+        planId:
+          type: string
+          format: uuid
+        tarjeta:
+          oneOf:
+            - $ref: "#/components/schemas/Tarjeta"
+            - type: "null"
+    Tarjeta:
+      type: object
+      required: [numero, mesVencimiento, anioVencimiento, cvv, titular]
+      properties:
+        numero: { type: string }
+        mesVencimiento: { type: string }
+        anioVencimiento: { type: string }
+        cvv: { type: string }
+        titular: { type: string }
+    Contratacion:
+      type: object
+      required: [suscripcion, claves]
+      properties:
+        suscripcion:
+          $ref: "#/components/schemas/Suscripcion"
+        claves:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/ClaveEmitida"
+    Suscripcion:
+      type: object
+      required: [id, apiId, planId, nombrePlan, estado, inicio, fin, proximaRenovacion]
+      properties:
+        id: { type: string, format: uuid }
+        apiId: { type: string, format: uuid }
+        planId: { type: string, format: uuid }
+        nombrePlan: { type: string }
+        estado: { type: string, enum: [activa, en_gracia, suspendida, finalizada] }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+        proximaRenovacion: { type: string, format: date-time }
+    ClaveEmitida:
+      type: object
+      required: [id, tipo, clave, claveEnmascarada, estado]
+      properties:
+        id: { type: string, format: uuid }
+        tipo: { type: string, enum: [produccion, pruebas] }
+        clave: { type: string }
+        claveEnmascarada: { type: string }
+        estado: { type: string, const: activa }
+    SuscripcionActual:
+      type: object
+      required: [plan, estado, periodo, proximaRenovacion, cuotaLlamadas, limiteMinuto]
+      properties:
+        plan:
+          type: object
+          required: [id, nombre, precio, moneda]
+          properties:
+            id: { type: string, format: uuid }
+            nombre: { type: string }
+            precio: { type: number }
+            moneda: { type: string, const: GTQ }
+        estado: { type: string, enum: [activa, en_gracia, suspendida, finalizada] }
+        periodo:
+          type: object
+          required: [inicio, fin]
+          properties:
+            inicio: { type: string, format: date-time }
+            fin: { type: string, format: date-time }
+        proximaRenovacion: { type: string, format: date-time }
+        tarjetaEnmascarada: { type: [string, "null"] }
+        cuotaLlamadas: { type: integer, format: int64 }
+        limiteMinuto: { type: integer }
+    Problema:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        codigo: { type: string }
+        detalle: {}
