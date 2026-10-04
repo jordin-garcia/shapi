@@ -227,7 +227,9 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     [InlineData("GET", "/api/auth/sesion", "ambitos.shapi.localhost")]
     [InlineData("GET", "/api/auth/sesion", "shapi.localhost")]
     [InlineData("GET", "/api/perfil", "ambitos.shapi.localhost")]
+    [InlineData("GET", "/api/perfil", "shapi.localhost")]
     [InlineData("PUT", "/api/perfil", "ambitos.shapi.localhost")]
+    [InlineData("PUT", "/api/perfil", "shapi.localhost")]
     [InlineData("POST", "/api/perfil/contrasena", "ambitos.shapi.localhost")]
     [InlineData("POST", "/api/perfil/contrasena", "shapi.localhost")]
     public async Task RF_04_SesionDelPortal_NoSirveEnLasRutasDelPersonal(string metodo, string ruta, string host)
@@ -311,6 +313,14 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         // Criterio 1 de EM-05 y 10 §6 (auditoría 2026-10-03, H-10): hostPortal sale del subdominio guardado y no de
         // la cabecera Host, y el correo lleva el color y el logotipo del portal.
         await InsertarApi("marca");
+        await using (var conexion = new NpgsqlConnection(_cadena))
+        {
+            await conexion.OpenAsync();
+            await using var comando = conexion.CreateCommand();
+            comando.CommandText = "UPDATE api SET portal_logo = @logo, portal_logo_tipo = 'image/png' WHERE subdominio = 'marca'";
+            comando.Parameters.AddWithValue("logo", new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+            Assert.Equal(1, await comando.ExecuteNonQueryAsync());
+        }
 
         var registro = await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "MARCA.SHAPI.LOCALHOST.",
             new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@marca.test", contrasena = "ContrasenaValida123" });
@@ -322,8 +332,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         using var datos = JsonDocument.Parse(correo.Datos);
         Assert.Equal("marca.shapi.localhost", datos.RootElement.GetProperty("hostPortal").GetString());
         Assert.Equal("#3B6FF0", datos.RootElement.GetProperty("colorPortal").GetString());
-        Assert.True(!datos.RootElement.TryGetProperty("logoPortal", out var logo) || logo.ValueKind == JsonValueKind.Null,
-            "la API de prueba no tiene logotipo");
+        Assert.Equal("true", datos.RootElement.GetProperty("logoPortal").GetString());
     }
 
     [Fact]
