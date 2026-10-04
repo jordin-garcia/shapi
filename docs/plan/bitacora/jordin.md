@@ -692,4 +692,5 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - un solo PR para JG-18 y JG-03.
 - Pendiente o aviso para otros:
   - **Jordin:** agrega `ambiente-productivo` a la protección de `main` (el modo automático no deja que el agente lo haga): `gh api -X POST repos/jordin-garcia/shapi/branches/main/protection/required_status_checks/contexts -f "contexts[]=ambiente-productivo"`.
+  - **José Pablo:** cambié el `if` del job `verificar-ambiente` (`ambiente-productivo`) en `.github/workflows/publicar-imagenes.yml`: ahora es `${{ !cancelled() && github.event_name == 'pull_request' }}`, para que no se omita si falla una imagen, y `scripts/reglas-repositorio.test.mjs` lo vigila. Actualiza tu rama desde `main`.
   - **Todos:** cuando se agregue a la protección de `main`, `ambiente-productivo` (las E2E en el ambiente productivo simulado) bloqueará la integración si falla.
