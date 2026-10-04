@@ -34,6 +34,9 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
     public async Task<ITransaccionApis> IniciarTransaccion(CancellationToken cancelacion = default) =>
         new TransaccionApis(await db.Database.BeginTransactionAsync(cancelacion));
 
+    public Task BloquearApi(Guid apiId, CancellationToken cancelacion = default) =>
+        db.Database.ExecuteSqlAsync($"SELECT 1 FROM api WHERE id = {apiId} FOR UPDATE", cancelacion);
+
     public async Task<ListaApis> Listar(Guid organizacionId, CancellationToken cancelacion = default)
     {
         var elementos = await db.Set<Api>()

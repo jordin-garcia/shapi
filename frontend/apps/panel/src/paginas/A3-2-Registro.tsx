@@ -49,7 +49,9 @@ export default function PaginaA32Registro() {
           setErrores({ subdominio: 'El subdominio no está disponible.' });
           return;
         }
-        setErrorGeneral(error.titulo);
+        // Criterio 6 de DC-04: se muestra el resultado de la prueba de conexión, no solo el título.
+        const motivo = typeof error.detalle?.motivo === 'string' ? error.detalle.motivo : undefined;
+        setErrorGeneral([error.titulo, motivo].filter(Boolean).join(' '));
         return;
       }
       setErrorGeneral('No se pudo registrar la API. Inténtelo de nuevo.');

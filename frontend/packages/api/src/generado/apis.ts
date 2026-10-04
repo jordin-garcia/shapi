@@ -49,7 +49,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lista las rutas extraídas de una API */
+        /**
+         * Lista las rutas extraídas de una API
+         * @description La pueden consultar todos los roles con permiso para ver APIs, incluido el lector (04 §3.1).
+         *     Incluye el resumen de la especificación cargada, o `null` si todavía no se ha cargado.
+         */
         get: operations["listarRutasApi"];
         put?: never;
         post?: never;
@@ -128,6 +132,18 @@ export interface components {
             descripcion?: string | null;
             expuesta: boolean;
         };
+        /** @description La especificación que la API tiene cargada. No se guarda el nombre del archivo. */
+        ResumenEspecificacion: {
+            titulo: string;
+            version: string;
+            /** @example 3.0.3 */
+            versionOpenApi: string;
+            /** @enum {string} */
+            formato: "json" | "yaml";
+            /** Format: date-time */
+            cargadaEn: string;
+            tamanoBytes: number;
+        };
         ListaRutas: {
             /** Format: uuid */
             apiId: string;
@@ -135,6 +151,8 @@ export interface components {
             elementos: components["schemas"]["RutaAdministrada"][];
             totalExpuestas: number;
             totalOcultas: number;
+            /** @description Nulo si la API todavía no tiene especificación. */
+            especificacion: components["schemas"]["ResumenEspecificacion"] | null;
         };
         EspecificacionCargada: {
             /** Format: uuid */
@@ -339,10 +357,23 @@ export interface operations {
                     "application/json": components["schemas"]["EspecificacionCargada"];
                 };
             };
+            /** @description Falta la parte `archivo` del formulario (`datos_invalidos`, con `errores.archivo`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
             401: components["responses"]["SinSesion"];
             403: components["responses"]["SinPermisoOCsrf"];
             404: components["responses"]["ApiNoEncontrada"];
-            /** @description Documento inválido (`especificacion_invalida`), con línea o sección en el detalle. */
+            /**
+             * @description Documento inválido (`especificacion_invalida`). `detalle.ubicacion` lleva la línea o la sección y
+             *     `detalle.mensaje`, el motivo en español. Si el error viene de la biblioteca que lee el documento,
+             *     `detalle.detalleTecnico` lleva su mensaje original, en inglés.
+             */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -405,10 +436,32 @@ export interface operations {
                     "application/json": components["schemas"]["ListaRutas"];
                 };
             };
-            400: components["responses"]["DatosInvalidos"];
+            /**
+             * @description Lote inválido (`datos_invalidos`): un elemento nulo, sin `rutaId` o sin `expuesta`, o una ruta repetida.
+             *     `errores` usa la posición del elemento como clave, por ejemplo `[0].expuesta`.
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
             401: components["responses"]["SinSesion"];
             403: components["responses"]["SinPermisoOCsrf"];
-            404: components["responses"]["ApiNoEncontrada"];
+            /**
+             * @description La API no existe o es de otra organización, o una de las rutas no es de la API (`api_no_encontrada`).
+             *     No se cambia ninguna ruta.
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
         };
     };
 }

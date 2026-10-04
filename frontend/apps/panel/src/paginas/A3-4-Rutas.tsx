@@ -7,6 +7,8 @@ import { useParams } from 'react-router';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type Ruta = components['schemas']['RutaAdministrada'];
+// Radio del mockup: 16 px, borde #C9D2E1 (borde-campo) y, marcado, borde y punto de 8 px en el color principal.
+const CLASES_RADIO = 'size-4 shrink-0 appearance-none rounded-full border-[1.5px] border-borde-campo bg-panel checked:border-principal checked:bg-principal checked:shadow-[inset_0_0_0_2.5px_var(--panel)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-anillo-foco';
 
 export default function PaginaA34Rutas() {
   const { id = '' } = useParams();
@@ -74,13 +76,13 @@ export default function PaginaA34Rutas() {
               <td className="py-3 pr-4 text-[12px] font-semibold tracking-[0.06em] text-tinta-suave">{ruta.metodo}</td>
               <td className="py-3 pr-4 text-[15px] text-tinta">{ruta.patron}</td>
               <td className="py-3 text-[14px] text-tinta">
-                <div className="flex gap-5">
+                <div className="flex gap-7">
                   <label className="flex items-center gap-2">
-                    <input type="radio" name={`ruta-${ruta.id}`} checked={ruta.expuesta} onChange={() => setCambios(actuales => ({ ...actuales, [ruta.id]: true }))} aria-label={`Exponer ${ruta.metodo} ${ruta.patron}`} />
+                    <input type="radio" className={CLASES_RADIO} name={`ruta-${ruta.id}`} checked={ruta.expuesta} onChange={() => setCambios(actuales => ({ ...actuales, [ruta.id]: true }))} aria-label={`Exponer ${ruta.metodo} ${ruta.patron}`} />
                     Expuesta
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name={`ruta-${ruta.id}`} checked={!ruta.expuesta} onChange={() => setCambios(actuales => ({ ...actuales, [ruta.id]: false }))} aria-label={`Ocultar ${ruta.metodo} ${ruta.patron}`} />
+                    <input type="radio" className={CLASES_RADIO} name={`ruta-${ruta.id}`} checked={!ruta.expuesta} onChange={() => setCambios(actuales => ({ ...actuales, [ruta.id]: false }))} aria-label={`Ocultar ${ruta.metodo} ${ruta.patron}`} />
                     Oculta
                   </label>
                 </div>

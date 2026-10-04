@@ -64,3 +64,17 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - Las APIs publicadas actualizan su caché después de confirmar los cambios, y los cambios de exposición registran `ruta.expuesta` o `ruta.ocultada` en la bitácora.
 - A3.3 y A3.4 implementan la carga automática, sus estados y errores, la tabla de rutas y la selección de exposición según los mockups.
 - Las pruebas cubren las dos especificaciones de demostración, archivos inválidos y grandes, recargas, aislamiento, permisos, bitácora, publicación de caché y las dos pantallas.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 7 de `docs/plan/auditoria-2026-10-03.md`. El mismo PR corrige también H-55 a H-57 de DC-04.
+- **H-48:** `GET /api/apis/{id}/rutas` exige `VerApis`, así que el lector puede abrir A3.3 y A3.4 (04 §3.1). Las dos escrituras siguen exigiendo `ConfigurarApis`, con prueba de 403 para el lector. El criterio 4 decía «(propietario o editor)», pero manda la spec.
+- **H-49:** `ListaRutas` lleva `especificacion` (título, versión, versión de OpenAPI, formato, fecha de carga y tamaño en bytes), o `null` si no hay. Al volver a A3.3 se ve la tarjeta del archivo con «Cargado». Como el nombre del archivo no se guarda, se muestra el título (precisado en 11 §4).
+- **H-50:** `CargarEspecificacion` bloquea la fila de la API (`SELECT … FOR UPDATE`) al empezar la transacción. Así, dos cargas simultáneas ya no chocan con el UNIQUE `(api_id, metodo, patron)`. La prueba lanza cuatro cargas a la vez; la carrera no se reproduce siempre sin la corrección.
+- **H-51:** `CambioExposicionRuta` tiene `rutaId` y `expuesta` anulables. Un elemento nulo, sin uno de los dos campos o con una ruta repetida responde 400 `datos_invalidos`, con `errores` por posición (`[0].expuesta`). Antes, un elemento sin `expuesta` ocultaba la ruta sin aviso, y uno nulo daba 500.
+- **H-52:** sin la parte `archivo`, la carga responde 400 `datos_invalidos` con `errores.archivo`. El contrato documenta ese 400 y el 404 de una `rutaId` que no es de la API, con su prueba.
+- **H-53:** los radios de A3.4 son los del mockup: 16 px, borde `borde-campo` (#C9D2E1) y, marcados, un punto de 8 px en el color principal, separados 28 px.
+- **H-54:** 07 §3.2 precisa la forma de `ruta.definicion` y 07 §3.5, que el consumo de una ruta retirada se consolida con `ruta_id` nulo. Hay avisos para JG-09, DC-07 y DC-10 en la bitácora de Jordin.
+- **Decidido (3 oct):**
+  - un documento Swagger 2.0, uno sin `info.version` y una bomba de alias YAML responden 422, con prueba;
+  - el `mensaje` del 422 va en español («El documento tiene un error de formato o de estructura.») cuando el error viene de Microsoft.OpenApi o de SharpYaml. El texto original va aparte, en `detalle.detalleTecnico`, y A3.3 lo muestra como «Detalle técnico: …» (RNF-12).

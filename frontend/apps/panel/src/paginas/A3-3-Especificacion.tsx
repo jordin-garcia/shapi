@@ -53,7 +53,8 @@ export default function PaginaA33Especificacion() {
       if (fallo instanceof ErrorApi) {
         const ubicacion = typeof fallo.detalle?.ubicacion === 'string' ? fallo.detalle.ubicacion : undefined;
         const mensaje = typeof fallo.detalle?.mensaje === 'string' ? fallo.detalle.mensaje : undefined;
-        setError([fallo.titulo, ubicacion, mensaje].filter(Boolean).join(' '));
+        const tecnico = typeof fallo.detalle?.detalleTecnico === 'string' ? `Detalle técnico: ${fallo.detalle.detalleTecnico}` : undefined;
+        setError([fallo.titulo, ubicacion, mensaje, tecnico].filter(Boolean).join(' '));
         return;
       }
       setError('No se pudo cargar la especificación. Inténtelo de nuevo.');
@@ -77,6 +78,8 @@ export default function PaginaA33Especificacion() {
 
   const apiNombre = resultado?.apiNombre ?? consulta.data?.apiNombre ?? 'API';
   const rutas = resultado?.rutas ?? consulta.data?.elementos ?? [];
+  // Al volver a A3.3 se muestra la especificación que ya está cargada. El nombre del archivo no se guarda: va el título.
+  const cargada = archivo ? undefined : consulta.data?.especificacion ?? undefined;
 
   return <div>
     <header className="flex flex-col gap-[10px]">
@@ -112,6 +115,14 @@ export default function PaginaA33Especificacion() {
             onChange={evento => seleccionar(evento.target.files?.[0])}
           />
         </div>
+
+        {cargada && <div className="mt-4 flex items-center justify-between gap-4 rounded-base border border-borde px-4 py-[14px]">
+          <div>
+            <p className="text-[15px] font-medium">{cargada.titulo}</p>
+            <p className="text-[13px] text-tinta-suave">OpenAPI {cargada.versionOpenApi} · {tamano(cargada.tamanoBytes)}</p>
+          </div>
+          <Etiqueta estado="correcto">Cargado</Etiqueta>
+        </div>}
 
         {archivo && <div className="mt-4 flex items-center justify-between gap-4 rounded-base border border-borde px-4 py-[14px]">
           <div>

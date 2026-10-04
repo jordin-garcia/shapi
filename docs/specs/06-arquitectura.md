@@ -205,6 +205,10 @@ sequenceDiagram
   Note over PR,R: No se emite ningún certificado: el comodín del borde ya cubre los dos hosts (RF-11)
 ```
 
+Respuestas del registro que el diagrama no detalla (DC-04):
+- un subdominio reservado o con un formato inválido responde **400 `datos_invalidos`**, con el error en `errores.subdominio`. Los campos se recortan antes de validarse;
+- si el DNS de la URL de origen no resuelve, responde **422 `origen_inaccesible`**, igual que si el origen no responde. Si resuelve a una dirección interna, **422 `origen_no_permitido`**. En los dos casos, `detalle.motivo` explica la causa y A3.2 la muestra.
+
 ### 5.4 Rotación de una clave
 
 ```mermaid
