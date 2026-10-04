@@ -82,3 +82,10 @@ dotnet format Shapi.slnx --verify-no-changes
 - El límite del cuerpo es 10 × 1024 × 1024 bytes.
 
 **Archivos principales:** `src/Shapi.Compuerta/Contexto/{ILectorContexto,LectorContexto}.cs`, `src/Shapi.Compuerta/Rutas/{PatronRuta,TablaRutas,CacheRutas}.cs`, `src/Shapi.Compuerta/Filtros/{FiltroCors,FiltroOrganizacion,FiltroSuscripcion,FiltroRuta}.cs`, `src/Shapi.Compuerta/Reenvio/{ConexionOrigen,ProteccionOrigen,TransformadorOrigen,ReenvioOrigen}.cs`, `src/Shapi.Compuerta/TuberiaCompuerta.cs` y `tests/Shapi.Compuerta.Tests/**`.
+
+### Correcciones de la auditoría (2026-10-03)
+
+Paso 1 de `docs/plan/auditoria-2026-10-03.md` (H-02 y H-04):
+- **Tiempo de conexión vencido (H-02).** YARP 2.3.0 reporta como `RequestTimedOut` (504) cualquier cancelación que no venga del token que se le pasa, incluido el vencimiento de `ConnectTimeout` (10 s) y una resolución del nombre que no termina. La compuerta respondía 504 `origen_sin_respuesta` y descontaba la cuota, cuando la petición nunca llegó al origen. Ahora `ReenvioOrigen` decide por la excepción (`NoSeConecto`): un `TimeoutException` adentro o un `HttpRequestException` con `ConnectionError`, `NameResolutionError` o `SecureConnectionError` (falló el TLS) es 502 `origen_inaccesible` y devuelve la cuota. La prueba nueva usa un resolutor que no termina y una conexión de 300 ms, y sin la corrección recibía 504.
+- **Decisión del paso 1.** Si el origen acepta la conexión, recibe la petición y la corta sin responder, la respuesta sigue siendo 502 `origen_inaccesible`, pero la cuota **se descuenta**, porque la petición llegó. Antes se devolvía. Un `SocketException` solo no basta para decir que no hubo conexión: también aparece cuando el origen corta. Se precisó en 08 §1, §3 y §4, con una prueba que usa un origen Kestrel que aborta.
+- **RF-47 (H-04).** La prueba del secreto de origen se llama `RF_47_HaciaElOrigen_ConSecreto_AgregaXShapiSecreto`.

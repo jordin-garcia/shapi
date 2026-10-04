@@ -8,7 +8,7 @@ La compuerta es el proceso `Shapi.Compuerta`: ASP.NET Core con YARP y una tuber�
 - **Clave:** en la cabecera `X-Api-Key: shp_prod_…` o `shp_prueba_…`. **No se aceptan claves en la query string**, para que no queden en los registros de acceso. Si el nombre o el valor de un parámetro de la query contiene una clave con el formato de [§2](#2-formato-de-la-clave), sola o dentro de un texto más largo, la compuerta responde 401 `clave_en_url` y no reenvía la petición, aunque también venga `X-Api-Key`. Los demás parámetros (por ejemplo, un `key` del proveedor) se reenvían. La compuerta tampoco registra la URL de destino con su query.
 - **Ruta y método:** los de la especificación del proveedor. El patrón se compara con la sintaxis de OpenAPI (por ejemplo, `/guias/{numero}` coincide con `/guias/GT123`). Si dos patrones coinciden, gana el más específico: primero el que tiene más segmentos literales y, si empatan, el que tiene menos parámetros. Los segmentos literales no distinguen mayúsculas, porque muchos orígenes tampoco las distinguen: así `/guias/RECIENTES` no se salta una ruta oculta `/guias/recientes`.
 - **Cuerpo:** máximo 10 MB (10 × 1024 × 1024 bytes). Si es más grande se responde 413 `cuerpo_demasiado_grande`. Si el `Content-Length` lo anuncia, se rechaza antes de leer Redis; si no lo anuncia (cuerpo por partes), se corta al pasar el límite mientras se reenvía.
-- **Tiempo de espera del origen:** 30 segundos **en total**, desde que se reenvía la petición hasta que termina la respuesta; no es un tiempo de inactividad. Si vence antes de que el origen responda, 504 `origen_sin_respuesta`. Si la respuesta ya empezó, se corta. Dentro de esos 30 segundos, la conexión con el origen tiene 10 segundos; si no se conecta, 502 `origen_inaccesible`.
+- **Tiempo de espera del origen:** 30 segundos **en total**, desde que se reenvía la petición hasta que termina la respuesta; no es un tiempo de inactividad. Si vence antes de que el origen responda, 504 `origen_sin_respuesta`. Si la respuesta ya empezó, se corta. Dentro de esos 30 segundos, la conexión con el origen tiene 10 segundos, incluida la resolución del nombre; si no se conecta, 502 `origen_inaccesible` (no 504, aunque el cliente lo reporte como tiempo vencido).
 - **Salud:** `GET /salud` solo responde cuando el `Host` es `localhost`, para no tapar una ruta `/salud` de las APIs. Con cualquier otro host, la petición pasa por la tubería.
 
 ## 2. Formato de la clave
@@ -43,9 +43,10 @@ flowchart LR
   F7 -- "acierto" --> HIT(["200 desde caché"])
   F7 --> F8["8 · Reenvío YARP<br/>transforma las cabeceras"]
   F8 -- "no se pudo conectar" --> R502(["502 origen_inaccesible<br/>(se devuelve la cuota)"])
+  F8 -- "cortó la conexión sin responder" --> R502b(["502 origen_inaccesible<br/>(se descuenta)"])
   F8 -- "pasan 30 s" --> R504(["504 origen_sin_respuesta"])
   F8 --> OK(["Respuesta del origen"])
-  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R504 --> F9["9 · Medición<br/>(después de responder)"]
+  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R502b & R504 --> F9["9 · Medición<br/>(después de responder)"]
 ```
 
 ### Detalle de cada filtro
@@ -79,7 +80,7 @@ contadores = n_s, n_r, c_s, c_o, leídos después de reservar o de revertir (0 s
 ```
 
 - Como la reserva es atómica, **la cuota nunca se excede**, ni siquiera con peticiones concurrentes ([ADR-21](12-decisiones.md)).
-- Si el origen **no se pudo conectar** (502), la compuerta devuelve la reserva: `DECRBY cuota_s peso` y `DECR cuota_o`. Los contadores por minuto no se devuelven.
+- Si el origen **no se pudo conectar** (502), la compuerta devuelve la reserva: `DECRBY cuota_s peso` y `DECR cuota_o`. Los contadores por minuto no se devuelven. Solo se devuelve si la petición no llegó al origen: la dirección se rechazó o no resolvió, el origen no aceptó la conexión, falló la conexión segura (TLS) o venció el tiempo de conexión. Si el origen aceptó la conexión, recibió la petición y la cortó antes de responder, también es 502 `origen_inaccesible`, pero la cuota **se descuenta**.
 - Los errores 4xx y 5xx del origen y los 504 **sí descuentan**, porque la petición llegó al origen.
 - Las respuestas desde caché **descuentan**, porque el consumidor recibió los datos.
 - El límite por minuto usa una ventana fija de 60 segundos alineada al minuto (`minuto_epoch = floor(unix/60)`).
@@ -117,7 +118,7 @@ Todos los rechazos de la compuerta responden con `Content-Type: application/json
 | 429 | `limite_por_minuto` | Se pasó el límite de peticiones por minuto del plan o de la ruta | `Retry-After` (segundos para el siguiente minuto) |
 | 429 | `cuota_agotada` | Se agotó la cuota de llamadas del ciclo. Con la clave de pruebas, se pasaron las 1,000 peticiones del día | `Retry-After` (segundos para que termine el ciclo o, con la clave de pruebas, para la medianoche de Guatemala; 1 si el ciclo ya terminó) |
 | 429 | `cuota_plataforma_agotada` | El **proveedor** agotó la cuota de peticiones de su plan de plataforma | `Retry-After` (segundos para que termine el ciclo de plataforma) |
-| 502 | `origen_inaccesible` | No se pudo conectar con el origen en 10 segundos, o el origen apunta a una dirección prohibida | — |
+| 502 | `origen_inaccesible` | No se pudo conectar con el origen en 10 segundos, el origen apunta a una dirección prohibida, o cortó la conexión sin responder | — |
 | 503 | `servicio_no_disponible` | Redis no está disponible: la compuerta no puede validar la petición ([RNF-04](03-requisitos.md#rnf-04)) | `Retry-After: 5` |
 | 504 | `origen_sin_respuesta` | El origen no respondió en 30 segundos (si la respuesta ya había empezado, se corta) | — |
 
