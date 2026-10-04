@@ -11,12 +11,18 @@ namespace Shapi.Infraestructura.Apis;
 
 public sealed class LectorEspecificacionOpenApi : ILectorEspecificacionOpenApi
 {
+    /// <summary>Lo que ve el proveedor cuando falla Microsoft.OpenApi o SharpYaml, cuyos mensajes están en inglés (RNF-12).</summary>
+    public const string MensajeErrorDocumento = "El documento tiene un error de formato o de estructura.";
+
+    public string LeerVersionOpenApi(string contenido) =>
+        ObtenerVersionExacta(contenido, Formato(contenido));
+
     public async Task<ResultadoLecturaEspecificacion> Leer(
         string contenido,
         string nombreArchivo,
         CancellationToken cancelacion = default)
     {
-        var formato = contenido.AsSpan().TrimStart().StartsWith("{") ? "json" : "yaml";
+        var formato = Formato(contenido);
         try
         {
             var opciones = new OpenApiReaderSettings();
@@ -27,7 +33,9 @@ public sealed class LectorEspecificacionOpenApi : ILectorEspecificacionOpenApi
             if (resultado.Document is null || diagnostico is null || diagnostico.Errors.Count > 0)
             {
                 var error = diagnostico?.Errors.FirstOrDefault();
-                return Fallo(error?.Pointer ?? nombreArchivo, error?.Message ?? "No se pudo leer el documento.");
+                return error is null
+                    ? Fallo(nombreArchivo, "No se pudo leer el documento.")
+                    : FalloBiblioteca(error.Pointer ?? nombreArchivo, error.Message);
             }
 
             if (diagnostico.SpecificationVersion is not (OpenApiSpecVersion.OpenApi3_0 or OpenApiSpecVersion.OpenApi3_1))
@@ -86,7 +94,7 @@ public sealed class LectorEspecificacionOpenApi : ILectorEspecificacionOpenApi
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return Fallo(Ubicacion(ex.Message, nombreArchivo), ex.Message);
+            return FalloBiblioteca(Ubicacion(ex.Message, nombreArchivo), ex.Message);
         }
     }
 
@@ -167,8 +175,17 @@ public sealed class LectorEspecificacionOpenApi : ILectorEspecificacionOpenApi
         return true;
     }
 
+    private static string Formato(string contenido) =>
+        contenido.AsSpan().TrimStart().StartsWith("{") ? "json" : "yaml";
+
     private static ResultadoLecturaEspecificacion Fallo(string ubicacion, string mensaje) =>
         new(null, new ErrorLecturaEspecificacion(string.IsNullOrWhiteSpace(ubicacion) ? "documento" : ubicacion, mensaje));
+
+    private static ResultadoLecturaEspecificacion FalloBiblioteca(string ubicacion, string original) =>
+        new(null, new ErrorLecturaEspecificacion(
+            string.IsNullOrWhiteSpace(ubicacion) ? "documento" : ubicacion,
+            MensajeErrorDocumento,
+            original));
 
     private static string Ubicacion(string mensaje, string archivo)
     {

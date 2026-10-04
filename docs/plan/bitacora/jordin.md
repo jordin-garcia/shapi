@@ -713,3 +713,27 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
     Actualiza tu rama desde `main`.
   - **Todos:** en el ambiente productivo, Caddy ahora corre sin privilegios. No hay que hacer nada: el contenedor ajusta solo los permisos del volumen `caddydata`, que sigue compartido con desarrollo, y se usa la misma autoridad certificadora.
+
+## 2026-10-04 · DC-05 · Correcciones de la auditoría: APIs
+- Hecho: paso 7 de la auditoría del 3 oct para DC-05 y DC-04 (H-48 a H-57).
+  - El lector puede ver las rutas de una API.
+  - `GET /rutas` devuelve el resumen de la especificación, y A3.3 muestra la tarjeta del archivo al volver.
+  - Las cargas simultáneas ya no chocan, y el lote de exposición se valida con 400.
+  - Sin la parte `archivo`, la carga responde 400.
+  - A3.4 usa los radios del mockup, y A3.2 muestra el motivo del 422.
+  - El subdominio se recorta antes de validarse.
+  - Los errores de la biblioteca de OpenAPI llegan en español, con el original como detalle técnico.
+- Decisiones: las tres del paso 7 (06 §5.3, pruebas de documentos inválidos y mensajes en español) y un solo PR para DC-05 y DC-04.
+- Pendiente o aviso para otros:
+  - **Dominique:** cambié estos archivos tuyos:
+    - `src/Shapi.Api/Apis/Endpoints.cs`;
+    - `src/Shapi.Aplicacion/Apis/` (`ContratosApis.cs`, `GestionarEspecificacion.cs` y `RegistrarApi.cs`);
+    - `src/Shapi.Infraestructura/Apis/` (`LectorEspecificacionOpenApi.cs` y `RepositorioApis.cs`);
+    - `contratos/openapi/apis.yaml` y los tipos generados;
+    - A3.2, A3.3 y A3.4 en `frontend/apps/panel/src/paginas/`, con sus pruebas (`Apis.test.tsx`) y `tests/Shapi.Api.Tests/Apis/ApisTests.cs`;
+    - tus archivos de tarea DC-04 y DC-05.
+
+    Actualiza tu rama desde `main`.
+  - **DC-06:** `ListaRutas` (`GET /api/apis/{id}/rutas` y `PUT …/rutas/exposicion`) lleva un campo nuevo, `especificacion`, que puede ser `null`. Cada elemento del lote de exposición debe traer `rutaId` y `expuesta`; si no, responde 400.
+  - **DC-07 y DC-10:** la forma de `ruta.definicion` está en 07 §3.2: `{orden, parametros, cuerpo, respuestas}`, con las referencias locales resueltas.
+  - **JG-09:** al recargar una especificación, el consumo de las rutas retiradas se suma a la fila con `ruta_id` nulo y la ruta se borra (07 §3.5). Después de una recarga, pueden llegar eventos de la compuerta con una `ruta_id` que ya no existe: la consolidación debe guardarlos con `ruta_id` nulo, no fallar por la FK.

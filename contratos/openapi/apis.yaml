@@ -99,6 +99,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EspecificacionCargada'
+        '400':
+          description: Falta la parte `archivo` del formulario (`datos_invalidos`, con `errores.archivo`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
         '401':
           $ref: '#/components/responses/SinSesion'
         '403':
@@ -106,7 +112,10 @@ paths:
         '404':
           $ref: '#/components/responses/ApiNoEncontrada'
         '422':
-          description: Documento inválido (`especificacion_invalida`), con línea o sección en el detalle.
+          description: |
+            Documento inválido (`especificacion_invalida`). `detalle.ubicacion` lleva la línea o la sección y
+            `detalle.mensaje`, el motivo en español. Si el error viene de la biblioteca que lee el documento,
+            `detalle.detalleTecnico` lleva su mensaje original, en inglés.
           content:
             application/problem+json:
               schema:
@@ -115,6 +124,9 @@ paths:
   /api/apis/{id}/rutas:
     get:
       summary: Lista las rutas extraídas de una API
+      description: |
+        La pueden consultar todos los roles con permiso para ver APIs, incluido el lector (04 §3.1).
+        Incluye el resumen de la especificación cargada, o `null` si todavía no se ha cargado.
       operationId: listarRutasApi
       security:
         - cookieSesion: []
@@ -159,13 +171,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/ListaRutas'
         '400':
-          $ref: '#/components/responses/DatosInvalidos'
+          description: |
+            Lote inválido (`datos_invalidos`): un elemento nulo, sin `rutaId` o sin `expuesta`, o una ruta repetida.
+            `errores` usa la posición del elemento como clave, por ejemplo `[0].expuesta`.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
         '401':
           $ref: '#/components/responses/SinSesion'
         '403':
           $ref: '#/components/responses/SinPermisoOCsrf'
         '404':
-          $ref: '#/components/responses/ApiNoEncontrada'
+          description: |
+            La API no existe o es de otra organización, o una de las rutas no es de la API (`api_no_encontrada`).
+            No se cambia ninguna ruta.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
 
 components:
   securitySchemes:
@@ -338,9 +362,31 @@ components:
         expuesta:
           type: boolean
 
+    ResumenEspecificacion:
+      type: object
+      description: La especificación que la API tiene cargada. No se guarda el nombre del archivo.
+      required: [titulo, version, versionOpenApi, formato, cargadaEn, tamanoBytes]
+      properties:
+        titulo:
+          type: string
+        version:
+          type: string
+        versionOpenApi:
+          type: string
+          example: 3.0.3
+        formato:
+          type: string
+          enum: [json, yaml]
+        cargadaEn:
+          type: string
+          format: date-time
+        tamanoBytes:
+          type: integer
+          minimum: 1
+
     ListaRutas:
       type: object
-      required: [apiId, apiNombre, elementos, totalExpuestas, totalOcultas]
+      required: [apiId, apiNombre, elementos, totalExpuestas, totalOcultas, especificacion]
       properties:
         apiId:
           type: string
@@ -357,6 +403,11 @@ components:
         totalOcultas:
           type: integer
           minimum: 0
+        especificacion:
+          description: Nulo si la API todavía no tiene especificación.
+          oneOf:
+            - $ref: '#/components/schemas/ResumenEspecificacion'
+            - type: 'null'
 
     EspecificacionCargada:
       type: object

@@ -67,3 +67,11 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - El registro valida el subdominio y la URL de origen, bloquea SSRF después de resolver DNS, evita reenlaces durante la prueba HTTP y cifra el secreto `shps_` con Data Protection antes de persistirlo.
 - A3.1 y A3.2 reproducen los estados de lista, lista vacía, formulario, conexión y entrega única del secreto; al confirmar, A3.2 dirige a la especificación de la API creada.
 - Se agregaron pruebas unitarias, de integración y de interfaz. Pasaron compilación y formato .NET, 711 pruebas .NET, lint, tipos, 236 pruebas frontend y las compilaciones del panel y portal.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 7 de `docs/plan/auditoria-2026-10-03.md`, en el mismo PR que DC-05 (`[DC-05] Correcciones de la auditoría: APIs`).
+- **H-55:** ante un 422 `origen_inaccesible` u `origen_no_permitido`, A3.2 muestra el título y `detalle.motivo`, el resultado de la prueba de conexión (criterio 6). Prueba de Vitest con los dos códigos.
+- **H-56:** `RegistrarApi` recorta el nombre, la URL y el subdominio antes de validarlos. Antes, `"admin\n"` pasaba el patrón (en .NET, `$` acepta un salto de línea final) y la lista de reservados, y la entidad lanzaba una excepción: 500 en vez de 400.
+- **H-57:** la pantalla de la tarea se implementó en `frontend/apps/panel/src/paginas/A3-2-Registro.tsx`, no en `A3-2-RegistrarApi.tsx` como decía la sección de archivos.
+- **Decidido (3 oct):** «DNS fallido → 422 `origen_inaccesible`» y «subdominio reservado → 400 `datos_invalidos`» quedaron precisados en 06 §5.3.

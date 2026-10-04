@@ -176,6 +176,27 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Equal(0, await ContarApis());
     }
 
+    // H-56: "admin\n" pasaba el patrón (`$` acepta un salto de línea final) y la entidad respondía 500.
+    [Theory]
+    [InlineData("admin\n", false)]
+    [InlineData("a\n", false)]
+    [InlineData("envios\n", true)]
+    public async Task RF_08_Registrar_SubdominioConSaltoDeLineaSeRecortaAntesDeValidar(string subdominio, bool valido)
+    {
+        using var respuesta = await Registrar(subdominio, "https://8.8.8.8");
+
+        if (valido)
+        {
+            Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
+            Assert.Equal("envios", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("subdominio").GetString());
+            return;
+        }
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("subdominio", out _));
+        Assert.Equal(0, await ContarApis());
+    }
+
     [Fact]
     public async Task RF_08_Registrar_SubdominioOcupado_Responde409()
     {
@@ -307,7 +328,11 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         using var respuesta = await CargarEspecificacion(apiId, "invalida.yaml", contenido);
 
         var problema = await AfirmarProblema(respuesta, (HttpStatusCode)422, "especificacion_invalida");
-        Assert.False(string.IsNullOrWhiteSpace(problema.GetProperty("detalle").GetProperty("ubicacion").GetString()));
+        var detalle = problema.GetProperty("detalle");
+        Assert.False(string.IsNullOrWhiteSpace(detalle.GetProperty("ubicacion").GetString()));
+        // RNF-12 (decidido el 3 oct, DC-05): el mensaje va en español y el de SharpYaml, aparte.
+        Assert.Equal("El documento tiene un error de formato o de estructura.", detalle.GetProperty("mensaje").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(detalle.GetProperty("detalleTecnico").GetString()));
         Assert.Equal(0, await ContarRutas(apiId));
     }
 
@@ -584,17 +609,241 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Contains(apiId, publicador.ApisPublicadas);
     }
 
+    // 04 §3.1: el lector ve las APIs y sus rutas (H-48 de la auditoría del 3 oct).
     [Theory]
-    [InlineData("Propietario", HttpStatusCode.OK)]
-    [InlineData("Editor", HttpStatusCode.OK)]
-    [InlineData("Lector", HttpStatusCode.Forbidden)]
-    public async Task RF_09_RF_10_Endpoints_RespetanPermisoConfigurarApis(string rol, HttpStatusCode esperado)
+    [InlineData("Propietario")]
+    [InlineData("Editor")]
+    [InlineData("Lector")]
+    public async Task RF_09_ListarRutas_PermitidoATodosLosRolesConVerApis(string rol)
     {
         var apiId = await RegistrarYObtenerId($"rol-{rol.ToLowerInvariant()}");
 
         using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/rutas", null, rol);
 
-        Assert.Equal(esperado, respuesta.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_09_RF_10_Escrituras_LectorResponde403()
+    {
+        var apiId = await RegistrarYObtenerId("rol-lector-escribe");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutaId = (await ObtenerRutas(apiId)).GetProperty("elementos")[0].GetProperty("id").GetGuid();
+
+        using var carga = await CargarEspecificacion(apiId, "otra.yaml", "openapi: 3.0.3", "Lector");
+        using var exposicion = await EnviarAutenticado(
+            HttpMethod.Put,
+            $"/api/apis/{apiId}/rutas/exposicion",
+            new[] { new { rutaId, expuesta = true } },
+            "Lector");
+
+        Assert.Equal(HttpStatusCode.Forbidden, carga.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, exposicion.StatusCode);
+        Assert.False((await ObtenerRutas(apiId)).GetProperty("elementos")[0].GetProperty("expuesta").GetBoolean());
+    }
+
+    // H-49: al volver a A3.3, la tarjeta del archivo muestra la especificación que ya está cargada.
+    [Fact]
+    public async Task RF_09_ListarRutas_DevuelveElResumenDeLaEspecificacionCargada()
+    {
+        var apiId = await RegistrarYObtenerId("resumen");
+        Assert.Equal(JsonValueKind.Null, (await ObtenerRutas(apiId)).GetProperty("especificacion").ValueKind);
+        var archivo = RaizRepositorio.Ruta("origenes-demo", "envios-xelaju", "cotizacion-envios.yaml");
+        using var carga = await CargarEspecificacion(apiId, "origenes-demo/envios-xelaju/cotizacion-envios.yaml");
+        var cargadaEn = (await carga.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("cargadaEn").GetDateTimeOffset();
+
+        var especificacion = (await ObtenerRutas(apiId)).GetProperty("especificacion");
+
+        Assert.Equal("API de Cotización de Envíos", especificacion.GetProperty("titulo").GetString());
+        Assert.Equal("1.0.0", especificacion.GetProperty("version").GetString());
+        Assert.Equal("3.0.3", especificacion.GetProperty("versionOpenApi").GetString());
+        Assert.Equal("yaml", especificacion.GetProperty("formato").GetString());
+        Assert.Equal(
+            Encoding.UTF8.GetByteCount(await File.ReadAllTextAsync(archivo)),
+            especificacion.GetProperty("tamanoBytes").GetInt32());
+        Assert.InRange(
+            especificacion.GetProperty("cargadaEn").GetDateTimeOffset(),
+            cargadaEn.AddMilliseconds(-1),
+            cargadaEn.AddMilliseconds(1));
+    }
+
+    // H-49 con un documento JSON: la versión de OpenAPI se lee del campo de la raíz.
+    [Fact]
+    public async Task RF_09_ListarRutas_ResumenDeUnaEspecificacionJson()
+    {
+        var apiId = await RegistrarYObtenerId("resumen-json");
+        const string contenido = """
+            {"openapi":"3.1.0","info":{"title":"API JSON","version":"1.2.3","x-datos":{"openapi":"3.0.0"}},"paths":{}}
+            """;
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(apiId, "openapi.json", contenido)).StatusCode);
+
+        var especificacion = (await ObtenerRutas(apiId)).GetProperty("especificacion");
+
+        Assert.Equal("API JSON", especificacion.GetProperty("titulo").GetString());
+        Assert.Equal("3.1.0", especificacion.GetProperty("versionOpenApi").GetString());
+        Assert.Equal("json", especificacion.GetProperty("formato").GetString());
+    }
+
+    // H-50: dos cargas a la vez no chocan con el UNIQUE (api_id, metodo, patron) ni responden 500.
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_CargasSimultaneasNoChocan()
+    {
+        var apiId = await RegistrarYObtenerId("simultaneas");
+
+        var respuestas = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+            CargarEspecificacion(apiId, "origenes-demo/envios-xelaju/cotizacion-envios.yaml")));
+
+        try
+        {
+            Assert.All(respuestas, respuesta => Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode));
+            Assert.Equal(5, await ContarRutas(apiId));
+        }
+        finally
+        {
+            foreach (var respuesta in respuestas)
+            {
+                respuesta.Dispose();
+            }
+        }
+    }
+
+    // Revisión del paso 7: la carga que espera el bloqueo vuelve a leer la API, así que la especificación guardada
+    // (la del resumen y la de la caché) siempre corresponde a las rutas que quedaron.
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_CargasSimultaneasDejanEspecificacionYRutasCoherentes()
+    {
+        var apiId = await RegistrarYObtenerId("coherentes");
+        const string otra = """
+            openapi: 3.0.3
+            info:
+              title: API B
+              version: 2.0.0
+            paths:
+              /b:
+                get:
+                  responses:
+                    '200': { description: Correcto }
+            """;
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+
+        for (var intento = 0; intento < 3; intento++)
+        {
+            var respuestas = await Task.WhenAll(
+                CargarEspecificacion(apiId, "b.yaml", otra),
+                CargarEspecificacion(apiId, "origenes-demo/envios-xelaju/cotizacion-envios.yaml"));
+            Assert.All(respuestas, respuesta => Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode));
+            foreach (var respuesta in respuestas)
+            {
+                respuesta.Dispose();
+            }
+
+            var lista = await ObtenerRutas(apiId);
+            var patrones = lista.GetProperty("elementos").EnumerateArray()
+                .Select(ruta => ruta.GetProperty("patron").GetString())
+                .ToArray();
+            if (lista.GetProperty("especificacion").GetProperty("titulo").GetString() == "API B")
+            {
+                Assert.Equal("/b", Assert.Single(patrones));
+            }
+            else
+            {
+                Assert.Equal(5, patrones.Length);
+                Assert.DoesNotContain("/b", patrones);
+            }
+        }
+    }
+
+    // H-52: sin la parte `archivo`, 400 datos_invalidos con el error en el campo.
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_SinArchivoResponde400()
+    {
+        var apiId = await RegistrarYObtenerId("sin-archivo");
+        var multipart = new MultipartFormDataContent { { new StringContent("x"), "otro" } };
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/especificacion", multipart);
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("archivo", out _));
+    }
+
+    // Decidido (3 oct, DC-05): documentos semánticamente inválidos y una bomba de alias YAML también responden 422.
+    [Theory]
+    [InlineData("swagger: '2.0'\ninfo:\n  title: Swagger\n  version: 1.0.0\npaths: {}\n")]
+    [InlineData("openapi: 3.0.3\ninfo:\n  title: Sin versión\npaths: {}\n")]
+    [InlineData("openapi: 3.0.3\ninfo:\n  title: Bomba\n  version: 1.0.0\npaths: {}\n"
+        + "x-a: &a [x, x, x, x, x, x, x, x, x, x]\n"
+        + "x-b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]\n"
+        + "x-c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]\n"
+        + "x-d: &d [*c, *c, *c, *c, *c, *c, *c, *c, *c, *c]\n"
+        + "x-e: &e [*d, *d, *d, *d, *d, *d, *d, *d, *d, *d]\n"
+        + "x-f: &f [*e, *e, *e, *e, *e, *e, *e, *e, *e, *e]\n"
+        + "x-g: &g [*f, *f, *f, *f, *f, *f, *f, *f, *f, *f]\n"
+        + "x-h: &h [*g, *g, *g, *g, *g, *g, *g, *g, *g, *g]\n"
+        + "x-i: [*h, *h, *h, *h, *h, *h, *h, *h, *h, *h]\n")]
+    public async Task RF_09_CargarEspecificacion_DocumentoSemanticamenteInvalidoResponde422(string contenido)
+    {
+        var apiId = await RegistrarYObtenerId($"semantica-{Guid.NewGuid():N}"[..20]);
+
+        using var respuesta = await CargarEspecificacion(apiId, "invalida.yaml", contenido);
+
+        var problema = await AfirmarProblema(respuesta, (HttpStatusCode)422, "especificacion_invalida");
+        Assert.False(string.IsNullOrWhiteSpace(problema.GetProperty("detalle").GetProperty("ubicacion").GetString()));
+        Assert.Equal(0, await ContarRutas(apiId));
+    }
+
+    // H-51: un elemento sin `expuesta` o nulo no oculta rutas sin aviso ni responde 500.
+    [Theory]
+    [InlineData("[{\"rutaId\":\"{ruta}\"}]", "[0].expuesta")]
+    [InlineData("[{\"expuesta\":true}]", "[0].rutaId")]
+    [InlineData("[null]", "[0]")]
+    [InlineData("[{\"rutaId\":\"{ruta}\",\"expuesta\":true},{\"rutaId\":\"{ruta}\",\"expuesta\":false}]", "[1].rutaId")]
+    public async Task RF_10_Exposicion_LoteInvalidoResponde400SinCambios(string plantilla, string campo)
+    {
+        var apiId = await RegistrarYObtenerId($"lote-{Guid.NewGuid():N}"[..20]);
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutaId = (await ObtenerRutas(apiId)).GetProperty("elementos")[0].GetProperty("id").GetGuid();
+        using (var exponer = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", new[]
+        {
+            new { rutaId, expuesta = true },
+        }))
+        {
+            Assert.Equal(HttpStatusCode.OK, exponer.StatusCode);
+        }
+
+        using var respuesta = await EnviarAutenticado(
+            HttpMethod.Put,
+            $"/api/apis/{apiId}/rutas/exposicion",
+            new StringContent(plantilla.Replace("{ruta}", rutaId.ToString()), Encoding.UTF8, "application/json"));
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty(campo, out _));
+        Assert.True((await ObtenerRutas(apiId)).GetProperty("elementos")[0].GetProperty("expuesta").GetBoolean());
+    }
+
+    // H-52: una ruta que no es de la API responde 404 y no cambia nada.
+    [Fact]
+    public async Task RF_10_Exposicion_RutaDeOtraApiResponde404()
+    {
+        var apiId = await RegistrarYObtenerId("ruta-propia");
+        var otraApiId = await InsertarApi(_organizacionId, "ruta-ajena");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            otraApiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutaAjena = (await ObtenerRutas(otraApiId)).GetProperty("elementos")[0].GetProperty("id").GetGuid();
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", new[]
+        {
+            new { rutaId = rutaAjena, expuesta = true },
+        });
+
+        await AfirmarProblema(respuesta, HttpStatusCode.NotFound, "api_no_encontrada");
+        Assert.False((await ObtenerRutas(otraApiId)).GetProperty("elementos")[0].GetProperty("expuesta").GetBoolean());
     }
 
     private static void AfirmarConsumoConsolidado(
@@ -646,16 +895,15 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         return await CargarEspecificacion(apiId, Path.GetFileName(ruta), await File.ReadAllTextAsync(ruta));
     }
 
-    private async Task<HttpResponseMessage> CargarEspecificacion(Guid apiId, string nombre, string contenido)
+    private async Task<HttpResponseMessage> CargarEspecificacion(
+        Guid apiId,
+        string nombre,
+        string contenido,
+        string rol = "Propietario")
     {
         var multipart = new MultipartFormDataContent();
         multipart.Add(new StringContent(contenido, Encoding.UTF8), "archivo", nombre);
-        var peticion = new HttpRequestMessage(HttpMethod.Put, $"/api/apis/{apiId}/especificacion") { Content = multipart };
-        peticion.Headers.Add("X-Prueba-Organizacion", _organizacionId.ToString());
-        peticion.Headers.Add("X-Prueba-Rol", "Propietario");
-        peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
-        peticion.Headers.Add("X-Requested-With", "shapi");
-        return await _cliente.SendAsync(peticion);
+        return await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/especificacion", multipart, rol);
     }
 
     private async Task<JsonElement> ObtenerRutas(Guid apiId)
@@ -682,7 +930,11 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         peticion.Headers.Add("X-Prueba-Rol", rol);
         peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
         peticion.Headers.Add("X-Requested-With", "shapi");
-        if (cuerpo is not null)
+        if (cuerpo is HttpContent contenido)
+        {
+            peticion.Content = contenido;
+        }
+        else if (cuerpo is not null)
         {
             peticion.Content = JsonContent.Create(cuerpo);
         }

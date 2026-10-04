@@ -35,12 +35,15 @@ public sealed class CargarEspecificacion(
         var lectura = await lector.Leer(contenido, nombreArchivo, cancelacion);
         if (!lectura.EsValida)
         {
-            return Invalida(lectura.Error!.Ubicacion, lectura.Error.Mensaje);
+            return Invalida(lectura.Error!.Ubicacion, lectura.Error.Mensaje, lectura.Error.DetalleTecnico);
         }
 
         var especificacion = lectura.Especificacion!;
         var ahora = reloj.Ahora;
         await using var transaccion = await repositorio.IniciarTransaccion(cancelacion);
+        // Dos cargas simultáneas de la misma API insertarían las mismas rutas y chocarían con el UNIQUE
+        // (api_id, metodo, patron): la segunda espera aquí y reconcilia sobre la API y las rutas que dejó la primera.
+        await repositorio.BloquearApi(api, cancelacion);
         var existentes = await repositorio.ObtenerRutas(apiId, cancelacion);
         var porClave = existentes.ToDictionary(r => (r.Metodo, r.Patron));
         var clavesNuevas = especificacion.Operaciones.Select(o => (o.Metodo, o.Patron)).ToHashSet();
@@ -86,7 +89,7 @@ public sealed class CargarEspecificacion(
             await publicador.PublicarApi(apiId, cancelacion);
         }
 
-        var lista = await ConstruirLista(repositorio, api, cancelacion);
+        var lista = await ConstruirLista(repositorio, lector, api, cancelacion);
         return new EspecificacionCargada(
             api.Id,
             api.Nombre,
@@ -100,14 +103,18 @@ public sealed class CargarEspecificacion(
             lista.Elementos);
     }
 
-    private static Error Invalida(string ubicacion, string mensaje) =>
-        new(CodigosError.EspecificacionInvalida, "La especificación OpenAPI no es válida.", new { ubicacion, mensaje });
+    private static Error Invalida(string ubicacion, string mensaje, string? detalleTecnico = null) =>
+        new(
+            CodigosError.EspecificacionInvalida,
+            "La especificación OpenAPI no es válida.",
+            detalleTecnico is null ? new { ubicacion, mensaje } : new { ubicacion, mensaje, detalleTecnico });
 
     private static Error NoEncontrada() =>
         new(CodigosError.ApiNoEncontrada, "No se encontró la API.");
 
     internal static async Task<ListaRutas> ConstruirLista(
         IRepositorioApis repositorio,
+        ILectorEspecificacionOpenApi lector,
         Api api,
         CancellationToken cancelacion)
     {
@@ -123,8 +130,29 @@ public sealed class CargarEspecificacion(
             .OrderBy(r => r.Orden)
             .ThenBy(r => r.Patron, StringComparer.Ordinal)
             .ToArray();
-        return new ListaRutas(api.Id, api.Nombre, rutas, rutas.Count(r => r.Expuesta), rutas.Count(r => !r.Expuesta));
+        return new ListaRutas(
+            api.Id,
+            api.Nombre,
+            rutas,
+            rutas.Count(r => r.Expuesta),
+            rutas.Count(r => !r.Expuesta),
+            Resumen(lector, api));
     }
+
+    private static ResumenEspecificacion? Resumen(ILectorEspecificacionOpenApi lector, Api api) =>
+        api.Especificacion is null
+            || api.EspecificacionFormato is null
+            || api.EspecificacionTitulo is null
+            || api.EspecificacionVersion is null
+            || api.EspecificacionCargadaEn is null
+            ? null
+            : new ResumenEspecificacion(
+                api.EspecificacionTitulo,
+                api.EspecificacionVersion,
+                lector.LeerVersionOpenApi(api.Especificacion),
+                api.EspecificacionFormato.Value.ToString().ToLowerInvariant(),
+                api.EspecificacionCargadaEn.Value,
+                Encoding.UTF8.GetByteCount(api.Especificacion));
 
     private static int Orden(string definicion)
     {
@@ -140,7 +168,7 @@ public sealed class CargarEspecificacion(
     }
 }
 
-public sealed class ListarRutas(IRepositorioApis repositorio)
+public sealed class ListarRutas(IRepositorioApis repositorio, ILectorEspecificacionOpenApi lector)
 {
     public async Task<Resultado<ListaRutas>> Ejecutar(
         Guid apiId,
@@ -150,12 +178,13 @@ public sealed class ListarRutas(IRepositorioApis repositorio)
         var api = await repositorio.Obtener(apiId, organizacionId, cancelacion);
         return api is null
             ? new Error(CodigosError.ApiNoEncontrada, "No se encontró la API.")
-            : await CargarEspecificacion.ConstruirLista(repositorio, api, cancelacion);
+            : await CargarEspecificacion.ConstruirLista(repositorio, lector, api, cancelacion);
     }
 }
 
 public sealed class ActualizarExposicionRutas(
     IRepositorioApis repositorio,
+    ILectorEspecificacionOpenApi lector,
     IBitacora bitacora,
     IReloj reloj,
     IPublicadorCache publicador)
@@ -172,22 +201,27 @@ public sealed class ActualizarExposicionRutas(
             return new Error(CodigosError.ApiNoEncontrada, "No se encontró la API.");
         }
 
-        if (solicitud.Cambios.Select(c => c.RutaId).Distinct().Count() != solicitud.Cambios.Count)
+        var errores = ValidarCambios(solicitud.Cambios);
+        if (errores.Count > 0)
         {
-            return new Error(CodigosError.DatosInvalidos, "No repita rutas en la solicitud.");
+            return new Error(CodigosError.DatosInvalidos, "Revise las rutas de la solicitud.", errores);
         }
 
+        var cambios = solicitud.Cambios.Select(c => (RutaId: c!.RutaId!.Value, Expuesta: c.Expuesta!.Value)).ToArray();
+
         await using var transaccion = await repositorio.IniciarTransaccion(cancelacion);
+        // Una recarga simultánea podría borrar una de las rutas mientras se guarda su exposición.
+        await repositorio.BloquearApi(api, cancelacion);
         var rutas = await repositorio.ObtenerRutas(apiId, cancelacion);
         var porId = rutas.ToDictionary(r => r.Id);
-        if (solicitud.Cambios.Any(c => !porId.ContainsKey(c.RutaId)))
+        if (cambios.Any(c => !porId.ContainsKey(c.RutaId)))
         {
             return new Error(CodigosError.ApiNoEncontrada, "No se encontró una de las rutas.");
         }
 
         var nombreActor = await repositorio.ObtenerNombreUsuario(solicitud.Actor.Id, cancelacion)
             ?? solicitud.Actor.NombreAlterno;
-        foreach (var cambio in solicitud.Cambios)
+        foreach (var cambio in cambios)
         {
             var ruta = porId[cambio.RutaId];
             if (!ruta.CambiarExposicion(cambio.Expuesta, reloj.Ahora))
@@ -218,6 +252,38 @@ public sealed class ActualizarExposicionRutas(
             await publicador.PublicarApi(apiId, cancelacion);
         }
 
-        return await CargarEspecificacion.ConstruirLista(repositorio, api, cancelacion);
+        return await CargarEspecificacion.ConstruirLista(repositorio, lector, api, cancelacion);
+    }
+
+    /// <summary>Cada elemento debe traer <c>rutaId</c> y <c>expuesta</c>, y no se puede repetir una ruta (convenciones §5).</summary>
+    private static Dictionary<string, string[]> ValidarCambios(IReadOnlyList<CambioExposicionRuta?> cambios)
+    {
+        var errores = new Dictionary<string, string[]>();
+        var vistas = new HashSet<Guid>();
+        for (var indice = 0; indice < cambios.Count; indice++)
+        {
+            var cambio = cambios[indice];
+            if (cambio is null)
+            {
+                errores[$"[{indice}]"] = ["Indique la ruta y si queda expuesta."];
+                continue;
+            }
+
+            if (cambio.RutaId is null)
+            {
+                errores[$"[{indice}].rutaId"] = ["Indique la ruta."];
+            }
+            else if (!vistas.Add(cambio.RutaId.Value))
+            {
+                errores[$"[{indice}].rutaId"] = ["No repita rutas en la solicitud."];
+            }
+
+            if (cambio.Expuesta is null)
+            {
+                errores[$"[{indice}].expuesta"] = ["Indique si la ruta queda expuesta u oculta."];
+            }
+        }
+
+        return errores;
     }
 }

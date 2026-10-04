@@ -44,7 +44,11 @@ public sealed record EspecificacionLeida(
     string Version,
     IReadOnlyList<OperacionEspecificacion> Operaciones);
 
-public sealed record ErrorLecturaEspecificacion(string Ubicacion, string Mensaje);
+/// <summary>
+/// <paramref name="Mensaje"/> va siempre en español (RNF-12). Si el error viene de Microsoft.OpenApi o de SharpYaml,
+/// su texto original, en inglés, va aparte en <paramref name="DetalleTecnico"/>.
+/// </summary>
+public sealed record ErrorLecturaEspecificacion(string Ubicacion, string Mensaje, string? DetalleTecnico = null);
 
 public sealed record ResultadoLecturaEspecificacion(EspecificacionLeida? Especificacion, ErrorLecturaEspecificacion? Error)
 {
@@ -60,12 +64,22 @@ public sealed record RutaAdministrada(
     bool Expuesta,
     int Orden);
 
+/// <summary>La especificación que la API tiene cargada, para la tarjeta del archivo de A3.3.</summary>
+public sealed record ResumenEspecificacion(
+    string Titulo,
+    string Version,
+    string VersionOpenApi,
+    string Formato,
+    DateTimeOffset CargadaEn,
+    int TamanoBytes);
+
 public sealed record ListaRutas(
     Guid ApiId,
     string ApiNombre,
     IReadOnlyList<RutaAdministrada> Elementos,
     int TotalExpuestas,
-    int TotalOcultas);
+    int TotalOcultas,
+    ResumenEspecificacion? Especificacion);
 
 public sealed record EspecificacionCargada(
     Guid ApiId,
@@ -79,9 +93,10 @@ public sealed record EspecificacionCargada(
     int TotalRutas,
     IReadOnlyList<RutaAdministrada> Rutas);
 
-public sealed record CambioExposicionRuta(Guid RutaId, bool Expuesta);
+/// <summary>Los dos campos son anulables para responder 400 si faltan, en vez de tomar <c>false</c> sin avisar.</summary>
+public sealed record CambioExposicionRuta(Guid? RutaId, bool? Expuesta);
 
-public sealed record SolicitudExposicionRutas(IReadOnlyList<CambioExposicionRuta> Cambios, ActorRegistroApi Actor);
+public sealed record SolicitudExposicionRutas(IReadOnlyList<CambioExposicionRuta?> Cambios, ActorRegistroApi Actor);
 
 public interface ILectorEspecificacionOpenApi
 {
@@ -89,6 +104,9 @@ public interface ILectorEspecificacionOpenApi
         string contenido,
         string nombreArchivo,
         CancellationToken cancelacion = default);
+
+    /// <summary>La versión de OpenAPI de un documento que ya se validó al cargarlo (el campo <c>openapi</c> de la raíz).</summary>
+    string LeerVersionOpenApi(string contenido);
 }
 
 public interface IProbadorOrigen
@@ -103,6 +121,12 @@ public interface IRepositorioApis
     Task<bool> Agregar(Api api, CancellationToken cancelacion = default);
 
     Task<ITransaccionApis> IniciarTransaccion(CancellationToken cancelacion = default);
+
+    /// <summary>
+    /// Bloquea la fila de la API hasta el final de la transacción (<c>FOR UPDATE</c>) y vuelve a leer la entidad, que pudo
+    /// cambiar mientras se esperaba el bloqueo.
+    /// </summary>
+    Task BloquearApi(Api api, CancellationToken cancelacion = default);
 
     Task<ListaApis> Listar(Guid organizacionId, CancellationToken cancelacion = default);
 

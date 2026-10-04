@@ -159,6 +159,23 @@ describe('RF-08 y RF-47 · A3.2 Registro de API', () => {
     expect(await screen.findByText('Escriba el nombre de la API.')).toBeDefined();
     expect(screen.getByText('El subdominio no está disponible.')).toBeDefined();
   });
+
+  // H-55 (criterio 6): ante un 422 se muestra el resultado de la prueba de conexión, no solo el título.
+  it.each([
+    ['origen_inaccesible', 'No se pudo conectar con el origen.', 'El servidor no aceptó la conexión.'],
+    ['origen_no_permitido', 'La URL del origen no está permitida.', 'La dirección 10.0.0.5 es interna.'],
+  ])('muestra el motivo de un 422 %s', async (codigo, titulo, motivo) => {
+    server.use(http.post(API, () => HttpResponse.json({
+      type: 'about:blank', title: titulo, status: 422, codigo, detalle: { motivo },
+    }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })));
+
+    envolver(<PaginaA32Registro />, '/panel/apis/nueva');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar y continuar' }));
+
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain(titulo);
+    expect(aviso.textContent).toContain(motivo);
+  });
 });
 
 const API_ID = '0199a5b2-7c3d-7e4f-8a9b-0c1d2e3f4a5b';
@@ -209,6 +226,89 @@ describe('RF-09 · A3.3 Especificación OpenAPI', () => {
       .toBe(`/panel/apis/${API_ID}/rutas`);
   });
 
+  // H-49: al volver a A3.3 se ve la especificación que ya estaba cargada.
+  it('muestra la tarjeta de la especificación ya cargada al volver a la pantalla', async () => {
+    server.use(http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+      apiId: API_ID,
+      apiNombre: 'API de Cotización de Envíos',
+      elementos: RUTAS,
+      totalExpuestas: 4,
+      totalOcultas: 1,
+      especificacion: {
+        titulo: 'API de Cotización de Envíos',
+        version: '1.0.0',
+        versionOpenApi: '3.0.3',
+        formato: 'yaml',
+        cargadaEn: '2026-10-01T12:00:00Z',
+        tamanoBytes: 18432,
+      },
+    })));
+
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+
+    expect(await screen.findByText('Cargado')).toBeDefined();
+    expect(screen.getAllByText('API de Cotización de Envíos').length).toBeGreaterThan(1);
+    expect(document.body.textContent).toContain('OpenAPI 3.0.3 · 18 KB');
+    expect(document.body.textContent).toContain('Rutas encontradas5');
+  });
+
+  it('vuelve a mostrar la especificación cargada si se rechaza un archivo nuevo', async () => {
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1,
+        especificacion: {
+          titulo: 'API de Cotización de Envíos', version: '1.0.0', versionOpenApi: '3.0.3', formato: 'yaml',
+          cargadaEn: '2026-10-01T12:00:00Z', tamanoBytes: 18432,
+        },
+      })),
+      http.put(`${API}/${API_ID}/especificacion`, () => HttpResponse.json({
+        type: 'about:blank', title: 'La especificación OpenAPI no es válida.', status: 422,
+        codigo: 'especificacion_invalida', detalle: { ubicacion: 'línea 4', mensaje: 'Falta la versión.' },
+      }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+    await screen.findByText('Cargado');
+    vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
+    await userEvent.upload(screen.getByLabelText('Elegir archivo OpenAPI'), new File(['x'], 'mala.yaml'));
+
+    await screen.findByRole('alert');
+    expect(screen.queryByText('mala.yaml')).toBeNull();
+    expect(screen.getByText('Cargado')).toBeDefined();
+    expect(document.body.textContent).toContain('OpenAPI 3.0.3 · 18 KB');
+  });
+
+  it('no muestra la tarjeta si la API todavía no tiene especificación', async () => {
+    server.use(http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+      apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: [], totalExpuestas: 0, totalOcultas: 0, especificacion: null,
+    })));
+
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+
+    expect(await screen.findByRole('heading', { name: 'Cargar especificación OpenAPI' })).toBeDefined();
+    expect(screen.queryByText('Cargado')).toBeNull();
+  });
+
+  // Decidido (3 oct, DC-05): el mensaje va en español y el original de la biblioteca, como detalle técnico.
+  it('muestra el detalle técnico de la biblioteca después del mensaje en español', async () => {
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: [], totalExpuestas: 0, totalOcultas: 0, especificacion: null,
+      })),
+      http.put(`${API}/${API_ID}/especificacion`, () => HttpResponse.json({
+        type: 'about:blank', title: 'La especificación OpenAPI no es válida.', status: 422, codigo: 'especificacion_invalida',
+        detalle: { ubicacion: 'línea 4', mensaje: 'El documento tiene un error de formato o de estructura.', detalleTecnico: 'Expected a flow sequence end.' },
+      }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+    await screen.findByRole('heading', { name: 'Cargar especificación OpenAPI' });
+    vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
+    await userEvent.upload(screen.getByLabelText('Elegir archivo OpenAPI'), new File(['x'], 'mala.yaml'));
+
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('El documento tiene un error de formato o de estructura.');
+    expect(aviso.textContent).toContain('Detalle técnico: Expected a flow sequence end.');
+  });
+
   it('muestra el error de una especificación inválida', async () => {
     server.use(
       http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
@@ -257,5 +357,20 @@ describe('RF-10 · A3.4 Rutas expuestas', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar rutas expuestas' }));
     expect(await screen.findByText('Las rutas expuestas se guardaron.')).toBeDefined();
     expect(cuerpo).toEqual(RUTAS.map((ruta, indice) => ({ rutaId: ruta.id, expuesta: indice === 0 ? false : ruta.expuesta })));
+  });
+
+  // H-53: radios del mockup (16 px, borde #C9D2E1 y punto en el color principal), separados 28 px.
+  it('usa los radios del mockup', async () => {
+    server.use(http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+      apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1, especificacion: null,
+    })));
+
+    envolver(<Routes><Route path="/panel/apis/:id/rutas" element={<PaginaA34Rutas />} /></Routes>, `/panel/apis/${API_ID}/rutas`);
+
+    const radio = await screen.findByLabelText('Exponer POST /cotizaciones');
+    for (const clase of ['appearance-none', 'size-4', 'rounded-full', 'border-[1.5px]', 'border-borde-campo', 'checked:border-principal', 'checked:bg-principal']) {
+      expect(radio.className).toContain(clase);
+    }
+    expect(radio.closest('div')?.className).toContain('gap-7');
   });
 });

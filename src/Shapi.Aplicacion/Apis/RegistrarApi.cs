@@ -44,6 +44,14 @@ public sealed class RegistrarApi(
         SolicitudRegistroApi solicitud,
         CancellationToken cancelacion = default)
     {
+        // Se recorta antes de validar: en .NET, `$` acepta un salto de línea final, así que "admin\n" pasaría el patrón
+        // y la lista de reservados, y la entidad lo rechazaría después con una excepción.
+        solicitud = solicitud with
+        {
+            Nombre = solicitud.Nombre?.Trim(),
+            UrlOrigen = solicitud.UrlOrigen?.Trim(),
+            Subdominio = solicitud.Subdominio?.Trim(),
+        };
         var validacion = await validador.ValidateAsync(solicitud, cancelacion);
         if (!validacion.IsValid)
         {
@@ -53,9 +61,9 @@ public sealed class RegistrarApi(
                 validacion.ToDictionary());
         }
 
-        var nombre = solicitud.Nombre!.Trim();
-        var urlOrigen = solicitud.UrlOrigen!.Trim();
-        var subdominio = solicitud.Subdominio!.Trim();
+        var nombre = solicitud.Nombre!;
+        var urlOrigen = solicitud.UrlOrigen!;
+        var subdominio = solicitud.Subdominio!;
         if (await repositorio.ExisteSubdominio(subdominio, cancelacion))
         {
             return SubdominioOcupado();

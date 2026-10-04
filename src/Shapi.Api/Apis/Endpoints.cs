@@ -18,7 +18,8 @@ public static class Endpoints
         grupo.MapPut("/{id:guid}/especificacion", CargarEspecificacionArchivo)
             .DisableAntiforgery()
             .RequireAuthorization(Permisos.ConfigurarApis);
-        grupo.MapGet("/{id:guid}/rutas", ObtenerRutas).RequireAuthorization(Permisos.ConfigurarApis);
+        // 04: el lector puede ver las APIs y sus rutas; solo cambiarlas exige ConfigurarApis.
+        grupo.MapGet("/{id:guid}/rutas", ObtenerRutas).RequireAuthorization(Permisos.VerApis);
         grupo.MapPut("/{id:guid}/rutas/exposicion", ActualizarExposicion)
             .RequireAuthorization(Permisos.ConfigurarApis);
         return app;
@@ -77,11 +78,19 @@ public static class Endpoints
 
     private static async Task<IResult> CargarEspecificacionArchivo(
         Guid id,
-        IFormFile archivo,
+        IFormFile? archivo,
         HttpContext contexto,
         CargarEspecificacion casoUso,
         CancellationToken cancelacion)
     {
+        if (archivo is null)
+        {
+            return Problema(new Error(
+                CodigosError.DatosInvalidos,
+                "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["archivo"] = ["Elija el archivo de la especificación."] }));
+        }
+
         if (archivo.Length > CargarEspecificacion.MaximoBytes)
         {
             return Problema(new Error(
@@ -108,7 +117,7 @@ public static class Endpoints
 
     private static async Task<IResult> ActualizarExposicion(
         Guid id,
-        [FromBody] CambioExposicionRuta[] cambios,
+        [FromBody] CambioExposicionRuta?[] cambios,
         HttpContext contexto,
         ActualizarExposicionRutas casoUso,
         CancellationToken cancelacion)
@@ -133,7 +142,16 @@ public static class Endpoints
         lista.ApiNombre,
         lista.Elementos.Select(Respuesta).ToArray(),
         lista.TotalExpuestas,
-        lista.TotalOcultas);
+        lista.TotalOcultas,
+        lista.Especificacion is null
+            ? null
+            : new RespuestaResumenEspecificacion(
+                lista.Especificacion.Titulo,
+                lista.Especificacion.Version,
+                lista.Especificacion.VersionOpenApi,
+                lista.Especificacion.Formato,
+                lista.Especificacion.CargadaEn,
+                lista.Especificacion.TamanoBytes));
 
     private static RespuestaEspecificacionCargada Respuesta(EspecificacionCargada especificacion) => new(
         especificacion.ApiId,
@@ -202,12 +220,21 @@ public static class Endpoints
         string? Descripcion,
         bool Expuesta);
 
+    private sealed record RespuestaResumenEspecificacion(
+        string Titulo,
+        string Version,
+        string VersionOpenApi,
+        string Formato,
+        DateTimeOffset CargadaEn,
+        int TamanoBytes);
+
     private sealed record RespuestaListaRutas(
         Guid ApiId,
         string ApiNombre,
         IReadOnlyList<RespuestaRuta> Elementos,
         int TotalExpuestas,
-        int TotalOcultas);
+        int TotalOcultas,
+        RespuestaResumenEspecificacion? Especificacion);
 
     private sealed record RespuestaEspecificacionCargada(
         Guid ApiId,

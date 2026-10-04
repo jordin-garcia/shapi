@@ -516,7 +516,7 @@ Hay un índice único parcial `(organizacion_id) WHERE rol='propietario'` para q
 | metodo | text | `CHECK IN ('GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS')` |
 | patron | text | not null, en sintaxis OpenAPI (`/rastreo` o, con un parámetro, `/guias/{numero}`) |
 | resumen, descripcion | text | null (salen de la especificación) |
-| definicion | jsonb | not null (los parámetros, el cuerpo y los ejemplos de la operación, para la documentación y la consola) |
+| definicion | jsonb | not null (los parámetros, el cuerpo y los ejemplos de la operación, para la documentación y la consola). Forma: `{"orden": n, "parametros": [...], "cuerpo": {...} o null, "respuestas": {...}}`. `orden` es la posición de la operación en la especificación; los otros tres son los objetos `parameters` (incluidos los del camino), `requestBody` y `responses` de OpenAPI, con las referencias locales resueltas |
 | expuesta | bool | not null, default **false** |
 | limite_minuto | int | null, `CHECK (limite_minuto > 0)` |
 | cache_segundos | int | not null, default 0, `CHECK (cache_segundos BETWEEN 0 AND 86400)`. Solo es mayor que 0 si el método es GET |
@@ -648,7 +648,7 @@ La restricción `ck_pago_suscripcion` admite exactamente dos formas: un pago aso
 | id | bigint identity | PK |
 | fecha | date | not null (día en la zona America/Guatemala) |
 | api_id | uuid | FK, not null |
-| ruta_id | uuid | FK null (si la ruta no se pudo identificar) |
+| ruta_id | uuid | FK null (si la ruta no se pudo identificar, o si se retiró al recargar la especificación: su consumo se suma a la fila con `ruta_id` nulo del mismo día, suscripción y entorno, y la fila de la ruta se borra) |
 | suscripcion_id | uuid | FK → suscripcion_api, null (si la clave no era válida) |
 | entorno | text | `CHECK IN ('produccion','pruebas')` |
 | peticiones, llamadas | bigint | default 0 |

@@ -239,3 +239,10 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
   - la confirmación es el aviso breve de 4 s: «Nombre actualizado.» y «Contraseña actualizada. Se cerraron sus sesiones en otros equipos.»;
   - los demás errores van en un aviso arriba del formulario; si son de red o del servidor, con «Reintentar», como en A1.1.
 
+### Comportamiento de la publicación de una API (DC-04 y DC-05)
+
+- **A3.2, origen inaccesible o no permitido:** el aviso muestra el título del error y el motivo de la prueba de conexión (`detalle.motivo`).
+- **A3.3, al volver a la pantalla:** si la API ya tiene especificación, se muestra la tarjeta del archivo con «Cargado». Como el nombre del archivo no se guarda, en su lugar va el título de la especificación, y debajo «OpenAPI {versión} · {tamaño}». Justo después de cargar un archivo se muestra su nombre, como en el mockup.
+- **A3.3, especificación inválida:** el aviso muestra el título, la ubicación y el motivo en español. Si el error lo dio la biblioteca que lee el documento, se agrega «Detalle técnico: {mensaje original}», que está en inglés.
+- **A3.4 y A3.3 para el lector:** el lector puede ver las rutas (04 §3.1), pero guardar cambios responde 403.
+
