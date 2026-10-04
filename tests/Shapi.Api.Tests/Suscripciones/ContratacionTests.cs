@@ -59,7 +59,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         var e = await CrearEscenario(verificado: true);
         using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta);
 
-        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         json.GetProperty("claves").GetArrayLength().Should().Be(2);
         var id = json.GetProperty("suscripcion").GetProperty("id").GetGuid();
@@ -80,7 +80,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         var e = await CrearEscenario(verificado: true);
         using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, Tarjeta with { AnioVencimiento = "28" });
 
-        respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         (await Escalar<long>($"SELECT count(*) FROM medio_pago WHERE consumidor_id = '{e.ConsumidorId}' AND anio_vencimiento = 2028")).Should().Be(1);
     }
 
@@ -254,7 +254,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
 
     private static async Task AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
     {
-        respuesta.StatusCode.Should().Be(estado);
+        respuesta.StatusCode.Should().Be(estado, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString().Should().Be(codigo);
     }
 }
