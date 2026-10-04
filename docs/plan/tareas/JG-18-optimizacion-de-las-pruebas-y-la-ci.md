@@ -111,5 +111,5 @@ Paso 5 de `docs/plan/auditoria-2026-10-03.md` (H-36 a H-40):
 - **Textos (H-38).** Protocolo B7, `AGENTS.md`, la plantilla del PR e `instalacion.md` ya no dicen que la suite completa corre en cada *push*: en un PR, según el área; en `main`, siempre.
 - **Cierre sin diff (H-40).** En la CI de un PR, si no se puede leer el diff, `--validar-cierre` falla en vez de aprobar sin revisar la bitácora.
 - **Decisiones del paso 5:**
-  - `ambiente-productivo` es check obligatorio (protocolo B11, convenciones y `reglas-repositorio.test.mjs`); falta que Jordin lo agregue a la protección de `main`;
+  - `ambiente-productivo` es check obligatorio (protocolo B11, convenciones y `reglas-repositorio.test.mjs`). Su `if` empieza con `!cancelled()`: con `needs: publicar`, si fallaba una imagen el job se omitía y contaba como aprobado. Falta que Jordin lo agregue a la protección de `main`;
   - el decisor es parte del PR, como `ci.yml` (06 §7.3).

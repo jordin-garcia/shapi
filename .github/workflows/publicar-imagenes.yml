@@ -48,7 +48,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.nombre }}
 
   verificar-ambiente:
-    if: github.event_name == 'pull_request'
+    # Check obligatorio: con needs, GitHub antepone success() y, si falla una imagen, el job se omitiría y contaría como
+    # aprobado. !cancelled() lo ejecuta igual (construye las imágenes con --build) para que falle él también.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     needs: publicar
     name: ambiente-productivo
     runs-on: ubuntu-latest
