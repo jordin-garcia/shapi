@@ -282,7 +282,12 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problema' }
         '404': { description: Portal no disponible. }
-        '422': { description: Token vencido, usado o de otra organización. }
+        '422':
+          description: El enlace venció, ya se usó o es de otra organización (`token_invalido`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/portal/auth/reenviar-verificacion:
@@ -350,7 +355,6 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/SesionConsumidor' }
         '401': { $ref: '#/components/responses/SinSesion' }
-        '404': { description: Portal no disponible. }
 
   /api/portal/auth/recuperar:
     post:
@@ -381,7 +385,12 @@ paths:
         '400': { $ref: '#/components/responses/DatosInvalidos' }
         '403': { $ref: '#/components/responses/Csrf' }
         '404': { description: Portal no disponible. }
-        '422': { description: Token inválido o vencido. }
+        '422':
+          description: El enlace no existe, venció o ya se usó (`token_invalido`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
 
   /api/portal/auth/invitacion/{token}:
     get:
@@ -400,7 +409,12 @@ paths:
                 properties:
                   correo: { type: string, format: email }
         '404': { description: Portal no disponible. }
-        '422': { description: Invitación vencida, usada o de otra organización. }
+        '422':
+          description: La invitación venció, ya se usó o es de otra organización (`token_invalido`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/portal/auth/invitacion/{token}/aceptar:
@@ -424,7 +438,12 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problema' }
-        '422': { description: Invitación vencida, usada o de otra organización. }
+        '422':
+          description: La invitación venció, ya se usó o es de otra organización (`token_invalido`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
         '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/perfil:

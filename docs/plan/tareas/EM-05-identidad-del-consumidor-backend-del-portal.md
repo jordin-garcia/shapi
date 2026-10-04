@@ -62,3 +62,18 @@ dotnet format Shapi.slnx --verify-no-changes
 - Se amplió el servicio de recuperación para distinguir tokens personales y de consumidores, se actualizó el contrato OpenAPI y se regeneraron sus tipos TypeScript.
 - Decisiones: las rutas de invitación reciben el mismo limitador que registro y acceso porque aceptan tokens; restablecer conserva el alcance de límite del flujo personal. La marca del correo usa `PortalResuelto` y el host canónico que resuelve `IResolutorPortal`.
 - Archivos principales: `EndpointsPortal.cs`, `ConsumidorAutenticacionHandler.cs`, `ServicioRecuperacion.cs`, `identidad.yaml` y `ConsumidorPortalTests.cs`.
+
+### Correcciones de la auditoría (2026-10-03)
+
+Paso 2 de `docs/plan/auditoria-2026-10-03.md` (H-05 a H-13), hechas por el coordinador:
+- **Ámbitos de sesión (H-05).** El esquema por defecto elegía el del consumidor si llegaba la cookie `portal_sesion`, y la política por defecto solo pedía estar autenticado. Por eso una sesión del portal entraba en `/api/auth/sesion` (500), `PUT /api/perfil` (200 sin hacer nada) y `POST /api/perfil/contrasena` (500), y en el panel desplazaba a una `shapi_sesion` válida (401). Esto contradecía 04: «una sesión de un ámbito nunca da acceso a las rutas del otro». Ahora `IdentidadModulo` elige el esquema por la ruta: `/api/portal/*` usa el del consumidor y todo lo demás el del personal. Además, la política por defecto y la de respaldo de `PoliticasAutorizacion` exigen el ámbito `Personal`. Se precisó en 10 §1.
+- **Pruebas (H-06 a H-10):**
+  - el mismo correo en dos portales, con la contraseña cruzada en los dos sentidos;
+  - `salir` revoca la sesión del consumidor y borra la cookie;
+  - los atributos de `portal_sesion`, sin `Domain`;
+  - el límite por IP en los siete endpoints públicos del portal (una teoría);
+  - `hostPortal` canónico con un `Host` en mayúsculas y con punto final, y el color y el logotipo del portal en el correo;
+  - la sesión del portal rechazada en las rutas del panel, y las dos cookies juntas.
+- **Nombres (H-11).** Las pruebas llevan RF-03 o RF-04, según el requisito.
+- **Contrato (H-12).** `GET /api/portal/auth/sesion` ya no declara un 404 inalcanzable. Los 422 del portal declaran `Problema` con `token_invalido`. Se regeneraron los tipos.
+- **Cierre (H-13).** 10 §1 nombra el límite por IP de `/api/portal/auth/*`. El cambio de este PR en `Modulos/IdentidadModulo.cs` queda descrito arriba.

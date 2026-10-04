@@ -17,11 +17,19 @@ public static class PoliticasAutorizacion
     private static readonly string Administrador = Rol.Administrador.ToString();
     private static readonly string Soporte = Rol.Soporte.ToString();
 
+    /// <summary>Una sesión del ámbito personal: la del consumidor no sirve en las rutas del panel (04).</summary>
+    private static readonly AuthorizationPolicy SesionDelPersonal = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireClaim(ClaimAmbito, AmbitoSesion.Personal.ToString())
+        .Build();
+
     public static IServiceCollection AgregarPoliticasShapi(this IServiceCollection services)
     {
         services.AddAuthorizationBuilder()
-            // 04: se deniega por defecto. Un endpoint sin política exige una sesión; los públicos llevan AllowAnonymous.
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            // 04: se deniega por defecto. Un endpoint sin política, o con RequireAuthorization() sin nombre, exige una
+            // sesión del personal; los públicos llevan AllowAnonymous y los del portal sus políticas de consumidor.
+            .SetDefaultPolicy(SesionDelPersonal)
+            .SetFallbackPolicy(SesionDelPersonal)
 
             // 04 §3.1 Panel del proveedor
             .AddPolicy(Permisos.VerApis, p => p.RequireRole(Propietario, Editor, Lector))

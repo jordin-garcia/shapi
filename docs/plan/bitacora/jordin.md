@@ -617,3 +617,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: la cuota solo se devuelve si la petición no llegó al origen. Si el origen la recibe y corta la conexión, es 502 y se descuenta (08 §1, §3 y §4).
 - Pendiente o aviso para otros:
   - **JZ-14:** en las pruebas de carga, un 502 por un origen que corta la conexión ahora sí cuenta en la cuota; solo los fallos de conexión la devuelven.
+
+## 2026-10-03 · EM-05 · Correcciones de la auditoría: ámbitos de sesión
+- Hecho: paso 2 de la auditoría del 3 oct para EM-05. Una sesión del portal ya no sirve en las rutas del panel: el esquema se elige por la ruta y la política por defecto exige el ámbito personal (H-05). Pruebas de contraseñas cruzadas entre portales, de `salir`, de la cookie, del límite por IP en el portal y del correo con el host canónico (H-06 a H-10). Nombres de las pruebas, contrato `identidad.yaml` y 10 §1 (H-11 a H-13).
+- Decisiones: el esquema se elige por la ruta (`/api/portal/*`) y no por el host, porque el selector es síncrono y resolver el host necesita la base de datos. `RequireAuthorization()` sin nombre exige ahora una sesión del personal.
+- Pendiente o aviso para otros:
+  - **Emilio:** cambié `src/Shapi.Api/Modulos/IdentidadModulo.cs`, `src/Shapi.Api/Identidad/PoliticasAutorizacion.cs`, `tests/Shapi.Api.Tests/Identidad/ConsumidorPortalTests.cs`, `contratos/openapi/identidad.yaml` y tu archivo de tarea EM-05. Un endpoint nuevo del consumidor debe ir bajo `/api/portal/` y declarar una política `Consumidor*`; `RequireAuthorization()` a secas solo acepta al personal. Actualiza tu rama desde `main`.
+  - **Todos:** `frontend/packages/api/src/generado/identidad.ts` se regeneró (los 422 del portal tienen cuerpo `Problema`).
