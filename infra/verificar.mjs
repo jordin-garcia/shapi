@@ -569,6 +569,11 @@ if (produccionActiva) {
     solicitar("http://127.0.0.1:5080/salud"),
     "La API de control no debe publicar el puerto 5080 en el host",
   );
+  // Prueba obligatoria de JZ-06, literal (auditoría 2026-10-03, paso 6).
+  await assert.rejects(
+    solicitar("http://localhost:8080/salud"),
+    "La API de control no debe publicar el puerto 8080 en el host",
+  );
   await assert.rejects(
     solicitar("https://api.enviosxelaju.localhost/interno/tls/autorizar?domain=x.localhost"),
     "Un dominio propio no verificado no debe obtener certificado ni acceder a /interno/*",

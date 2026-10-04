@@ -57,3 +57,10 @@ cd tests/e2e && pnpm install && pnpm exec playwright install chromium && pnpm te
 - Se resolvieron los hosts `*.localhost` a `127.0.0.1` dentro del ayudante, porque el proceso de Node no usa necesariamente la misma resolución especial de nombres que Chromium.
 
 Archivos principales: `tests/e2e/playwright.config.ts`, `tests/e2e/scripts/captura.ts`, `tests/e2e/soporte/mailpit.ts`, `tests/e2e/tests/registro-y-acceso.spec.ts` y `.github/workflows/e2e.yml`.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 6 de `docs/plan/auditoria-2026-10-03.md` (H-46 y H-47), en el PR de JZ-06:
+- **`AGENTS.md` (H-46).** Se quitó «Los de `tests/e2e/` todavía no existen: los crea JZ-07».
+- **Preparación de las E2E (H-47).** `AGENTS.md` y el manual técnico (nueva sección «Pruebas de extremo a extremo») dicen cómo prepararlas; el README nombra `tests/e2e/` la primera vez: `pnpm install` y `pnpm exec playwright install chromium` en `tests/e2e/`.
+- **CU-02 (decisión del paso 6).** La E2E de registro cierra la sesión y vuelve a entrar con el correo y la contraseña en A1.3.

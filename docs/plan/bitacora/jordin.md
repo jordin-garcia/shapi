@@ -694,3 +694,22 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Jordin:** agrega `ambiente-productivo` a la protección de `main` (el modo automático no deja que el agente lo haga): `gh api -X POST repos/jordin-garcia/shapi/branches/main/protection/required_status_checks/contexts -f "contexts[]=ambiente-productivo"`.
   - **José Pablo:** cambié el `if` del job `verificar-ambiente` (`ambiente-productivo`) en `.github/workflows/publicar-imagenes.yml`: ahora es `${{ !cancelled() && github.event_name == 'pull_request' }}`, para que no se omita si falla una imagen, y `scripts/reglas-repositorio.test.mjs` lo vigila. Actualiza tu rama desde `main`.
   - **Todos:** cuando se agregue a la protección de `main`, `ambiente-productivo` (las E2E en el ambiente productivo simulado) bloqueará la integración si falla.
+
+## 2026-10-04 · JZ-06 · Correcciones de la auditoría: infraestructura y pruebas E2E
+- Hecho: paso 6 de la auditoría del 3 oct para JZ-06 y JZ-07 (H-43 a H-47).
+  - `docker/build-push-action` fijada por SHA.
+  - `packages: write` solo en el job que publica.
+  - El borde corre sin privilegios.
+  - `verificar.mjs` comprueba el puerto 8080.
+  - La E2E vuelve a entrar por A1.3.
+  - `AGENTS.md` y el manual explican cómo preparar las E2E.
+- Decisiones: un solo PR para JZ-06 y JZ-07.
+- Pendiente o aviso para otros:
+  - **José Pablo:** cambié estos archivos tuyos:
+    - `.github/workflows/publicar-imagenes.yml`;
+    - `infra/borde/Dockerfile` e `infra/verificar.mjs`;
+    - `tests/e2e/tests/registro-y-acceso.spec.ts`;
+    - `docs/manual-tecnico.md` y tus archivos de tarea JZ-06 y JZ-07.
+
+    Actualiza tu rama desde `main`.
+  - **Todos:** en el ambiente productivo, Caddy ahora corre sin privilegios. No hay que hacer nada: el contenedor ajusta solo los permisos del volumen `caddydata`, que sigue compartido con desarrollo, y se usa la misma autoridad certificadora.

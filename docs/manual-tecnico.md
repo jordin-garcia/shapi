@@ -181,6 +181,11 @@ La API aplica las migraciones al iniciar. La API y el trabajador comparten el
 volumen `dpkeys`, que conserva las llaves con las que se protegen los secretos de
 origen.
 
+El borde comparte con el entorno de desarrollo el volumen `caddydata`, así que usa
+la misma autoridad certificadora que ya importó. Caddy corre sin privilegios, con el
+usuario `caddy`: al arrancar, el contenedor le da los archivos del volumen, aunque
+los haya creado el borde de desarrollo, que corre como root.
+
 ### Sembrar la demostración
 
 Cargue los datos de demostración con:
@@ -245,6 +250,19 @@ Claves fijas para llamadas de demostración:
 | Envíos Xelajú · Tienda Sololá | Pruebas, revocada | `shp_prueba_TiendaSololaDemo000000d6f1` |
 | Agro Precios · Distribuidora San Lucas | Producción | `shp_prod_AgroPreciosDemo0000000a7f2` |
 | Agro Precios · Distribuidora San Lucas | Pruebas | `shp_prueba_AgroPreciosDemo00000004c8d` |
+
+### Pruebas de extremo a extremo
+
+Las pruebas E2E (Playwright) corren contra el ambiente productivo simulado ya levantado, en `https://shapi.localhost`.
+La primera vez, instale sus dependencias y el navegador:
+
+```bash
+cd tests/e2e
+pnpm install
+pnpm exec playwright install chromium
+```
+
+Después, con el ambiente levantado, `pnpm test` en `tests/e2e/`. Para una captura de una pantalla, `pnpm captura <url> <archivo.png>`.
 
 ### Consultar registros
 

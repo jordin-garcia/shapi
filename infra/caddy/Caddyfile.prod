@@ -1,5 +1,7 @@
 {
 	local_certs
+	# Sin privilegios no puede (ni le sirve) instalar la raíz en el almacén del contenedor: se importa en el navegador.
+	skip_install_trust
 	on_demand_tls {
 		ask http://api:8080/interno/tls/autorizar
 	}
