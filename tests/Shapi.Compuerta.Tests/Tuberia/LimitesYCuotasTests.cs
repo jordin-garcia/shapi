@@ -398,7 +398,8 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
             web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
             web.ConfigureTestServices(servicios => servicios.AddSingleton<TimeProvider>(_reloj));
         });
-        fabrica.UseKestrel(0);
+        // Un puerto libre: UseKestrel(0) usa el 5000 por defecto y choca con otras pruebas en paralelo.
+        fabrica.UseKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
         fabrica.StartServer();
         var escenario = await SembrarAsync(planNombre: "Básico");
         using var cliente = fabrica.CreateClient();
