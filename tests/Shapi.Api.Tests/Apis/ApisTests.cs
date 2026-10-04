@@ -669,6 +669,23 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             cargadaEn.AddMilliseconds(1));
     }
 
+    // H-49 con un documento JSON: la versión de OpenAPI se lee del campo de la raíz.
+    [Fact]
+    public async Task RF_09_ListarRutas_ResumenDeUnaEspecificacionJson()
+    {
+        var apiId = await RegistrarYObtenerId("resumen-json");
+        const string contenido = """
+            {"openapi":"3.1.0","info":{"title":"API JSON","version":"1.2.3","x-datos":{"openapi":"3.0.0"}},"paths":{}}
+            """;
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(apiId, "openapi.json", contenido)).StatusCode);
+
+        var especificacion = (await ObtenerRutas(apiId)).GetProperty("especificacion");
+
+        Assert.Equal("API JSON", especificacion.GetProperty("titulo").GetString());
+        Assert.Equal("3.1.0", especificacion.GetProperty("versionOpenApi").GetString());
+        Assert.Equal("json", especificacion.GetProperty("formato").GetString());
+    }
+
     // H-50: dos cargas a la vez no chocan con el UNIQUE (api_id, metodo, patron) ni responden 500.
     [Fact]
     public async Task RF_09_CargarEspecificacion_CargasSimultaneasNoChocan()
@@ -678,8 +695,66 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         var respuestas = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
             CargarEspecificacion(apiId, "origenes-demo/envios-xelaju/cotizacion-envios.yaml")));
 
-        Assert.All(respuestas, respuesta => Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode));
-        Assert.Equal(5, await ContarRutas(apiId));
+        try
+        {
+            Assert.All(respuestas, respuesta => Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode));
+            Assert.Equal(5, await ContarRutas(apiId));
+        }
+        finally
+        {
+            foreach (var respuesta in respuestas)
+            {
+                respuesta.Dispose();
+            }
+        }
+    }
+
+    // Revisión del paso 7: la carga que espera el bloqueo vuelve a leer la API, así que la especificación guardada
+    // (la del resumen y la de la caché) siempre corresponde a las rutas que quedaron.
+    [Fact]
+    public async Task RF_09_CargarEspecificacion_CargasSimultaneasDejanEspecificacionYRutasCoherentes()
+    {
+        var apiId = await RegistrarYObtenerId("coherentes");
+        const string otra = """
+            openapi: 3.0.3
+            info:
+              title: API B
+              version: 2.0.0
+            paths:
+              /b:
+                get:
+                  responses:
+                    '200': { description: Correcto }
+            """;
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+
+        for (var intento = 0; intento < 3; intento++)
+        {
+            var respuestas = await Task.WhenAll(
+                CargarEspecificacion(apiId, "b.yaml", otra),
+                CargarEspecificacion(apiId, "origenes-demo/envios-xelaju/cotizacion-envios.yaml"));
+            Assert.All(respuestas, respuesta => Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode));
+            foreach (var respuesta in respuestas)
+            {
+                respuesta.Dispose();
+            }
+
+            var lista = await ObtenerRutas(apiId);
+            var patrones = lista.GetProperty("elementos").EnumerateArray()
+                .Select(ruta => ruta.GetProperty("patron").GetString())
+                .ToArray();
+            if (lista.GetProperty("especificacion").GetProperty("titulo").GetString() == "API B")
+            {
+                Assert.Equal("/b", Assert.Single(patrones));
+            }
+            else
+            {
+                Assert.Equal(5, patrones.Length);
+                Assert.DoesNotContain("/b", patrones);
+            }
+        }
     }
 
     // H-52: sin la parte `archivo`, 400 datos_invalidos con el error en el campo.

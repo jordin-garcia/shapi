@@ -50,6 +50,8 @@ export default function PaginaA33Especificacion() {
       setError(undefined);
     },
     onError: fallo => {
+      // El archivo rechazado no queda como cargado: vuelve a verse la especificación que la API conserva.
+      setArchivo(undefined);
       if (fallo instanceof ErrorApi) {
         const ubicacion = typeof fallo.detalle?.ubicacion === 'string' ? fallo.detalle.ubicacion : undefined;
         const mensaje = typeof fallo.detalle?.mensaje === 'string' ? fallo.detalle.mensaje : undefined;

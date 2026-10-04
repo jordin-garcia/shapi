@@ -252,6 +252,31 @@ describe('RF-09 · A3.3 Especificación OpenAPI', () => {
     expect(document.body.textContent).toContain('Rutas encontradas5');
   });
 
+  it('vuelve a mostrar la especificación cargada si se rechaza un archivo nuevo', async () => {
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1,
+        especificacion: {
+          titulo: 'API de Cotización de Envíos', version: '1.0.0', versionOpenApi: '3.0.3', formato: 'yaml',
+          cargadaEn: '2026-10-01T12:00:00Z', tamanoBytes: 18432,
+        },
+      })),
+      http.put(`${API}/${API_ID}/especificacion`, () => HttpResponse.json({
+        type: 'about:blank', title: 'La especificación OpenAPI no es válida.', status: 422,
+        codigo: 'especificacion_invalida', detalle: { ubicacion: 'línea 4', mensaje: 'Falta la versión.' },
+      }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+    envolver(<Routes><Route path="/panel/apis/:id/especificacion" element={<PaginaA33Especificacion />} /></Routes>, `/panel/apis/${API_ID}/especificacion`);
+    await screen.findByText('Cargado');
+    vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
+    await userEvent.upload(screen.getByLabelText('Elegir archivo OpenAPI'), new File(['x'], 'mala.yaml'));
+
+    await screen.findByRole('alert');
+    expect(screen.queryByText('mala.yaml')).toBeNull();
+    expect(screen.getByText('Cargado')).toBeDefined();
+    expect(document.body.textContent).toContain('OpenAPI 3.0.3 · 18 KB');
+  });
+
   it('no muestra la tarjeta si la API todavía no tiene especificación', async () => {
     server.use(http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
       apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: [], totalExpuestas: 0, totalOcultas: 0, especificacion: null,

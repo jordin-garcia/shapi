@@ -122,8 +122,11 @@ public interface IRepositorioApis
 
     Task<ITransaccionApis> IniciarTransaccion(CancellationToken cancelacion = default);
 
-    /// <summary>Bloquea la fila de la API hasta el final de la transacción (<c>FOR UPDATE</c>).</summary>
-    Task BloquearApi(Guid apiId, CancellationToken cancelacion = default);
+    /// <summary>
+    /// Bloquea la fila de la API hasta el final de la transacción (<c>FOR UPDATE</c>) y vuelve a leer la entidad, que pudo
+    /// cambiar mientras se esperaba el bloqueo.
+    /// </summary>
+    Task BloquearApi(Api api, CancellationToken cancelacion = default);
 
     Task<ListaApis> Listar(Guid organizacionId, CancellationToken cancelacion = default);
 

@@ -42,8 +42,8 @@ public sealed class CargarEspecificacion(
         var ahora = reloj.Ahora;
         await using var transaccion = await repositorio.IniciarTransaccion(cancelacion);
         // Dos cargas simultáneas de la misma API insertarían las mismas rutas y chocarían con el UNIQUE
-        // (api_id, metodo, patron): la segunda espera aquí y reconcilia sobre las rutas que dejó la primera.
-        await repositorio.BloquearApi(apiId, cancelacion);
+        // (api_id, metodo, patron): la segunda espera aquí y reconcilia sobre la API y las rutas que dejó la primera.
+        await repositorio.BloquearApi(api, cancelacion);
         var existentes = await repositorio.ObtenerRutas(apiId, cancelacion);
         var porClave = existentes.ToDictionary(r => (r.Metodo, r.Patron));
         var clavesNuevas = especificacion.Operaciones.Select(o => (o.Metodo, o.Patron)).ToHashSet();
@@ -210,6 +210,8 @@ public sealed class ActualizarExposicionRutas(
         var cambios = solicitud.Cambios.Select(c => (RutaId: c!.RutaId!.Value, Expuesta: c.Expuesta!.Value)).ToArray();
 
         await using var transaccion = await repositorio.IniciarTransaccion(cancelacion);
+        // Una recarga simultánea podría borrar una de las rutas mientras se guarda su exposición.
+        await repositorio.BloquearApi(api, cancelacion);
         var rutas = await repositorio.ObtenerRutas(apiId, cancelacion);
         var porId = rutas.ToDictionary(r => r.Id);
         if (cambios.Any(c => !porId.ContainsKey(c.RutaId)))
