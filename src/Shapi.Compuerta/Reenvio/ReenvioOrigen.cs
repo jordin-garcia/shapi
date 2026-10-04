@@ -65,7 +65,7 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
 
     /// <summary>
     /// Si la petición no llegó al origen porque no se pudo abrir la conexión: la dirección se rechazó o no resolvió
-    /// (<see cref="ConexionOrigen"/>), el origen no la aceptó o venció <see cref="TiemposOrigen.Conexion"/>
+    /// (<see cref="ConexionOrigen"/>), el origen no la aceptó, falló la conexión segura (TLS) o venció <see cref="TiemposOrigen.Conexion"/>
     /// (<see cref="SocketsHttpHandler.ConnectTimeout"/> lanza una cancelación con un <see cref="TimeoutException"/>
     /// adentro).
     /// </summary>
@@ -77,7 +77,11 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
             // Un SocketException también aparece si el origen corta después de recibir la petición; por eso solo cuenta
             // el error de conexión que arma SocketsHttpHandler (también envuelve lo que lanza ConnectCallback).
             if (excepcion is TimeoutException
-                or HttpRequestException { HttpRequestError: HttpRequestError.ConnectionError or HttpRequestError.NameResolutionError })
+                or HttpRequestException
+                {
+                    HttpRequestError: HttpRequestError.ConnectionError or HttpRequestError.NameResolutionError
+                        or HttpRequestError.SecureConnectionError,
+                })
             {
                 return true;
             }

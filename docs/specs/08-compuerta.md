@@ -43,9 +43,10 @@ flowchart LR
   F7 -- "acierto" --> HIT(["200 desde caché"])
   F7 --> F8["8 · Reenvío YARP<br/>transforma las cabeceras"]
   F8 -- "no se pudo conectar" --> R502(["502 origen_inaccesible<br/>(se devuelve la cuota)"])
+  F8 -- "cortó la conexión sin responder" --> R502b(["502 origen_inaccesible<br/>(se descuenta)"])
   F8 -- "pasan 30 s" --> R504(["504 origen_sin_respuesta"])
   F8 --> OK(["Respuesta del origen"])
-  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R504 --> F9["9 · Medición<br/>(después de responder)"]
+  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R502b & R504 --> F9["9 · Medición<br/>(después de responder)"]
 ```
 
 ### Detalle de cada filtro
@@ -79,7 +80,7 @@ contadores = n_s, n_r, c_s, c_o, leídos después de reservar o de revertir (0 s
 ```
 
 - Como la reserva es atómica, **la cuota nunca se excede**, ni siquiera con peticiones concurrentes ([ADR-21](12-decisiones.md)).
-- Si el origen **no se pudo conectar** (502), la compuerta devuelve la reserva: `DECRBY cuota_s peso` y `DECR cuota_o`. Los contadores por minuto no se devuelven. Solo se devuelve si la petición no llegó al origen: la dirección se rechazó o no resolvió, el origen no aceptó la conexión o venció el tiempo de conexión. Si el origen aceptó la conexión, recibió la petición y la cortó antes de responder, también es 502 `origen_inaccesible`, pero la cuota **se descuenta**.
+- Si el origen **no se pudo conectar** (502), la compuerta devuelve la reserva: `DECRBY cuota_s peso` y `DECR cuota_o`. Los contadores por minuto no se devuelven. Solo se devuelve si la petición no llegó al origen: la dirección se rechazó o no resolvió, el origen no aceptó la conexión, falló la conexión segura (TLS) o venció el tiempo de conexión. Si el origen aceptó la conexión, recibió la petición y la cortó antes de responder, también es 502 `origen_inaccesible`, pero la cuota **se descuenta**.
 - Los errores 4xx y 5xx del origen y los 504 **sí descuentan**, porque la petición llegó al origen.
 - Las respuestas desde caché **descuentan**, porque el consumidor recibió los datos.
 - El límite por minuto usa una ventana fija de 60 segundos alineada al minuto (`minuto_epoch = floor(unix/60)`).

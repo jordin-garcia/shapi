@@ -267,7 +267,8 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
     {
         // 08 §1 y criterio 6 de JG-05, criterio 5 de JG-06 (auditoría 2026-10-03, H-02): YARP reporta el vencimiento
         // de ConnectTimeout como RequestTimedOut (504). La petición no llegó al origen: 502 y la cuota se devuelve.
-        // La resolución del host no termina nunca, así que vence el tiempo de conexión (300 ms en la prueba).
+        // La resolución del host no termina nunca, así que vence el tiempo de conexión (300 ms en la prueba). Un connect
+        // TCP lento sigue el mismo camino: ConnectTimeout cubre la resolución y la conexión.
         using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
         {
             web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
@@ -293,6 +294,33 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
         (await Contador(CuotaSuscripcion(escenario))).Should().Be(0);
         (await Contador(CuotaOrganizacion(escenario))).Should().Be(0);
         Cabecera(respuesta, "X-Cuota-Restante").Should().Be("50000", "la cuota se devolvió");
+    }
+
+    [Fact]
+    public async Task RF_31_OrigenHttpsSinTls_Responde502YDevuelveLaReserva()
+    {
+        // 08 §3 (auditoría 2026-10-03, revisión del paso 1): si falla la conexión segura, la petición no llegó al origen.
+        await using var origen = await OrigenReal.IniciarAsync(http =>
+        {
+            http.Response.StatusCode = StatusCodes.Status200OK;
+            return Task.CompletedTask;
+        });
+        using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
+        {
+            web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
+            web.UseSetting("SHAPI_MODO_DEMO", "true");
+            web.UseSetting("SHAPI_ORIGENES_PERMITIDOS", $"localhost:{origen.Puerto}");
+            web.ConfigureTestServices(servicios => servicios.AddSingleton<TimeProvider>(_reloj));
+        });
+        var escenario = await SembrarAsync(urlOrigen: $"https://localhost:{origen.Puerto}",
+            rutas: [EntornoCompuerta.Ruta("GET", "/cotizaciones", peso: 3)]);
+
+        var respuesta = await EnviarAsync(escenario, fabrica: fabrica);
+
+        await VerificarErrorAsync(respuesta, "origen_inaccesible", HttpStatusCode.BadGateway);
+        origen.Peticiones.Should().Be(0);
+        (await Contador(CuotaSuscripcion(escenario))).Should().Be(0);
+        (await Contador(CuotaOrganizacion(escenario))).Should().Be(0);
     }
 
     [Fact]
