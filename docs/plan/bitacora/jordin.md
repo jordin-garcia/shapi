@@ -604,3 +604,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - Ojo para las próximas pantallas del portal: `className="bg-[var(--marca-principal)]"` en un `Boton` no tiene efecto, porque gana `bg-principal`. Dentro de `MarcoAcceso` el botón ya toma la marca. Fuera de él, redefine `--principal` en el contenedor, como hace `MarcoAcceso`.
     - Actualiza tu rama desde `main`.
   - **JZ-11:** en la verificación de DC-08, el correo de verificación del consumidor llegó sin la marca de Envíos Xelajú (plantilla básica de JZ-03). Es tu criterio 2: los datos ya traen `nombrePortal`, `hostPortal` y `colorPortal`.
+
+## 2026-10-03 · JG-06 · Correcciones de la auditoría: compuerta (cabeceras y vencimientos)
+- Hecho: auditoría de los 20 PR integrados desde la anterior, con 10 subagentes en contexto limpio y la verificación completa (todo en verde). El plan quedó en `docs/plan/auditoria-2026-10-03.md`: 97 hallazgos, 7 de severidad alta. En este PR, paso 1 para JG-06: `X-Shapi-Plan` codificado por porcentajes (H-01; con «Básico» Kestrel respondía 500) y pruebas del vencimiento de las llaves por minuto, de la cuota de plataforma y del día de pruebas (H-03).
+- Decisiones: Jordin pidió corregir todo sin detenerse; las decisiones pendientes del plan se resuelven con la recomendación del agente y quedan anotadas como «Decidido (3 oct)». `X-Shapi-Plan` va codificado como componente de URI (08 §5). El `Retry-After` de las cuotas en modo demostración se mide con la hora real (08 §3).
+- Pendiente o aviso para otros:
+  - **DC-10:** `X-Shapi-Plan` llega codificado por porcentajes (`B%C3%A1sico`). Para mostrarlo en la consola de pruebas, léelo con `decodeURIComponent` (08 §5).
+  - **Todos:** el plan de la auditoría del 3 oct está en `docs/plan/auditoria-2026-10-03.md`. Lo corrijo yo, paso a paso; cada PR deja aquí el aviso con los archivos que cambié de cada uno.

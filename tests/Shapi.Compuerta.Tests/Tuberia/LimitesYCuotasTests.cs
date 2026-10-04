@@ -388,6 +388,87 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
     }
 
     [Fact]
+    public async Task RF_32_Cabeceras_PlanConTilde_ViajaCodificadoYKestrelLoAcepta()
+    {
+        // Criterio 7 (auditoría 2026-10-03, H-01): Kestrel rechaza las cabeceras de respuesta que no son ASCII, y la
+        // siembra de demostración tiene el plan "Básico". TestServer no valida las cabeceras: por eso esta prueba usa
+        // Kestrel real. El cliente real de YARP no puede conectar con el origen de prueba (502), y el 502 también lleva las cabeceras de 08 §5.
+        using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
+        {
+            web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
+            web.ConfigureTestServices(servicios => servicios.AddSingleton<TimeProvider>(_reloj));
+        });
+        // Un puerto libre: UseKestrel(0) usa el 5000 por defecto y choca con otras pruebas en paralelo.
+        fabrica.UseKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+        fabrica.StartServer();
+        var escenario = await SembrarAsync(planNombre: "Básico");
+        using var cliente = fabrica.CreateClient();
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
+        peticion.Headers.Host = escenario.Host;
+        peticion.Headers.Add("X-Api-Key", escenario.ClaveTexto);
+
+        var respuesta = await cliente.SendAsync(peticion);
+
+        await VerificarErrorAsync(respuesta, "origen_inaccesible", HttpStatusCode.BadGateway);
+        Cabecera(respuesta, "X-Shapi-Plan").Should().Be("B%C3%A1sico");
+        Uri.UnescapeDataString(Cabecera(respuesta, "X-Shapi-Plan")!).Should().Be("Básico");
+        VerificarCabecerasCuota(respuesta);
+    }
+
+    [Theory]
+    [InlineData("Comercio", "Comercio")]
+    [InlineData("Pruebas", "Pruebas")]
+    [InlineData("Básico", "B%C3%A1sico")]
+    [InlineData("Plan Ñandú 2", "Plan%20%C3%91and%C3%BA%202")]
+    public void RF_32_ValorCabeceraPlan_SoloAsciiVisibleYSeRecupera(string nombre, string esperado)
+    {
+        // 08 §5 (H-01): un nombre ASCII sin espacios queda igual.
+        var valor = FiltroLimitesYCuotas.ValorCabeceraPlan(nombre);
+
+        valor.Should().Be(esperado);
+        valor.Should().MatchRegex("^[\x21-\x7E]+$");
+        Uri.UnescapeDataString(valor).Should().Be(nombre);
+    }
+
+    [Fact]
+    public async Task RF_30_LlavesPorMinutoYCuotaDePlataforma_VencenSegunElModelo()
+    {
+        // 07 §4 (auditoría 2026-10-03, H-03): rl:s y rl:r viven 120 s; cuota:org vence 8 días después del fin del
+        // ciclo de plataforma. Si se perdiera un EXPIRE, las llaves por minuto no vencerían nunca.
+        var ruta = EntornoCompuerta.Ruta("GET", "/cotizaciones", limiteMinuto: 20);
+        var escenario = await SembrarAsync(rutas: [ruta]);
+
+        (await EnviarAsync(escenario)).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var minuto = MinutoEpoch(Ahora);
+        await VerificarTtlMinutoAsync(LlavesRedis.LimiteMinutoSuscripcion(escenario.Clave.SuscripcionId, minuto));
+        await VerificarTtlMinutoAsync(LlavesRedis.LimiteMinutoRuta(escenario.Clave.SuscripcionId, ruta.RutaId, minuto));
+        (await _entorno.Redis.GetDatabase().KeyExpireTimeAsync(CuotaOrganizacion(escenario)))
+            .Should().Be(FinCiclo.AddDays(8).UtcDateTime);
+    }
+
+    [Fact]
+    public async Task RF_45_ClaveDePruebas_LlavesDelMinutoYDelDia_VencenSegunElModelo()
+    {
+        // 07 §4 (auditoría 2026-10-03, H-03): rl:p vive 120 s y dia:p vence un día después de la medianoche de
+        // Guatemala que termina el día.
+        var escenario = await SembrarAsync(tipo: ContextoClave.TipoPruebas);
+
+        (await EnviarAsync(escenario)).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        await VerificarTtlMinutoAsync(LlavesRedis.LimiteMinutoPruebas(escenario.Clave.ClaveId, MinutoEpoch(Ahora)));
+        (await _entorno.Redis.GetDatabase().KeyExpireTimeAsync(LlavesRedis.LimiteDiaPruebas(escenario.Clave.ClaveId, DiaGuatemala)))
+            .Should().Be(Hoy.AddDays(2).AddHours(6).UtcDateTime);
+    }
+
+    private async Task VerificarTtlMinutoAsync(RedisKey llave)
+    {
+        var ttl = await _entorno.Redis.GetDatabase().KeyTimeToLiveAsync(llave);
+        ttl.Should().NotBeNull($"{llave} debe vencer");
+        ttl!.Value.Should().BeGreaterThan(TimeSpan.FromSeconds(100)).And.BeLessThanOrEqualTo(TimeSpan.FromSeconds(120));
+    }
+
+    [Fact]
     public async Task RF_30_UnaSolaLlamadaEvalshaPorPeticion()
     {
         // Criterio 8: el filtro 6 es un solo viaje a Redis (08 §8, viaje 3), con EVALSHA y no EVAL.
@@ -460,7 +541,7 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
 
     private async Task<Escenario> SembrarAsync(long cuotaLlamadas = 50_000, int limiteMinuto = 60,
         IReadOnlyList<RutaCache>? rutas = null, long? cuotaPlataforma = 100_000, string tipo = ContextoClave.TipoProduccion,
-        string urlOrigen = EntornoCompuerta.UrlOrigen)
+        string urlOrigen = EntornoCompuerta.UrlOrigen, string planNombre = "Comercio")
     {
         var host = $"api{Guid.NewGuid():N}.api.shapi.localhost";
         var api = await _entorno.SembrarApiAsync(host, urlOrigen: urlOrigen, rutas: rutas ?? EntornoCompuerta.RutasPorDefecto);
@@ -471,7 +552,7 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
             : $"shp_prod_{Guid.NewGuid():N}"[..35];
         var clave = await _entorno.SembrarClaveAsync(api, ContextoClave.CalcularHash(texto), tipo);
         await _entorno.SembrarSuscripcionAsync(clave.SuscripcionId, ContextoSuscripcion.EstadoActiva,
-            InicioCiclo.ToUnixTimeSeconds(), FinCiclo.ToUnixTimeSeconds(), cuotaLlamadas, limiteMinuto);
+            InicioCiclo.ToUnixTimeSeconds(), FinCiclo.ToUnixTimeSeconds(), cuotaLlamadas, limiteMinuto, planNombre);
         return new Escenario(host, api, clave, texto);
     }
 

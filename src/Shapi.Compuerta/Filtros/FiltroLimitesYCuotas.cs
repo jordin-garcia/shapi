@@ -87,6 +87,14 @@ public sealed class FiltroLimitesYCuotas(
         return ResultadoFiltro.Continuar;
     }
 
+    /// <summary>
+    /// El valor de <c>X-Shapi-Plan</c> (08 §5): el nombre del plan codificado como componente de URI, en UTF-8 con
+    /// porcentajes ("Básico" → "B%C3%A1sico"), porque Kestrel rechaza las cabeceras de respuesta que no son ASCII.
+    /// Un nombre ASCII sin espacios ni símbolos ("Comercio", "Pruebas") queda igual; se recupera con
+    /// <c>decodeURIComponent</c> o <see cref="Uri.UnescapeDataString(string)"/>.
+    /// </summary>
+    public static string ValorCabeceraPlan(string nombre) => Uri.EscapeDataString(nombre);
+
     /// <summary>Segundos hasta el siguiente minuto (<c>Retry-After</c> y <c>X-RateLimit-Reset</c>): de 1 a 60.</summary>
     public static long SegundosParaSiguienteMinuto(DateTimeOffset ahora) => 60 - (ahora.ToUnixTimeSeconds() % 60);
 
@@ -197,7 +205,7 @@ public sealed class FiltroLimitesYCuotas(
             restanteMinuto = Math.Min(restanteMinuto, reserva.LimiteRuta - conteo.Ruta);
         }
 
-        yield return (CabecerasCompuerta.Plan, reserva.Plan);
+        yield return (CabecerasCompuerta.Plan, ValorCabeceraPlan(reserva.Plan));
         yield return (CabecerasCompuerta.LimiteMinuto, Texto(limiteMinuto));
         yield return (CabecerasCompuerta.RestanteMinuto, Texto(Math.Max(0, restanteMinuto)));
         yield return (CabecerasCompuerta.ReinicioMinuto, Texto(SegundosParaSiguienteMinuto(ahora)));

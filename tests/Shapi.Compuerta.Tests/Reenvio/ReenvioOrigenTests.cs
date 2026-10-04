@@ -169,7 +169,8 @@ public class ReenvioOrigenTests(EntornoCompuerta entorno) : IClassFixture<Entorn
             web.UseSetting("SHAPI_MODO_DEMO", "true");
             web.UseSetting("SHAPI_ORIGENES_PERMITIDOS", $"localhost:{origen.Puerto}");
         });
-        fabrica.UseKestrel(0);
+        // Un puerto libre: UseKestrel(0) usa el 5000 por defecto y choca con otras pruebas en paralelo.
+        fabrica.UseKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
         fabrica.StartServer();
         using var cliente = fabrica.CreateClient();
         using var peticion = new HttpRequestMessage(HttpMethod.Post, "/cotizaciones")
