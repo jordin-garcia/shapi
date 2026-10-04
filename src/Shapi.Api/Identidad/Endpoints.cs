@@ -37,13 +37,13 @@ public static class Endpoints
         grupo.MapPost("/reenviar-verificacion", ReenviarVerificacion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         grupo.MapPost("/entrar", IniciarSesion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         grupo.MapPost("/recuperar", SolicitarRecuperacion).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
-        grupo.MapPost("/restablecer", RestablecerContrasena).AllowAnonymous();
+        grupo.MapPost("/restablecer", RestablecerContrasena).AllowAnonymous().RequireRateLimiting(PoliticaLimiteAutenticacion);
         // salir y sesion no reciben credenciales y el panel consulta la sesión en cada carga, así que no llevan el límite.
         // salir es público: con la sesión vencida también tiene que borrar la cookie.
         grupo.MapPost("/salir", CerrarSesion).AllowAnonymous();
         grupo.MapGet("/sesion", ObtenerSesion).RequireAuthorization();
 
-        var grupoPerfil = app.MapGroup("/api/perfil").RequireAuthorization();
+        var grupoPerfil = app.MapGroup("/api/perfil").RequireAuthorization(Permisos.EditarPerfil);
         grupoPerfil.MapGet("/", ObtenerPerfil);
         grupoPerfil.MapPut("/", EditarPerfil);
         grupoPerfil.MapPost("/contrasena", CambiarContrasena);
@@ -476,16 +476,26 @@ public static class Endpoints
                 new Dictionary<string, string[]> { ["contrasenaNueva"] = [erroresNueva] });
         }
 
+        var ahora = reloj.Ahora;
+        if (usuario.EstaBloqueado(ahora))
+        {
+            return Problemas.Crear(StatusCodes.Status423Locked, CodigosError.CuentaBloqueada,
+                "La cuenta está bloqueada por intentos fallidos. Intente de nuevo en 15 minutos.");
+        }
+
         var resultado = hasher.VerifyHashedPassword(usuario, usuario.HashContrasena!, peticion.ContrasenaActual);
         if (resultado == PasswordVerificationResult.Failed)
         {
-            return CredencialesInvalidas();
+            // 10 §1 (auditoría 2026-10-03): cuenta para el bloqueo de RF-04, para que una sesión robada no pueda probar
+            // contraseñas sin límite. El error va debajo del campo (11 §4).
+            await RegistrarIntentoFallido(db, usuario.Id, ahora, cancelacion);
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                new Dictionary<string, string[]> { ["contrasenaActual"] = ["La contraseña actual no es correcta."] });
         }
 
         var hashNuevo = hasher.HashPassword(usuario, peticion.ContrasenaNueva!);
         usuario.DefinirHashContrasena(hashNuevo);
-
-        var ahora = reloj.Ahora;
+        usuario.RegistrarInicioExitoso();
 
         // Revocar sesiones excepto la actual
         var hashActual = string.Empty;

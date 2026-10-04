@@ -188,8 +188,9 @@ paths:
     post:
       summary: Solicita un enlace de recuperación
       description: |
-        Genera y encola un correo con el token de recuperación si la cuenta existe. Responde siempre 200 exista o no.
-        Límite de 10 por minuto por IP.
+        Genera y encola un correo con el token de recuperación si la cuenta existe. Responde siempre 200 exista o no,
+        con el mismo trabajo en la base. Límite de 10 por minuto por IP y de 3 solicitudes por hora por cuenta (las
+        demás responden igual sin enviar).
       operationId: solicitarRecuperacion
       parameters:
         - $ref: '#/components/parameters/XRequestedWith'
@@ -213,8 +214,9 @@ paths:
     post:
       summary: Restablece la contraseña
       description: |
-        Cambia la contraseña utilizando el token de un solo uso. Si es exitoso, inicia sesión y revoca todas
-        las sesiones previas.
+        Cambia la contraseña utilizando el token de un solo uso. Si es exitoso, inicia sesión, revoca todas
+        las sesiones previas, invalida los demás enlaces de recuperación pendientes y reinicia el bloqueo por
+        intentos fallidos. Lleva el límite de 10 peticiones por minuto por IP.
       operationId: restablecerContrasena
       parameters:
         - $ref: '#/components/parameters/XRequestedWith'
@@ -240,6 +242,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problema'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
 
   /api/portal/auth/registro:
     post:
@@ -359,7 +363,7 @@ paths:
   /api/portal/auth/recuperar:
     post:
       summary: Solicita la recuperación de la cuenta del portal
-      description: Responde 200 exista o no el correo. El mensaje usa marca y host del portal.
+      description: Responde 200 exista o no el correo, con el mismo trabajo en la base. El mensaje usa marca y host del portal. Como máximo 3 solicitudes por hora por cuenta.
       parameters: [{ $ref: '#/components/parameters/XRequestedWith' }]
       requestBody:
         required: true
@@ -391,6 +395,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problema'
+        '429': { $ref: '#/components/responses/DemasiadasPeticiones' }
 
   /api/portal/auth/invitacion/{token}:
     get:
@@ -489,7 +494,10 @@ paths:
   /api/perfil/contrasena:
     post:
       summary: Cambia la contraseña actual
-      description: Valida la contraseña actual y si es correcta, establece la nueva y revoca todas las demás sesiones.
+      description: |
+        Valida la contraseña actual y, si es correcta, establece la nueva y revoca todas las demás sesiones.
+        Una contraseña actual incorrecta responde 400 con `errores.contrasenaActual` y cuenta como intento fallido
+        para el bloqueo de RF-04.
       operationId: cambiarContrasena
       security:
         - cookieSesion: []
@@ -507,13 +515,15 @@ paths:
         '400':
           $ref: '#/components/responses/DatosInvalidos'
         '401':
-          description: Sin sesión o la contraseña actual es incorrecta (`credenciales_invalidas`).
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/Csrf'
+        '423':
+          description: La cuenta está bloqueada por intentos fallidos (`cuenta_bloqueada`).
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problema'
-        '403':
-          $ref: '#/components/responses/Csrf'
 
 components:
   securitySchemes:

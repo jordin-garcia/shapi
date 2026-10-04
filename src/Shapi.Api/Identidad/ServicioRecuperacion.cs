@@ -49,34 +49,51 @@ public class ServicioRecuperacion : IServicioRecuperacion
         Guid? usuarioId = null;
         Guid? consumidorId = null;
         Guid? organizacionId = null;
-        string nombre;
+        string? nombre = null;
 
         if (ambito == AmbitoSesion.Personal)
         {
             var usuario = await _db.Set<Usuario>().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Correo == correo, cancelacion);
-            if (usuario is null || usuario.Estado == EstadoCuenta.Desactivado)
+            if (usuario is not null && usuario.Estado != EstadoCuenta.Desactivado)
             {
-                return;
+                usuarioId = usuario.Id;
+                nombre = usuario.Nombre;
             }
-
-            usuarioId = usuario.Id;
-            nombre = usuario.Nombre;
         }
         else
         {
             var consumidor = await _db.Set<Consumidor>().IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Correo == correo && (organizacionPortalId == null || c.OrganizacionId == organizacionPortalId), cancelacion);
-            if (consumidor is null || consumidor.Estado != EstadoCuenta.Activo)
+            if (consumidor is not null && consumidor.Estado == EstadoCuenta.Activo)
             {
-                return;
+                consumidorId = consumidor.Id;
+                organizacionId = consumidor.OrganizacionId;
+                nombre = consumidor.Nombre;
             }
-
-            consumidorId = consumidor.Id;
-            organizacionId = consumidor.OrganizacionId;
-            nombre = consumidor.Nombre;
         }
+
+        // 10 §1: como máximo 3 solicitudes por hora por cuenta. La consulta se hace también si la cuenta no existe,
+        // sobre un ID que no existe, para que las dos rutas hagan el mismo trabajo (10 §8).
+        var cuentaId = usuarioId ?? consumidorId ?? Guid.Empty;
+        var desde = ahora - TimeSpan.FromHours(1);
+        var recientes = await _db.Set<Token>().IgnoreQueryFilters()
+            .CountAsync(t => t.Tipo == TipoToken.Recuperacion && (t.UsuarioId == cuentaId || t.ConsumidorId == cuentaId)
+                && t.CreadoEn > desde, cancelacion);
 
         var valorToken = SeguridadTokens.GenerarToken();
         var hash = SeguridadTokens.HashearToken(valorToken);
+
+        // Las dos ramas escriben dentro de una transacción, para hacer los mismos viajes a la base, incluido el COMMIT.
+        await using var transaccion = await _db.Database.BeginTransactionAsync(cancelacion);
+        if (nombre is null || recientes >= SolicitudesPorHora)
+        {
+            // 10 §8: el mismo tiempo de respuesta exista o no la cuenta. En vez de guardar el token y el correo, una
+            // escritura sobre una fila que no existe, con el mismo número de comandos.
+            await _db.Set<Token>().IgnoreQueryFilters()
+                .Where(t => t.Id == Guid.Empty)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.ActualizadoEn, ahora), cancelacion);
+            await transaccion.CommitAsync(cancelacion);
+            return;
+        }
 
         var token = Token.Recuperacion(hash, usuarioId, consumidorId, organizacionId, correo, ahora);
         _db.Add(token);
@@ -85,9 +102,13 @@ public class ServicioRecuperacion : IServicioRecuperacion
             ? (object)new { nombre, token = valorToken }
             : new { nombre, token = valorToken, hostPortal, nombrePortal, colorPortal, logoPortal = logoPortal ? "true" : null };
 
+        // Encolar guarda el token y el correo en el mismo SaveChanges.
         await _colaCorreo.Encolar("recuperacion", correo, datosCorreo, cancelacion);
-        await _db.SaveChangesAsync(cancelacion);
+        await transaccion.CommitAsync(cancelacion);
     }
+
+    /// <summary>10 §1: como máximo 3 solicitudes de recuperación por hora por cuenta; las demás responden igual sin enviar.</summary>
+    public const int SolicitudesPorHora = 3;
 
     public async Task<RecuperacionExitosa?> Restablecer(
         string token,
@@ -125,6 +146,12 @@ public class ServicioRecuperacion : IServicioRecuperacion
             return null;
         }
 
+        // 10 §1 (auditoría 2026-10-03): los demás enlaces de recuperación pendientes de la cuenta dejan de servir.
+        await _db.Set<Token>().IgnoreQueryFilters()
+            .Where(t => t.Tipo == TipoToken.Recuperacion && t.UsadoEn == null && t.Id != entidadToken.Id
+                && (entidadToken.UsuarioId != null ? t.UsuarioId == entidadToken.UsuarioId : t.ConsumidorId == entidadToken.ConsumidorId))
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsadoEn, ahora).SetProperty(t => t.ActualizadoEn, ahora), cancelacion);
+
         RecuperacionExitosa resultado;
 
         if (entidadToken.UsuarioId.HasValue)
@@ -138,6 +165,9 @@ public class ServicioRecuperacion : IServicioRecuperacion
 
             var hashContrasena = _hasherUsuario.HashPassword(usuario, nuevaContrasena);
             usuario.DefinirHashContrasena(hashContrasena);
+
+            // Quien restablece la contraseña recupera el acceso: se reinicia el bloqueo por intentos fallidos.
+            usuario.RegistrarInicioExitoso();
 
             // Revocar sesiones existentes
             await _db.Set<Sesion>().IgnoreQueryFilters()
@@ -155,6 +185,7 @@ public class ServicioRecuperacion : IServicioRecuperacion
                 return null;
             }
             consumidor.DefinirHashContrasena(_hasherConsumidor.HashPassword(consumidor, nuevaContrasena));
+            consumidor.RegistrarInicioExitoso();
             await _db.Set<Sesion>().IgnoreQueryFilters()
                 .Where(s => s.ConsumidorId == consumidor.Id && s.RevocadaEn == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevocadaEn, ahora).SetProperty(x => x.ActualizadoEn, ahora), cancelacion);

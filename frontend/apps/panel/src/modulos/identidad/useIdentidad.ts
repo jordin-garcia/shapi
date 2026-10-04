@@ -60,12 +60,6 @@ export async function restablecer(token: string, contrasena: string) {
   comprobar(await clienteIdentidad.POST('/api/auth/restablecer', { params: csrf, body: { token, contrasena } }));
 }
 
-export async function consultarPerfil() {
-  const { data, error } = await clienteIdentidad.GET('/api/perfil');
-  if (error) throw new Error('No se pudo cargar el perfil');
-  return data;
-}
-
 export async function editarPerfil(nombre: string) {
   comprobar(await clienteIdentidad.PUT('/api/perfil', { params: csrf, body: { nombre } }));
 }

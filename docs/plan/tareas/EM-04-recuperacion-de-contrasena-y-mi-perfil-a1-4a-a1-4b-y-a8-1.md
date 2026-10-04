@@ -69,3 +69,34 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - A1.4a confirma el envío con el texto condicional de CU-03 y reserva «paso 2 de 2» para A1.4b.
 - A1.4b espera la consulta de sesión después del restablecimiento; si falla, muestra el error y reintenta únicamente la sesión, sin consumir otra vez el token.
 - Pruebas RF-03 del mensaje neutral, enlace vencido, error por campo y recuperación tras un fallo de sesión. La prueba de este último caso falló antes del arreglo con un rechazo sin manejar y sin botón de reintento.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 3 de `docs/plan/auditoria-2026-10-03.md` (H-15 a H-26), hechas por el coordinador:
+- **Mismo tiempo exista o no la cuenta (H-15).** `ServicioRecuperacion.Solicitar` terminaba con un solo SELECT si la cuenta no existía, y si existía guardaba el token y el correo (10 §8). Ahora, si no existe, hace una escritura sobre una fila inexistente, en el mismo número de viajes a la base. Vale también para el portal, que usa el mismo servicio. Las dos ramas escriben dentro de una transacción, así que también hacen el mismo `COMMIT`. Una prueba cuenta los comandos de la cuenta inexistente, de la existente y de la cuarta solicitud en la hora, como la de H-51.
+- **Límite por IP (H-16).** `restablecer`, del personal y del portal, lleva el límite de 10 por minuto. 10 §1 ya nombra `recuperar` y `restablecer`, y las dos teorías de límite los prueban.
+- **A8.1 (H-17, H-18 y H-21):**
+  - los bordes usan `border-borde-fila` y `border-borde-inactivo`; las clases anteriores no existían y salían casi negros;
+  - la confirmación es el `Toast` de 4 s (11 §4);
+  - los errores de red ofrecen «Reintentar» con `AvisoError`, como en A1;
+  - no quedan colores hexadecimales;
+  - las pruebas cubren organización y rol, «Cerrar sesión», `/admin/perfil`, el aviso, los errores por campo y el reintento.
+- **Contraseña actual incorrecta (H-19).** Responde 400 `datos_invalidos` con `errores.contrasenaActual` («La contraseña actual no es correcta.»), que A8.1 muestra debajo del campo. Antes respondía 401 `credenciales_invalidas`, con un mensaje que hablaba de un correo. Se actualizó `identidad.yaml`.
+- **Pruebas (H-20 y H-23):**
+  - la respuesta de `recuperar` es idéntica en código, cuerpo y cabeceras exista o no la cuenta;
+  - un token inventado da 422;
+  - un token de consumidor no sirve en `/api/auth/restablecer`;
+  - la contraseña actual incorrecta no cambia la contraseña;
+  - después de cambiarla, la nueva funciona y la anterior no.
+- **`/api/perfil` (H-22).** Usa la política `Permisos.EditarPerfil` (04 §3.1).
+- **11 §4 (H-24).** La sección suelta `## §Precisiones` pasó a §4 como «Comportamiento de la recuperación y de Mi perfil (EM-04)», con los textos del enlace inválido de A1.4b y los de A8.1.
+- **Código muerto (H-25).** Se quitaron `consultarPerfil`, que nadie usaba, y el `correo` del mock de `/perfil`.
+- **Aclaraciones del cierre (H-26):**
+  - el criterio 3 dice `{actual, nueva}`, y el contrato y el código usan `contrasenaActual` y `contrasenaNueva`;
+  - los bordes de A8.1 no estaban «ajustados al mockup»;
+  - el criterio 4 (ámbito del consumidor) lo prueban las pruebas de EM-05 (`ConsumidorPortalTests`).
+- **Decisiones del paso 3 (10 §1):**
+  - 3 solicitudes de recuperación por hora por cuenta;
+  - al restablecer se invalidan los demás enlaces pendientes y se reinicia el bloqueo;
+  - una contraseña actual incorrecta en Mi perfil cuenta para el bloqueo de RF-04, y con la cuenta bloqueada se responde 423.
+  - un cambio correcto en Mi perfil reinicia los intentos fallidos, para que el bloqueo sea tras 5 intentos **seguidos**.

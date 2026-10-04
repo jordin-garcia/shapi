@@ -1,7 +1,8 @@
 import { useState, useRef, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Boton, Campo } from '@shapi/ui';
+import { Boton, Campo, Toast } from '@shapi/ui';
 import { editarPerfil, cambiarContrasena, interpretarError, type ErrorFormulario } from '../modulos/identidad/useIdentidad';
+import { AvisoError } from '../modulos/identidad/Formularios';
 import { useSesion, claveSesion } from '../modulos/sesion/useSesion';
 import { useCerrarSesion } from '../modulos/sesion/useCerrarSesion';
 
@@ -10,23 +11,30 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** Un error sin errores por campo se muestra arriba del formulario; si fue de red o del servidor, con «Reintentar». */
+function sinErroresDeCampo(error: ErrorFormulario | null) {
+  return error !== null && Object.keys(error.errores).length === 0;
+}
+
 export default function PaginaA81Perfil() {
   const { data: sesion } = useSesion();
   const cache = useQueryClient();
   const salir = useCerrarSesion();
-  
+
   const formPerfil = useRef<HTMLFormElement>(null);
   const [nombre, setNombre] = useState(sesion?.nombre ?? '');
   const [enviandoPerfil, setEnviandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState<ErrorFormulario | null>(null);
-  const [perfilExito, setPerfilExito] = useState(false);
 
   const formContrasena = useRef<HTMLFormElement>(null);
   const [contrasenaActual, setContrasenaActual] = useState('');
   const [contrasenaNueva, setContrasenaNueva] = useState('');
   const [enviandoContrasena, setEnviandoContrasena] = useState(false);
   const [errorContrasena, setErrorContrasena] = useState<ErrorFormulario | null>(null);
-  const [contrasenaExito, setContrasenaExito] = useState(false);
+
+  // 11 §4: la confirmación es un aviso breve de 4 s arriba a la derecha. La clave lo vuelve a montar en cada aviso.
+  const [aviso, setAviso] = useState<{ texto: string; clave: number } | null>(null);
+  const avisar = (texto: string) => setAviso({ texto, clave: Date.now() });
 
   if (!sesion) return null;
 
@@ -34,11 +42,9 @@ export default function PaginaA81Perfil() {
     e.preventDefault();
     setEnviandoPerfil(true);
     setErrorPerfil(null);
-    setPerfilExito(false);
     try {
       await editarPerfil(nombre);
-      setPerfilExito(true);
-      setTimeout(() => setPerfilExito(false), 3000);
+      avisar('Nombre actualizado.');
       cache.invalidateQueries({ queryKey: claveSesion });
     } catch (causa) {
       setErrorPerfil(interpretarError(causa));
@@ -51,13 +57,11 @@ export default function PaginaA81Perfil() {
     e.preventDefault();
     setEnviandoContrasena(true);
     setErrorContrasena(null);
-    setContrasenaExito(false);
     try {
       await cambiarContrasena(contrasenaActual, contrasenaNueva);
-      setContrasenaExito(true);
+      avisar('Contraseña actualizada. Se cerraron sus sesiones en otros equipos.');
       setContrasenaActual('');
       setContrasenaNueva('');
-      setTimeout(() => setContrasenaExito(false), 3000);
     } catch (causa) {
       setErrorContrasena(interpretarError(causa));
     } finally {
@@ -71,6 +75,7 @@ export default function PaginaA81Perfil() {
 
   return (
     <div className="flex flex-col gap-[32px]">
+      {aviso && <Toast key={aviso.clave}>{aviso.texto}</Toast>}
 
       <div className="flex flex-col gap-[10px]">
         <p className="text-xs tracking-[.16em] uppercase text-tinta-suave font-medium m-0">Cuenta</p>
@@ -82,19 +87,12 @@ export default function PaginaA81Perfil() {
         {/* Datos Personales */}
         <div className="bg-white border border-borde rounded-lg p-5 flex flex-col">
           <h2 className="font-sora text-[21px] leading-[1.3] m-0">Datos personales</h2>
-          
+
           <form ref={formPerfil} onSubmit={guardarPerfil} noValidate>
-            <div className="flex flex-col gap-[18px] border-t border-separador mt-5 pt-5">
-              
-              {errorPerfil && !errNom && (
-                <div className="bg-alerta-fondo border border-alerta-borde text-alerta p-3 rounded-base text-sm">
-                  {errorPerfil.mensaje}
-                </div>
-              )}
-              {perfilExito && (
-                <div className="bg-[#E4F3EC] border border-[#B6DCC9] text-[#146542] p-3 rounded-base text-sm">
-                  Nombre actualizado correctamente.
-                </div>
+            <div className="flex flex-col gap-[18px] border-t border-borde-fila mt-5 pt-5">
+
+              {errorPerfil && sinErroresDeCampo(errorPerfil) && (
+                <AvisoError mensaje={errorPerfil.mensaje} reintentar={errorPerfil.codigo === null ? () => formPerfil.current?.requestSubmit() : undefined} />
               )}
 
               <div className="flex flex-col gap-[7px]">
@@ -104,14 +102,14 @@ export default function PaginaA81Perfil() {
 
               <div className="flex flex-col gap-[7px]">
                 <label className="text-[13px] font-semibold text-tinta">Correo electrónico</label>
-                <div className="border border-borde-fuerte rounded-lg py-[11px] px-[14px] text-[15px] leading-[1.5] box-border border-solid bg-fondo text-tinta-suave">
+                <div className="border border-borde-inactivo rounded-lg py-[11px] px-[14px] text-[15px] leading-[1.5] box-border border-solid bg-fondo text-tinta-suave">
                   {sesion.correo}
                 </div>
                 <p className="text-[13px] leading-[1.5] text-tinta-suave m-0">Para cambiar su correo, abra un caso de soporte.</p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-[14px] border-t border-separador mt-5 pt-5">
+            <div className="flex flex-col gap-[14px] border-t border-borde-fila mt-5 pt-5">
               <div className="flex items-baseline justify-between gap-5">
                 <span className="text-[14px] text-tinta-suave">Organización</span>
                 <span className="text-[15px] text-tinta font-medium tabular-nums">{sesion.nombreOrganizacion}</span>
@@ -131,18 +129,11 @@ export default function PaginaA81Perfil() {
         {/* Contraseña */}
         <div className="bg-white border border-borde rounded-lg p-5 flex flex-col">
           <h2 className="font-sora text-[21px] leading-[1.3] m-0">Contraseña</h2>
-          
+
           <form ref={formContrasena} onSubmit={guardarContrasena} noValidate>
-            <div className="flex flex-col gap-[18px] border-t border-separador mt-5 pt-5">
-              {errorContrasena && !errContAct && !errContNue && (
-                <div className="bg-alerta-fondo border border-alerta-borde text-alerta p-3 rounded-base text-sm">
-                  {errorContrasena.mensaje}
-                </div>
-              )}
-              {contrasenaExito && (
-                <div className="bg-[#E4F3EC] border border-[#B6DCC9] text-[#146542] p-3 rounded-base text-sm">
-                  Contraseña actualizada correctamente.
-                </div>
+            <div className="flex flex-col gap-[18px] border-t border-borde-fila mt-5 pt-5">
+              {errorContrasena && sinErroresDeCampo(errorContrasena) && (
+                <AvisoError mensaje={errorContrasena.mensaje} reintentar={errorContrasena.codigo === null ? () => formContrasena.current?.requestSubmit() : undefined} />
               )}
 
               <div className="flex flex-col gap-[7px]">
@@ -162,7 +153,7 @@ export default function PaginaA81Perfil() {
             </div>
           </form>
 
-          <div className="flex items-center justify-between gap-4 border-t border-separador mt-6 pt-5">
+          <div className="flex items-center justify-between gap-4 border-t border-borde-fila mt-6 pt-5">
             <p className="text-[14px] leading-[1.5] text-tinta-suave m-0">Su sesión vence tras 8 horas sin actividad.</p>
             <Boton onClick={() => salir.mutate()} deshabilitado={salir.isPending} principal={false}>Cerrar sesión</Boton>
           </div>
