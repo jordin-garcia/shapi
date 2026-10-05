@@ -2,13 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { ErrorApi } from '@shapi/api';
 import { clienteSesion, claveSesionConsumidor } from './useSesionConsumidor';
-import { claveConfiguracionPortal } from '../configuracion/useConfiguracionPortal';
+import { limpiarCacheConsumidor } from './cacheConsumidor';
 import { AvisoError } from './FormulariosAcceso';
-
-/** Lo único que sobrevive al cierre de sesión es la configuración pública del portal; lo demás es del consumidor. */
-function esDelConsumidor(clave: readonly unknown[]) {
-  return !(clave[0] === claveConfiguracionPortal[0] && clave[1] === claveConfiguracionPortal[1]);
-}
 
 export function CerrarSesionConsumidor() {
   const navegar = useNavigate();
@@ -24,8 +19,7 @@ export function CerrarSesionConsumidor() {
     },
     onSuccess: async () => {
       // Como el panel (useCerrarSesion): otro consumidor en el mismo navegador no debe ver claves ni pagos del anterior.
-      await cache.cancelQueries({ predicate: consulta => esDelConsumidor(consulta.queryKey) });
-      cache.removeQueries({ predicate: consulta => esDelConsumidor(consulta.queryKey) });
+      await limpiarCacheConsumidor(cache);
       cache.setQueryData(claveSesionConsumidor, null);
       await navegar('/entrar', { replace: true });
     },

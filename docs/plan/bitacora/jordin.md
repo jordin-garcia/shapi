@@ -831,3 +831,16 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Jordin:** decidir el paso 13 de `docs/plan/auditoria-2026-10-03.md` (H-98 a H-118 y las 15 dudas). El único de severidad media es H-110, la caché del portal cuando vence la sesión.
   - **Todos:** `ambiente-productivo` (las E2E en el ambiente productivo simulado) ya bloquea la integración si falla.
+
+## 2026-10-04 · DC-03 · Correcciones de la auditoría: caché del portal al vencer la sesión
+- Hecho: paso 13 de la auditoría del 3 oct, solo H-110. La caché del consumidor también se limpia si la sesión vence y al entrar, con el helper `limpiarCacheConsumidor`.
+- Decisiones: por decisión de Jordin, los demás hallazgos de la auditoría final (H-98 a H-108 y H-111 a H-118) y las 15 dudas quedan para la próxima auditoría.
+- Pendiente o aviso para otros:
+  - **Dominique:** cambié estos archivos tuyos en `frontend/apps/portal/src/`:
+    - `modulos/sesion/CerrarSesionConsumidor.tsx`, `RequiereSesionConsumidor.tsx` y `useIdentidadConsumidor.ts`;
+    - el archivo nuevo `modulos/sesion/cacheConsumidor.ts`;
+    - las pruebas `Estructura.test.tsx` y `AccesoConsumidor.test.tsx`;
+    - tu archivo de tarea DC-03.
+
+    Actualiza tu rama desde `main`.
+  - **DC-11 y DC-13:** las consultas de claves, pagos y consumo del portal se borran solas al cerrar sesión, al vencer la sesión y al entrar. Se borran todas las consultas salvo `['portal', 'configuracion']` y `['portal', 'sesion']`: no reutilicen esas dos claves para datos del consumidor.

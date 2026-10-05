@@ -277,9 +277,9 @@ Resultados:
 - Salieron también 15 dudas. Las que Jordin decida resolver se corrigen en el paso 13.
 - H-109 se corrigió en este mismo PR, porque solo era actualizar textos.
 
-## Paso 13 · Hallazgos de la auditoría final (propuesto)
+## Paso 13 · Hallazgos de la auditoría final
 
-Pendiente de que Jordin decida si se corrigen y cómo: en un solo PR con el ID de JG-01, como en la auditoría anterior, o por tarea.
+**Decidido por Jordin (4 oct):** solo se corrige H-110, el único de severidad media, con el ID de DC-03. Los demás hallazgos (H-98 a H-108 y H-111 a H-118) y las 15 dudas quedan para la próxima auditoría.
 
 **Identidad (EM-04 y EM-05)**
 - [ ] **H-98 (baja, EM-04 y EM-05)** `src/Shapi.Api/Identidad/ServicioRecuperacion.cs:76-87`: el límite de 3 recuperaciones por hora y cuenta no se serializa. El conteo corre fuera de la transacción y sin `FOR UPDATE`, y la verificación sí bloquea la fila. Con 10 peticiones simultáneas se crean 10 enlaces. Corrección: transacción y `FOR UPDATE` sobre `usuario` o `consumidor` (o sobre `Guid.Empty` si no existe, para conservar H-15), con una prueba en paralelo.
@@ -304,9 +304,11 @@ Pendiente de que Jordin decida si se corrigen y cómo: en un solo PR con el ID d
 - [x] **H-109 (baja, JG-18, documentación)** `ambiente-productivo` ya está en la protección de `main`, pero protocolo B11, este plan y el `## Resultado` de JG-18 decían que era informativo o que estaba pendiente. **Corregido en el PR del paso 12.**
 
 **APIs y portal (DC-03, DC-04 y DC-05)**
-- [ ] **H-110 (media, DC-03; H-76 incompleto)** `frontend/apps/portal/src/modulos/sesion/RequiereSesionConsumidor.tsx:10` y `useIdentidadConsumidor.ts:66-73`: si la sesión vence, se va a `/entrar` sin limpiar la caché. Al entrar, solo se vuelve a consultar la sesión, así que otro consumidor en el mismo navegador ve primero los datos del anterior. Corrección:
+- [x] **H-110 (media, DC-03; H-76 incompleto)** `frontend/apps/portal/src/modulos/sesion/RequiereSesionConsumidor.tsx:10` y `useIdentidadConsumidor.ts:66-73`: si la sesión vence, se va a `/entrar` sin limpiar la caché. Al entrar, solo se vuelve a consultar la sesión, así que otro consumidor en el mismo navegador ve primero los datos del anterior. Corrección:
   - extraer `limpiarCacheConsumidor` y llamarlo al ver la sesión nula y al entrar;
   - una prueba de Vitest.
+  - **Corregido (4 oct):** `modulos/sesion/cacheConsumidor.ts` borra todo salvo la configuración y la sesión. Lo usan el cierre de sesión, `RequiereSesionConsumidor` cuando la sesión resulta nula y `useIrAlDestinoConsumidor` antes de ir al destino, al entrar, registrarse, aceptar una invitación o restablecer la contraseña. Hay dos pruebas de Vitest.
+  - **Para la próxima auditoría:** si otro consumidor entra en otra pestaña, esta pestaña recibe al recuperar el foco una sesión no nula pero de otra persona, y no limpia la caché. Para detectarlo, `SesionConsumidor` tendría que traer un identificador del consumidor (cambio de contrato).
 - [ ] **H-111 (baja, DC-05)** `A3-3-Especificacion.tsx:48-51`: al cargar con éxito no se invalida `['rutas-api', id]`. Después de un rechazo, la tarjeta vuelve a mostrar la especificación anterior, y A3.4 se abre con las rutas viejas.
 - [ ] **H-112 (baja, DC-05)** `src/Shapi.Infraestructura/Apis/RepositorioApis.cs:39`: `FOR UPDATE` choca con el `FOR KEY SHARE` de las FK de las tablas hijas (`consumo_diario`, `plan_api`…). Cuando exista JG-09, podría haber interbloqueos. Corrección: `FOR NO KEY UPDATE`.
 - [ ] **H-113 (baja, DC-04 y DC-05)** Desde H-48 el lector abre A3.3 y A3.4, y ve «Registrar una API», la zona de carga y «Guardar rutas expuestas». 04 §3 dice que el frontend oculta las opciones no permitidas.

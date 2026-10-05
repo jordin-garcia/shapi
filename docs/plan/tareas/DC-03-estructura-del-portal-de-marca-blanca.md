@@ -70,6 +70,12 @@ Paso 9 de `docs/plan/auditoria-2026-10-03.md`, en el mismo PR que DC-08 (`[DC-03
 - **H-74:** los colores de la marca (`--principal`, `--principal-hover` y `--anillo-foco`) se definen en la raíz de `App`, con `coloresMarca`, y ya no solo en `MarcoAcceso`.
 - **H-75:** el enlace activo de la barra de la cuenta usa el fondo teñido con la marca y el texto en la marca, y los demás enlaces van en `#2B3547`, como el mockup B2.
 - **H-76:** cerrar sesión cancela y borra de la caché las consultas del consumidor (solo queda la configuración) y, si falla, muestra «No se pudo cerrar la sesión.» con «Reintentar».
+- **H-110 (auditoría final, paso 13):** H-76 había quedado incompleto. Si la sesión vencía, se iba a `/entrar` sin limpiar la caché, y otro consumidor del mismo navegador podía ver los datos del anterior. Ahora `limpiarCacheConsumidor` (`modulos/sesion/cacheConsumidor.ts`) se llama:
+  - al cerrar sesión;
+  - en `RequiereSesionConsumidor`, cuando la sesión resulta nula;
+  - en `useIrAlDestinoConsumidor`, antes de ir al destino (entrar, registrarse, aceptar una invitación o restablecer la contraseña).
+
+  Hay dos pruebas de Vitest, una para cada camino nuevo.
 - **H-77:** los dos grupos de rutas tienen `errorElement` (`Error-Ruta.tsx`), en español. La prueba monta una página que falla y comprueba «Reintentar».
 - **H-78:** `/cuenta` redirige a `/cuenta/suscripcion`.
 - **H-79:** pruebas de la configuración con 5xx, de la sesión con 5xx en `/cuenta/*` y de la ruta comodín.

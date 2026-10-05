@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/identidad';
 import { claveSesionConsumidor, consultarSesionConsumidor } from './useSesionConsumidor';
+import { limpiarCacheConsumidor } from './cacheConsumidor';
 
 export const clienteIdentidadConsumidor = crearCliente<paths>(window.location.origin);
 export type RegistroConsumidor = components['schemas']['PeticionRegistroConsumidor'];
@@ -69,6 +70,8 @@ export function useIrAlDestinoConsumidor() {
   return useCallback(async () => {
     const sesion = await cache.fetchQuery({ queryKey: claveSesionConsumidor, queryFn: consultarSesionConsumidor, staleTime: 0 });
     if (!sesion) throw new Error('La sesión no quedó iniciada');
+    // H-110: quien entra (o se registra, o restablece su contraseña) nunca ve datos de otro consumidor en la caché.
+    await limpiarCacheConsumidor(cache);
     await navegar(sesion.destino, { replace: true });
   }, [cache, navegar]);
 }
