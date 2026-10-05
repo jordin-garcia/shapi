@@ -58,7 +58,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Obtiene los planes activos para el portal público de una API */
+        /**
+         * Obtiene los planes activos para el portal público de una API
+         * @description Ordenados por precio y nombre, como en A4.1.
+         */
         get: operations["obtenerPlanesPortal"];
         put?: never;
         post?: never;
@@ -79,7 +82,10 @@ export interface components {
             apiId: string;
             nombre: string;
             descripcion: string;
+            /** @description Mayor que 0 si el plan no es gratuito; 0 si es gratuito. Hasta 2 decimales. */
             precio: number;
+            /** @constant */
+            moneda: "GTQ";
             esGratuito: boolean;
             vigenciaDias: number;
             cuotaLlamadas: number;
@@ -101,7 +107,7 @@ export interface components {
             title: string;
             status: number;
             /** @enum {string} */
-            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "plan_no_encontrado" | "plan_duplicado";
+            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "plan_no_encontrado" | "plan_duplicado" | "plan_con_suscripciones";
             detalle?: {
                 [key: string]: unknown;
             };
@@ -290,6 +296,18 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
+            /**
+             * @description Se intentó cambiar entre gratuito y de pago mientras el plan tiene suscripciones vigentes
+             *     (`plan_con_suscripciones`, 09 §5).
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
         };
     };
     desactivarPlan: {
@@ -356,6 +374,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanApi"][];
+                };
+            };
+            /** @description El host no corresponde a ningún portal (`api_no_encontrada`). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
                 };
             };
         };

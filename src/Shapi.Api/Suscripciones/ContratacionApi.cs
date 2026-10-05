@@ -25,7 +25,8 @@ public sealed class ContratacionApi(
     IPasarelaPagos pasarela,
     IReloj reloj,
     IPublicadorCache publicador,
-    IServicioClaves servicioClaves)
+    IServicioClaves servicioClaves,
+    ILogger<ContratacionApi> registro)
 {
     public async Task<IResult> Contratar(HttpContext http, [FromBody] PeticionContratarPlan peticion, CancellationToken cancelacion)
     {
@@ -85,7 +86,8 @@ public sealed class ContratacionApi(
         {
             if (peticion.Tarjeta is null)
             {
-                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Este plan requiere una tarjeta.");
+                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Este plan requiere una tarjeta.",
+                    new Dictionary<string, string[]> { ["tarjeta"] = ["Escriba los datos de la tarjeta."] });
             }
 
             var tokenizada = await pasarela.TokenizarAsync(new DatosTarjeta
@@ -121,12 +123,25 @@ public sealed class ContratacionApi(
             }
             catch (Exception ex) when (ex is ArgumentException or OverflowException or FormatException)
             {
+                // convenciones §5: datos_invalidos es 400, con el error en cada campo.
                 await transaccion.RollbackAsync(cancelacion);
-                return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.DatosInvalidos,
-                    "Los datos de vencimiento o titular de la tarjeta no son válidos.");
+                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
+                    "Los datos de vencimiento o titular de la tarjeta no son válidos.",
+                    new Dictionary<string, string[]>
+                    {
+                        ["tarjeta.vencimiento"] = ["Revise el mes y el año de vencimiento."],
+                        ["tarjeta.titular"] = ["Escriba el nombre del titular."],
+                    });
             }
 
             var cobro = await pasarela.CobrarAsync(tokenizada.Token!, plan.Precio, $"ct_sim_{Guid.NewGuid():N}", esRenovacion: false);
+            if (!cobro.Exitoso && cobro.Error == CodigosError.PasarelaNoDisponible)
+            {
+                // Igual que en la tokenización: la pasarela no respondió, así que no hubo un rechazo que registrar.
+                await transaccion.RollbackAsync(cancelacion);
+                return RespuestaErrorTarjeta(CodigosError.PasarelaNoDisponible);
+            }
+
             if (!cobro.Exitoso)
             {
                 db.Add(Pago.ContratacionRechazada(consumidorId, portal.ApiId, plan.Precio,
@@ -148,15 +163,31 @@ public sealed class ContratacionApi(
         var inicio = SuscripcionApi.InicioDeCiclo(reloj.Ahora);
         var fin = inicio.AddDays(plan.VigenciaDias);
         var suscripcion = SuscripcionApi.Crear(consumidorId, portal.ApiId, plan.Id, inicio, fin, medioPago?.Id);
-        db.Add(suscripcion);
-        if (medioPago is not null)
+        IReadOnlyList<ClaveEmitida> claves;
+        try
         {
-            db.Add(Pago.ContratacionAutorizada(suscripcion.Id, medioPago.Id, plan.Precio, $"Contratación del plan {plan.Nombre}", referencia!, inicio, fin));
-        }
+            db.Add(suscripcion);
+            if (medioPago is not null)
+            {
+                db.Add(Pago.ContratacionAutorizada(suscripcion.Id, medioPago.Id, plan.Precio, $"Contratación del plan {plan.Nombre}", referencia!, inicio, fin));
+            }
 
-        await db.SaveChangesAsync(cancelacion);
-        var claves = await servicioClaves.PrepararClavesParaSuscripcion(suscripcion.Id, cancelacion);
-        await transaccion.CommitAsync(cancelacion);
+            await db.SaveChangesAsync(cancelacion);
+            claves = await servicioClaves.PrepararClavesParaSuscripcion(suscripcion.Id, cancelacion);
+            await transaccion.CommitAsync(cancelacion);
+        }
+        catch (Exception ex) when (referencia is not null)
+        {
+            // El cobro ya se autorizó, pero no quedó registrado: se reembolsa para no cobrar sin suscripción.
+            var reembolso = await pasarela.ReembolsarAsync(referencia);
+            if (!reembolso.Exitoso)
+            {
+                registro.LogError(ex, "No se pudo reembolsar el cobro {Referencia} de una contratación que falló: {Error}",
+                    referencia, reembolso.Error);
+            }
+
+            throw;
+        }
 
         await publicador.PublicarSuscripcion(suscripcion.Id, cancelacion);
         foreach (var clave in claves)

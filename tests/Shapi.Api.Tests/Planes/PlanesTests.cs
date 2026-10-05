@@ -145,9 +145,160 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
 
         var entrada = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().SingleAsync(e => e.ObjetivoId == planId);
         Assert.Equal("plan_api.creado", entrada.Accion);
+        // H-63: «en la API de Cotización de Envíos», sin repetir «API».
+        Assert.Equal("Creó el plan Básico en la API de Cotización de Envíos.", entrada.Descripcion);
     }
 
-    // RF-19
+    // RF-18 (H-65): la respuesta lleva la moneda y no las fechas de auditoría, como dice el contrato.
+    [Fact]
+    public async Task EM07_ListarPlanes_RespuestaComoElContrato()
+    {
+        var apiId = await InsertarApi(_organizacionId);
+        await InsertarPlan(apiId, "Comercio");
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/planes", null);
+
+        var plan = Assert.Single((await respuesta.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray());
+        Assert.Equal("GTQ", plan.GetProperty("moneda").GetString());
+        Assert.False(plan.TryGetProperty("creadoEn", out _));
+        Assert.False(plan.TryGetProperty("actualizadoEn", out _));
+    }
+
+    // RF-18 (H-58): A4.1 y A5.4 muestran los planes por precio, y una edición no cambia el orden.
+    [Fact]
+    public async Task EM07_ListarPlanes_OrdenaPorPrecioYNombre()
+    {
+        var apiId = await InsertarApi(_organizacionId);
+        await InsertarPlan(apiId, "Volumen", precio: 1200);
+        var comercio = await InsertarPlan(apiId, "Comercio", precio: 450);
+        await InsertarPlan(apiId, "Básico", precio: 0, gratuito: true);
+        await InsertarPlan(apiId, "Alfa", precio: 450);
+        using (var editar = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/planes/{comercio}", new
+        {
+            nombre = "Comercio",
+            descripcion = "Desc",
+            precio = 450.0m,
+            esGratuito = false,
+            vigenciaDias = 30,
+            cuotaLlamadas = 2000,
+            limiteMinuto = 60,
+        }))
+        {
+            Assert.Equal(HttpStatusCode.OK, editar.StatusCode);
+        }
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/planes", null);
+
+        var nombres = (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray()
+            .Select(p => p.GetProperty("nombre").GetString()!)
+            .ToArray();
+        Assert.Equal(["Básico", "Alfa", "Comercio", "Volumen"], nombres);
+    }
+
+    // RF-18 (H-60): un plan de pago con precio 0 no se puede crear; la base también lo impide (ck_plan_api_pago).
+    [Fact]
+    public async Task EM07_CrearPlan_DePagoConPrecioCero_Responde400YLaBaseLoRechaza()
+    {
+        var apiId = await InsertarApi(_organizacionId);
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", new
+        {
+            nombre = "Cero",
+            descripcion = "Desc",
+            precio = 0.0m,
+            esGratuito = false,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60,
+        });
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("precio", out _));
+        var error = await Assert.ThrowsAsync<PostgresException>(() => InsertarPlan(apiId, "Directo", precio: 0));
+        Assert.Equal("ck_plan_api_pago", error.ConstraintName);
+    }
+
+    // RF-18 (H-59): un precio que no cabe en numeric(12,2) o con más de 2 decimales es 400, no 409 plan_duplicado.
+    [Theory]
+    [InlineData("100000000000")]
+    [InlineData("10.005")]
+    public async Task EM07_CrearPlan_PrecioFueraDeRango_Responde400(string precio)
+    {
+        var apiId = await InsertarApi(_organizacionId);
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", new
+        {
+            nombre = "Caro",
+            descripcion = "Desc",
+            precio = decimal.Parse(precio, System.Globalization.CultureInfo.InvariantCulture),
+            esGratuito = false,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60,
+        });
+
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("precio", out _));
+    }
+
+    // Decidido (3 oct, EM-07): no se cambia entre gratuito y de pago mientras haya suscripciones vigentes (09 §5).
+    [Fact]
+    public async Task EM07_EditarPlan_CambiarAGratuitoConSuscripciones_Responde422SinCambios()
+    {
+        var apiId = await InsertarApi(_organizacionId);
+        var planId = await InsertarPlan(apiId, "Comercio");
+        await InsertarSuscripcion(apiId, planId);
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/planes/{planId}", new
+        {
+            nombre = "Comercio",
+            descripcion = "Desc",
+            precio = 0.0m,
+            esGratuito = true,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60,
+        });
+
+        await AfirmarProblema(respuesta, (HttpStatusCode)422, "plan_con_suscripciones");
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        Assert.False((await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(p => p.Id == planId)).EsGratuito);
+    }
+
+    [Fact]
+    public async Task EM07_EditarPlan_CambiarAGratuitoSinSuscripciones_Responde200()
+    {
+        var apiId = await InsertarApi(_organizacionId);
+        var planId = await InsertarPlan(apiId, "Comercio");
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/planes/{planId}", new
+        {
+            nombre = "Comercio",
+            descripcion = "Desc",
+            precio = 0.0m,
+            esGratuito = true,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+    }
+
+    // RF-18 (H-65): el portal de un host que no existe responde 404.
+    [Fact]
+    public async Task EM07_PlanesPortal_HostSinPortal_Responde404()
+    {
+        var peticion = new HttpRequestMessage(HttpMethod.Get, "/api/portal/planes");
+        peticion.Headers.Host = "no-existe.shapi.localhost";
+
+        using var respuesta = await _cliente.SendAsync(peticion);
+
+        await AfirmarProblema(respuesta, HttpStatusCode.NotFound, "api_no_encontrada");
+    }
+
+    // RF-18
     [Fact]
     public async Task EM07_EditarPlan_DatosValidos_ActualizaPlanYPublicaSuscripciones()
     {
@@ -159,8 +310,8 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         {
             nombre = "Editado",
             descripcion = "Plan editado",
-            precio = 0.0m,
-            esGratuito = true,
+            precio = 149.0m,
+            esGratuito = false,
             vigenciaDias = 15,
             cuotaLlamadas = 500,
             limiteMinuto = 30
@@ -174,8 +325,11 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         using var _ = alcance;
         var plan = await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(p => p.Id == planId);
         Assert.Equal("Editado", plan.Nombre);
-        Assert.True(plan.EsGratuito);
-        Assert.Equal(0.0m, plan.Precio); // Validado por el backend
+        Assert.False(plan.EsGratuito);
+        Assert.Equal(149.0m, plan.Precio);
+        Assert.Equal(15, plan.VigenciaDias);
+        Assert.Equal(500, plan.CuotaLlamadas);
+        Assert.Equal(30, plan.LimiteMinuto);
 
         var entradas = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().Where(e => e.ObjetivoId == planId).ToListAsync();
         Assert.Contains(entradas, e => e.Accion == "plan_api.editado");
@@ -184,7 +338,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Contains(suscripcionId, publicador.SuscripcionesPublicadas);
     }
 
-    // RF-19
+    // RF-18
     [Fact]
     public async Task EM07_DesactivarPlan_DesactivaPlanYRegistraEnBitacora()
     {
@@ -204,6 +358,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Contains(entradas, e => e.Accion == "plan_api.desactivado");
     }
 
+    // RF-18
     [Fact]
     public async Task EM07_ListarPlanes_RetornaSoloPlanesDeLaApi()
     {
@@ -221,6 +376,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal("Plan API 1", elementos[0].GetProperty("nombre").GetString());
     }
 
+    // RF-18
     [Fact]
     public async Task EM07_PlanesPortal_RetornaPlanesActivosResolviendoPortalPorHost()
     {
@@ -246,7 +402,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
     [InlineData("Lector")]
     public async Task EM07_Planes_RolLector_PuedeLeer_Retorna200_NoPuedeEditar_Retorna403(string rol)
     {
-        // RF-18, RF-19
+        // RF-18
         var apiId = await InsertarApi(_organizacionId);
         var planId = await InsertarPlan(apiId, "Test Lector");
 
@@ -265,13 +421,13 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
     }
 
     [Theory]
-    [InlineData("", 0.0, true, 30, 1000, 60)]
-    [InlineData("Basico", 100.0, true, 30, 1000, 60)]
-    [InlineData("Basico", 0.0, true, 0, 1000, 60)]
-    [InlineData("Basico", 0.0, true, 367, 1000, 60)]
-    [InlineData("Basico", 0.0, true, 30, 0, 60)]
-    [InlineData("Basico", 0.0, true, 30, 1000, 0)]
-    public async Task EM07_CrearPlan_DatosInvalidos_Retorna400(string nombre, decimal precio, bool esGratuito, int vigenciaDias, int cuotaLlamadas, int limiteMinuto)
+    [InlineData("", 0.0, true, 30, 1000, 60, "nombre")]
+    [InlineData("Basico", 100.0, true, 30, 1000, 60, "precio")]
+    [InlineData("Basico", 0.0, true, 0, 1000, 60, "vigenciaDias")]
+    [InlineData("Basico", 0.0, true, 367, 1000, 60, "vigenciaDias")]
+    [InlineData("Basico", 0.0, true, 30, 0, 60, "cuotaLlamadas")]
+    [InlineData("Basico", 0.0, true, 30, 1000, 0, "limiteMinuto")]
+    public async Task EM07_CrearPlan_DatosInvalidos_Retorna400(string nombre, decimal precio, bool esGratuito, int vigenciaDias, int cuotaLlamadas, int limiteMinuto, string campo)
     {
         // RF-18
         var apiId = await InsertarApi(_organizacionId);
@@ -288,7 +444,9 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         };
 
         using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/planes", peticion);
-        await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        // H-64: el error va en el campo (convenciones §5).
+        Assert.True(problema.GetProperty("errores").TryGetProperty(campo, out _));
     }
 
     [Fact]
@@ -396,7 +554,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         await using var comando = conexion.CreateCommand();
         comando.CommandText = """
             INSERT INTO api (id, organizacion_id, nombre, subdominio, url_origen, estado, secreto_origen_cifrado)
-            VALUES (gen_random_uuid(), @organizacion, 'API', @subdominio, 'https://8.8.8.8', 'publicada', 'cifrado')
+            VALUES (gen_random_uuid(), @organizacion, 'API de Cotización de Envíos', @subdominio, 'https://8.8.8.8', 'publicada', 'cifrado')
             RETURNING id
             """;
         comando.Parameters.AddWithValue("organizacion", organizacionId);
@@ -404,16 +562,18 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         return (Guid)(await comando.ExecuteScalarAsync())!;
     }
 
-    private async Task<Guid> InsertarPlan(Guid apiId, string nombre, bool activo = true)
+    private async Task<Guid> InsertarPlan(Guid apiId, string nombre, bool activo = true, decimal precio = 10.0m, bool gratuito = false)
     {
         await using var conexion = new NpgsqlConnection(_cadena);
         await conexion.OpenAsync();
         await using var comando = conexion.CreateCommand();
         comando.CommandText = """
             INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
-            VALUES (gen_random_uuid(), @apiId, @nombre, 'Desc', 10.0, false, 30, 1000, 60, @activo)
+            VALUES (gen_random_uuid(), @apiId, @nombre, 'Desc', @precio, @gratuito, 30, 1000, 60, @activo)
             RETURNING id
             """;
+        comando.Parameters.AddWithValue("precio", precio);
+        comando.Parameters.AddWithValue("gratuito", gratuito);
         comando.Parameters.AddWithValue("apiId", apiId);
         comando.Parameters.AddWithValue("nombre", nombre);
         comando.Parameters.AddWithValue("activo", activo);

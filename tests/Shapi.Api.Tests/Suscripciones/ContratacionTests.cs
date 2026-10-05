@@ -7,12 +7,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shapi.Api.Tests.Cache;
 using Shapi.Api.Tests.Claves;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Claves;
 using Shapi.Aplicacion.Comun;
+using Shapi.Aplicacion.Pagos;
 using Shapi.Contratos.Redis;
+using Shapi.Dominio.Claves;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
 
@@ -73,6 +76,150 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         }
     }
 
+    // RF-20 · criterio 3 de EM-08 (H-68): el ciclo empieza a la medianoche de America/Guatemala (09 §4), aunque en UTC
+    // ya sea el día siguiente, y se publican la suscripción, el pago con su periodo y el medio de pago.
+    [Fact]
+    public async Task Contratar_PagoAprobado_GuardaCicloPagoYMedioYPublicaLaSuscripcion()
+    {
+        Reloj.Ahora = new DateTimeOffset(2026, 9, 27, 3, 30, 0, TimeSpan.Zero); // 26 sep, 21:30 en Guatemala
+        var inicioEsperado = new DateTimeOffset(2026, 9, 26, 6, 0, 0, TimeSpan.Zero);
+        var finEsperado = inicioEsperado.AddDays(30);
+        var e = await CrearEscenario(verificado: true);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var suscripcion = (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("suscripcion");
+        var id = suscripcion.GetProperty("id").GetGuid();
+        suscripcion.GetProperty("inicio").GetDateTimeOffset().Should().Be(inicioEsperado);
+        suscripcion.GetProperty("fin").GetDateTimeOffset().Should().Be(finEsperado);
+
+        var publicada = ContextoSuscripcion.DesdeCampos(id, await Hash(LlavesRedis.Suscripcion(id)));
+        publicada.Should().NotBeNull();
+        publicada!.PlanId.Should().Be(e.PlanId);
+        publicada.Estado.Should().Be("activa");
+        publicada.Inicio.Should().Be(inicioEsperado.ToUnixTimeSeconds());
+        publicada.Fin.Should().Be(finEsperado.ToUnixTimeSeconds());
+        publicada.CuotaLlamadas.Should().Be(5000);
+        publicada.LimiteMinuto.Should().Be(60);
+
+        (await Fila(
+            $"SELECT monto::text, (periodo_inicio = '{inicioEsperado:O}'::timestamptz)::text, " +
+            $"(periodo_fin = '{finEsperado:O}'::timestamptz)::text, (referencia_pasarela LIKE 'ch_sim_%')::text " +
+            $"FROM pago WHERE suscripcion_api_id = '{id}'")).Should().Equal("450.00", "true", "true", "true");
+        (await Fila(
+            "SELECT marca, ultimos4, titular, mes_vencimiento::text, anio_vencimiento::text " +
+            $"FROM medio_pago WHERE consumidor_id = '{e.ConsumidorId}'")).Should().Equal("Visa", "4242", "María Quiñónez", "12", "2030");
+    }
+
+    // RF-20 (H-67): si algo falla después de autorizar el cobro, se reembolsa y no queda nada guardado.
+    [Fact]
+    public async Task Contratar_FallaDespuesDelCobro_ReembolsaYNoGuardaNada()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var pasarela = new PasarelaEspia();
+        using var fabrica = Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
+        {
+            pasarela.Interna = null;
+            servicios.AddScoped<IPasarelaPagos>(sp =>
+            {
+                pasarela.Interna ??= ActivatorUtilities.CreateInstance<Shapi.Infraestructura.Pagos.PasarelaSimulada>(sp);
+                return pasarela;
+            });
+            servicios.RemoveAll<IServicioClaves>();
+            servicios.AddScoped<IServicioClaves, ServicioClavesQueFalla>();
+        }));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var peticion = Peticion(HttpMethod.Post, "/api/portal/suscripciones", e);
+        peticion.Content = JsonContent.Create(new { planId = e.PlanId, tarjeta = Tarjeta });
+
+        using var respuesta = await cliente.SendAsync(peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        pasarela.Cobros.Should().ContainSingle();
+        pasarela.Reembolsos.Should().Equal(pasarela.Cobros);
+        (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);
+    }
+
+    // RF-20 (H-71): si la pasarela no responde al cobrar, 503 como en la tokenización, sin registrar un rechazo.
+    [Fact]
+    public async Task Contratar_PasarelaNoDisponibleAlCobrar_Responde503SinRegistrarPago()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var pasarela = new PasarelaEspia { CobroNoDisponible = true };
+        using var fabrica = Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
+            servicios.AddScoped<IPasarelaPagos>(sp =>
+            {
+                pasarela.Interna ??= ActivatorUtilities.CreateInstance<Shapi.Infraestructura.Pagos.PasarelaSimulada>(sp);
+                return pasarela;
+            })));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var peticion = Peticion(HttpMethod.Post, "/api/portal/suscripciones", e);
+        peticion.Content = JsonContent.Create(new { planId = e.PlanId, tarjeta = Tarjeta });
+
+        using var respuesta = await cliente.SendAsync(peticion);
+
+        await AfirmarProblema(respuesta, HttpStatusCode.ServiceUnavailable, "pasarela_no_disponible");
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);
+    }
+
+    // RF-20 (H-70 y H-64): un titular inválido es datos_invalidos con 400 y errores por campo (convenciones §5).
+    [Fact]
+    public async Task Contratar_TitularEnBlanco_Responde400ConErroresPorCampo()
+    {
+        var e = await CrearEscenario(verificado: true);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta with { Titular = "   " } });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.BadRequest, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        problema.GetProperty("codigo").GetString().Should().Be("datos_invalidos");
+        problema.GetProperty("errores").TryGetProperty("tarjeta.titular", out _).Should().BeTrue();
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+    }
+
+    // RF-20 (H-64): un plan de pago sin tarjeta responde 400 con el error en `tarjeta`.
+    [Fact]
+    public async Task Contratar_PlanDePagoSinTarjeta_Responde400ConErrorEnTarjeta()
+    {
+        var e = await CrearEscenario(verificado: true);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errores").TryGetProperty("tarjeta", out _).Should().BeTrue();
+    }
+
+    // RF-20 (H-69): dos contrataciones simultáneas del mismo consumidor dejan una sola suscripción y un solo cobro.
+    [Fact]
+    public async Task Contratar_DosContratacionesSimultaneas_DejaUnaSolaSuscripcion()
+    {
+        var e = await CrearEscenario(verificado: true);
+
+        var respuestas = await Task.WhenAll(
+            Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta }),
+            Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta }));
+
+        try
+        {
+            respuestas.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.Created, HttpStatusCode.Conflict]);
+            (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(1);
+            (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(1);
+            (await Escalar<long>("SELECT count(*) FROM clave")).Should().Be(2);
+        }
+        finally
+        {
+            foreach (var respuesta in respuestas)
+            {
+                respuesta.Dispose();
+            }
+        }
+    }
+
     // RF-20: el año de tarjeta con dos dígitos se normaliza antes de cobrar.
     [Fact]
     public async Task Contratar_AnioDeTarjetaConDosDigitos_SeGuardaNormalizado()
@@ -97,6 +244,9 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         problema.GetProperty("detalle").GetProperty("motivo").GetString().Should().Be("fondos_insuficientes");
         (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE consumidor_id = '{e.ConsumidorId}' AND api_id = '{e.ApiId}' AND estado = 'rechazado'")).Should().Be(1);
+        // 09 §2: un rechazo no guarda el medio de pago ni activa claves (H-69).
+        (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM clave")).Should().Be(0);
     }
 
     // RF-20: un plan gratuito no requiere tarjeta ni crea pago.
@@ -144,7 +294,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
-    // RF-21: el consumidor consulta el periodo, renovación, límites y tarjeta enmascarada.
+    // RF-20: el consumidor consulta el periodo, renovación, límites y tarjeta enmascarada.
     [Fact]
     public async Task ObtenerSuscripcion_DevuelvePeriodoMostradoProximaRenovacionYLimites()
     {
@@ -252,9 +402,83 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         return await Cliente.SendAsync(peticion);
     }
 
+    private async Task<string[]> Fila(string sql)
+    {
+        await using var conexion = new Npgsql.NpgsqlConnection(Cadena);
+        await conexion.OpenAsync();
+        await using var comando = new Npgsql.NpgsqlCommand(sql, conexion);
+        await using var lector = await comando.ExecuteReaderAsync();
+        (await lector.ReadAsync()).Should().BeTrue("la consulta debe devolver una fila: {0}", sql);
+        return Enumerable.Range(0, lector.FieldCount).Select(i => lector.GetValue(i).ToString()!).ToArray();
+    }
+
     private static async Task AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
     {
         respuesta.StatusCode.Should().Be(estado, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString().Should().Be(codigo);
     }
+}
+
+/// <summary>La pasarela simulada, que anota cobros y reembolsos y puede simular que no responde al cobrar.</summary>
+internal sealed class PasarelaEspia : IPasarelaPagos
+{
+    public IPasarelaPagos? Interna { get; set; }
+
+    public bool CobroNoDisponible { get; init; }
+
+    public List<string> Cobros { get; } = [];
+
+    public List<string> Reembolsos { get; } = [];
+
+    public Task<ResultadoTokenizacion> TokenizarAsync(DatosTarjeta tarjeta) => Interna!.TokenizarAsync(tarjeta);
+
+    public async Task<ResultadoCobro> CobrarAsync(string token, decimal monto, string referencia, bool esRenovacion)
+    {
+        if (CobroNoDisponible)
+        {
+            return new ResultadoCobro { Exitoso = false, Error = Shapi.Contratos.CodigosError.PasarelaNoDisponible };
+        }
+
+        var cobro = await Interna!.CobrarAsync(token, monto, referencia, esRenovacion);
+        if (cobro.Exitoso)
+        {
+            Cobros.Add(cobro.Referencia!);
+        }
+
+        return cobro;
+    }
+
+    public Task<ResultadoReembolso> ReembolsarAsync(string referenciaCobro)
+    {
+        Reembolsos.Add(referenciaCobro);
+        return Interna!.ReembolsarAsync(referenciaCobro);
+    }
+}
+
+/// <summary>Falla al preparar las claves, después de que se autorizó el cobro.</summary>
+internal sealed class ServicioClavesQueFalla : IServicioClaves
+{
+    public Task<IReadOnlyList<ClaveEmitida>> PrepararClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default) =>
+        throw new InvalidOperationException("Falla simulada después del cobro.");
+
+    public Task<IReadOnlyList<ClaveEmitida>> EmitirClavesParaSuscripcion(Guid suscripcionId, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<VistaClave>> ClavesDelConsumidor(ConsumidorDelPortal consumidor, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
+
+    public Task<Resultado<ClaveEmitida>> Emitir(ConsumidorDelPortal consumidor, TipoClave tipo, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
+
+    public Task<Resultado<ClaveRotada>> Rotar(ConsumidorDelPortal consumidor, Guid claveId, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
+
+    public Task<Resultado<VistaClave>> RevocarPropia(ConsumidorDelPortal consumidor, Guid claveId, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
+
+    public Task<Resultado<PaginaClavesDeApi>> ClavesDeApi(Guid apiId, int pagina, int tamano, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
+
+    public Task<Resultado<VistaClave>> RevocarDeConsumidor(MiembroDelPanel miembro, Guid apiId, Guid claveId, CancellationToken cancelacion = default) =>
+        throw new NotSupportedException();
 }

@@ -24,6 +24,8 @@ public class PlanApiConfiguracion : IEntityTypeConfiguration<PlanApi>
         builder.Property(x => x.Precio).HasColumnType("numeric(12,2)");
         builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_precio", "precio >= 0"));
         builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_gratuito", "NOT es_gratuito OR precio = 0"));
+        // Un plan de pago con precio 0 fallaría al contratarlo, porque ck_pago_monto exige monto > 0 (auditoría del 3 oct, H-60).
+        builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_pago", "es_gratuito OR precio > 0"));
 
         builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_vigencia", "vigencia_dias BETWEEN 1 AND 366"));
         builder.ToTable(t => t.HasCheckConstraint("ck_plan_api_cuota", "cuota_llamadas > 0"));

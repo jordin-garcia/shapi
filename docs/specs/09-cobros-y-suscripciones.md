@@ -44,6 +44,8 @@ public interface IPasarelaPagos
 - El token tiene el formato `tok_sim_{uuid}`. El de una tarjeta de prueba especial lleva sus últimos 4 dígitos (`tok_sim_0002_{uuid}`, `tok_sim_0069_{uuid}` o `tok_sim_0341_{uuid}`), para que su comportamiento no se pierda si el proceso se reinicia y lo respete cualquier proceso que cobre, como el Trabajador en las renovaciones. La pasarela no guarda nada en memoria.
 - Las referencias de cobro tienen el formato `ch_sim_{uuid}` y las de reembolso `re_sim_{uuid}`.
 - Si se rechaza el cobro de una primera contratación de API, se registra `pago` con estado `rechazado`, monto, motivo, consumidor y API, sin medio de pago ni suscripción. Los rechazos de renovaciones se asocian a la suscripción existente. Un rechazo nunca activa claves ni una suscripción nueva.
+- Si la pasarela responde `pasarela_no_disponible` al cobrar una contratación, no es un rechazo: se responde 503, como en la tokenización, y no se registra ningún pago.
+- Si el cobro de una contratación se autorizó pero algo falla antes de confirmar la transacción, se reembolsa con `ReembolsarAsync`, para que no quede un cobro sin suscripción.
 
 ## 3. Máquina de estados de las suscripciones
 
@@ -98,6 +100,10 @@ a_pagar = max(cargo − credito, 0)
 - Si `a_pagar > 0`, se cobra al medio de pago registrado o a una tarjeta nueva. Si el cobro se rechaza, **no cambia nada**.
 - El pago queda con `concepto = cambio_plan` y una descripción del tipo "Lanzamiento → Producto · diferencia prorrateada".
 - Un cambio **desde un plan gratuito o desde Prueba** crea una suscripción nueva (la anterior queda `finalizada`), cobra el precio completo y empieza el ciclo hoy (A2.2).
+
+### Cambiar un plan de API entre gratuito y de pago
+
+El proveedor no puede convertir un plan gratuito en uno de pago, ni al revés, mientras el plan tenga suscripciones que no estén finalizadas: se rechaza con **422 `plan_con_suscripciones`**. Si no, quedarían renovaciones de pago sin tarjeta, o tarjetas guardadas que no se cobran. Los demás cambios (precio, vigencia, cuota y límite) sí se permiten; la cuota y el límite se publican de inmediato y el precio aplica desde la siguiente renovación.
 
 ### Bajar de plan (se programa)
 
