@@ -138,7 +138,7 @@ Los 7 de severidad alta:
 - [x] **H-41 (baja, JG-03)** `scripts/tareas.mjs:204-222` (`mostrarHoy`): ninguna prueba cubre la salida de `--hoy` (criterio 13: hoy, atrasadas, quién lo espera y la siguiente). Corrección: extraer una función pura y probarla.
 - [x] **H-42 (baja, JG-03)** `docs/plan/tareas/JG-03-…md:225`: el `## Resultado` dice que «el workflow no cambió», pero el PR #43 cambió los comentarios de `tablero-plan.yml`.
 - [x] **Decidido (3 oct):** (a), `ambiente-productivo` pasa a ser check obligatorio. Su `if` empieza con `!cancelled()`, porque con `needs: publicar` GitHub antepone `success()` y, si fallaba una imagen, el job se omitía y contaba como aprobado (lo encontró la revisión del PR). Se actualizaron protocolo B11 y convenciones, y `reglas-repositorio.test.mjs` lo vigila. Se descartó (b), dejarlo informativo.
-  - **Pendiente para Jordin:** agregarlo a la protección de `main`. El modo automático no deja que un agente cambie las reglas del repositorio, igual que con H-151. Comando: `gh api -X POST repos/jordin-garcia/shapi/branches/main/protection/required_status_checks/contexts -f "contexts[]=ambiente-productivo"`.
+  - **Hecho por Jordin:** ya está en la protección de `main` (comprobado el 4 oct con `gh api …/protection/required_status_checks`: `plan`, `backend`, `frontend`, `revision-claude`, `titulo` y `ambiente-productivo`).
 - [x] **Decidido (3 oct):** (a), se acepta que el decisor sea parte del PR, como `ci.yml`, y se documentó en 06 §7.3 y en convenciones. Se descartó (b), leerlo desde la base.
 - **Decidido (4 oct):** un solo PR con el ID de JG-18 corrige también H-41 y H-42 de JG-03, porque tocan los mismos scripts y las dos tareas son del coordinador, como en el paso 17 de la auditoría anterior.
 
@@ -242,6 +242,95 @@ Los 7 de severidad alta:
 
 ## Paso 12 · [JG-01] Auditoría final
 
-- [ ] Ejecutar la verificación completa: build, formato, migraciones, pruebas (`-m:1`), tipos generados, lint, *typecheck*, pruebas y *build* del frontend, `scripts/` y `--validar`.
-- [ ] Volver a auditar en contexto limpio las tareas corregidas.
-- [ ] Anotar el resultado final en este documento y en la bitácora de Jordin.
+- [x] Ejecutar la verificación completa: build, formato, migraciones, pruebas (`-m:1`), tipos generados, lint, *typecheck*, pruebas y *build* del frontend, `scripts/` y `--validar`.
+- [x] Volver a auditar en contexto limpio las tareas corregidas.
+- [x] Anotar el resultado final en este documento y en la bitácora de Jordin.
+
+**Correcciones integradas (4 oct).** Pasos 7 a 11:
+- PR #72: DC-05 y DC-04;
+- PR #73: EM-07 y EM-08;
+- PR #74: DC-03 y DC-08;
+- PR #75: JZ-04;
+- PR #76: JG-04 y JG-07.
+
+Con los pasos 1 a 6 (#64 a #71), están corregidos los 97 hallazgos H-01 a H-97 y resueltas las 33 decisiones.
+
+**Verificación completa sobre `main` (4 oct, en 5be33eb).** Todo pasa:
+- `--validar`: 68 tareas;
+- `scripts/`: 102 pruebas;
+- compilación sin advertencias, formato y migraciones al día;
+- backend, `dotnet test Shapi.slnx -m:1`: 1042 pruebas (Api 692, Compuerta 254, OrígenesDemo 48 y Dominio 48);
+- tipos generados al día, lint, *typecheck*, 295 pruebas del frontend y su *build*.
+
+**Auditoría.** Se volvieron a auditar en contexto limpio las 19 tareas corregidas, con 6 subagentes de solo lectura:
+- JG-05 y JG-06;
+- EM-04, EM-05 y EM-18;
+- JZ-05, JZ-06 y JZ-07;
+- JG-18, JG-03, JG-04 y JG-07;
+- DC-03, DC-04, DC-05 y DC-08;
+- EM-07, EM-08 y JZ-04.
+
+Resultados:
+- Los seis confirman que H-01 a H-97 y sus decisiones están corregidos en el código y que cada uno tiene su prueba, salvo lo que se indica abajo (H-103 y H-116).
+- No hay regresiones de seguridad ni pruebas debilitadas.
+- Salieron 21 hallazgos nuevos (H-98 a H-118): 1 de severidad media y 20 de baja. Ninguno rompe la demostración de JG-08.
+- Salieron también 15 dudas. Las que Jordin decida resolver se corrigen en el paso 13.
+- H-109 se corrigió en este mismo PR, porque solo era actualizar textos.
+
+## Paso 13 · Hallazgos de la auditoría final (propuesto)
+
+Pendiente de que Jordin decida si se corrigen y cómo: en un solo PR con el ID de JG-01, como en la auditoría anterior, o por tarea.
+
+**Identidad (EM-04 y EM-05)**
+- [ ] **H-98 (baja, EM-04 y EM-05)** `src/Shapi.Api/Identidad/ServicioRecuperacion.cs:76-87`: el límite de 3 recuperaciones por hora y cuenta no se serializa. El conteo corre fuera de la transacción y sin `FOR UPDATE`, y la verificación sí bloquea la fila. Con 10 peticiones simultáneas se crean 10 enlaces. Corrección: transacción y `FOR UPDATE` sobre `usuario` o `consumidor` (o sobre `Guid.Empty` si no existe, para conservar H-15), con una prueba en paralelo.
+- [ ] **H-99 (baja, EM-04 y EM-05)** Faltan pruebas del portal para las decisiones del paso 3: que `recuperar` haga el mismo trabajo, el límite de 3 por hora, y que `restablecer` invalide los demás enlaces y reinicie el bloqueo. También falta probar que un cambio correcto en Mi perfil reinicia los intentos (`Endpoints.cs:498`).
+- [ ] **H-100 (baja, documentación)** Siguen las referencias a «11 §Precisiones», que pasó a §4 con H-24: `DC-08-…md:82` y `:84`, y `EM-04-…md:64`.
+
+**Compuerta (JG-06)**
+- [ ] **H-101 (baja, JG-06)** `tests/Shapi.Compuerta.Tests/Tuberia/LimitesYCuotasTests.cs:494`: la prueba de H-01 depende del DNS real (`origen.prueba`) y solo cubre el 502. Corrección: un `OrigenReal` en modo demostración que espere 200 con `X-Shapi-Plan: B%C3%A1sico`.
+- [ ] **H-102 (baja, JG-06, documentación)** `JG-06-…md:67` y `:75` dicen que todo 502 devuelve la cuota. Desde #65, solo el 502 sin conexión la devuelve (08 §3).
+
+**Planes y contratación (EM-07 y EM-08)**
+- [ ] **H-103 (baja, EM-08)** `src/Shapi.Api/Suscripciones/ContratacionApi.cs:115-120`: el 400 de un vencimiento inválido casi nunca se alcanza, porque la pasarela responde antes 422 `tarjeta_vencida`. Además, la clave `tarjeta.vencimiento` no es un campo de la petición, que tiene `mesVencimiento` y `anioVencimiento`. Corrección: validar el formato antes de tokenizar, con `errores` en `tarjeta.mesVencimiento` y `tarjeta.anioVencimiento`, y con prueba.
+- [ ] **H-104 (baja, EM-07, DC-04 y DC-05)** Las descripciones de la bitácora de planes, del registro de APIs y de la exposición de rutas terminan con punto: `GestionarPlanes.cs:83`, `:221` y `:271`; `RegistrarApi.cs:114`; `GestionarEspecificacion.cs:239`. 10 §7, el mockup B3.2 y las de claves no lo llevan.
+- [ ] **H-105 (baja, EM-07 y EM-08)** La edición o la desactivación de un plan puede cruzarse con una contratación en curso, porque ninguna bloquea el plan. Puede quedar una suscripción gratuita en un plan que pasó a ser de pago, o la contratación de un plan inactivo. Corrección:
+  - volver a leer el plan con `FOR SHARE` dentro de la transacción de la contratación;
+  - usar `FOR UPDATE` en `EditarPlan` y `DesactivarPlan`.
+- [ ] **H-106 (baja, EM-08)** Los 404 de la contratación y de la consulta de la suscripción (`TypedResults.NotFound()`) no traen `codigo` (convenciones §5).
+- [ ] **H-107 (baja, EM-07)** `tests/Shapi.Api.Tests/Planes/PlanesTests.cs:245` y `:270`: dos pruebas sin el código del requisito.
+- [ ] **H-108 (baja, EM-07)** `frontend/apps/panel/src/paginas/A4-1-PlanesApi.tsx:237`: el precio de un plan de pago acepta 0 (`min="0"`); el servidor ya responde 400.
+
+**CI (JG-18)**
+- [x] **H-109 (baja, JG-18, documentación)** `ambiente-productivo` ya está en la protección de `main`, pero protocolo B11, este plan y el `## Resultado` de JG-18 decían que era informativo o que estaba pendiente. **Corregido en el PR del paso 12.**
+
+**APIs y portal (DC-03, DC-04 y DC-05)**
+- [ ] **H-110 (media, DC-03; H-76 incompleto)** `frontend/apps/portal/src/modulos/sesion/RequiereSesionConsumidor.tsx:10` y `useIdentidadConsumidor.ts:66-73`: si la sesión vence, se va a `/entrar` sin limpiar la caché. Al entrar, solo se vuelve a consultar la sesión, así que otro consumidor en el mismo navegador ve primero los datos del anterior. Corrección:
+  - extraer `limpiarCacheConsumidor` y llamarlo al ver la sesión nula y al entrar;
+  - una prueba de Vitest.
+- [ ] **H-111 (baja, DC-05)** `A3-3-Especificacion.tsx:48-51`: al cargar con éxito no se invalida `['rutas-api', id]`. Después de un rechazo, la tarjeta vuelve a mostrar la especificación anterior, y A3.4 se abre con las rutas viejas.
+- [ ] **H-112 (baja, DC-05)** `src/Shapi.Infraestructura/Apis/RepositorioApis.cs:39`: `FOR UPDATE` choca con el `FOR KEY SHARE` de las FK de las tablas hijas (`consumo_diario`, `plan_api`…). Cuando exista JG-09, podría haber interbloqueos. Corrección: `FOR NO KEY UPDATE`.
+- [ ] **H-113 (baja, DC-04 y DC-05)** Desde H-48 el lector abre A3.3 y A3.4, y ve «Registrar una API», la zona de carga y «Guardar rutas expuestas». 04 §3 dice que el frontend oculta las opciones no permitidas.
+- [ ] **H-114 (baja, DC-05)** `A3-3-Especificacion.tsx:97`: `bg-principal-claro` no existe, así que la zona de arrastre no se tiñe.
+- [ ] **H-115 (baja, DC-03)** `frontend/apps/portal/src/layouts/MarcaPortal.tsx:10,12`: la insignia del encabezado usa 8 px de radio, y los mockups de A5 y B2, 6 px.
+
+**Infraestructura y E2E (JZ-06 y JZ-07)**
+- [ ] **H-116 (baja, JZ-06)** H-45 no tiene prueba: nada comprueba que Caddy corra como `caddy`. Corrección: en `verificar.mjs`, `stat -c %U /proc/1` dentro del borde, o como mínimo exigir `su-exec caddy:caddy` en `reglas-repositorio.test.mjs`.
+- [ ] **H-117 (baja, JZ-06)** `.github/workflows/publicar-imagenes.yml:35`: `docker/setup-buildx-action@v4` no está fijada por SHA y corre en el job con `packages: write` (el *builder* que crea es el que hace el *push*). La excepción de `reglas-repositorio.test.mjs:219` se justifica con un argumento que no es cierto. Corrección: fijarla por SHA y quitar la excepción.
+- [ ] **H-118 (baja, JZ-07, documentación)** El criterio 4 de JZ-07 y su `## Resultado` dicen que las E2E no son obligatorias, pero desde JG-18 corren en el check obligatorio `ambiente-productivo`. Además, `instalacion.md` no explica cómo preparar las E2E (H-47 lo citaba).
+
+**❓ Dudas para Jordin**
+1. **Tiempo de respuesta y COMMIT (EM-04, EM-05).** Si la cuenta existe, el COMMIT escribe a disco; si no, no. El tiempo puede diferir unos milisegundos en `recuperar` y en `entrar`. Recomiendo (a), aceptar que basta con igualar los comandos y anotarlo en 10 §8, porque el límite por IP impide medirlo en masa.
+2. **Límite de recuperación por cuenta (EM-04).** Un tercero puede gastar las 3 solicitudes por hora del dueño de la cuenta. Los enlaces le llegan al dueño igual. Recomiendo aceptarlo, como en la verificación.
+3. **Medición y 502 (JG-09).** Con la decisión del paso 1, un 502 puede haber descontado la cuota o no. Recomiendo que `ReenvioOrigen` deje un indicador en `ContextoPeticion` y avisar a JG-09.
+4. **El consumidor corta mientras se abre la conexión (JG-05).** La cuota queda descontada aunque la petición no llegó al origen, y 08 §3 no lo define. Recomiendo devolverla también en ese caso y precisarlo en 08 §3.
+5. **Formato del vencimiento (EM-08, H-103).** Un mes o un año mal escritos, ¿son 400 `datos_invalidos` o 422 `tarjeta_vencida`? Recomiendo 400 por campo, como convenciones §5.
+6. **Punto final en la bitácora (H-104).** Recomiendo escribir las descripciones sin punto final, como 10 §7 y el mockup B3.2.
+7. **Carrera de `EliminarHost` (07 §4).** Un `PublicarApi` simultáneo, que leyó la base antes del *commit*, puede volver a escribir el host. Recomiendo (a), nombrar esta ventana en 07 §4. La otra opción, (b), es que DC-14 llame a `EliminarHost` también después de su `PublicarApi`.
+8. **Carrera de `PublicarClave` al rotar (07 §4).** Si la clave nueva se revoca en milisegundos, puede quedar en Redis hasta la resincronización. Recomiendo documentarla en 07 §4.
+9. **Controles de escritura para el lector (H-113).** Recomiendo ocultarlos en todo el panel y que lo verifique DC-16. La otra opción es aceptar el 403 y precisarlo en 04 §3.
+10. **Insignias redondas en `InicioAgro.dc.html`.** ¿Son un estilo propio de Agro o una diferencia del mockup? Recomiendo ignorarla: el catálogo de A5 usa 6 px.
+11. **Versión de OpenAPI en `GET /rutas` (DC-05).** Cada consulta vuelve a analizar el documento, de hasta 2 MB. Recomiendo guardarla en una columna cuando DC-06 o DC-07 consulten esa ruta seguido.
+12. **La siembra no se prueba en el ambiente productivo de la CI (JZ-05 y JZ-06).** Recomiendo un ensayo manual antes de JG-08: `exec trabajador … sembrar-demo` y una llamada con la clave de Mercadito que espere 200. JZ-13 lo cubrirá en la CI.
+13. **El reinicio borra membresías fuera de la demostración (JZ-05).** Hoy no se puede llegar a ese caso. Recomiendo restringir el borrado a las organizaciones de la demostración y a la de plataforma, o anotarlo para la tarea que permita invitar cuentas existentes.
+14. **`packages: write` en los PR (JZ-06).** El job `publicar` lo conserva en `pull_request`, aunque allí no publica. Recomiendo separar un job de construcción sin permisos.
+15. **Numeración CAS-100 a CAS-104 (JZ-05).** Si ya existe un caso en ese rango, la demostración usa los números siguientes y deja de coincidir con A6.4 y A7.1. Está documentado en 07 §6. Recomiendo aceptarlo.

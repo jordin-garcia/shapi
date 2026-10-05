@@ -62,7 +62,7 @@ dotnet build Shapi.slnx
 dotnet test Shapi.slnx
 dotnet format Shapi.slnx --verify-no-changes
 node scripts/tareas.mjs --validar
-gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status_checks.contexts'   # debe mostrar plan, backend, frontend y, desde la auditoría, revision-claude (26 sep) y titulo (27 sep)
+gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status_checks.contexts'   # debe mostrar plan, backend, frontend y, desde la auditoría, revision-claude (26 sep), titulo (27 sep) y ambiente-productivo (4 oct)
 ```
 
 ## ⚠️ Pasos que requieren a una persona
@@ -144,3 +144,11 @@ gh api repos/jordin-garcia/shapi/branches/main/protection --jq '.required_status
 - **H-134:** el Resultado dice «14 códigos» de 08 §4.
 - **H-136:** 06 §9 lista `tablero.mjs` y `veredicto-revision.mjs` en `scripts/`.
 - **H-145:** los tres procesos escriben sus registros de consola en JSON (06 §8): `Logging:Console:FormatterName = json` en los `appsettings.json` de la API, la compuerta y el trabajador, con hora UTC. Tiene prueba (`RegistrosJsonTests`).
+
+### Correcciones de la auditoría (2026-10-04)
+- **Auditoría del 3 oct, paso 12 (auditoría final):**
+  - verificación completa sobre `main`, todo en verde;
+  - nueva auditoría en contexto limpio de las 19 tareas corregidas, con 6 subagentes.
+- Los hallazgos H-01 a H-97 están corregidos (PR #64 a #76).
+- Salieron 21 hallazgos nuevos (H-98 a H-118: 1 de severidad media y 20 de baja) y 15 dudas. Quedaron como paso 13 propuesto en `docs/plan/auditoria-2026-10-03.md`.
+- **H-109 (auditoría del 3 oct):** `ambiente-productivo` ya está en la protección de `main`. Se corrigieron protocolo B11, el plan y el `## Resultado` de JG-18.
