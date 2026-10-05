@@ -78,6 +78,20 @@ describe('DC-08 · acceso del consumidor', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe(destino));
   });
 
+  // H-110 (auditoría del 3 oct): quien entra nunca ve en la caché los datos de otro consumidor.
+  it('RF-04 al entrar borra de la caché los datos de otro consumidor', async () => {
+    cliente.setQueryData(['portal', 'claves'], [{ id: 'clave-de-otro' }]);
+    server.use(http.post(`${API}/entrar`, () => new HttpResponse(null, { status: 200 })), http.get(`${API}/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino: '/cuenta/suscripcion' })));
+    const router = montar('/entrar');
+    expect(await screen.findByText('¿Olvidó su contraseña?')).toBeDefined();
+    await userEvent.type(screen.getByLabelText('Correo electrónico'), 'ana@tienda.test'); await userEvent.type(screen.getByLabelText('Contraseña'), 'Contrasena123'); await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/cuenta/suscripcion'));
+    expect(cliente.getQueryData(['portal', 'claves'])).toBeUndefined();
+    expect(cliente.getQueryData(['portal', 'sesion'])).toBeDefined();
+    expect(cliente.getQueryData(['portal', 'configuracion'])).toBeDefined();
+  });
+
   it('RF-04 muestra credenciales inválidas sin navegar', async () => {
     server.use(http.post(`${API}/entrar`, () => problema(401, 'credenciales_invalidas', 'El correo o la contraseña no son correctos.')));
     const router = montar('/entrar');

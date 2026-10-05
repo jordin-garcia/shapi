@@ -255,6 +255,17 @@ describe('RF-16 · cuenta del consumidor', () => {
     expect(enrutador.state.location.pathname).toBe('/cuenta/consumo');
   });
 
+  // H-110 (auditoría del 3 oct): si la sesión venció, se borran los datos del consumidor anterior antes de ir a entrar.
+  it('si la sesión venció, borra los datos del consumidor de la caché', async () => {
+    cliente.setQueryData(['portal', 'claves'], [{ id: 'clave-de-otro' }]);
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
+    const { enrutador } = montar('/cuenta/suscripcion');
+
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/entrar'));
+    await waitFor(() => expect(cliente.getQueryData(['portal', 'claves'])).toBeUndefined());
+    expect(cliente.getQueryData(['portal', 'configuracion'])).toBeDefined();
+  });
+
   it('redirige a entrar cuando no existe sesión de consumidor', async () => {
     server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
     const { enrutador } = montar('/cuenta/suscripcion');
