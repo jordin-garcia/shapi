@@ -22,6 +22,10 @@ public sealed class PublicadorCacheRedis(
             return api is null ? null : () => escritor.EscribirApiAsync(api);
         }, cancelacion);
 
+    public Task EliminarHost(string host, Guid apiId, CancellationToken cancelacion = default) =>
+        Publicar(nameof(EliminarHost), host, () => Task.FromResult<Func<Task>?>(
+            () => escritor.EliminarHostAsync(host, apiId)), cancelacion);
+
     public Task PublicarClave(Guid claveId, CancellationToken cancelacion = default) =>
         Publicar(nameof(PublicarClave), claveId.ToString(), async () =>
         {

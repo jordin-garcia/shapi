@@ -69,7 +69,7 @@ paths:
     post:
       summary: Revoca la clave de un consumidor (A4.3b)
       description: |
-        Deja la clave `revocada`, con `revocadaPor: proveedor`, y la borra de Redis: la compuerta responde 401
+        Deja la clave `revocada` (en la base guarda `revocada_por = proveedor`) y la borra de Redis: la compuerta responde 401
         `clave_invalida` en menos de 10 segundos. Queda en la bitácora (`clave.revocada_por_proveedor`). Revocar una
         clave ya revocada no cambia nada y responde igual. Propietario o editor.
       operationId: revocarClaveDeConsumidor
@@ -191,7 +191,7 @@ paths:
     post:
       summary: Revoca una clave propia (B2.6)
       description: |
-        Deja la clave `revocada`, con `revocadaPor: consumidor`, y la borra de Redis: la compuerta responde 401
+        Deja la clave `revocada` (en la base guarda `revocada_por = consumidor`) y la borra de Redis: la compuerta responde 401
         `clave_invalida` en menos de 10 segundos. Queda en la bitácora (`clave.revocada_por_consumidor`). Revocar una
         clave ya revocada no cambia nada y responde igual.
       operationId: revocarClavePropia

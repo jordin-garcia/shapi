@@ -1,9 +1,13 @@
+using System.Data.Common;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Contratos.Redis;
+using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.Resincronizacion;
 using StackExchange.Redis;
 
@@ -176,6 +180,32 @@ public sealed class ResincronizarCacheTests(PostgresPersistencia postgres, Redis
         new OpcionesResincronizacion().Intervalo.Should().Be(TimeSpan.FromMinutes(5));
     }
 
+    // H-93 (RF-28): una clave que se revoca entre la lectura de PostgreSQL y la escritura en Redis no queda funcionando.
+    // El paso 3 la reescribe con su estado anterior encima del borrado de la API de control; el paso 4 lo corrige.
+    [Fact]
+    public async Task RF_28_Resincronizar_ClaveRevocadaDuranteLaResincronizacion_NoQuedaEnRedis()
+    {
+        await SembrarAsync();
+        var revocarDurante = new AccionAlLeerClaves(async () =>
+        {
+            await Ejecutar($"UPDATE clave SET estado = 'revocada', revocada_por = 'consumidor' WHERE hash_sha256 = '{ContextoClave.CalcularHash(ClaveActiva)}'");
+            await Redis.KeyDeleteAsync(Llave(ClaveActiva)); // lo que hace la API de control después del commit
+        });
+
+        await using (var servicios = CrearServicios(ajustar: s =>
+        {
+            s.AgregarResincronizacion();
+            s.ConfigureDbContext<ShapiDbContext>(o => o.AddInterceptors(revocarDurante));
+        }))
+        using (var alcance = servicios.CreateScope())
+        {
+            await alcance.ServiceProvider.GetRequiredService<ResincronizarCache>().EjecutarAsync(CancellationToken.None);
+        }
+
+        revocarDurante.Ejecutada.Should().BeTrue();
+        (await Redis.KeyExistsAsync(Llave(ClaveActiva))).Should().BeFalse();
+    }
+
     private static RedisKey Llave(string claveEnClaro) => LlavesRedis.Clave(ContextoClave.CalcularHash(claveEnClaro));
 
     private async Task ResincronizarAsync()
@@ -224,5 +254,23 @@ public sealed class ResincronizarCacheTests(PostgresPersistencia postgres, Redis
         var finalizada = await NuevaSuscripcionApiEn(await NuevoConsumidor(organizacion), api, plan, "finalizada", Inicio, Fin);
 
         return (organizacion, api, apiBorrador, ruta, suscripcion, finalizada);
+    }
+}
+
+/// <summary>Ejecuta una acción una sola vez, justo después de la primera consulta que lee la tabla <c>clave</c>.</summary>
+internal sealed class AccionAlLeerClaves(Func<Task> accion) : DbCommandInterceptor
+{
+    public bool Ejecutada { get; private set; }
+
+    public override async ValueTask<DbDataReader> ReaderExecutedAsync(
+        DbCommand command, CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
+    {
+        if (!Ejecutada && command.CommandText.Contains("FROM clave", StringComparison.Ordinal))
+        {
+            Ejecutada = true;
+            await accion();
+        }
+
+        return result;
     }
 }

@@ -84,3 +84,12 @@ dotnet format Shapi.slnx --verify-no-changes
 - `Shapi.Api.Tests` referencia `Shapi.Compuerta` con el alias `compuerta`, para la prueba del criterio 5. El `Program` del trabajador se declara `internal`: con el marco de ASP.NET Core, .NET 10 lo haría público y chocaría con el de la API.
 
 **Archivos principales:** `src/Shapi.Infraestructura/Cache/{PublicadorCacheRedis,EscritorCacheRedis,LectorCacheBaseDatos,ReintentosRedis,ServiciosCache}.cs`, `src/Shapi.Trabajador/Resincronizacion/**`, `src/Shapi.Aplicacion/Cache/ArmadoCache.cs`, `src/Shapi.Contratos/Redis/{ContextoSuscripcion,ContextoOrganizacion,RutaCache}.cs`, `src/Shapi.Infraestructura/Comun/ProtectorSecretoOrigen.cs` y `tests/Shapi.Api.Tests/Cache/**`.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 11 de `docs/plan/auditoria-2026-10-03.md`, en el mismo PR que JG-07 (`[JG-04] Correcciones de la auditoría: publicador de Redis y claves`).
+- **H-92:** `IPublicadorCache.EliminarHost(host, apiId)` borra `api:host:{host}` en el momento, solo si todavía apunta a esa API (transacción con condición). Un dominio propio desconectado o reemplazado deja de enrutar sin esperar la resincronización. Está precisado en 07 §4 y exigido en el criterio 3 de DC-14. La prueba también comprueba que no le quita el host a otra API.
+- **H-93:** `RF_28_Resincronizar_ClaveRevocadaDuranteLaResincronizacion_NoQuedaEnRedis` revoca una clave justo después de que la resincronización lee las claves (con un interceptor de EF) y comprueba que el paso 4 la borra. Falla si se desactiva el paso 4.
+- **H-94:** los avisos de la bitácora llegaron a las tareas: DC-14 (criterio 3, `EliminarHost` y `PublicarApi` al quitar el dominio) y EM-09 (criterios 2 y 3, publicar la suscripción y `org:{id}`).
+- **Decidido (3 oct):** (a), `EliminarHost` en el publicador, exigido en DC-14.
+- `EscritorCacheRedis` suprime la regla SER301 en `EliminarHostAsync`: la alternativa que propone exige Redis 8.4 y el proyecto usa 7.4.

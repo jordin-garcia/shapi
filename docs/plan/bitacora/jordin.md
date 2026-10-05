@@ -800,3 +800,19 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
     - tu archivo de tarea JZ-04.
 
     Actualiza tu rama desde `main`.
+
+## 2026-10-04 · JG-04 · Correcciones de la auditoría: publicador de Redis y claves
+- Hecho: paso 11 de la auditoría del 3 oct para JG-04 y JG-07 (H-92 a H-97).
+  - `IPublicadorCache.EliminarHost` borra el host de un dominio quitado.
+  - Prueba del paso 4 de la resincronización.
+  - Avisos llevados a DC-14 y EM-09.
+  - `claves.yaml` sin `revocadaPor`.
+  - Las claves se bloquean solo después del filtro por organización.
+  - Prueba con la cookie `portal_sesion` real.
+- Decisiones: (a) de H-92, y un solo PR para JG-04 y JG-07.
+- Pendiente o aviso para otros:
+  - **DC-14:** criterio 3 actualizado. Al quitar un dominio (o si deja de estar verificado), llama a `IPublicadorCache.EliminarHost(dominio, apiId)` y a `PublicarApi` después del *commit*.
+  - **EM-09:** criterios 2 y 3 actualizados. Contratar y subir de plan publican la suscripción con `PublicarSuscripcion`, que publica `org:{id}`, después del *commit*.
+  - **Todos:** `IPublicadorCache` tiene un método nuevo, `EliminarHost`. Si tienen un publicador falso en sus pruebas, agréguenlo (por ejemplo, `=> Task.CompletedTask`).
+  - **Todos (pruebas):** `SesionConsumidorDePrueba`, sin su cabecera, ahora sigue la selección real de la aplicación (por la ruta). En `/api/portal/*` funciona la cookie `portal_sesion` verdadera, y la del personal responde 401.
+  - **Emilio y Dominique:** cambié los publicadores falsos de `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `tests/Shapi.Api.Tests/Planes/PlanesTests.cs` (agregué `EliminarHost`), y las tareas DC-14 y EM-09. Actualicen sus ramas desde `main`.

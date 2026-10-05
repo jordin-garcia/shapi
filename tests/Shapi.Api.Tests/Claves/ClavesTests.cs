@@ -29,9 +29,10 @@ using ProgramaCompuerta = compuerta::Program;
 namespace Shapi.Api.Tests.Claves;
 
 /// <summary>
-/// JG-07: emisión, rotación y revocación de claves con PostgreSQL y Redis reales. La sesión del consumidor todavía no
-/// existe (EM-05), así que las pruebas la simulan con <see cref="SesionConsumidorDePrueba"/>, que pone los mismos
-/// claims que debe poner la sesión del portal: el consumidor, su organización y el ámbito <c>Consumidor</c>.
+/// JG-07: emisión, rotación y revocación de claves con PostgreSQL y Redis reales. La mayoría de las pruebas usan
+/// <see cref="SesionConsumidorDePrueba"/>, que pone los mismos claims que la sesión del portal (el consumidor, su
+/// organización y el ámbito <c>Consumidor</c>); <c>RF_27_Rotar_ConLaCookieRealDelPortal_Funciona</c> usa la cookie
+/// <c>portal_sesion</c> verdadera de EM-05.
 /// </summary>
 [Collection(nameof(RedisCache))]
 public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis) : BaseCache(postgres, redis), IAsyncLifetime
@@ -538,7 +539,64 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
         }
     }
 
+    // ---------- H-97: con la cookie portal_sesion real (EM-05) ----------
+
+    [Fact]
+    public async Task RF_27_Rotar_ConLaCookieRealDelPortal_Funciona()
+    {
+        var e = await CrearEscenario();
+        var produccion = (await EmitirClavesParaSuscripcion(e))[0];
+        var valor = Guid.NewGuid().ToString("N");
+        using (var alcance = Fabrica.Services.CreateScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            db.Add(Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(valor), e.ConsumidorId, HostPortal, null, null, Reloj.Ahora));
+            await db.SaveChangesAsync();
+        }
+
+        var peticion = new HttpRequestMessage(HttpMethod.Post, $"/api/portal/claves/{produccion.Id}/rotar");
+        peticion.Headers.Host = HostPortal;
+        peticion.Headers.Add("X-Requested-With", "shapi");
+        peticion.Headers.Add("Cookie", $"{ConsumidorAutenticacionOpciones.Cookie}={valor}");
+        using var respuesta = await Cliente.SendAsync(peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        (await Escalar<string>($"SELECT estado FROM clave WHERE id = '{produccion.Id}'")).Should().Be("rotada");
+    }
+
     // ---------- JG-07 · CA8: aislamiento (RNF-08) ----------
+
+    // H-96: revocar la clave de otra organización responde 404 sin intentar bloquear su fila. Si la bloqueara, la
+    // petición esperaría a que termine la transacción que la tiene tomada.
+    [Fact]
+    public async Task RNF_08_Proveedor_ClaveDeOtraOrganizacion_NoBloqueaSuFila()
+    {
+        var e = await CrearEscenario();
+        var claveAjena = (await EmitirClavesParaSuscripcion(e))[0];
+        var otra = await CrearEscenario(subdominio: "agro");
+        var cookieOtra = await SesionPersonal(otra.OrganizacionId, "propietario");
+        await using var conexion = new NpgsqlConnection(Cadena);
+        await conexion.OpenAsync();
+        await using var transaccion = await conexion.BeginTransactionAsync();
+        await using (var bloqueo = new NpgsqlCommand($"SELECT 1 FROM clave WHERE id = '{claveAjena.Id}' FOR UPDATE", conexion, transaccion))
+        {
+            await bloqueo.ExecuteNonQueryAsync();
+        }
+
+        var revocar = Panel(HttpMethod.Post, $"/api/apis/{otra.ApiId}/claves/{claveAjena.Id}/revocar", cookieOtra);
+        var terminada = await Task.WhenAny(revocar, Task.Delay(TimeSpan.FromSeconds(5)));
+
+        try
+        {
+            terminada.Should().BeSameAs(revocar, "la fila de otra organización no se debe bloquear");
+            (await revocar).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+        finally
+        {
+            await transaccion.RollbackAsync();
+            (await revocar).Dispose();
+        }
+    }
 
     [Fact]
     public async Task RNF_08_Proveedor_ApiOClaveDeOtraOrganizacion_Responde404()
@@ -622,9 +680,11 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
     }
 
     [Fact]
-    public async Task RF_07_Portal_SesionDelPersonal_Responde403()
+    public async Task RF_07_Portal_SesionDelPersonal_Responde401()
     {
-        // 04 §3.3: los endpoints del portal son del ámbito consumidor.
+        // 04 §3.3: los endpoints del portal son del ámbito consumidor. Desde H-05 (auditoría del 3 oct), /api/portal/*
+        // solo lee portal_sesion, así que la sesión del personal no autentica: 401, no 403. Antes daba 403 solo porque el
+        // esquema de prueba evaluaba shapi_sesion en el portal.
         var e = await CrearEscenario();
         var cookie = await SesionPersonal(e.OrganizacionId, "propietario");
 
@@ -633,7 +693,7 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
         peticion.Headers.Add("Cookie", cookie);
         using var respuesta = await Cliente.SendAsync(peticion);
 
-        respuesta.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     // ---------- Datos ----------
@@ -795,9 +855,9 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
 }
 
 /// <summary>
-/// Sesión del consumidor para las pruebas, mientras no existe la de EM-05. Autentica con la cabecera
-/// <see cref="Cabecera"/> (<c>{consumidorId}:{organizacionId}</c>) y pone los claims que el módulo Claves espera de la
-/// sesión del portal. Sin la cabecera, la petición sigue con el esquema del personal.
+/// Atajo de las pruebas para la sesión del consumidor: autentica con la cabecera <see cref="Cabecera"/>
+/// (<c>{consumidorId}:{organizacionId}</c>) y pone los claims que el módulo Claves espera de la sesión del portal. Sin
+/// la cabecera, la petición sigue con la selección real de la aplicación (personal o <c>portal_sesion</c>, según la ruta).
 /// </summary>
 internal sealed class SesionConsumidorDePrueba(
     IOptionsMonitor<AuthenticationSchemeOptions> opciones, ILoggerFactory registros, UrlEncoder codificador)
@@ -816,8 +876,10 @@ internal sealed class SesionConsumidorDePrueba(
                 o.DefaultForbidScheme = Seleccion;
             })
             .AddScheme<AuthenticationSchemeOptions, SesionConsumidorDePrueba>(Esquema, null)
+            // Sin la cabecera, la petición sigue con la selección real de la aplicación (por la ruta, H-05), así que una
+            // cookie portal_sesion verdadera también funciona en /api/portal/* (H-97).
             .AddPolicyScheme(Seleccion, null, o => o.ForwardDefaultSelector = contexto =>
-                contexto.Request.Headers.ContainsKey(Cabecera) ? Esquema : PersonalAutenticacionOpciones.Esquema);
+                contexto.Request.Headers.ContainsKey(Cabecera) ? Esquema : EsquemaAutenticacionPortal.Esquema);
 
     public static ClaimsPrincipal Principal(Guid consumidorId, Guid organizacionId) =>
         new(new ClaimsIdentity(

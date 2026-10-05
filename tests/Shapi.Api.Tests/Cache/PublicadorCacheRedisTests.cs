@@ -14,6 +14,23 @@ public sealed class PublicadorCacheRedisTests(PostgresPersistencia postgres, Red
 
     // ---------- Criterio 1: api:{id}, api:{id}:rutas y api:host:* ----------
 
+    // H-92 (07 §4): quitar un dominio propio deja de enrutarlo de inmediato, pero sin quitarle el host a otra API.
+    [Fact]
+    public async Task RNF_04_EliminarHost_BorraSoloSiApuntaALaApi()
+    {
+        var propia = Guid.NewGuid();
+        var otra = Guid.NewGuid();
+        await Redis.StringSetAsync(LlavesRedis.ApiPorHost("api.envios-xelaju.localhost"), propia.ToString());
+        await Redis.StringSetAsync(LlavesRedis.ApiPorHost("api.agro.localhost"), otra.ToString());
+        using var alcance = Servicios.CreateScope();
+
+        await Publicador(alcance).EliminarHost("API.Envios-Xelaju.localhost", propia);
+        await Publicador(alcance).EliminarHost("api.agro.localhost", propia);
+
+        (await Redis.KeyExistsAsync(LlavesRedis.ApiPorHost("api.envios-xelaju.localhost"))).Should().BeFalse();
+        (await Redis.StringGetAsync(LlavesRedis.ApiPorHost("api.agro.localhost"))).ToString().Should().Be(otra.ToString());
+    }
+
     [Fact]
     public async Task RNF_04_PublicarApi_ApiPublicada_EscribeElHashConElSecretoDescifradoYElHostDelPortal()
     {

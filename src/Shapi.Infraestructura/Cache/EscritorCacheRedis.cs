@@ -88,6 +88,22 @@ public sealed class EscritorCacheRedis(IConnectionMultiplexer redis, IReloj relo
 
     public Task EliminarAsync(params RedisKey[] llaves) => redis.GetDatabase().KeyDeleteAsync(llaves);
 
+    /// <summary>
+    /// Borra <c>api:host:{host}</c> solo si apunta a <paramref name="apiId"/> (en una transacción con condición), para no
+    /// quitarle el host a otra API que ya lo tenga. <see cref="LlavesRedis.ApiPorHost"/> lo normaliza a minúsculas (07 §4).
+    /// </summary>
+    public async Task EliminarHostAsync(string host, Guid apiId)
+    {
+        var llave = LlavesRedis.ApiPorHost(host);
+        // SER301 propone StringDelete con ValueCondition, que exige Redis 8.4; el proyecto usa Redis 7.4 (06 §9).
+#pragma warning disable SER301
+        var transaccion = redis.GetDatabase().CreateTransaction();
+        transaccion.AddCondition(Condition.StringEqual(llave, apiId.ToString()));
+        _ = transaccion.KeyDeleteAsync(llave);
+#pragma warning restore SER301
+        await transaccion.ExecuteAsync();
+    }
+
     private async Task ReemplazarHashAsync(RedisKey llave, IReadOnlyDictionary<string, string> campos)
     {
         var transaccion = redis.GetDatabase().CreateTransaction();

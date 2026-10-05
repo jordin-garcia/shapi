@@ -90,3 +90,10 @@ dotnet format Shapi.slnx --verify-no-changes
 - El texto de la bitácora dice "en la API de Cotización de Envíos" con el nombre de la API. Si el nombre no empieza con "API", se le antepone "API".
 
 **Archivos principales:** `src/Shapi.Dominio/Claves/{Clave,GeneradorClave}.cs`, `src/Shapi.Aplicacion/Claves/**`, `src/Shapi.Infraestructura/Claves/ServicioClaves.cs`, `src/Shapi.Api/Claves/Endpoints.cs`, `src/Shapi.Api/Modulos/ClavesModulo.cs`, `contratos/openapi/claves.yaml`, `tests/Shapi.Dominio.Tests/Claves/ClaveTests.cs` y `tests/Shapi.Api.Tests/Claves/ClavesTests.cs`.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 11 de `docs/plan/auditoria-2026-10-03.md`. El PR lleva el ID de JG-04.
+- **H-95:** las descripciones de `claves.yaml` ya no mencionan `revocadaPor`, que no está en el esquema: dicen que en la base se guarda `revocada_por`.
+- **H-96:** `BloquearSiExiste` hace el `SELECT … FOR UPDATE` solo después de que la consulta con el filtro de la organización (o del consumidor) encuentra la clave. Pedir la clave de otra organización responde 404 sin bloquear su fila. La prueba toma la fila desde otra conexión y comprueba que la petición termina enseguida con 404.
+- **H-97:** `RF_27_Rotar_ConLaCookieRealDelPortal_Funciona` rota una clave con la cookie `portal_sesion` real de EM-05. El esquema de prueba, sin su cabecera, sigue la selección real de la aplicación (por la ruta). Por eso `RF_07_Portal_SesionDelPersonal` ahora espera 401, que es lo que responde la aplicación real desde H-05: la sesión del personal no autentica en `/api/portal/*`.
