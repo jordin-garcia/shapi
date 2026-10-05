@@ -73,7 +73,7 @@ function renderizarPagina() {
 }
 
 describe('PaginaA41PlanesApi', () => {
-  it('RF-18 Muestra la variante vacía', async () => {
+  it('RF-19 Muestra la variante vacía', async () => {
     servidor.use(
 
   http.get('http://localhost/api/apis', () => {
@@ -93,7 +93,7 @@ describe('PaginaA41PlanesApi', () => {
       expect(screen.getByText('Todavía no tiene planes para esta API')).toBeDefined();
     });
   });
-  it('RF-18 carga la lista de planes', async () => {
+  it('RF-19 carga la lista de planes', async () => {
     renderizarPagina();
     expect(screen.getByRole('status', { name: 'Cargando' })).toBeDefined();
 
@@ -193,7 +193,7 @@ describe('PaginaA41PlanesApi', () => {
     });
   });
 
-  it('RF-19 permite editar un plan', async () => {
+  it('RF-18 permite editar un plan', async () => {
     const usuario = userEvent.setup();
     renderizarPagina();
 

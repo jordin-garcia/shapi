@@ -120,7 +120,6 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         var pasarela = new PasarelaEspia();
         using var fabrica = Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
         {
-            pasarela.Interna = null;
             servicios.AddScoped<IPasarelaPagos>(sp =>
             {
                 pasarela.Interna ??= ActivatorUtilities.CreateInstance<Shapi.Infraestructura.Pagos.PasarelaSimulada>(sp);
@@ -179,6 +178,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         problema.GetProperty("codigo").GetString().Should().Be("datos_invalidos");
         problema.GetProperty("errores").TryGetProperty("tarjeta.titular", out _).Should().BeTrue();
+        problema.GetProperty("errores").TryGetProperty("tarjeta.vencimiento", out _).Should().BeFalse();
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 

@@ -104,35 +104,34 @@ public sealed class ContratacionApi(
                 return RespuestaErrorTarjeta(tokenizada.Error!);
             }
 
-            try
+            // convenciones §5: datos_invalidos es 400, con el error solo en el campo que falló.
+            var errores = new Dictionary<string, string[]>();
+            var titular = tokenizada.Titular ?? peticion.Tarjeta.Titular;
+            if (string.IsNullOrWhiteSpace(titular))
             {
-                var anio = int.Parse(peticion.Tarjeta.AnioVencimiento);
-                if (anio is >= 0 and < 100)
-                {
-                    anio += 2000;
-                }
-
-                var titular = tokenizada.Titular ?? peticion.Tarjeta.Titular;
-                if (string.IsNullOrWhiteSpace(titular))
-                {
-                    throw new ArgumentException("El titular es obligatorio.");
-                }
-
-                medioPago = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!,
-                    titular, int.Parse(peticion.Tarjeta.MesVencimiento), anio);
+                errores["tarjeta.titular"] = ["Escriba el nombre del titular."];
             }
-            catch (Exception ex) when (ex is ArgumentException or OverflowException or FormatException)
+
+            if (!int.TryParse(peticion.Tarjeta.MesVencimiento, out var mes) || mes is < 1 or > 12
+                || !int.TryParse(peticion.Tarjeta.AnioVencimiento, out var anio) || anio is < 0 or > 9999)
             {
-                // convenciones §5: datos_invalidos es 400, con el error en cada campo.
+                errores["tarjeta.vencimiento"] = ["Revise el mes y el año de vencimiento."];
+                mes = anio = 0;
+            }
+            else if (anio < 100)
+            {
+                anio += 2000;
+            }
+
+            if (errores.Count > 0)
+            {
                 await transaccion.RollbackAsync(cancelacion);
                 return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
-                    "Los datos de vencimiento o titular de la tarjeta no son válidos.",
-                    new Dictionary<string, string[]>
-                    {
-                        ["tarjeta.vencimiento"] = ["Revise el mes y el año de vencimiento."],
-                        ["tarjeta.titular"] = ["Escriba el nombre del titular."],
-                    });
+                    "Los datos de vencimiento o titular de la tarjeta no son válidos.", errores);
             }
+
+            medioPago = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!,
+                titular, mes, anio);
 
             var cobro = await pasarela.CobrarAsync(tokenizada.Token!, plan.Precio, $"ct_sim_{Guid.NewGuid():N}", esRenovacion: false);
             if (!cobro.Exitoso && cobro.Error == CodigosError.PasarelaNoDisponible)
@@ -179,11 +178,19 @@ public sealed class ContratacionApi(
         catch (Exception ex) when (referencia is not null)
         {
             // El cobro ya se autorizó, pero no quedó registrado: se reembolsa para no cobrar sin suscripción.
-            var reembolso = await pasarela.ReembolsarAsync(referencia);
-            if (!reembolso.Exitoso)
+            try
             {
-                registro.LogError(ex, "No se pudo reembolsar el cobro {Referencia} de una contratación que falló: {Error}",
-                    referencia, reembolso.Error);
+                var reembolso = await pasarela.ReembolsarAsync(referencia);
+                if (!reembolso.Exitoso)
+                {
+                    registro.LogError(ex, "No se pudo reembolsar el cobro {Referencia} de una contratación que falló: {Error}",
+                        referencia, reembolso.Error);
+                }
+            }
+            catch (Exception errorReembolso)
+            {
+                registro.LogError(new AggregateException(ex, errorReembolso),
+                    "No se pudo reembolsar el cobro {Referencia} de una contratación que falló", referencia);
             }
 
             throw;

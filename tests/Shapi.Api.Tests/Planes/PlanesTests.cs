@@ -149,7 +149,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal("Creó el plan Básico en la API de Cotización de Envíos.", entrada.Descripcion);
     }
 
-    // RF-18 (H-65): la respuesta lleva la moneda y no las fechas de auditoría, como dice el contrato.
+    // RF-19 (H-65): la respuesta lleva la moneda y no las fechas de auditoría, como dice el contrato.
     [Fact]
     public async Task EM07_ListarPlanes_RespuestaComoElContrato()
     {
@@ -164,7 +164,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.False(plan.TryGetProperty("actualizadoEn", out _));
     }
 
-    // RF-18 (H-58): A4.1 y A5.4 muestran los planes por precio, y una edición no cambia el orden.
+    // RF-19 (H-58): A4.1 y A5.4 muestran los planes por precio, y una edición no cambia el orden.
     [Fact]
     public async Task EM07_ListarPlanes_OrdenaPorPrecioYNombre()
     {
@@ -286,7 +286,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
     }
 
-    // RF-18 (H-65): el portal de un host que no existe responde 404.
+    // RF-19 (H-65): el portal de un host que no existe responde 404.
     [Fact]
     public async Task EM07_PlanesPortal_HostSinPortal_Responde404()
     {
@@ -332,7 +332,8 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal(30, plan.LimiteMinuto);
 
         var entradas = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().Where(e => e.ObjetivoId == planId).ToListAsync();
-        Assert.Contains(entradas, e => e.Accion == "plan_api.editado");
+        Assert.Contains(entradas, e => e.Accion == "plan_api.editado"
+            && e.Descripcion == "Editó el plan Editado de la API de Cotización de Envíos.");
 
         var publicador = _fabrica.Services.GetRequiredService<PublicadorCachePlanesFalso>();
         Assert.Contains(suscripcionId, publicador.SuscripcionesPublicadas);
@@ -355,10 +356,11 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.False(plan.Activo);
 
         var entradas = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().Where(e => e.ObjetivoId == planId).ToListAsync();
-        Assert.Contains(entradas, e => e.Accion == "plan_api.desactivado");
+        Assert.Contains(entradas, e => e.Accion == "plan_api.desactivado"
+            && e.Descripcion == "Desactivó el plan A Desactivar de la API de Cotización de Envíos.");
     }
 
-    // RF-18
+    // RF-19
     [Fact]
     public async Task EM07_ListarPlanes_RetornaSoloPlanesDeLaApi()
     {
@@ -376,7 +378,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.Equal("Plan API 1", elementos[0].GetProperty("nombre").GetString());
     }
 
-    // RF-18
+    // RF-19: solo los planes activos
     [Fact]
     public async Task EM07_PlanesPortal_RetornaPlanesActivosResolviendoPortalPorHost()
     {
@@ -474,7 +476,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
     [Fact]
     public async Task EM07_EditarPlan_NombreDuplicado_Retorna409()
     {
-        // RF-19
+        // RF-18
         var apiId = await InsertarApi(_organizacionId);
         await InsertarPlan(apiId, "Plan 1");
         var plan2Id = await InsertarPlan(apiId, "Plan 2");
