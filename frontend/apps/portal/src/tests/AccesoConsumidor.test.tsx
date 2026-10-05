@@ -14,9 +14,11 @@ function problema(estado: number, codigo: string, title: string) {
   return HttpResponse.json({ status: estado, codigo, title }, { status: estado, headers: { 'Content-Type': 'application/problem+json' } });
 }
 let cliente: QueryClient;
+let raizPortal: HTMLElement;
 function montar(ruta: string) {
   const enrutador = createMemoryRouter(crearRutas(), { initialEntries: [ruta] });
-  render(<QueryClientProvider client={cliente}><App enrutador={enrutador as RouterProviderProps['router']} /></QueryClientProvider>);
+  const { container } = render(<QueryClientProvider client={cliente}><App enrutador={enrutador as RouterProviderProps['router']} /></QueryClientProvider>);
+  raizPortal = container;
   return enrutador;
 }
 beforeEach(() => {
@@ -245,7 +247,7 @@ describe('DC-08 · acceso del consumidor', () => {
     montar('/entrar');
     await screen.findByRole('heading', { name: 'Entrar' });
     // H-74: los colores se definen en la raíz del portal, así que valen en todas sus pantallas, no solo en el acceso.
-    const raiz = document.querySelector<HTMLElement>('[style*="--marca-principal"]')!;
+    const raiz = raizPortal.firstElementChild as HTMLElement;
 
     expect(raiz.style.getPropertyValue('--principal')).toBe('var(--marca-principal)');
     expect(raiz.style.getPropertyValue('--principal-hover')).toContain('var(--marca-principal)');

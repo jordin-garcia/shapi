@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, type RouterProviderProps } from 'react-router';
@@ -21,6 +21,10 @@ const configuracion = {
 };
 
 let cliente: QueryClient;
+
+function Explota(): never {
+  throw new Error('Falla de render simulada');
+}
 let sesionCerrada: boolean;
 
 function montar(ruta: string) {
@@ -52,6 +56,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   cliente.clear();
+  vi.restoreAllMocks();
 });
 
 describe('RF-15 · marca dinámica del portal', () => {
@@ -79,7 +84,7 @@ describe('RF-15 · marca dinámica del portal', () => {
     expect(within(screen.getByRole('banner')).queryByText('EX')).toBeNull();
   });
 
-  // H-73: el pie lleva la insignia redonda de 24 px con las iniciales y el nombre de la organización (mockups de A5).
+  // H-73: el pie lleva la insignia de 24 px (radio de 6 px) con las iniciales y el nombre de la organización (mockup A5).
   it('el pie muestra la insignia y el nombre de la organización', async () => {
     montar('/');
 
@@ -87,7 +92,7 @@ describe('RF-15 · marca dinámica del portal', () => {
     expect(within(pie).getByText('Envíos Xelajú, S.A.')).toBeDefined();
     const insignia = within(pie).getByText('EX');
     expect(insignia.className).toContain('size-6');
-    expect(insignia.className).toContain('rounded-full');
+    expect(insignia.className).toContain('rounded-[6px]');
     expect(insignia.className).toContain('bg-[var(--marca-principal)]');
   });
 
@@ -157,8 +162,36 @@ describe('RF-16 · rutas y navegación pública', () => {
   });
 
   // H-77: todas las rutas de primer nivel tienen errorElement, para no mostrar la pantalla en inglés de React Router.
-  it('cada grupo de rutas tiene un elemento de error en español', () => {
+  it('cada grupo de rutas tiene un elemento de error en español', async () => {
     expect(crearRutas().every(ruta => ruta.errorElement !== undefined)).toBe(true);
+
+    const rutas = crearRutas();
+    rutas[0].children!.unshift({ path: '/explota', element: <Explota /> });
+    const silenciar = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(
+      <QueryClientProvider client={cliente}>
+        <App enrutador={createMemoryRouter(rutas, { initialEntries: ['/explota'] }) as RouterProviderProps['router']} />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeDefined();
+    expect(document.body.textContent).not.toContain('Unexpected Application Error');
+    expect(silenciar).toHaveBeenCalled();
+  });
+
+  // Revisión del paso 9: con una empresa larga, el nombre se recorta y el botón de cerrar sesión queda en su fila.
+  it('el bloque del nombre se recorta en vez de bajar el botón de cerrar sesión', async () => {
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => HttpResponse.json({
+      consumidor: { nombre: 'María José Quiñónez', nombreEmpresa: 'Distribuidora Comercial del Altiplano, S.A.' },
+      correoVerificado: true,
+    })));
+    montar('/cuenta/suscripcion');
+
+    const empresa = await screen.findByText('Distribuidora Comercial del Altiplano, S.A.');
+    expect(empresa.className).toContain('truncate');
+    const bloque = empresa.parentElement!;
+    for (const clase of ['min-w-0', 'flex-1', 'basis-0']) expect(bloque.className).toContain(clase);
+    expect(bloque.parentElement!.contains(screen.getByRole('button', { name: 'Cerrar sesión' }))).toBe(true);
   });
 
   it('el encabezado público conserva el orden del mockup A5', async () => {
@@ -209,7 +242,8 @@ describe('RF-16 · cuenta del consumidor', () => {
 
     const activo = await screen.findByRole('link', { name: 'Suscripción y claves' });
     expect(activo.className).toContain('bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)]');
-    expect(activo.className).toContain('text-[#2B3547]');
+    expect(activo.className).toContain('text-[var(--marca-principal)]');
+    expect(screen.getByRole('link', { name: 'Consumo' }).className).toContain('text-[#2B3547]');
   });
 
   // H-79: un 5xx de la sesión en /cuenta/* muestra un error recuperable, sin mandar a entrar.

@@ -119,7 +119,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | ID | Pantalla | Archivo | Ruta (`{sub}.shapi.localhost`) | RF | Estado |
 |---|---|---|---|---|---|
 | A5.0 | Inicio del portal | `Main.dc.html` | `/` | RF-15, RF-16 | ✎ (peticiones por minuto) |
-| A5.1 | Documentación | `Documentacion.dc.html` | `/documentacion/:ruta` | RF-16 | ✎ (URL de la API en `.api.`) |
+| A5.1 | Documentación | `Documentacion.dc.html` | `/documentacion` y `/documentacion/:ruta` | RF-16 | ✎ (URL de la API en `.api.`) |
 | A5.2 | Consola de pruebas | `Consola.dc.html` | `/consola` | RF-16, RF-45 | ✎ (la clave de pruebas se pega) |
 | A5.3 | Registro del consumidor | `Registro.dc.html` | `/registro` | RF-05 | = |
 | A5.3b | Registro por invitación | `RegistroInvitacion.dc.html` | `/invitacion?token=` | RF-05 | = |
@@ -130,7 +130,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A5.7 | Inicio de sesión del consumidor | `Acceso.dc.html` | `/entrar` | RF-04 | ✎ (enlace para recuperar la contraseña) |
 | A5.8 | Verificación de correo del consumidor | `Verificacion.dc.html` | `/verificar-correo` | RF-02 | ★ |
 | A5.9 | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | ★ |
-| A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ (correo no visible — ver §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)») |
+| A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ (correo no visible — ver §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)» y «Comportamiento del portal y de sus pantallas de acceso (DC-03 y DC-08)») |
 
 ### A6 · Administración y soporte (`a6-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
@@ -249,11 +249,11 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 ### Comportamiento del portal y de sus pantallas de acceso (DC-03 y DC-08)
 
 - **Marca:** la raíz del portal redefine `--principal`, `--principal-hover` y `--anillo-foco` con `--marca-principal`, así que los botones, los campos y el anillo de foco de todas las pantallas usan la marca y nunca el azul de Shapi (§1).
-- **Pie de las páginas públicas:** muestra la insignia redonda de 24 px con las iniciales de la organización, su nombre (`nombreOrganizacion` de la configuración) y los enlaces «Documentación», «Planes» y «Entrar».
+- **Pie de las páginas públicas:** muestra la insignia de 24 px (radio de 6 px) con las iniciales de la organización, su nombre (`nombreOrganizacion` de la configuración) y los enlaces «Documentación», «Planes» y «Entrar».
 - **Enlaces de «Documentación»:** llevan a `/documentacion`. Hasta DC-07, esa ruta muestra A5.1; DC-07 la redirige a la primera ruta expuesta.
-- **Barra de la cuenta:** el enlace activo tiene un fondo teñido con la marca (`color-mix(in srgb, var(--marca-principal) 8%, #FFFFFF)`) y el texto `#2B3547`. `/cuenta` lleva a `/cuenta/suscripcion`.
+- **Barra de la cuenta:** el enlace activo tiene un fondo teñido con la marca (`color-mix(in srgb, var(--marca-principal) 8%, #FFFFFF)`) y el texto en la marca; los demás enlaces van en `#2B3547`. `/cuenta` lleva a `/cuenta/suscripcion`.
 - **Errores:** un error de render muestra el aviso de error con «Reintentar» en español; una ruta que no existe, «Página no encontrada». Si la configuración o la sesión responden 5xx, se muestra el aviso con «Reintentar», no «API no disponible» ni la pantalla de acceso.
-- **Cerrar sesión:** borra de la caché los datos del consumidor (solo queda la configuración del portal) y, si falla, avisa «No se pudo cerrar la sesión.» con «Reintentar».
+- **Cerrar sesión:** borra de la caché los datos del consumidor (solo queda la configuración del portal) y, si falla, avisa «No se pudo cerrar la sesión.» con «Reintentar», en una línea propia debajo del nombre.
 - **Encabezado de las pantallas de acceso:** solo la marca del portal, sin la navegación pública ni el pie.
 - **A5.3b:** si el enlace venció o ya se usó, muestra el rótulo «Invitación», el título «El enlace ya no sirve» y «La invitación venció, ya se usó o no pertenece a este portal.». Si el correo ya tiene una cuenta en el portal (`correo_ya_registrado`), muestra el error con los enlaces «Entrar» y «Recuperar la contraseña» (CU-11 2a).
 - **A5.7:** «Contraseña» es el rótulo del campo, así que hacer clic en él enfoca el campo.

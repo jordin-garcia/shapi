@@ -31,8 +31,9 @@ export function CerrarSesionConsumidor() {
     },
   });
 
+  // Fragmento: el aviso ocupa una línea propia, a todo el ancho del pie de la barra (que usa flex-wrap).
   return (
-    <div className="flex flex-col items-end gap-2">
+    <>
       <button
         type="button"
         aria-label="Cerrar sesión"
@@ -47,7 +48,11 @@ export function CerrarSesionConsumidor() {
           <path d="M13.5 7 L16.5 10 L13.5 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {cerrar.isError && <AvisoError mensaje="No se pudo cerrar la sesión." reintentar={() => cerrar.mutate()} />}
-    </div>
+      {cerrar.isError && (
+        <div className="basis-full">
+          <AvisoError mensaje="No se pudo cerrar la sesión." reintentar={() => cerrar.mutate()} />
+        </div>
+      )}
+    </>
   );
 }

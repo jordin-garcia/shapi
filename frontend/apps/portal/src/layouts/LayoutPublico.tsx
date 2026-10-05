@@ -20,9 +20,9 @@ export function LayoutPublico() {
       </header>
       <main className="flex-1"><Outlet /></main>
       {!esAcceso && <footer className="border-t border-borde px-20 py-8 flex items-center justify-between text-[14px] text-tinta-suave">
-        {/* Mockups A5 e InicioAgro: insignia redonda de 24 px con las iniciales y el nombre de la organización. */}
+        {/* Mockup A5 (Main.dc.html): insignia de 24 px, con radio de 6 px, con las iniciales y el nombre de la organización. */}
         <div className="flex items-center gap-[11px]">
-          <span aria-hidden="true" className="size-6 rounded-full bg-[var(--marca-principal)] text-white flex items-center justify-center font-display text-[10px] font-semibold">
+          <span aria-hidden="true" className="size-6 rounded-[6px] bg-[var(--marca-principal)] text-white flex items-center justify-center font-display text-[10px] font-semibold">
             {iniciales(marca.nombreOrganizacion)}
           </span>
           <span>{marca.nombreOrganizacion}</span>
