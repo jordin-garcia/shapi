@@ -40,8 +40,16 @@ export interface components {
         };
         ActorBitacora: {
             nombre: string;
-            /** @description Rol del actor en minúsculas; `consumidor` y `sistema` identifican esos tipos de actor. */
-            rol: string;
+            /**
+             * @description Rol actual del actor (10 §7). `consumidor` y `sistema` identifican esos tipos de actor; `usuario`, a un
+             *     usuario que ya no tiene membresía.
+             * @enum {string}
+             */
+            rol: "administrador" | "soporte" | "propietario" | "editor" | "lector" | "consumidor" | "sistema" | "usuario";
+            /**
+             * @description Organización actual del actor: «Plataforma Shapi» para el personal de plataforma, la del proveedor para sus
+             *     miembros y para los consumidores, y `null` para el sistema y para un usuario sin membresía.
+             */
             organizacion: string | null;
         };
         Problema: {
@@ -88,7 +96,7 @@ export interface operations {
                     "application/json": components["schemas"]["PaginaBitacora"];
                 };
             };
-            /** @description Fechas o paginación inválidas (`datos_invalidos`). */
+            /** @description Fechas o paginación inválidas (`datos_invalidos`), con el error de cada parámetro en `errores`. */
             400: {
                 headers: {
                     [name: string]: unknown;

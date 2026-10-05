@@ -783,3 +783,20 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **DC-07:** los enlaces de «Documentación» llevan a `/documentacion`, que por ahora muestra A5.1. Haz que redirija a la primera ruta expuesta.
   - **DC-16:** criterio 4 nuevo. «Reintentar» debe ser el botón secundario de 11 §4 en los avisos de error de A1 (panel) y en `AvisoError` del portal.
   - **Todos (portal):** los colores de la marca ya valen en todas las pantallas del portal (`coloresMarca` en `App`); no hace falta redefinir `--principal` en cada página. Al cerrar sesión se borran todas las consultas salvo `['portal', 'configuracion']`.
+
+## 2026-10-04 · JZ-04 · Correcciones de la auditoría: bitácora
+- Hecho: paso 10 de la auditoría del 3 oct para JZ-04 (H-85 a H-91).
+  - B3.2 muestra «Plataforma Shapi» y tiene paginador.
+  - Pruebas de los actores consumidor, sistema, miembro de proveedor y usuario sin membresía.
+  - El 400 trae `errores`, y `rol` es un `enum` en el contrato.
+  - 10 §7 explica de dónde salen el rol y la organización.
+  - Vitest del error y del periodo predeterminado.
+- Decisiones: las dos del paso 10.
+- Pendiente o aviso para otros:
+  - **José Pablo:** cambié estos archivos tuyos:
+    - `src/Shapi.Api/Bitacora/Endpoints.cs` y `contratos/openapi/sistema.yaml`, con los tipos generados;
+    - `frontend/apps/panel/src/paginas/B3-2-Bitacora.tsx` y su prueba `Bitacora.test.tsx`;
+    - `tests/Shapi.Api.Tests/Bitacora/BitacoraTests.cs`;
+    - tu archivo de tarea JZ-04.
+
+    Actualiza tu rama desde `main`.

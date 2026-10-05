@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Bitacora;
 using Shapi.Aplicacion.Comun;
+using Shapi.Contratos;
 using Shapi.Dominio.Bitacora;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
@@ -15,6 +16,9 @@ namespace Shapi.Api.Bitacora;
 public static class Endpoints
 {
     private static readonly TimeSpan DesfaseGuatemala = TimeSpan.FromHours(-6);
+
+    /// <summary>10 §7: el personal de la organización de plataforma se muestra como «Plataforma Shapi», como en B3.2.</summary>
+    public const string NombrePlataforma = "Plataforma Shapi";
 
     public static IEndpointRouteBuilder MapearEndpointsBitacora(this IEndpointRouteBuilder app)
     {
@@ -29,31 +33,61 @@ public static class Endpoints
         IReloj reloj,
         CancellationToken cancelacion)
     {
-        if (!LeerFecha(peticion.Query["desde"], out var desde)
-            || !LeerFecha(peticion.Query["hasta"], out var hasta)
-            || !LeerEntero(peticion.Query["pagina"], 1, int.MaxValue, 1, out var pagina)
-            || !LeerEntero(peticion.Query["tamano"], 1, 100, 20, out var tamano))
+        // convenciones §5: el 400 lleva el error de cada parámetro en `errores`.
+        var errores = new Dictionary<string, string[]>();
+        if (!LeerFecha(peticion.Query["desde"], out var desde))
         {
-            return DatosInvalidos("Use fechas AAAA-MM-DD, pagina mayor que cero y tamano entre 1 y 100.");
+            errores["desde"] = ["Use una fecha AAAA-MM-DD."];
+        }
+        if (!LeerFecha(peticion.Query["hasta"], out var hasta))
+        {
+            errores["hasta"] = ["Use una fecha AAAA-MM-DD."];
+        }
+        if (!LeerEntero(peticion.Query["pagina"], 1, int.MaxValue, 1, out var pagina))
+        {
+            errores["pagina"] = ["La página debe ser mayor que cero."];
+        }
+        if (!LeerEntero(peticion.Query["tamano"], 1, 100, 20, out var tamano))
+        {
+            errores["tamano"] = ["El tamaño debe estar entre 1 y 100."];
+        }
+        if (errores.Count > 0)
+        {
+            return DatosInvalidos(errores);
         }
 
         var hoy = DateOnly.FromDateTime(reloj.Ahora.ToOffset(DesfaseGuatemala).DateTime);
         hasta ??= hoy;
-        if (desde is null)
+        if (hasta == DateOnly.MaxValue)
+        {
+            errores["hasta"] = ["La fecha no es válida."];
+        }
+        else if (desde is null)
         {
             if (hasta.Value < DateOnly.MinValue.AddDays(6))
             {
-                return DatosInvalidos("El periodo o la paginación no son válidos.");
+                errores["hasta"] = ["La fecha no es válida."];
             }
-            desde = hasta.Value.AddDays(-6);
+            else
+            {
+                desde = hasta.Value.AddDays(-6);
+            }
         }
-        if (desde > hasta || hasta == DateOnly.MaxValue || pagina - 1 > int.MaxValue / tamano)
+        if (desde > hasta)
         {
-            return DatosInvalidos("El periodo o la paginación no son válidos.");
+            errores["desde"] = ["El primer día no puede ser posterior al último."];
+        }
+        if (pagina - 1 > int.MaxValue / tamano)
+        {
+            errores["pagina"] = ["La página es demasiado grande."];
+        }
+        if (errores.Count > 0)
+        {
+            return DatosInvalidos(errores);
         }
 
-        var inicio = InicioDia(desde.Value);
-        var finExclusivo = InicioDia(hasta.Value.AddDays(1));
+        var inicio = InicioDia(desde!.Value);
+        var finExclusivo = InicioDia(hasta!.Value.AddDays(1));
         var consulta = db.Set<EntradaBitacoraDominio>()
             .IgnoreQueryFilters()
             .AsNoTracking()
@@ -84,7 +118,7 @@ public static class Endpoints
             join organizacion in db.Set<Organizacion>().IgnoreQueryFilters().AsNoTracking()
                 on membresia.OrganizacionId equals organizacion.Id
             where actoresUsuario.Contains(membresia.UsuarioId)
-            select new ActorUsuario(membresia.UsuarioId, membresia.Rol, organizacion.Nombre))
+            select new ActorUsuario(membresia.UsuarioId, membresia.Rol, NombreVisible(organizacion.Nombre, organizacion.Tipo)))
             .ToDictionaryAsync(x => x.Id, cancelacion);
 
         var consumidores = await (
@@ -122,6 +156,10 @@ public static class Endpoints
         return new(fila.ActorNombre, fila.ActorTipo == ActorTipo.Sistema ? "sistema" : "usuario", null);
     }
 
+    // Se evalúa en memoria, después de traer las filas: EF no traduce este método, así que va en la proyección final.
+    private static string NombreVisible(string nombre, TipoOrganizacion tipo) =>
+        tipo == TipoOrganizacion.Plataforma ? NombrePlataforma : nombre;
+
     private static bool LeerFecha(string? valor, out DateOnly? fecha)
     {
         fecha = null;
@@ -152,12 +190,12 @@ public static class Endpoints
     private static DateTimeOffset InicioDia(DateOnly fecha) =>
         new DateTimeOffset(fecha.ToDateTime(TimeOnly.MinValue), DesfaseGuatemala).ToUniversalTime();
 
-    private static ProblemHttpResult DatosInvalidos(string titulo) =>
+    private static ProblemHttpResult DatosInvalidos(Dictionary<string, string[]> errores) =>
         TypedResults.Problem(
             statusCode: StatusCodes.Status400BadRequest,
-            title: titulo,
+            title: "El periodo o la paginación no son válidos.",
             type: "about:blank",
-            extensions: new Dictionary<string, object?> { ["codigo"] = "datos_invalidos" });
+            extensions: new Dictionary<string, object?> { ["codigo"] = CodigosError.DatosInvalidos, ["errores"] = errores });
 
     private sealed record Fila(
         DateTimeOffset Fecha,
