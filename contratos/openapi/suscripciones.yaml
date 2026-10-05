@@ -21,7 +21,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Contratacion"
         "400":
-          description: Petición inválida o falta la tarjeta requerida
+          description: |
+            Datos inválidos (`datos_invalidos`), con el error en cada campo de `errores`: falta la tarjeta que pide un
+            plan de pago (`tarjeta`), o el vencimiento o el titular no son válidos (`tarjeta.vencimiento` y
+            `tarjeta.titular`).
           content:
             application/problem+json:
               schema:
@@ -39,7 +42,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problema"
         "422":
-          description: Correo sin verificar, plan inactivo o tarjeta inválida
+          description: |
+            Correo sin verificar (`correo_no_verificado`), plan inactivo (`plan_no_encontrado`) o tarjeta que la
+            pasarela no acepta (`numero_invalido`, `marca_no_soportada`, `tarjeta_vencida` o `cvv_invalido`).
           content:
             application/problem+json:
               schema:
@@ -51,7 +56,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problema"
         "503":
-          description: Pasarela de pagos no disponible
+          description: |
+            La pasarela de pagos no respondió al tokenizar o al cobrar (`pasarela_no_disponible`). No se registra
+            ningún pago. Si el cobro se autorizó pero la contratación falla después, se reembolsa.
           content:
             application/problem+json:
               schema:
@@ -159,3 +166,9 @@ components:
         status: { type: integer }
         codigo: { type: string }
         detalle: {}
+        errores:
+          type: object
+          description: Errores por campo de `datos_invalidos` (convenciones §5).
+          additionalProperties:
+            type: array
+            items: { type: string }

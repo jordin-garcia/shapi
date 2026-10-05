@@ -331,6 +331,8 @@ erDiagram
     uuid id PK
     uuid suscripcion_plataforma_id FK
     uuid suscripcion_api_id FK
+    uuid consumidor_id FK
+    uuid api_id FK
     uuid medio_pago_id FK
     text concepto
     numeric monto
@@ -568,8 +570,8 @@ UNIQUE `(api_id, metodo, patron)`.
 | api_id | uuid | FK |
 | nombre | text | not null, UNIQUE junto con `api_id` |
 | descripcion | text | not null |
-| precio | numeric(12,2) | `CHECK (precio >= 0)` |
-| es_gratuito | bool | `CHECK (NOT es_gratuito OR precio = 0)` |
+| precio | numeric(12,2) | `CHECK (precio >= 0)`, con 2 decimales como máximo |
+| es_gratuito | bool | `CHECK (NOT es_gratuito OR precio = 0)` y `CHECK (es_gratuito OR precio > 0)`: un plan de pago con precio 0 no se podría contratar, porque `pago.monto` debe ser mayor que 0 |
 | vigencia_dias | int | `CHECK BETWEEN 1 AND 366` |
 | cuota_llamadas | bigint | `CHECK > 0` |
 | limite_minuto | int | `CHECK > 0` |
@@ -624,7 +626,7 @@ Hay un índice único parcial `(suscripcion_id, tipo) WHERE estado='activa'` par
 |---|---|---|
 | id | uuid | PK |
 | suscripcion_plataforma_id / suscripcion_api_id | uuid | exactamente uno de los dos tiene valor para pagos asociados a suscripciones; ambos son null en un intento de contratación de API rechazado |
-| consumidor_id · api_id | uuid | ambos tienen valor únicamente en un intento de contratación de API rechazado sin suscripción; en los demás pagos ambos son null |
+| consumidor_id · api_id | uuid | FK → consumidor y FK → api, null. Ambos tienen valor únicamente en un intento de contratación de API rechazado sin suscripción; en los demás pagos ambos son null |
 | medio_pago_id | uuid | FK null (los planes gratuitos no generan pago) |
 | concepto | text | `CHECK IN ('contratacion','renovacion','cambio_plan','reactivacion')` |
 | descripcion | text | not null (por ejemplo "Lanzamiento → Producto · diferencia prorrateada") |
@@ -636,7 +638,7 @@ Hay un índice único parcial `(suscripcion_id, tipo) WHERE estado='activa'` par
 | revertido_en | timestamptz | null |
 | revertido_por | uuid | FK → usuario, null |
 
-Índices: `(suscripcion_plataforma_id, creado_en desc)`, `(suscripcion_api_id, creado_en desc)` y `(creado_en desc)`, este último para A6.3.
+Índices: `(suscripcion_plataforma_id, creado_en desc)`, `(suscripcion_api_id, creado_en desc)`, `(creado_en desc)`, este último para A6.3, y uno por cada FK nueva: `(consumidor_id)` y `(api_id)`.
 
 La restricción `ck_pago_suscripcion` admite exactamente dos formas: un pago asociado a una suscripción de plataforma o API (sin `consumidor_id` ni `api_id`), o un intento de contratación de API rechazado (sin suscripción y con ambos `consumidor_id` y `api_id`). Esto permite conservar el rechazo exigido por EM-08 sin crear una suscripción ni perder a quién y a qué API corresponde el intento. El intento rechazado no guarda medio de pago ni datos de tarjeta.
 

@@ -110,6 +110,10 @@ export interface components {
             status?: number;
             codigo?: string;
             detalle?: unknown;
+            /** @description Errores por campo de `datos_invalidos` (convenciones §5). */
+            errores?: {
+                [key: string]: string[];
+            };
         };
     };
     responses: never;
@@ -142,7 +146,11 @@ export interface operations {
                     "application/json": components["schemas"]["Contratacion"];
                 };
             };
-            /** @description Petición inválida o falta la tarjeta requerida */
+            /**
+             * @description Datos inválidos (`datos_invalidos`), con el error en cada campo de `errores`: falta la tarjeta que pide un
+             *     plan de pago (`tarjeta`), o el vencimiento o el titular no son válidos (`tarjeta.vencimiento` y
+             *     `tarjeta.titular`).
+             */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -178,7 +186,10 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description Correo sin verificar, plan inactivo o tarjeta inválida */
+            /**
+             * @description Correo sin verificar (`correo_no_verificado`), plan inactivo (`plan_no_encontrado`) o tarjeta que la
+             *     pasarela no acepta (`numero_invalido`, `marca_no_soportada`, `tarjeta_vencida` o `cvv_invalido`).
+             */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -187,7 +198,10 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description Pasarela de pagos no disponible */
+            /**
+             * @description La pasarela de pagos no respondió al tokenizar o al cobrar (`pasarela_no_disponible`). No se registra
+             *     ningún pago. Si el cobro se autorizó pero la contratación falla después, se reembolsa.
+             */
             503: {
                 headers: {
                     [name: string]: unknown;

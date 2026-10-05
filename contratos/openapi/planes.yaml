@@ -118,6 +118,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanApi"
+        "422":
+          description: |
+            Se intentó cambiar entre gratuito y de pago mientras el plan tiene suscripciones vigentes
+            (`plan_con_suscripciones`, 09 §5).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
         "400":
           description: Petición inválida
           content:
@@ -184,6 +192,7 @@ paths:
   /api/portal/planes:
     get:
       summary: Obtiene los planes activos para el portal público de una API
+      description: Ordenados por precio y nombre, como en A4.1.
       operationId: obtenerPlanesPortal
       responses:
         "200":
@@ -194,6 +203,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PlanApi"
+        "404":
+          description: El host no corresponde a ningún portal (`api_no_encontrada`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
 components:
   schemas:
     PlanApi:
@@ -209,6 +224,7 @@ components:
         - cuotaLlamadas
         - limiteMinuto
         - activo
+        - moneda
       properties:
         id:
           type: string
@@ -222,6 +238,10 @@ components:
           type: string
         precio:
           type: number
+          description: Mayor que 0 si el plan no es gratuito; 0 si es gratuito. Hasta 2 decimales.
+        moneda:
+          type: string
+          const: GTQ
         esGratuito:
           type: boolean
         vigenciaDias:
@@ -270,7 +290,7 @@ components:
           type: integer
         codigo:
           type: string
-          enum: [datos_invalidos, csrf, api_no_encontrada, plan_no_encontrado, plan_duplicado]
+          enum: [datos_invalidos, csrf, api_no_encontrada, plan_no_encontrado, plan_duplicado, plan_con_suscripciones]
         detalle:
           type: object
           additionalProperties: true

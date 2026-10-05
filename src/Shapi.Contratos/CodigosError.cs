@@ -46,6 +46,7 @@ public static class CodigosError
     public const string SuscripcionExistente = "suscripcion_existente";
     public const string PlanDuplicado = "plan_duplicado";
     public const string PlanNoEncontrado = "plan_no_encontrado";
+    public const string PlanConSuscripciones = "plan_con_suscripciones";
 
     // Pagos y pasarela simulada (09 §2)
     public const string PagoRechazado = "pago_rechazado";

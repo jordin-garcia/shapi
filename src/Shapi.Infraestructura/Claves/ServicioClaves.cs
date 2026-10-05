@@ -222,7 +222,7 @@ public sealed class ServicioClaves(
         var usuario = await db.Set<Usuario>().Where(u => u.Id == miembro.UsuarioId).Select(u => u.Nombre).SingleAsync(cancelacion);
         await bitacora.Registrar(new EntradaBitacora(
             TipoActor.Usuario, miembro.UsuarioId, usuario, datos.OrganizacionId, AccionesBitacora.ClaveRevocadaPorProveedor,
-            $"Revocó la clave {TipoEnTexto(clave.Tipo)} de {datos.Empresa} en {EnLaApi(datos.Api)}")
+            $"Revocó la clave {TipoEnTexto(clave.Tipo)} de {datos.Empresa} en {TextoBitacora.LaApi(datos.Api)}")
         {
             ObjetivoTipo = "clave",
             ObjetivoId = clave.Id,
@@ -278,7 +278,7 @@ public sealed class ServicioClaves(
         var datos = await DatosDeLaClave(clave.SuscripcionId, cancelacion);
         await bitacora.Registrar(new EntradaBitacora(
             TipoActor.Consumidor, consumidor.ConsumidorId, datos.NombreConsumidor, datos.OrganizacionId, accion,
-            $"{datos.Empresa} {verbo} su clave {TipoEnTexto(clave.Tipo)} en {EnLaApi(datos.Api)}")
+            $"{datos.Empresa} {verbo} su clave {TipoEnTexto(clave.Tipo)} en {TextoBitacora.LaApi(datos.Api)}")
         {
             ObjetivoTipo = "clave",
             ObjetivoId = clave.Id,
@@ -331,8 +331,4 @@ public sealed class ServicioClaves(
     };
 
     private static string TipoEnTexto(TipoClave tipo) => tipo == TipoClave.Produccion ? "de producción" : "de pruebas";
-
-    /// <summary>"en la API de Cotización de Envíos" (10 §7). Si el nombre no empieza con "API", se le antepone.</summary>
-    private static string EnLaApi(string nombre) =>
-        nombre.StartsWith("API ", StringComparison.OrdinalIgnoreCase) ? $"la {nombre}" : $"la API {nombre}";
 }

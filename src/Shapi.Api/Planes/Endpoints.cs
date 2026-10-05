@@ -5,6 +5,7 @@ using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Portal;
 using Shapi.Contratos;
 using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Planes;
 
 namespace Shapi.Api.Planes;
 
@@ -29,7 +30,7 @@ public static class Endpoints
         CancellationToken cancelacion)
     {
         var resultado = await casoUso.Ejecutar(apiId, OrganizacionId(contexto.User), cancelacion);
-        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor.Select(Respuesta).ToArray()) : Problema(resultado.Error);
     }
 
     private static async Task<IResult> Crear(
@@ -43,7 +44,7 @@ public static class Endpoints
         var nombre = contexto.User.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
         var ip = contexto.Connection.RemoteIpAddress?.ToString();
         var resultado = await casoUso.Ejecutar(apiId, OrganizacionId(contexto.User), solicitud, usuarioId, nombre, ip, cancelacion);
-        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
     }
 
     private static async Task<IResult> Editar(
@@ -58,7 +59,7 @@ public static class Endpoints
         var nombre = contexto.User.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
         var ip = contexto.Connection.RemoteIpAddress?.ToString();
         var resultado = await casoUso.Ejecutar(apiId, planId, OrganizacionId(contexto.User), solicitud, usuarioId, nombre, ip, cancelacion);
-        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
     }
 
     private static async Task<IResult> Desactivar(
@@ -88,8 +89,22 @@ public static class Endpoints
         }
 
         var resultado = await casoUso.Ejecutar(portal.ApiId, portal.OrganizacionId, cancelacion);
-        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor.Select(Respuesta).ToArray()) : Problema(resultado.Error);
     }
+
+    /// <summary>El plan como lo declara el contrato: sin fechas de auditoría y con la moneda (convenciones §5).</summary>
+    private static RespuestaPlanApi Respuesta(PlanApi plan) => new(
+        plan.Id,
+        plan.ApiId,
+        plan.Nombre,
+        plan.Descripcion,
+        plan.Precio,
+        "GTQ",
+        plan.EsGratuito,
+        plan.VigenciaDias,
+        plan.CuotaLlamadas,
+        plan.LimiteMinuto,
+        plan.Activo);
 
     private static Guid OrganizacionId(ClaimsPrincipal usuario) =>
         Guid.Parse(usuario.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);
@@ -102,10 +117,15 @@ public static class Endpoints
             CodigosError.ApiNoEncontrada => StatusCodes.Status404NotFound,
             CodigosError.PlanNoEncontrado => StatusCodes.Status404NotFound,
             CodigosError.PlanDuplicado => StatusCodes.Status409Conflict,
+            CodigosError.PlanConSuscripciones => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError,
         };
         var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };
-        if (error.Detalle is not null)
+        if (error.Codigo == CodigosError.DatosInvalidos && error.Detalle is IDictionary<string, string[]> errores)
+        {
+            extensiones["errores"] = errores;
+        }
+        else if (error.Detalle is not null)
         {
             extensiones["detalle"] = error.Detalle;
         }
@@ -116,4 +136,17 @@ public static class Endpoints
             type: "about:blank",
             extensions: extensiones);
     }
+
+    private sealed record RespuestaPlanApi(
+        Guid Id,
+        Guid ApiId,
+        string Nombre,
+        string Descripcion,
+        decimal Precio,
+        string Moneda,
+        bool EsGratuito,
+        int VigenciaDias,
+        long CuotaLlamadas,
+        int LimiteMinuto,
+        bool Activo);
 }

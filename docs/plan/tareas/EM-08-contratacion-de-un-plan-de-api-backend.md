@@ -68,3 +68,23 @@ dotnet format Shapi.slnx --verify-no-changes
 - El plan inactivo responde 422 con el código existente `plan_no_encontrado`, al no haber un código más específico en el contrato de errores.
 
 **Archivos principales:** `src/Shapi.Api/Suscripciones/**`, `src/Shapi.Dominio/{Pagos,Suscripciones}/**`, `src/Shapi.Infraestructura/{Persistencia,Claves}/**`, `src/Shapi.Aplicacion/Claves/IServicioClaves.cs`, `contratos/openapi/suscripciones.yaml` y `tests/Shapi.Api.Tests/Suscripciones/ContratacionTests.cs`.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 8 de `docs/plan/auditoria-2026-10-03.md`. El PR lleva el ID de EM-07 y corrige también H-60 y H-64 en la contratación.
+- **H-60:** un plan de pago con precio 0 ya no se puede crear (400 y `ck_plan_api_pago`), así que no se llega al 500 de `ck_pago_monto` sin reembolso.
+- **H-64:** el 400 de un plan de pago sin tarjeta trae `errores.tarjeta`.
+- **H-67:** si algo falla después de autorizar el cobro y antes del commit, se reembolsa y se vuelve a lanzar la excepción. La prueba simula una falla al preparar las claves.
+- **H-68:** la prueba del cobro aprobado, con el reloj a las 21:30 de Guatemala (03:30 UTC del día siguiente), comprueba:
+  - `susc:{id}` en Redis;
+  - el ciclo a la medianoche de Guatemala, con `fin = inicio + 30 días`;
+  - el monto y el periodo del pago;
+  - la marca, los últimos 4, el titular y el vencimiento del medio de pago.
+- **H-69:** el rechazo no deja `medio_pago` ni `clave`. Dos contrataciones simultáneas dejan una sola suscripción, un solo pago y dos claves.
+- **H-70:** un vencimiento o un titular inválidos responden 400 `datos_invalidos`, con `errores` en `tarjeta.vencimiento` y `tarjeta.titular`.
+- **H-71:** si la pasarela responde `pasarela_no_disponible` al cobrar, se responde 503 sin registrar un pago, como en la tokenización (09 §2).
+- **H-72:** la prueba de la consulta dice RF-20. En 07 están `consumidor_id` y `api_id` en el diagrama ER de `PAGO`, con sus FK y sus índices.
+- **Decidido (3 oct):**
+  - se acepta `PrepararClavesParaSuscripcion` en `IServicioClaves`;
+  - un plan inactivo responde 422 `plan_no_encontrado`, documentado en `suscripciones.yaml`;
+  - con una suscripción `suspendida`, el consumidor recibe 409 `suscripcion_existente`. Le corresponde a EM-13 resolver el caso «suspendida → finalizada: el consumidor contrata otro plan» de 09 §3 (aviso en la bitácora).

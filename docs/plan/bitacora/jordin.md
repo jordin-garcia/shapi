@@ -737,3 +737,25 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **DC-06:** `ListaRutas` (`GET /api/apis/{id}/rutas` y `PUT …/rutas/exposicion`) lleva un campo nuevo, `especificacion`, que puede ser `null`. Cada elemento del lote de exposición debe traer `rutaId` y `expuesta`; si no, responde 400.
   - **DC-07 y DC-10:** la forma de `ruta.definicion` está en 07 §3.2: `{orden, parametros, cuerpo, respuestas}`, con las referencias locales resueltas.
   - **JG-09:** al recargar una especificación, el consumo de las rutas retiradas se suma a la fila con `ruta_id` nulo y la ruta se borra (07 §3.5). Después de una recarga, pueden llegar eventos de la compuerta con una `ruta_id` que ya no existe: la consolidación debe guardarlos con `ruta_id` nulo, no fallar por la FK.
+
+## 2026-10-04 · EM-07 · Correcciones de la auditoría: planes y contratación
+- Hecho: paso 8 de la auditoría del 3 oct para EM-07 y EM-08 (H-58 a H-72).
+  - Planes: ordenados por precio, validación del precio (decimales, máximo y precio 0 en un plan de pago, con `ck_plan_api_pago`) y solo el UNIQUE como 409.
+  - Prueba con Redis real, A4.1 con «149.00» y «Q 0.00», textos de la bitácora y `errores` por campo.
+  - Respuestas con `moneda` y sin fechas de auditoría.
+  - Contratación: reembolso si falla después del cobro, 503 si la pasarela no responde al cobrar, 400 con `errores` y pruebas del ciclo, de Redis, del rechazo y de la concurrencia.
+- Decisiones: las siete del paso 8 y un solo PR para EM-07 y EM-08.
+- Pendiente o aviso para otros:
+  - **Emilio:** cambié estos archivos tuyos:
+    - `src/Shapi.Api/Planes/GestionarPlanes.cs` y `Endpoints.cs`;
+    - `src/Shapi.Api/Suscripciones/ContratacionApi.cs`;
+    - `src/Shapi.Infraestructura/Persistencia/Configuraciones/PlanApiConfiguracion.cs`, con la migración `PlanDePagoConPrecio`;
+    - `contratos/openapi/planes.yaml` y `suscripciones.yaml`, con los tipos generados;
+    - `frontend/apps/panel/src/paginas/A4-1-PlanesApi.tsx` y su prueba;
+    - `tests/Shapi.Api.Tests/Planes/` (incluida la nueva `PlanesRedisTests.cs`) y `tests/Shapi.Api.Tests/Suscripciones/ContratacionTests.cs`;
+    - tus archivos de tarea EM-07 y EM-08.
+
+    Actualiza tu rama desde `main`; la migración nueva va antes de cualquiera que crees.
+  - **EM-13:** la lógica de planes y contratación sigue en `Shapi.Api` (`Planes/` y `Suscripciones/ContratacionApi.cs`). Si la necesitas, muévela a `Shapi.Aplicacion` con `Resultado<T>` (convenciones §6). Además, con una suscripción `suspendida`, contratar responde 409 `suscripcion_existente`: el caso «suspendida → finalizada: el consumidor contrata otro plan» de 09 §3 te corresponde. Queda una carrera muy improbable: si un plan gratuito se convierte en uno de pago mientras alguien lo contrata, la suscripción nueva queda sin tarjeta. Para cerrarla, la contratación y la edición tendrían que bloquear la fila del plan (`FOR UPDATE`).
+  - **DC-09 y DC-11:** `/api/portal/planes` devuelve los planes ordenados por precio, con `moneda: "GTQ"` y sin `creadoEn` ni `actualizadoEn`. La contratación responde 400 con `errores` (`tarjeta`, `tarjeta.vencimiento` y `tarjeta.titular`) y 503 si la pasarela no responde al cobrar.
+  - **Todos:** un plan de pago debe tener precio mayor que 0 (07 §3.3); la siembra y las pruebas que creen planes de pago con precio 0 fallarán con `ck_plan_api_pago`.

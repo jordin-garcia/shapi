@@ -41,6 +41,7 @@ public partial class CodigosErrorTests
     [InlineData("cvv_invalido")]
     [InlineData("fondos_insuficientes")]
     [InlineData("pasarela_no_disponible")]
+    [InlineData("plan_con_suscripciones")]
     // convenciones §5
     [InlineData("pago_rechazado")]
     [InlineData("origen_inaccesible")]

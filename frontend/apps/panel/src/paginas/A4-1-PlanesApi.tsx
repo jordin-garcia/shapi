@@ -11,6 +11,11 @@ const clienteApis = crearCliente<apisPaths>(window.location.origin);
 
 type PlanApi = components['schemas']['PlanApi'];
 
+/** RF-18 y los mockups: «Q 0.00» también para los planes gratuitos. */
+function formatearPrecio(precio: number) {
+  return `Q ${precio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export default function PaginaA41PlanesApi() {
   const { id: apiId } = useParams<{ id: string }>();
   const cache = useQueryClient();
@@ -79,7 +84,7 @@ export default function PaginaA41PlanesApi() {
           filas={planes.map(plan => [
             <span key="nombre" className="font-medium text-tinta">{plan.nombre}</span>,
             <span key="desc" className="line-clamp-2" title={plan.descripcion}>{plan.descripcion}</span>,
-            <span key="precio">{plan.esGratuito ? 'Gratis' : `Q ${plan.precio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>,
+            <span key="precio">{formatearPrecio(plan.precio)}</span>,
             <span key="vigencia">{plan.vigenciaDias} días</span>,
             <span key="cuota">{plan.cuotaLlamadas.toLocaleString('en-US')} llamadas</span>,
             <span key="limite">{plan.limiteMinuto.toLocaleString('en-US')} peticiones</span>,
@@ -109,8 +114,9 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
   const esNuevo = !planOriginal;
   const [nombre, setNombre] = useState(planOriginal?.nombre ?? '');
   const [descripcion, setDescripcion] = useState(planOriginal?.descripcion ?? '');
-  const [precioStr, setPrecioStr] = useState(planOriginal?.precio.toString() ?? '');
-  const [esGratuito, setEsGratuito] = useState(planOriginal?.esGratuito ?? false);
+  const [precioStr, setPrecioStr] = useState(planOriginal ? planOriginal.precio.toFixed(2) : '');
+  // El mockup del plan nuevo (NuevoPlan.dc.html) empieza con «Plan gratuito» marcado.
+  const [esGratuito, setEsGratuito] = useState(planOriginal?.esGratuito ?? true);
   const [vigenciaDias, setVigenciaDias] = useState(planOriginal?.vigenciaDias.toString() ?? '30');
   const [cuotaLlamadas, setCuotaLlamadas] = useState(planOriginal?.cuotaLlamadas.toString() ?? '');
   const [limiteMinuto, setLimiteMinuto] = useState(planOriginal?.limiteMinuto.toString() ?? '');
@@ -150,7 +156,9 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
     onSuccess: alTerminar,
     onError: error => {
       if (error instanceof ErrorApi) {
-        setErrorGeneral(error.titulo);
+        // convenciones §5: los 400 traen el error de cada campo en `errores`.
+        const campos = Object.values(error.errores ?? {}).flat();
+        setErrorGeneral([error.titulo, ...campos].join(' '));
         return;
       }
       setErrorGeneral(esNuevo ? 'No se pudo crear el plan. Inténtelo de nuevo.' : 'No se pudo editar el plan. Inténtelo de nuevo.');
