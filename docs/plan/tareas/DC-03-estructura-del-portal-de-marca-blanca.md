@@ -62,3 +62,15 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - Se crearon los layouts público y de cuenta, todas las rutas con URL de A5 y B2 y sus páginas de relleno. Las rutas de `/cuenta/*` usan una consulta provisional a `GET /api/portal/auth/sesion` y el pie permite cerrar con `POST /api/portal/auth/salir`.
 - Las pruebas de integración cubren API publicada, despublicada e inexistente, configuración y logotipos PNG/SVG. Las pruebas de Vitest cubren marca, rutas, navegación y sesión del consumidor.
 - Decisiones: los hosts devueltos se construyen con el subdominio almacenado y `SHAPI_DOMINIO_BASE`, nunca con la cabecera recibida. A5.4b y B2.4 a B2.6 no crean rutas porque el catálogo las define como estados o diálogos sin URL propia.
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 9 de `docs/plan/auditoria-2026-10-03.md`, en el mismo PR que DC-08 (`[DC-03] Correcciones de la auditoría: portal de marca blanca`).
+- **H-73:** `GET /api/portal/configuracion` devuelve `nombreOrganizacion` (contrato `portal.yaml`). El pie de las páginas públicas muestra la insignia de 24 px (radio de 6 px, como en `A5/Main.dc.html`) con sus iniciales y el nombre.
+- **H-74:** los colores de la marca (`--principal`, `--principal-hover` y `--anillo-foco`) se definen en la raíz de `App`, con `coloresMarca`, y ya no solo en `MarcoAcceso`.
+- **H-75:** el enlace activo de la barra de la cuenta usa el fondo teñido con la marca y el texto en la marca, y los demás enlaces van en `#2B3547`, como el mockup B2.
+- **H-76:** cerrar sesión cancela y borra de la caché las consultas del consumidor (solo queda la configuración) y, si falla, muestra «No se pudo cerrar la sesión.» con «Reintentar».
+- **H-77:** los dos grupos de rutas tienen `errorElement` (`Error-Ruta.tsx`), en español. La prueba monta una página que falla y comprueba «Reintentar».
+- **H-78:** `/cuenta` redirige a `/cuenta/suscripcion`.
+- **H-79:** pruebas de la configuración con 5xx, de la sesión con 5xx en `/cuenta/*` y de la ruta comodín.
+- **Decidido (3 oct):** (a). Los enlaces de «Documentación» llevan a `/documentacion`, que existe y por ahora muestra A5.1. DC-07 la redirigirá a la primera ruta expuesta (aviso en la bitácora).

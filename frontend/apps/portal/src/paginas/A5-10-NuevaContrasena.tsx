@@ -2,12 +2,14 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Boton, Campo } from '@shapi/ui';
 import { AvisoError, EncabezadoAcceso, MarcoAcceso } from '../modulos/sesion/FormulariosAcceso';
+import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import { interpretarError, restablecerConsumidor, useIrAlDestinoConsumidor, type ErrorFormulario } from '../modulos/sesion/useIdentidadConsumidor';
 
 export default function PaginaA510NuevaContrasena() {
   const [parametros] = useSearchParams();
   const token = parametros.get('token') ?? '';
   const irAlDestino = useIrAlDestinoConsumidor();
+  const marca = useMarcaPortal();
   const formulario = useRef<HTMLFormElement>(null);
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState<ErrorFormulario | null>(null);
@@ -45,7 +47,7 @@ export default function PaginaA510NuevaContrasena() {
   return (
     <MarcoAcceso ancho={460}>
       <EncabezadoAcceso rotulo="Recuperación · paso 2 de 2" titulo="Definir la contraseña">
-        <p className="text-[15px] leading-[1.55] text-tinta-suave">Defina una contraseña nueva para su cuenta.</p>
+        <p className="text-[15px] leading-[1.55] text-tinta-suave">Defina una contraseña nueva para su cuenta en el portal de {marca.nombrePortal}.</p>
       </EncabezadoAcceso>
       {error && !error.errores.contrasena && (
         <div className="mt-6">

@@ -87,3 +87,14 @@ Verificación manual con el entorno levantado:
   - `frontend/apps/portal/src/modulos/sesion/` (`useSesionConsumidor.ts`, `useIdentidadConsumidor.ts`, `FormulariosAcceso.tsx`, `CerrarSesionConsumidor.tsx`)
   - `frontend/apps/portal/src/layouts/LayoutPublico.tsx`
   - `frontend/apps/portal/src/tests/AccesoConsumidor.test.tsx`
+
+### Correcciones de la auditoría (2026-10-04)
+
+Paso 9 de `docs/plan/auditoria-2026-10-03.md`. El PR lleva el ID de DC-03.
+- **H-80:** si aceptar la invitación responde 409 `correo_ya_registrado`, A5.3b muestra el error con «Entrar» y «Recuperar la contraseña» (CU-11 2a), con prueba.
+- **H-81:** después de enviar, A5.9 muestra la respuesta neutral una sola vez.
+- **H-82:** en A5.7, «Contraseña» es un `<label>` del campo.
+- **H-83:** «Reintentar» como botón secundario quedó como criterio 4 de DC-16, para el panel y el portal.
+- **H-84:** 11 §4 tiene ahora la sección «Comportamiento del portal y de sus pantallas de acceso (DC-03 y DC-08)».
+- **Decidido (3 oct):** (a). A5.10 dice «Defina una contraseña nueva para su cuenta en el portal de {nombrePortal}.».
+- La prueba de la marca de las pantallas de acceso ahora mira la raíz del portal, adonde se movieron los colores (H-74).

@@ -42,11 +42,11 @@ export default function PaginaA57Acceso() {
         <Campo etiqueta="Correo electrónico" type="email" value={correo} onChange={e => setCorreo(e.target.value)} autoComplete="email" />
         <div>
           <div className="mb-[6px] flex items-baseline justify-between">
-            <span className="text-[13px] font-semibold">Contraseña</span>
+            <label htmlFor="contrasena-acceso" className="text-[13px] font-semibold">Contraseña</label>
             <Link className="text-sm text-[var(--marca-principal)]" to="/recuperar">¿Olvidó su contraseña?</Link>
           </div>
           <Campo
-            aria-label="Contraseña"
+            id="contrasena-acceso"
             type="password"
             value={contrasena}
             onChange={e => setContrasena(e.target.value)}

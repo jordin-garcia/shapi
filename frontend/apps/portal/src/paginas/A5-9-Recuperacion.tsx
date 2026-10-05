@@ -31,11 +31,12 @@ export default function PaginaA59Recuperacion() {
         rotulo={enviado ? 'Recuperación · revise su correo' : 'Recuperación · paso 1 de 2'}
         titulo={enviado ? 'Revise su correo' : 'Recuperar la contraseña'}
       >
-        <p className="text-[15px] leading-[1.55] text-tinta-suave">
-          {enviado
-            ? 'Si el correo tiene una cuenta en este portal, recibirá el enlace.'
-            : 'Escriba el correo de su cuenta de este portal y le enviamos un enlace para definir una contraseña nueva.'}
-        </p>
+        {/* Después de enviar, la respuesta neutral solo va en el recuadro de abajo, para no repetirla. */}
+        {!enviado && (
+          <p className="text-[15px] leading-[1.55] text-tinta-suave">
+            Escriba el correo de su cuenta de este portal y le enviamos un enlace para definir una contraseña nueva.
+          </p>
+        )}
       </EncabezadoAcceso>
       {!enviado && (
         <form ref={formulario} onSubmit={enviar} noValidate className="mt-8 flex flex-col gap-5">

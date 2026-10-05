@@ -81,12 +81,22 @@ export default function PaginaA53bInvitacion() {
           {marca.nombrePortal} lo invitó a su portal. Su cuenta pertenece a ese portal: con ella contrata planes y obtiene claves de su API.
         </p>
       </EncabezadoAcceso>
-      {error && !porCampo && (
+      {error && !porCampo && error.codigo !== 'correo_ya_registrado' && (
         <div className="mt-6">
           <AvisoError
             mensaje={error.mensaje}
             reintentar={error.codigo === null ? () => formulario.current?.requestSubmit() : undefined}
           />
+        </div>
+      )}
+      {error?.codigo === 'correo_ya_registrado' && (
+        // CU-11 2a: el correo ya tiene una cuenta en este portal; se ofrece entrar o recuperar la contraseña.
+        <div className="mt-6">
+          <AvisoError mensaje={error.mensaje} />
+          <p className="mt-3 flex gap-6 text-sm">
+            <Link className="font-medium text-[var(--marca-principal)]" to="/entrar">Entrar</Link>
+            <Link className="font-medium text-[var(--marca-principal)]" to="/recuperar">Recuperar la contraseña</Link>
+          </p>
         </div>
       )}
       <form ref={formulario} onSubmit={enviar} noValidate className="mt-8 flex flex-col gap-5">

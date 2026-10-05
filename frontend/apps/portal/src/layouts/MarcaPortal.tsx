@@ -1,9 +1,6 @@
 import { Link } from 'react-router';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
-
-function iniciales(nombre: string) {
-  return nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(parte => parte[0]?.toUpperCase()).join('');
-}
+import { iniciales } from './iniciales';
 
 export function MarcaPortal() {
   const marca = useMarcaPortal();

@@ -1,7 +1,7 @@
-import type { CSSProperties } from 'react';
 import { RouterProvider, type RouterProviderProps } from 'react-router';
 import { EstadoCargando, EstadoError } from '@shapi/ui';
 import { ApiNoDisponible, ProveedorConfiguracionPortal, useConfiguracionPortal } from './modulos/configuracion/useConfiguracionPortal';
+import { coloresMarca } from './modulos/configuracion/coloresMarca';
 import { router } from './rutas';
 
 export default function App({ enrutador = router }: { enrutador?: RouterProviderProps['router'] }) {
@@ -22,9 +22,8 @@ export default function App({ enrutador = router }: { enrutador?: RouterProvider
     return <EstadoError reintentar={() => void consulta.refetch()} />;
   }
 
-  const estilo = { '--marca-principal': consulta.data.colorPrincipal } as CSSProperties;
   return (
-    <div style={estilo} className="min-h-screen bg-fondo text-tinta">
+    <div style={coloresMarca(consulta.data.colorPrincipal)} className="min-h-screen bg-fondo text-tinta">
       <ProveedorConfiguracionPortal configuracion={consulta.data}>
         <RouterProvider router={enrutador} />
       </ProveedorConfiguracionPortal>

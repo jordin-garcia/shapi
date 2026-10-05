@@ -98,6 +98,8 @@ public sealed class PortalTests(ContenedorPostgresPortal postgres)
         Assert.Equal("Cotizaciones, guías y rastreo.", json.GetProperty("descripcionApi").GetString());
         Assert.Equal("envios.shapi.localhost", json.GetProperty("hostPortal").GetString());
         Assert.Equal("envios.api.shapi.localhost", json.GetProperty("hostApi").GetString());
+        // H-73: el pie del portal muestra la insignia y el nombre de la organización (mockups de A5).
+        Assert.Equal("Envíos Xelajú, S.A.", json.GetProperty("nombreOrganizacion").GetString());
     }
 
     [Fact]

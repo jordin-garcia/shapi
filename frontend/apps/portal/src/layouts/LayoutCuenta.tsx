@@ -16,7 +16,8 @@ function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
 function Enlace({ a, children }: { a: string; children: ReactNode }) {
   return (
     <NavLink to={a} className={({ isActive }) =>
-      `block rounded-base px-3 py-[7px] text-[14px] leading-[1.5] ${isActive ? 'bg-fondo text-[var(--marca-principal)] font-medium' : 'text-tinta hover:text-[var(--marca-principal)]'}`}>
+      // Mockup B2/Suscripcion: el activo lleva un fondo teñido con la marca y el texto en la marca; los demás, #2B3547.
+      `block rounded-base px-3 py-[7px] text-[14px] leading-[1.5] ${isActive ? 'bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] text-[var(--marca-principal)] font-medium' : 'text-[#2B3547] hover:text-tinta'}`}>
       {children}
     </NavLink>
   );
@@ -33,7 +34,7 @@ export function LayoutCuenta() {
         <nav className="w-[272px] shrink-0 border-r border-borde bg-panel px-4 pt-6 pb-5 flex flex-col justify-between">
           <div className="flex flex-col gap-5">
             <Grupo titulo="API">
-              <Enlace a="/documentacion/inicio">Documentación</Enlace>
+              <Enlace a="/documentacion">Documentación</Enlace>
               <Enlace a="/consola">Consola de pruebas</Enlace>
               <Enlace a="/planes">Planes</Enlace>
             </Grupo>
@@ -43,8 +44,9 @@ export function LayoutCuenta() {
               <Enlace a="/cuenta/pagos">Pagos</Enlace>
             </Grupo>
           </div>
-          <div className="border-t border-borde pt-4 pr-1 pl-3 flex items-center justify-between gap-3">
-            <div className="min-w-0 flex flex-col gap-px">
+          <div className="border-t border-borde pt-4 pr-1 pl-3 flex flex-wrap items-center justify-between gap-3">
+            {/* basis-0: con flex-wrap, el nombre largo se recorta y nunca baja el botón a otra línea (solo baja el aviso). */}
+            <div className="min-w-0 flex-1 basis-0 flex flex-col gap-px">
               <span className="truncate text-[14px] font-medium leading-[1.5] text-tinta">{sesion.data?.consumidor.nombre}</span>
               <span className="truncate text-[13px] leading-[1.5] text-tinta-suave">{sesion.data?.consumidor.nombreEmpresa}</span>
             </div>

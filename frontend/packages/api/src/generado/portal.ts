@@ -49,6 +49,11 @@ export interface components {
             descripcionApi: string | null;
             /** @example envios.shapi.localhost */
             hostPortal: string;
+            /**
+             * @description Nombre de la organización dueña de la API; el pie del portal lo muestra con su insignia.
+             * @example Envíos Xelajú, S.A.
+             */
+            nombreOrganizacion: string;
             /** @example envios.api.shapi.localhost */
             hostApi: string;
         };
