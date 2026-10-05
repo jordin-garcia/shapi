@@ -98,7 +98,14 @@ Los correos de los consumidores llevan la marca del portal: el nombre, el color 
 
 La bitácora ([RF-41](03-requisitos.md#rf-41)) registra las acciones que cambian **el acceso, el cobro o el estado** de una organización. Cada entrada guarda el actor, la organización, la acción, el objetivo, una descripción que se puede leer (la que muestra B3.2) y la IP.
 
-B3.2 consulta la bitácora con permiso de administrador o soporte. `desde` y `hasta` son días calendario de `America/Guatemala`, ambos inclusivos; si se omiten, el periodo comprende el día actual y los seis anteriores. Los resultados se ordenan del más reciente al más antiguo y se paginan desde la página 1, con tamaño predeterminado de 20 y máximo de 100. Un periodo o una paginación inválidos responden `400 datos_invalidos`.
+B3.2 consulta la bitácora con permiso de administrador o soporte. `desde` y `hasta` son días calendario de `America/Guatemala`, ambos inclusivos; si se omiten, el periodo comprende el día actual y los seis anteriores. Los resultados se ordenan del más reciente al más antiguo y se paginan desde la página 1, con tamaño predeterminado de 20 y máximo de 100; B3.2 muestra un paginador («Página X de Y», «Anterior» y «Siguiente») solo si hay más de una página. Un periodo o una paginación inválidos responden `400 datos_invalidos`, con el error de cada parámetro en `errores`.
+
+Cada entrada muestra el nombre que se guardó al registrarla y, debajo, el **rol y la organización actuales** del actor, que salen de su membresía al consultar (no se guardan en la entrada):
+- personal de plataforma: su rol y «Plataforma Shapi» (así lo muestra B3.2, aunque la organización de plataforma se llame «Shapi»);
+- miembro de un proveedor: su rol (`propietario`, `editor` o `lector`) y el nombre de la organización;
+- consumidor: `consumidor` y la organización del proveedor dueño del portal;
+- sistema: `sistema`, sin organización;
+- usuario que ya no tiene membresía: `usuario`, sin organización.
 
 | Acción (`accion`) | Descripción de ejemplo |
 |---|---|

@@ -217,15 +217,15 @@ Los 7 de severidad alta:
 
 ## Paso 10 · [JZ-04] Bitácora de acciones sensibles
 
-- [ ] **H-85 (media, JZ-04)** `src/Shapi.Api/Bitacora/Endpoints.cs:83-87,114` y `src/Shapi.Infraestructura/Siembra/Base/SiembraBase.cs:19`: la organización de plataforma se llama «Shapi», así que B3.2 muestra «Administrador · Shapi», y el mockup dice «Administrador · Plataforma Shapi» (criterio 2). Las pruebas no lo detectan porque el Vitest simula el texto a mano y la de integración compara con `plataforma.Nombre`.
-  - **❓ Decisión pendiente:** (a) renombrar la organización de plataforma en la siembra base; (b) que el endpoint muestre «Plataforma Shapi» cuando la organización es de tipo `plataforma`, precisado en 10 §7; (c) corregir el mockup. Recomiendo (b), y que la prueba compare con el texto literal.
-- [ ] **H-86 (media, JZ-04)** `frontend/apps/panel/src/paginas/B3-2-Bitacora.tsx:80`: la pantalla siempre pide `pagina: 1, tamano: 20` y no usa `total`, así que con más de 20 acciones en el periodo, las anteriores no se pueden ver y no hay aviso (10 §7 dice que los resultados «se paginan»).
-  - **❓ Decisión pendiente:** (a) un paginador mínimo que solo aparece si hay más de una página; (b) pedir 100 y avisar si hay más; (c) aceptar el límite de 20 y documentarlo. Recomiendo (a).
-- [ ] **H-87 (media, JZ-04)** `tests/Shapi.Api.Tests/Bitacora/BitacoraTests.cs`: solo se prueban actores de tipo usuario del personal de plataforma. Faltan el consumidor (rol `consumidor` con la organización del proveedor), el sistema (`rol: sistema`, `organizacion: null`) y un miembro de un proveedor (criterio 1).
-- [ ] **H-88 (baja, JZ-04)** `Endpoints.cs:155-160`: el 400 `datos_invalidos` no trae `errores` por campo (convenciones §5).
-- [ ] **H-89 (baja, JZ-04)** `contratos/openapi/sistema.yaml:107-109`: `ActorBitacora.rol` es texto libre. Corrección: un `enum` con los valores posibles, incluido el `usuario` que devuelve el código para un usuario sin membresía (`Endpoints.cs:122`).
-- [ ] **H-90 (baja, JZ-04)** 10 §7 no recoge que el rol y la organización del actor salen de su membresía actual; solo está en el `## Resultado`.
-- [ ] **H-91 (baja, JZ-04)** `frontend/apps/panel/src/tests/Bitacora.test.tsx`: faltan el estado de error y que la primera consulta lleve el periodo por defecto (hoy y los seis días anteriores, en Guatemala).
+- [x] **H-85 (media, JZ-04)** `src/Shapi.Api/Bitacora/Endpoints.cs:83-87,114` y `src/Shapi.Infraestructura/Siembra/Base/SiembraBase.cs:19`: la organización de plataforma se llama «Shapi», así que B3.2 muestra «Administrador · Shapi», y el mockup dice «Administrador · Plataforma Shapi» (criterio 2). Las pruebas no lo detectan porque el Vitest simula el texto a mano y la de integración compara con `plataforma.Nombre`.
+  - **Decidido (3 oct):** (b), el endpoint muestra «Plataforma Shapi» cuando la organización es de tipo `plataforma`, precisado en 10 §7, y la prueba compara con el texto literal. Se descartaron (a) renombrar la organización en la siembra base y (c) corregir el mockup.
+- [x] **H-86 (media, JZ-04)** `frontend/apps/panel/src/paginas/B3-2-Bitacora.tsx:80`: la pantalla siempre pide `pagina: 1, tamano: 20` y no usa `total`, así que con más de 20 acciones en el periodo, las anteriores no se pueden ver y no hay aviso (10 §7 dice que los resultados «se paginan»).
+  - **Decidido (3 oct):** (a), un paginador mínimo que solo aparece si hay más de una página. Se descartaron (b) pedir 100 y avisar, y (c) aceptar el límite de 20.
+- [x] **H-87 (media, JZ-04)** `tests/Shapi.Api.Tests/Bitacora/BitacoraTests.cs`: solo se prueban actores de tipo usuario del personal de plataforma. Faltan el consumidor (rol `consumidor` con la organización del proveedor), el sistema (`rol: sistema`, `organizacion: null`) y un miembro de un proveedor (criterio 1).
+- [x] **H-88 (baja, JZ-04)** `Endpoints.cs:155-160`: el 400 `datos_invalidos` no trae `errores` por campo (convenciones §5).
+- [x] **H-89 (baja, JZ-04)** `contratos/openapi/sistema.yaml:107-109`: `ActorBitacora.rol` es texto libre. Corrección: un `enum` con los valores posibles, incluido el `usuario` que devuelve el código para un usuario sin membresía (`Endpoints.cs:122`).
+- [x] **H-90 (baja, JZ-04)** 10 §7 no recoge que el rol y la organización del actor salen de su membresía actual; solo está en el `## Resultado`.
+- [x] **H-91 (baja, JZ-04)** `frontend/apps/panel/src/tests/Bitacora.test.tsx`: faltan el estado de error y que la primera consulta lleve el periodo por defecto (hoy y los seis días anteriores, en Guatemala).
 
 ## Paso 11 · [JG-04] y [JG-07] Publicador de Redis y servicio de claves
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { crearCliente } from '@shapi/api';
 import type { components, paths } from '@shapi/api/sistema';
 import { Boton, EstadoCargando, EstadoError } from '@shapi/ui';
@@ -8,6 +8,7 @@ const cliente = crearCliente<paths>(window.location.origin);
 const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const mesesCortos = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const zonaGuatemala = 'America/Guatemala';
+const tamanoPagina = 20;
 
 type Entrada = components['schemas']['EntradaBitacora'];
 
@@ -66,28 +67,43 @@ function EstadoVacio() {
   </div>;
 }
 
+/** 10 §7: los resultados se paginan. El paginador solo aparece si hay más de una página (decidido el 3 oct). */
+function Paginador({ pagina, total, cambiar }: { pagina: number; total: number; cambiar: (pagina: number) => void }) {
+  const paginas = Math.ceil(total / tamanoPagina);
+  if (paginas <= 1) return null;
+  return <nav aria-label="Páginas de la bitácora" className="mt-4 flex items-center justify-end gap-4 border-t border-borde-fila pt-4 text-[14px]">
+    <span className="tabular-nums text-tinta-suave">Página {pagina} de {paginas}</span>
+    <button type="button" disabled={pagina <= 1} onClick={() => cambiar(pagina - 1)} className="font-medium text-principal hover:underline disabled:text-tinta-inactiva disabled:no-underline">Anterior</button>
+    <button type="button" disabled={pagina >= paginas} onClick={() => cambiar(pagina + 1)} className="font-medium text-principal hover:underline disabled:text-tinta-inactiva disabled:no-underline">Siguiente</button>
+  </nav>;
+}
+
 export default function PaginaB32Bitacora() {
   const hastaInicial = hoyGuatemala();
   const desdeInicial = sumarDias(hastaInicial, -6);
   const [periodo, setPeriodo] = useState({ desde: desdeInicial, hasta: hastaInicial });
+  const [pagina, setPagina] = useState(1);
   const [borrador, setBorrador] = useState(periodo);
   const [selectorAbierto, setSelectorAbierto] = useState(false);
   const consulta = useQuery({
-    queryKey: ['bitacora', periodo.desde, periodo.hasta],
+    queryKey: ['bitacora', periodo.desde, periodo.hasta, pagina],
     queryFn: async ({ signal }) => {
       const { data, response } = await cliente.GET('/api/admin/bitacora', {
         signal,
-        params: { query: { desde: periodo.desde, hasta: periodo.hasta, pagina: 1, tamano: 20 } },
+        params: { query: { desde: periodo.desde, hasta: periodo.hasta, pagina, tamano: tamanoPagina } },
       });
       if (!response.ok || !data) throw new Error('No se pudo consultar la bitácora');
       return data;
     },
+    // Al cambiar de página, la tabla y el paginador se quedan hasta que llega la página nueva.
+    placeholderData: keepPreviousData,
     retry: false,
   });
 
   function aplicarPeriodo() {
     if (!borrador.desde || !borrador.hasta || borrador.desde > borrador.hasta) return;
     setPeriodo(borrador);
+    setPagina(1);
     setSelectorAbierto(false);
   }
 
@@ -141,6 +157,7 @@ export default function PaginaB32Bitacora() {
           </table>
         </div>
         {consulta.data.elementos.length === 0 && <EstadoVacio />}
+        <Paginador pagina={pagina} total={consulta.data.total} cambiar={setPagina} />
       </>}
     </section>
   </main>;

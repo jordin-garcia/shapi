@@ -52,7 +52,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginaBitacora'
         '400':
-          description: Fechas o paginación inválidas (`datos_invalidos`).
+          description: Fechas o paginación inválidas (`datos_invalidos`), con el error de cada parámetro en `errores`.
           content:
             application/problem+json:
               schema:
@@ -106,9 +106,15 @@ components:
           type: string
         rol:
           type: string
-          description: Rol del actor en minúsculas; `consumidor` y `sistema` identifican esos tipos de actor.
+          enum: [administrador, soporte, propietario, editor, lector, consumidor, sistema, usuario]
+          description: |
+            Rol actual del actor (10 §7). `consumidor` y `sistema` identifican esos tipos de actor; `usuario`, a un
+            usuario que ya no tiene membresía.
         organizacion:
           type: [string, 'null']
+          description: |
+            Organización actual del actor: «Plataforma Shapi» para el personal de plataforma, la del proveedor para sus
+            miembros y para los consumidores, y `null` para el sistema y para un usuario sin membresía.
 
     Problema:
       type: object

@@ -86,7 +86,43 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
         Assert.Equal("Suspendió la organización Datos Chapines, S.A.", primero.GetProperty("descripcion").GetString());
         Assert.Equal("Rodrigo Alvarado", primero.GetProperty("actor").GetProperty("nombre").GetString());
         Assert.Equal("administrador", primero.GetProperty("actor").GetProperty("rol").GetString());
-        Assert.Equal(plataforma.Nombre, primero.GetProperty("actor").GetProperty("organizacion").GetString());
+        // H-85: el mockup dice «Administrador · Plataforma Shapi», aunque la organización de plataforma se llame «Shapi».
+        Assert.Equal("Shapi", plataforma.Nombre);
+        Assert.Equal("Plataforma Shapi", primero.GetProperty("actor").GetProperty("organizacion").GetString());
+    }
+
+    // RF-41 · CA1 (H-87): el consumidor, el sistema y un miembro de un proveedor también se muestran con su rol y su
+    // organización; un usuario sin membresía, como «usuario» sin organización.
+    [Fact]
+    public async Task RF_41_ActoresDeCadaTipo_MuestranRolYOrganizacion()
+    {
+        var (admin, _) = await UsuarioPorRol(Rol.Administrador);
+        var (propietaria, proveedor) = await CrearUsuario("Ana Lucía Morales", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var consumidorId = await CrearConsumidor(proveedor.Id, "Boutique Cayalá");
+        var sinMembresia = new Usuario("Persona sin organización", $"{Guid.NewGuid():N}@ejemplo.com");
+        await using (var db = Db(out var scope))
+        using (scope)
+        {
+            db.Add(sinMembresia);
+            await db.SaveChangesAsync();
+            db.Add(new EntradaBitacoraDominio(new(2026, 9, 11, 10, 0, 0, TimeSpan.Zero), ActorTipo.Consumidor, consumidorId,
+                "Boutique Cayalá", proveedor.Id, "clave.rotada", null, null, "Boutique Cayalá rotó su clave de producción", null, IPAddress.Loopback));
+            db.Add(new EntradaBitacoraDominio(new(2026, 9, 11, 11, 0, 0, TimeSpan.Zero), ActorTipo.Sistema, null,
+                "Sistema", proveedor.Id, "suscripcion.suspendida", null, null, "Suspendió por falta de pago la suscripción", null, null));
+            await db.SaveChangesAsync();
+        }
+        await AgregarEntrada(new(2026, 9, 11, 12, 0, 0, TimeSpan.Zero), propietaria, proveedor.Id, "api.publicada", "Publicó la API");
+        await AgregarEntrada(new(2026, 9, 11, 13, 0, 0, TimeSpan.Zero), sinMembresia, proveedor.Id, "api.publicada", "Sin membresía");
+        var cookie = await CrearSesion(admin.Id);
+
+        var json = await (await Enviar("/api/admin/bitacora", cookie)).Content.ReadFromJsonAsync<JsonElement>();
+
+        var actores = json.GetProperty("elementos").EnumerateArray()
+            .ToDictionary(e => e.GetProperty("descripcion").GetString()!, e => e.GetProperty("actor"));
+        AfirmarActor(actores["Boutique Cayalá rotó su clave de producción"], "Boutique Cayalá", "consumidor", proveedor.Nombre);
+        AfirmarActor(actores["Suspendió por falta de pago la suscripción"], "Sistema", "sistema", null);
+        AfirmarActor(actores["Publicó la API"], "Ana Lucía Morales", "propietario", proveedor.Nombre);
+        AfirmarActor(actores["Sin membresía"], "Persona sin organización", "usuario", null);
     }
 
     [Fact]
@@ -111,12 +147,13 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
     }
 
     [Theory]
-    [InlineData("?desde=2026-09-11&hasta=2026-09-10")]
-    [InlineData("?pagina=0")]
-    [InlineData("?tamano=101")]
-    [InlineData("?desde=9999-12-31&hasta=9999-12-31")]
-    [InlineData("?hasta=0001-01-01")]
-    public async Task RF_41_ParametrosInvalidos_Responden400DatosInvalidos(string query)
+    [InlineData("?desde=2026-09-11&hasta=2026-09-10", "desde")]
+    [InlineData("?pagina=0", "pagina")]
+    [InlineData("?tamano=101", "tamano")]
+    [InlineData("?desde=9999-12-31&hasta=9999-12-31", "hasta")]
+    [InlineData("?hasta=0001-01-01", "hasta")]
+    [InlineData("?desde=11-09-2026", "desde")]
+    public async Task RF_41_ParametrosInvalidos_Responden400DatosInvalidos(string query, string campo)
     {
         // RF-41 · CA1: el contrato limita el periodo y la paginación.
         var (admin, _) = await UsuarioPorRol(Rol.Administrador);
@@ -127,6 +164,8 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
         var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("datos_invalidos", json.GetProperty("codigo").GetString());
+        // H-88: el error va en el parámetro (convenciones §5).
+        Assert.True(json.GetProperty("errores").TryGetProperty(campo, out _));
     }
 
     [Fact]
@@ -167,6 +206,29 @@ public class BitacoraTests(ContenedorPostgresBitacora postgres) : IClassFixture<
         db.Add(new Membresia(usuario.Id, organizacion.Id, rol));
         await db.SaveChangesAsync();
         return (usuario, organizacion);
+    }
+
+    private static void AfirmarActor(JsonElement actor, string nombre, string rol, string? organizacion)
+    {
+        Assert.Equal(nombre, actor.GetProperty("nombre").GetString());
+        Assert.Equal(rol, actor.GetProperty("rol").GetString());
+        Assert.Equal(organizacion, actor.GetProperty("organizacion").GetString());
+    }
+
+    private async Task<Guid> CrearConsumidor(Guid organizacionId, string empresa)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            INSERT INTO consumidor (id, organizacion_id, nombre, nombre_empresa, correo, hash_contrasena, estado)
+            VALUES (gen_random_uuid(), @organizacion, 'Lucía Pérez', @empresa, @correo, 'hash', 'activo')
+            RETURNING id
+            """;
+        comando.Parameters.AddWithValue("organizacion", organizacionId);
+        comando.Parameters.AddWithValue("empresa", empresa);
+        comando.Parameters.AddWithValue("correo", $"{Guid.NewGuid():N}@tienda.test");
+        return (Guid)(await comando.ExecuteScalarAsync())!;
     }
 
     private async Task<Organizacion> CrearOrganizacion(string nombre, TipoOrganizacion tipo)
