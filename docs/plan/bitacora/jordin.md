@@ -816,3 +816,18 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Todos:** `IPublicadorCache` tiene un método nuevo, `EliminarHost`. Si tienen un publicador falso en sus pruebas, agréguenlo (por ejemplo, `=> Task.CompletedTask`).
   - **Todos (pruebas):** `SesionConsumidorDePrueba`, sin su cabecera, ahora sigue la selección real de la aplicación (por la ruta). En `/api/portal/*` funciona la cookie `portal_sesion` verdadera, y la del personal responde 401.
   - **Emilio y Dominique:** cambié los publicadores falsos de `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y `tests/Shapi.Api.Tests/Planes/PlanesTests.cs` (agregué `EliminarHost`), y las tareas DC-14 y EM-09. Actualicen sus ramas desde `main`.
+
+## 2026-10-04 · JG-01 · Correcciones de la auditoría: auditoría final
+- Hecho: paso 12 de la auditoría del 3 oct.
+  - Correcciones de los pasos 7 a 11 integradas: #72 a #76.
+  - Verificación completa sobre `main`, todo en verde:
+    - `--validar`, 102 pruebas de `scripts/`, compilación, formato y migraciones;
+    - 1042 pruebas del backend con `-m:1`;
+    - tipos generados, lint, *typecheck*, 295 pruebas del frontend y *build*.
+  - Nueva auditoría en contexto limpio de las 19 tareas corregidas: H-01 a H-97 corregidos, sin regresiones de seguridad ni pruebas debilitadas.
+  - Salieron 21 hallazgos nuevos (H-98 a H-118: 1 de severidad media y 20 de baja) y 15 dudas, anotados como paso 13 propuesto.
+  - H-109 corregido aquí: `ambiente-productivo` ya es obligatorio en la protección de `main`.
+- Decisiones: los hallazgos nuevos no se corrigen en este PR; Jordin decide el paso 13.
+- Pendiente o aviso para otros:
+  - **Jordin:** decidir el paso 13 de `docs/plan/auditoria-2026-10-03.md` (H-98 a H-118 y las 15 dudas). El único de severidad media es H-110, la caché del portal cuando vence la sesión.
+  - **Todos:** `ambiente-productivo` (las E2E en el ambiente productivo simulado) ya bloquea la integración si falla.
