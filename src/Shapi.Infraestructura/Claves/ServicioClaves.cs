@@ -204,10 +204,11 @@ public sealed class ServicioClaves(
         MiembroDelPanel miembro, Guid apiId, Guid claveId, CancellationToken cancelacion = default)
     {
         await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
-        await Bloquear(claveId, cancelacion);
-        var clave = await db.Set<Clave>()
-            .Where(c => c.Id == claveId && db.Set<SuscripcionApi>().Any(s => s.Id == c.SuscripcionId && s.ApiId == apiId))
-            .SingleOrDefaultAsync(cancelacion);
+        var clave = await BloquearSiExiste(
+            claveId,
+            db.Set<Clave>().Where(c => c.Id == claveId
+                && db.Set<SuscripcionApi>().Any(s => s.Id == c.SuscripcionId && s.ApiId == apiId)),
+            cancelacion);
         if (clave is null)
         {
             return ErroresClaves.NoEncontrada;
@@ -251,14 +252,28 @@ public sealed class ServicioClaves(
     private Task Bloquear(Guid claveId, CancellationToken cancelacion) =>
         db.Database.ExecuteSqlAsync($"SELECT 1 FROM clave WHERE id = {claveId} FOR UPDATE", cancelacion);
 
-    private async Task<Clave?> BloquearClaveDelConsumidor(ConsumidorDelPortal consumidor, Guid claveId, CancellationToken cancelacion)
-    {
-        await Bloquear(claveId, cancelacion);
-        return await db.Set<Clave>()
-            .Where(c => c.Id == claveId && db.Set<SuscripcionApi>().Any(s => s.Id == c.SuscripcionId
+    private Task<Clave?> BloquearClaveDelConsumidor(ConsumidorDelPortal consumidor, Guid claveId, CancellationToken cancelacion) =>
+        BloquearSiExiste(
+            claveId,
+            db.Set<Clave>().Where(c => c.Id == claveId && db.Set<SuscripcionApi>().Any(s => s.Id == c.SuscripcionId
                 && s.ConsumidorId == consumidor.ConsumidorId && s.ApiId == consumidor.ApiId
-                && s.Estado != EstadoSuscripcion.Finalizada))
-            .SingleOrDefaultAsync(cancelacion);
+                && s.Estado != EstadoSuscripcion.Finalizada)),
+            cancelacion);
+
+    /// <summary>
+    /// Bloquea la clave solo si <paramref name="consulta"/> (que lleva el filtro de la organización, de la API o del
+    /// consumidor) la encuentra, y después la lee. Así, pedir la clave de otra organización responde 404 sin bloquear
+    /// su fila ni un instante.
+    /// </summary>
+    private async Task<Clave?> BloquearSiExiste(Guid claveId, IQueryable<Clave> consulta, CancellationToken cancelacion)
+    {
+        if (!await consulta.AnyAsync(cancelacion))
+        {
+            return null;
+        }
+
+        await Bloquear(claveId, cancelacion);
+        return await consulta.SingleOrDefaultAsync(cancelacion);
     }
 
     private sealed record DatosClave(Guid OrganizacionId, string Api, string Empresa, string NombreConsumidor);

@@ -60,6 +60,7 @@ public sealed class PublicadorCachePlanesFalso : IPublicadorCache
 {
     public List<Guid> SuscripcionesPublicadas { get; } = [];
     public Task PublicarApi(Guid apiId, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task EliminarHost(string host, Guid apiId, CancellationToken cancelacion = default) => Task.CompletedTask;
     public Task PublicarClave(Guid claveId, CancellationToken cancelacion = default) => Task.CompletedTask;
     public Task ExpirarClave(string hashClave, DateTimeOffset instante, CancellationToken cancelacion = default) => Task.CompletedTask;
     public Task EliminarClave(string hashClave, CancellationToken cancelacion = default) => Task.CompletedTask;

@@ -11,6 +11,13 @@ public interface IPublicadorCache
     Task PublicarApi(Guid apiId, CancellationToken cancelacion = default);
 
     /// <summary>
+    /// Borra <c>api:host:{host}</c> si todavía apunta a <paramref name="apiId"/>: un dominio propio que se desconecta o se
+    /// reemplaza deja de enrutar de inmediato (07 §4), sin esperar la resincronización.
+    /// <see cref="PublicarApi"/> no lo hace, porque solo escribe los hosts actuales.
+    /// </summary>
+    Task EliminarHost(string host, Guid apiId, CancellationToken cancelacion = default);
+
+    /// <summary>
     /// Escribe <c>clave:{sha256}</c> según el estado actual de la clave: sin vencimiento si está activa, con
     /// <c>EXPIREAT</c> si está rotada y la borra si está revocada.
     /// </summary>
