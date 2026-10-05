@@ -759,3 +759,27 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-13:** la lógica de planes y contratación sigue en `Shapi.Api` (`Planes/` y `Suscripciones/ContratacionApi.cs`). Si la necesitas, muévela a `Shapi.Aplicacion` con `Resultado<T>` (convenciones §6). Además, con una suscripción `suspendida`, contratar responde 409 `suscripcion_existente`: el caso «suspendida → finalizada: el consumidor contrata otro plan» de 09 §3 te corresponde. Queda una carrera muy improbable: si un plan gratuito se convierte en uno de pago mientras alguien lo contrata, la suscripción nueva queda sin tarjeta. Para cerrarla, la contratación y la edición tendrían que bloquear la fila del plan (`FOR UPDATE`).
   - **DC-09 y DC-11:** `/api/portal/planes` devuelve los planes ordenados por precio, con `moneda: "GTQ"` y sin `creadoEn` ni `actualizadoEn`. La contratación responde 400 con `errores` (`tarjeta`, `tarjeta.vencimiento` y `tarjeta.titular`) y 503 si la pasarela no responde al cobrar.
   - **Todos:** un plan de pago debe tener precio mayor que 0 (07 §3.3); la siembra y las pruebas que creen planes de pago con precio 0 fallarán con `ck_plan_api_pago`.
+
+## 2026-10-04 · DC-03 · Correcciones de la auditoría: portal de marca blanca
+- Hecho: paso 9 de la auditoría del 3 oct para DC-03 y DC-08 (H-73 a H-84).
+  - La configuración del portal devuelve `nombreOrganizacion`, y el pie muestra su insignia.
+  - Los colores de la marca se definen en la raíz.
+  - El enlace activo de la cuenta usa la marca.
+  - Cerrar sesión limpia la caché y avisa si falla.
+  - Hay `errorElement` en español, `/cuenta` lleva a la suscripción y `/documentacion` existe.
+  - A5.3b ofrece entrar o recuperar ante `correo_ya_registrado`.
+  - A5.9 ya no repite la frase, «Contraseña» es un rótulo en A5.7 y A5.10 nombra el portal.
+  - 11 §4 tiene la sección del portal.
+- Decisiones: las dos del paso 9 y un solo PR para DC-03 y DC-08.
+- Pendiente o aviso para otros:
+  - **Dominique:** cambié estos archivos tuyos:
+    - `src/Shapi.Api/Portal/Endpoints.cs`, `contratos/openapi/portal.yaml` y los tipos generados;
+    - en `frontend/apps/portal/src/`: `App.tsx`, `rutas.tsx`, los layouts, `CerrarSesionConsumidor.tsx`, `FormulariosAcceso.tsx` y A5.3b, A5.7, A5.9 y A5.10;
+    - archivos nuevos en `frontend/apps/portal/src/`: `layouts/iniciales.ts`, `modulos/configuracion/coloresMarca.ts` y `paginas/Error-Ruta.tsx`;
+    - las pruebas `Estructura.test.tsx`, `AccesoConsumidor.test.tsx` y `tests/Shapi.Api.Tests/Portal/PortalTests.cs`;
+    - tus archivos de tarea DC-03, DC-08 y DC-16 (criterio 4 nuevo).
+
+    Actualiza tu rama desde `main`.
+  - **DC-07:** los enlaces de «Documentación» llevan a `/documentacion`, que por ahora muestra A5.1. Haz que redirija a la primera ruta expuesta.
+  - **DC-16:** criterio 4 nuevo. «Reintentar» debe ser el botón secundario de 11 §4 en los avisos de error de A1 (panel) y en `AvisoError` del portal.
+  - **Todos (portal):** los colores de la marca ya valen en todas las pantallas del portal (`coloresMarca` en `App`); no hace falta redefinir `--principal` en cada página. Al cerrar sesión se borran todas las consultas salvo `['portal', 'configuracion']`.

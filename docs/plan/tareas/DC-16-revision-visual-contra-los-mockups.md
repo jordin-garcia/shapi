@@ -26,13 +26,14 @@ Comparar cada pantalla implementada con su mockup, corregir las propias y crear 
 
 ## Archivos que creas o modificas
 - `docs/plan/revision-visual.md` (crear: tabla con las pantallas, el resultado y las diferencias)
-- Páginas propias (corregir)
+- Páginas propias (corregir), incluido `frontend/apps/portal/src/modulos/sesion/FormulariosAcceso.tsx` (criterio 4)
 - `docs/plan/tareas/<nuevas>.md` (para las pantallas de otros)
 
 ## Criterios de aceptación
 1. Todas las pantallas del catálogo están revisadas con la siembra de demostración (captura contra mockup).
 2. Las diferencias en pantallas propias se corrigen. Las de otros quedan como tareas P2 para su dueño, con las capturas y la lista de diferencias.
 3. Se verifica a 1280 px de ancho que no aparezca desplazamiento horizontal (RNF-12).
+4. «Reintentar» es el botón secundario de 11 §4 en los avisos de error de las pantallas de acceso del panel (los envoltorios de A1, H-89 de la auditoría del 25 sep) y del portal (`AvisoError` de `frontend/apps/portal/src/modulos/sesion/FormulariosAcceso.tsx`, H-83 de la auditoría del 3 oct), y no un texto subrayado.
 
 ## Pruebas obligatorias
 - Las pruebas de las páginas corregidas siguen pasando

@@ -16,7 +16,8 @@ function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
 function Enlace({ a, children }: { a: string; children: ReactNode }) {
   return (
     <NavLink to={a} className={({ isActive }) =>
-      `block rounded-base px-3 py-[7px] text-[14px] leading-[1.5] ${isActive ? 'bg-fondo text-[var(--marca-principal)] font-medium' : 'text-tinta hover:text-[var(--marca-principal)]'}`}>
+      // Mockup B2/Suscripcion: el enlace activo lleva un fondo teñido con la marca y el texto #2B3547.
+      `block rounded-base px-3 py-[7px] text-[14px] leading-[1.5] ${isActive ? 'bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] text-[#2B3547] font-medium' : 'text-tinta hover:text-[var(--marca-principal)]'}`}>
       {children}
     </NavLink>
   );
@@ -33,7 +34,7 @@ export function LayoutCuenta() {
         <nav className="w-[272px] shrink-0 border-r border-borde bg-panel px-4 pt-6 pb-5 flex flex-col justify-between">
           <div className="flex flex-col gap-5">
             <Grupo titulo="API">
-              <Enlace a="/documentacion/inicio">Documentación</Enlace>
+              <Enlace a="/documentacion">Documentación</Enlace>
               <Enlace a="/consola">Consola de pruebas</Enlace>
               <Enlace a="/planes">Planes</Enlace>
             </Grupo>

@@ -34,7 +34,8 @@ public static class Endpoints
             portal.NombreApi,
             portal.DescripcionApi,
             portal.HostPortal,
-            portal.HostApi));
+            portal.HostApi,
+            portal.NombreOrganizacion));
     }
 
     private static async Task<IResult> Logo(
@@ -67,5 +68,6 @@ public static class Endpoints
         string NombreApi,
         string? DescripcionApi,
         string HostPortal,
-        string HostApi);
+        string HostApi,
+        string NombreOrganizacion);
 }

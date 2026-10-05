@@ -9,7 +9,7 @@ import { crearRutas } from '../rutas';
 import { server } from '../../../../test/servidor';
 
 const API = 'http://localhost/api/portal/auth';
-const configuracion = { nombrePortal: 'Envíos Xelajú', colorPrincipal: '#B8322A', urlLogo: null, bienvenida: 'Bienvenido', nombreApi: 'Cotización de Envíos', descripcionApi: 'API', hostPortal: 'envios.shapi.localhost', hostApi: 'envios.api.shapi.localhost' };
+const configuracion = { nombrePortal: 'Envíos Xelajú', colorPrincipal: '#B8322A', urlLogo: null, bienvenida: 'Bienvenido', nombreApi: 'Cotización de Envíos', descripcionApi: 'API', hostPortal: 'envios.shapi.localhost', hostApi: 'envios.api.shapi.localhost', nombreOrganizacion: 'Envíos Xelajú, S.A.' };
 function problema(estado: number, codigo: string, title: string) {
   return HttpResponse.json({ status: estado, codigo, title }, { status: estado, headers: { 'Content-Type': 'application/problem+json' } });
 }
@@ -116,7 +116,8 @@ describe('DC-08 · acceso del consumidor', () => {
     expect(await screen.findByRole('heading', { name: 'Recuperar la contraseña' })).toBeDefined();
     await userEvent.type(screen.getByLabelText('Correo electrónico'), 'nadie@tienda.test'); await userEvent.click(screen.getByRole('button', { name: 'Enviar el enlace' }));
     expect(await screen.findByRole('heading', { name: 'Revise su correo' })).toBeDefined();
-    expect(screen.getAllByText(/Si el correo tiene una cuenta en este portal/).length).toBeGreaterThan(0);
+    // H-81: la respuesta neutral aparece una sola vez después de enviar.
+    expect(screen.getAllByText(/Si el correo tiene una cuenta en este portal/)).toHaveLength(1);
   });
 
   it('RF-03 guarda la contraseña y no reutiliza el token al consultar la sesión', async () => {
@@ -242,12 +243,50 @@ describe('DC-08 · acceso del consumidor', () => {
 
   it('RF-15 el botón principal y el campo enfocado usan la marca del portal, no el azul de Shapi', async () => {
     montar('/entrar');
-    const marco = (await screen.findByRole('heading', { name: 'Entrar' })).closest('section')!;
+    await screen.findByRole('heading', { name: 'Entrar' });
+    // H-74: los colores se definen en la raíz del portal, así que valen en todas sus pantallas, no solo en el acceso.
+    const raiz = document.querySelector<HTMLElement>('[style*="--marca-principal"]')!;
 
-    expect(marco.style.getPropertyValue('--principal')).toBe('var(--marca-principal)');
-    expect(marco.style.getPropertyValue('--principal-hover')).toContain('var(--marca-principal)');
-    expect(marco.style.getPropertyValue('--anillo-foco')).toBe('color-mix(in srgb, var(--marca-principal) 17%, #FFFFFF)');
-    expect(marco.contains(screen.getByRole('button', { name: 'Entrar' }))).toBe(true);
+    expect(raiz.style.getPropertyValue('--principal')).toBe('var(--marca-principal)');
+    expect(raiz.style.getPropertyValue('--principal-hover')).toContain('var(--marca-principal)');
+    expect(raiz.style.getPropertyValue('--anillo-foco')).toBe('color-mix(in srgb, var(--marca-principal) 17%, #FFFFFF)');
+    expect(raiz.contains(screen.getByRole('button', { name: 'Entrar' }))).toBe(true);
+  });
+
+  // H-82: el rótulo «Contraseña» de A5.7 es un <label> del campo, así que hacer clic en él lo enfoca.
+  it('RF-04 el rótulo de la contraseña enfoca el campo', async () => {
+    montar('/entrar');
+    const rotulo = await screen.findByText('Contraseña');
+
+    expect(rotulo.tagName).toBe('LABEL');
+    await userEvent.click(rotulo);
+    expect(document.activeElement).toBe(screen.getByLabelText('Contraseña'));
+  });
+
+  // Decidido (3 oct, DC-08): A5.10 nombra el portal, como el mockup, sin el correo.
+  it('RF-03 la contraseña nueva nombra el portal', async () => {
+    montar('/restablecer?token=abc');
+
+    expect(await screen.findByText('Defina una contraseña nueva para su cuenta en el portal de Envíos Xelajú.')).toBeDefined();
+  });
+
+  // H-80 (CU-11 2a): al aceptar una invitación con un correo que ya tiene cuenta, se ofrece entrar o recuperar.
+  it('RF-05 la invitación con el correo ya registrado ofrece entrar y recuperar la contraseña', async () => {
+    server.use(
+      http.get(`${API}/invitacion/abc`, () => HttpResponse.json({ correo: 'invitada@tienda.test' })),
+      http.post(`${API}/invitacion/abc/aceptar`, () => problema(409, 'correo_ya_registrado', 'Ya existe una cuenta con ese correo.')),
+    );
+    montar('/invitacion?token=abc');
+    await screen.findByLabelText('Nombre');
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Inés');
+    await userEvent.type(screen.getByLabelText('Nombre de la empresa'), 'Tienda');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'Contrasena123');
+    await userEvent.click(screen.getByRole('button', { name: 'Aceptar la invitación y crear la cuenta' }));
+
+    expect(await screen.findByText('Ya existe una cuenta con ese correo.')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Recuperar la contraseña' }).getAttribute('href')).toBe('/recuperar');
+    expect(screen.getAllByRole('link', { name: 'Entrar' }).some(enlace => enlace.getAttribute('href') === '/entrar')).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull();
   });
 
   it('RF-05 con el correo ya registrado ofrece entrar y recuperar la contraseña (CU-11 2a)', async () => {

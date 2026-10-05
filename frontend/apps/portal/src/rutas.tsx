@@ -1,4 +1,4 @@
-import { createBrowserRouter, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { LayoutPublico } from './layouts/LayoutPublico';
 import { LayoutCuenta } from './layouts/LayoutCuenta';
 import { RequiereSesionConsumidor } from './modulos/sesion/RequiereSesionConsumidor';
@@ -18,13 +18,17 @@ import B22Pagos from './paginas/B2-2-Pagos';
 import B23Suscripcion from './paginas/B2-3-Suscripcion';
 import B27CambioPlan from './paginas/B2-7-CambioPlan';
 import Error404 from './paginas/Error-404';
+import { ErrorRuta } from './paginas/Error-Ruta';
 
 export function crearRutas(): RouteObject[] {
   return [
     {
       element: <LayoutPublico />,
+      errorElement: <ErrorRuta />,
       children: [
         { path: '/', element: <A50Inicio /> },
+        // Los enlaces de «Documentación» llevan a /documentacion; DC-07 lo redirigirá a la primera ruta expuesta.
+        { path: '/documentacion', element: <A51Documentacion /> },
         { path: '/documentacion/:ruta', element: <A51Documentacion /> },
         { path: '/consola', element: <A52Consola /> },
         { path: '/registro', element: <A53Registro /> },
@@ -41,7 +45,9 @@ export function crearRutas(): RouteObject[] {
     {
       path: '/cuenta',
       element: <RequiereSesionConsumidor><LayoutCuenta /></RequiereSesionConsumidor>,
+      errorElement: <ErrorRuta />,
       children: [
+        { index: true, element: <Navigate to="suscripcion" replace /> },
         { path: 'consumo', element: <B21Consumo /> },
         { path: 'pagos', element: <B22Pagos /> },
         { path: 'suscripcion', element: <B23Suscripcion /> },
