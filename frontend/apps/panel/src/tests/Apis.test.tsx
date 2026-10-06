@@ -427,6 +427,8 @@ describe('RF-13 · A3.5 Configuración por ruta', () => {
     expect(screen.getAllByRole('columnheader').map(celda => celda.textContent)).toEqual(['Método', 'Ruta', 'Límite por minuto', 'Caché', 'Peso en llamadas']);
     expect(screen.queryByText('/tarifas')).toBeNull();
     expect(screen.getByLabelText('Caché de POST /cotizaciones').hasAttribute('disabled')).toBe(true);
+    expect(screen.getAllByText('llamada por petición')).toHaveLength(3);
+    expect(screen.getByText('llamadas por petición')).toBeDefined();
     const peso = screen.getByLabelText('Peso en llamadas de POST /cotizaciones');
     await userEvent.clear(peso);
     await userEvent.type(peso, '5');

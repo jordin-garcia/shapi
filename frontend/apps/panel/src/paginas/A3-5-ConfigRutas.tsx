@@ -101,7 +101,7 @@ export default function PaginaA35ConfigRutas() {
               <td className="py-3 pr-4 text-[15px]">{ruta.patron}</td>
               <td className="py-3 pr-4"><label className="flex items-center gap-3"><input aria-label={`Límite por minuto de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[110px]`} type="number" min="1" value={edicion.limiteMinuto} onChange={evento => cambiar(ruta, 'limiteMinuto', evento.target.value)} /><span className="text-[13px] text-tinta-suave">peticiones</span></label></td>
               <td className="py-3 pr-4"><Selector aria-label={`Caché de ${ruta.metodo} ${ruta.patron}`} className="w-[200px]" value={ruta.metodo === 'GET' ? edicion.cacheSegundos : '0'} disabled={ruta.metodo !== 'GET'} opciones={opcionesCache} onChange={evento => cambiar(ruta, 'cacheSegundos', evento.target.value)} /></td>
-              <td className="py-3"><label className="flex items-center gap-3"><input aria-label={`Peso en llamadas de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[72px]`} type="number" min="1" max="1000" value={edicion.pesoLlamadas} onChange={evento => cambiar(ruta, 'pesoLlamadas', evento.target.value)} /><span className="text-[13px] text-tinta-suave">llamadas por petición</span></label></td>
+              <td className="py-3"><label className="flex items-center gap-3"><input aria-label={`Peso en llamadas de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[72px]`} type="number" min="1" max="1000" value={edicion.pesoLlamadas} onChange={evento => cambiar(ruta, 'pesoLlamadas', evento.target.value)} /><span className="text-[13px] text-tinta-suave">{edicion.pesoLlamadas === '1' ? 'llamada' : 'llamadas'} por petición</span></label></td>
             </tr>;
           })}</tbody>
         </table>

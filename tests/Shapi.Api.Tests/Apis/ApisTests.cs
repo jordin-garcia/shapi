@@ -944,6 +944,35 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.True(_fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas.Count(id => id == apiId) >= 2);
     }
 
+    // RNF-08 y 04 §3.1: todos los endpoints nuevos aíslan organizaciones y solo permiten configurar al propietario/editor.
+    [Fact]
+    public async Task RF_13_RF_14_EndpointsNuevos_ApiAjenaResponde404YLector403()
+    {
+        var organizacionAjena = await CrearOrganizacion("Organización ajena");
+        var apiAjena = await InsertarApi(organizacionAjena, "ajena-dc06");
+        var rutaAjena = await InsertarRuta(apiAjena);
+        var configuracionAjena = new[] { new { rutaId = rutaAjena, limiteMinuto = (int?)10, cacheSegundos = 0, pesoLlamadas = 1 } };
+        using var configurarAjena = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiAjena}/configuracion-rutas", configuracionAjena);
+        using var publicarAjena = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiAjena}/publicar", null);
+        using var despublicarAjena = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiAjena}/despublicar", null);
+        await AfirmarProblema(configurarAjena, HttpStatusCode.NotFound, "api_no_encontrada");
+        await AfirmarProblema(publicarAjena, HttpStatusCode.NotFound, "api_no_encontrada");
+        await AfirmarProblema(despublicarAjena, HttpStatusCode.NotFound, "api_no_encontrada");
+
+        var apiPropia = await RegistrarYObtenerId("lector-dc06");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiPropia,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutaPropia = (await ObtenerRutas(apiPropia)).GetProperty("elementos")[0].GetProperty("id").GetGuid();
+        var configuracionPropia = new[] { new { rutaId = rutaPropia, limiteMinuto = (int?)10, cacheSegundos = 0, pesoLlamadas = 1 } };
+        using var configurarLector = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiPropia}/configuracion-rutas", configuracionPropia, "Lector");
+        using var publicarLector = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiPropia}/publicar", null, "Lector");
+        using var despublicarLector = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiPropia}/despublicar", null, "Lector");
+        Assert.Equal(HttpStatusCode.Forbidden, configurarLector.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, publicarLector.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, despublicarLector.StatusCode);
+    }
+
     private static void AfirmarConsumoConsolidado(
         ConsumoDiario consumo,
         long valor,
@@ -1115,6 +1144,20 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             """;
         comando.Parameters.AddWithValue("organizacion", organizacionId);
         comando.Parameters.AddWithValue("subdominio", subdominio);
+        return (Guid)(await comando.ExecuteScalarAsync())!;
+    }
+
+    private async Task<Guid> InsertarRuta(Guid apiId)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            INSERT INTO ruta (id, api_id, metodo, patron, definicion, expuesta, cache_segundos, peso_llamadas)
+            VALUES (gen_random_uuid(), @api, 'GET', '/ajena', '{}'::jsonb, true, 0, 1)
+            RETURNING id
+            """;
+        comando.Parameters.AddWithValue("api", apiId);
         return (Guid)(await comando.ExecuteScalarAsync())!;
     }
 
