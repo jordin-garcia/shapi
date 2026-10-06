@@ -90,17 +90,23 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         await base.DisposeAsync();
     }
 
-    // RF-19: la lista pública devuelve planes activos en el orden de plataforma.
+    // RF-19: la lista pública excluye planes inactivos y sigue el orden de plataforma.
     [Fact]
     public async Task RF_19_ListarPlanesPlataforma_DevuelveActivosOrdenados()
     {
-        var plan = await NuevoPlanPlataforma();
+        var primero = await NuevoPlanPlataforma();
+        var segundo = await NuevoPlanPlataforma();
+        var inactivo = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET orden = 500 WHERE id = '{primero}'");
+        await Ejecutar($"UPDATE plan_plataforma SET orden = 501 WHERE id = '{segundo}'");
+        await Ejecutar($"UPDATE plan_plataforma SET orden = 499, activo = false WHERE id = '{inactivo}'");
         using var client = Factory.CreateClient();
         using var response = await client.GetAsync("/api/planes-plataforma");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var plans = await response.Content.ReadFromJsonAsync<JsonElement>();
-        plans.GetArrayLength().Should().BeGreaterThan(0);
-        plans.EnumerateArray().Select(x => x.GetProperty("id").GetGuid()).Should().Contain(plan);
+        var ids = plans.EnumerateArray().Select(x => x.GetProperty("id").GetGuid()).ToArray();
+        ids.Should().Contain(primero).And.Contain(segundo).And.NotContain(inactivo);
+        Array.IndexOf(ids, primero).Should().BeLessThan(Array.IndexOf(ids, segundo));
     }
 
     // RF-20: contratación de plan de pago finaliza Prueba, guarda pago y publica el estado actualizado.
@@ -114,6 +120,14 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         var nueva = body.GetProperty("id").GetGuid();
+        body.GetProperty("plan").GetProperty("nombre").GetString().Should().Be("Lanzamiento");
+        body.GetProperty("plan").GetProperty("precio").GetDecimal().Should().Be(199m);
+        body.GetProperty("plan").GetProperty("moneda").GetString().Should().Be("GTQ");
+        var inicioCiclo = Shapi.Dominio.Suscripciones.Suscripcion.InicioDeCiclo(Reloj.Ahora);
+        body.GetProperty("periodo").GetProperty("inicio").GetDateTimeOffset().Should().Be(inicioCiclo);
+        body.GetProperty("proximaRenovacion").GetDateTimeOffset().Should().Be(inicioCiclo.AddDays(30));
+        body.GetProperty("tarjetaEnmascarada").GetString().Should().EndWith("4242");
+        body.GetProperty("tarjetaEnmascarada").GetString().Should().NotContain("4242424242424242");
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{prueba}'")).Should().Be("finalizada");
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{nueva}'")).Should().Be("activa");
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{nueva}' AND estado = 'autorizado' AND monto = 199")).Should().Be(1);

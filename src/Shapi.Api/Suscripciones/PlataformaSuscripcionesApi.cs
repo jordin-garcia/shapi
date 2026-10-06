@@ -13,15 +13,20 @@ namespace Shapi.Api.Suscripciones;
 public sealed record PeticionSuscripcionPlataforma(Guid PlanId, DatosTarjeta? Tarjeta = null, bool UsarRegistrada = false);
 public sealed record PeticionPagoPlataforma(DatosTarjeta? Tarjeta = null, bool UsarRegistrada = false);
 public sealed record RespuestaPlanPlataforma(Guid Id, string Nombre, string Descripcion, decimal Precio, string Moneda,
-    int VigenciaDias, int? MaxApis, int? MaxMiembros, long CuotaPeticiones, bool DominioPropio, bool EsPrueba);
+    int VigenciaDias, int? MaxApis, int? MaxMiembros, long CuotaPeticiones, bool DominioPropio, bool EsPrueba,
+    DateTimeOffset InicioCicloPrevisto);
 
 public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, IPasarelaPagos pasarela,
     IPublicadorCache publicador, IBitacora bitacora)
 {
-    public async Task<IResult> ListarPlanes(CancellationToken ct) => TypedResults.Ok(
-        await db.Set<PlanPlataforma>().AsNoTracking().Where(p => p.Activo).OrderBy(p => p.Orden)
+    public async Task<IResult> ListarPlanes(CancellationToken ct)
+    {
+        var inicioCiclo = Suscripcion.InicioDeCiclo(reloj.Ahora);
+        var planes = await db.Set<PlanPlataforma>().AsNoTracking().Where(p => p.Activo).OrderBy(p => p.Orden)
             .Select(p => new RespuestaPlanPlataforma(p.Id, p.Nombre, p.Descripcion, p.Precio, "GTQ", p.VigenciaDias,
-                p.MaxApis, p.MaxMiembros, p.CuotaPeticiones, p.DominioPropio, p.EsPrueba)).ToListAsync(ct));
+                p.MaxApis, p.MaxMiembros, p.CuotaPeticiones, p.DominioPropio, p.EsPrueba, inicioCiclo)).ToListAsync(ct);
+        return TypedResults.Ok(planes);
+    }
 
     public async Task<IResult> Consultar(HttpContext http, CancellationToken ct)
     {
@@ -115,7 +120,15 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         }
         await publicador.PublicarSuscripcion(nueva.Id, ct);
         await Registrar(http, org, nueva.Id, AccionesBitacora.SuscripcionPlataformaContratada, $"Contrató el plan {plan.Nombre}.", ct);
-        return TypedResults.Created("/api/suscripcion", new { id = nueva.Id, planId = plan.Id, estado = "activa", inicio = nueva.Inicio, fin = nueva.Fin });
+        return TypedResults.Created("/api/suscripcion", new
+        {
+            id = nueva.Id,
+            plan = new { id = plan.Id, nombre = plan.Nombre, precio = plan.Precio, moneda = "GTQ", vigenciaDias = plan.VigenciaDias },
+            estado = "activa",
+            periodo = new { inicio = nueva.Inicio, fin = nueva.Fin.AddDays(-1) },
+            proximaRenovacion = nueva.Fin,
+            tarjetaEnmascarada = $"{NombreMarca(medio.Marca)} •••• {medio.Ultimos4}"
+        });
     }
 
     public async Task<IResult> Cambiar(HttpContext http, PeticionSuscripcionPlataforma p, CancellationToken ct)
@@ -160,8 +173,9 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             var inicioCompleto = Suscripcion.InicioDeCiclo(ahora);
             var nuevaCompleta = SuscripcionPlataforma.Contratar(org, destino, medioCompleto.Id, ahora);
-            await using (var tx = await db.Database.BeginTransactionAsync(ct))
+            try
             {
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
                 if (prepCompleto.EsNueva)
                 {
                     db.Add(medioCompleto);
@@ -175,10 +189,23 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 await db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
             }
+            catch
+            {
+                await pasarela.ReembolsarAsync(pagoCompleto.Referencia!);
+                throw;
+            }
             await publicador.PublicarSuscripcion(nuevaCompleta.Id, ct);
             await Registrar(http, org, nuevaCompleta.Id, AccionesBitacora.SuscripcionPlataformaContratada,
                 $"Contrató el plan de plataforma {destino.Nombre}.", ct);
-            return TypedResults.Ok(new { id = nuevaCompleta.Id, planId = destino.Id, estado = "activa", inicio = nuevaCompleta.Inicio, fin = nuevaCompleta.Fin });
+            return TypedResults.Ok(new
+            {
+                id = nuevaCompleta.Id,
+                plan = new { id = destino.Id, nombre = destino.Nombre, precio = destino.Precio, moneda = "GTQ", vigenciaDias = destino.VigenciaDias },
+                estado = "activa",
+                periodo = new { inicio = nuevaCompleta.Inicio, fin = nuevaCompleta.Fin.AddDays(-1) },
+                proximaRenovacion = nuevaCompleta.Fin,
+                tarjetaEnmascarada = $"{NombreMarca(medioCompleto.Marca)} •••• {medioCompleto.Ultimos4}"
+            });
         }
         if (destino.Precio / destino.VigenciaDias <= origen.Precio / origen.VigenciaDias)
         {
@@ -215,21 +242,35 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             referencia = cobro.Referencia;
         }
-        if (prep.EsNueva)
-        {
-            db.Add(prep.Medio!);
-        }
-
         var medioId = prep.Medio?.Id ?? actual.MedioPagoId;
-        var nuevoInicio = origen.VigenciaDias == destino.VigenciaDias ? (DateTimeOffset?)null : Suscripcion.InicioDeCiclo(ahora);
-        actual.CambiarPlan(destino, medioId, nuevoInicio, ahora);
-        if (referencia is not null)
+        try
         {
-            db.Add(Pago.PlataformaAutorizado(actual.Id, medioId!.Value, ConceptoPago.CambioPlan,
-            valores.APagar, $"{origen.Nombre} → {destino.Nombre} · diferencia prorrateada", referencia, actual.Inicio, actual.Fin));
-        }
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            if (prep.EsNueva)
+            {
+                db.Add(prep.Medio!);
+            }
 
-        await db.SaveChangesAsync(ct);
+            var nuevoInicio = origen.VigenciaDias == destino.VigenciaDias ? (DateTimeOffset?)null : Suscripcion.InicioDeCiclo(ahora);
+            actual.CambiarPlan(destino, medioId, nuevoInicio, ahora);
+            if (referencia is not null)
+            {
+                db.Add(Pago.PlataformaAutorizado(actual.Id, medioId!.Value, ConceptoPago.CambioPlan,
+                    valores.APagar, $"{origen.Nombre} → {destino.Nombre} · diferencia prorrateada", referencia, actual.Inicio, actual.Fin));
+            }
+
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            if (referencia is not null)
+            {
+                await pasarela.ReembolsarAsync(referencia);
+            }
+
+            throw;
+        }
         await publicador.PublicarSuscripcion(actual.Id, ct);
         await Registrar(http, org, actual.Id, AccionesBitacora.SuscripcionPlataformaCambiada, $"Cambió el plan {origen.Nombre} por {destino.Nombre}.", ct);
         return TypedResults.Ok(new { estado = "activa", credito = valores.Credito, cargo = valores.Cargo, aPagar = valores.APagar, inicio = actual.Inicio, fin = actual.Fin });
@@ -275,15 +316,25 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         }
 
         var ahora = reloj.Ahora;
-        if (prep.EsNueva)
+        try
         {
-            db.Add(prep.Medio!);
-        }
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            if (prep.EsNueva)
+            {
+                db.Add(prep.Medio!);
+            }
 
-        actual.Reactivar(plan, prep.Medio!.Id, ahora);
-        db.Add(Pago.PlataformaAutorizado(actual.Id, prep.Medio.Id, ConceptoPago.Reactivacion, plan.Precio,
-            $"Reactivación del plan {plan.Nombre}", cobro.Referencia!, actual.Inicio, actual.Fin));
-        await db.SaveChangesAsync(ct);
+            actual.Reactivar(plan, prep.Medio!.Id, ahora);
+            db.Add(Pago.PlataformaAutorizado(actual.Id, prep.Medio.Id, ConceptoPago.Reactivacion, plan.Precio,
+                $"Reactivación del plan {plan.Nombre}", cobro.Referencia!, actual.Inicio, actual.Fin));
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await pasarela.ReembolsarAsync(cobro.Referencia!);
+            throw;
+        }
         await publicador.PublicarSuscripcion(actual.Id, ct);
         return TypedResults.Ok(new { estado = "activa", inicio = actual.Inicio, fin = actual.Fin });
     }

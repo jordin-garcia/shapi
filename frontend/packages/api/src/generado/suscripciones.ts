@@ -154,6 +154,32 @@ export interface components {
             cuotaPeticiones: number;
             dominioPropio: boolean;
             esPrueba: boolean;
+            /** Format: date-time */
+            inicioCicloPrevisto: string;
+        };
+        ResultadoContratacionPlataforma: {
+            /** Format: uuid */
+            id: string;
+            plan: {
+                /** Format: uuid */
+                id: string;
+                nombre: string;
+                precio: number;
+                /** @constant */
+                moneda: "GTQ";
+                vigenciaDias: number;
+            };
+            /** @constant */
+            estado: "activa";
+            periodo: {
+                /** Format: date-time */
+                inicio: string;
+                /** Format: date-time */
+                fin: string;
+            };
+            /** Format: date-time */
+            proximaRenovacion: string;
+            tarjetaEnmascarada: string;
         };
         PeticionSuscripcionPlataforma: {
             /** Format: uuid */
@@ -170,21 +196,21 @@ export interface components {
         SuscripcionPlataforma: {
             plan: {
                 /** Format: uuid */
-                id?: string;
-                nombre?: string;
-                descripcion?: string;
-                precio?: number;
+                id: string;
+                nombre: string;
+                descripcion: string;
+                precio: number;
                 /** @constant */
-                moneda?: "GTQ";
-                vigenciaDias?: number;
+                moneda: "GTQ";
+                vigenciaDias: number;
             };
             /** @enum {string} */
             estado: "activa" | "en_gracia" | "suspendida" | "finalizada";
             periodo: {
                 /** Format: date-time */
-                inicio?: string;
+                inicio: string;
                 /** Format: date-time */
-                fin?: string;
+                fin: string;
             };
             /** Format: date-time */
             proximaRenovacion: string;
@@ -353,33 +379,68 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Plan contratado */
+            /** @description Plan contratado y datos del ciclo activado */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ResultadoContratacionPlataforma"];
+                };
             };
-            /** @description Cobro rechazado */
+            /** @description Datos inválidos o no hay tarjeta registrada (`datos_invalidos`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela rechazó el cobro (`pago_rechazado`) */
             402: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
             /** @description Plan no encontrado */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
             /** @description Ya existe una suscripción de pago vigente */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Tarjeta inválida o vencida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela de pagos no está disponible (`pasarela_no_disponible`) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
         };
     };
@@ -403,19 +464,50 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Cobro rechazado */
+            /** @description Datos inválidos o no hay tarjeta registrada (`datos_invalidos`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela rechazó el cobro (`pago_rechazado`) */
             402: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
-            /** @description La organización excede los límites del plan */
+            /** @description Suscripción o plan no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Tarjeta inválida o vencida, u organización fuera de los límites del plan */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela de pagos no está disponible (`pasarela_no_disponible`) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
         };
     };
@@ -457,12 +549,50 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Cobro rechazado */
+            /** @description Datos inválidos o no hay tarjeta registrada (`datos_invalidos`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela rechazó el cobro (`pago_rechazado`) */
             402: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description No hay una suscripción que requiera pago */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Tarjeta inválida o vencida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela de pagos no está disponible (`pasarela_no_disponible`) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
         };
     };

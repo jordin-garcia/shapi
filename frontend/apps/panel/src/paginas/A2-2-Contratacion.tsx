@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { crearCliente, ErrorApi } from '@shapi/api';
-import type { paths } from '@shapi/api/suscripciones';
+import { crearCliente } from '@shapi/api';
+import type { components, paths } from '@shapi/api/suscripciones';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { useParams } from 'react-router';
 import Confirmacion from './A2-3-Confirmacion';
@@ -9,6 +9,11 @@ import Rechazo from './A2-4-Rechazo';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
+const fecha = (valor: string) => new Intl.DateTimeFormat('es-GT', {
+  day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala',
+}).format(new Date(valor));
+type ResultadoContratacion = components['schemas']['ResultadoContratacionPlataforma'];
+type Resultado = { tipo: 'exito'; datos: ResultadoContratacion } | { tipo: 'rechazo'; tarjeta: string };
 
 export default function PaginaA22Contratacion() {
   const { plan: planId } = useParams();
@@ -18,8 +23,7 @@ export default function PaginaA22Contratacion() {
   const [cvv, setCvv] = useState('');
   const [titular, setTitular] = useState('');
   const [usarRegistrada, setUsarRegistrada] = useState(true);
-  const [resultado, setResultado] = useState<'exito' | 'rechazo'>();
-  const [mensaje, setMensaje] = useState('');
+  const [resultado, setResultado] = useState<Resultado>();
   const planes = useQuery({
     queryKey: ['planes-plataforma'],
     queryFn: async ({ signal }) => {
@@ -53,25 +57,32 @@ export default function PaginaA22Contratacion() {
       if (!response.ok || !data) throw new Error('No se pudo contratar el plan.');
       return data;
     },
-    onSuccess: () => setResultado('exito'),
-    onError: error => {
-      setResultado('rechazo');
-      setMensaje(error instanceof ErrorApi ? error.titulo : 'No se autorizó el cobro. Revise los datos e inténtelo de nuevo.');
-    },
+    onSuccess: datos => setResultado({ tipo: 'exito', datos }),
+    onError: () => setResultado({ tipo: 'rechazo', tarjeta: tarjetaEnmascarada() }),
   });
+  function tarjetaEnmascarada() {
+    if (usarRegistrada && suscripcion.data?.tarjetaEnmascarada) return suscripcion.data.tarjetaEnmascarada;
+    const digitos = numero.replace(/\D/g, '');
+    const marca = digitos.startsWith('4') ? 'Visa' : digitos.startsWith('5') ? 'Mastercard' : digitos.startsWith('34') || digitos.startsWith('37') ? 'American Express' : 'Tarjeta';
+    return `${marca} •••• ${digitos.slice(-4) || '—'}`;
+  }
   if (planes.isPending || suscripcion.isPending) return <EstadoCargando />;
   if (planes.isError) return <EstadoError mensaje="No se pudieron cargar los planes." reintentar={() => void planes.refetch()} />;
   if (!plan) return <Aviso estado="error">No se encontró el plan seleccionado.</Aviso>;
-  if (resultado === 'exito') return <Confirmacion />;
-  if (resultado === 'rechazo') return <Rechazo monto={dinero(plan.precio)} mensaje={mensaje} />;
+  if (resultado?.tipo === 'exito') return <Confirmacion contratacion={resultado.datos} />;
+  if (resultado?.tipo === 'rechazo') return <Rechazo planId={plan.id} plan={plan.nombre} monto={dinero(plan.precio)} tarjeta={resultado.tarjeta} suscripcion={suscripcion.data ?? null} />;
+  const inicio = new Date(plan.inicioCicloPrevisto);
+  const fin = new Date(inicio.getTime() + (plan.vigenciaDias - 1) * 86_400_000);
   return <main className="mx-auto max-w-[760px] rounded-base border border-borde bg-panel p-8 md:p-10">
     <h1 className="font-display text-[32px] leading-tight">Contratación de un plan superior</h1>
     <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">El cobro se autoriza en el momento y el plan queda activo de inmediato.</p>
     <section className="mt-8 border-y border-borde py-5">
-      <h2 className="font-display text-[22px]">{plan.nombre}</h2>
+      <div className="flex items-start justify-between gap-4"><h2 className="font-display text-[22px]">{plan.nombre}</h2><span className="text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Plan elegido</span></div>
       <p className="mt-1 text-sm text-tinta-suave">{plan.descripcion}</p>
       <p className="mt-4 text-sm">Precio <span className="float-right font-medium">{dinero(plan.precio)} cada {plan.vigenciaDias} días</span></p>
-      <p className="mt-2 text-sm">Plan actual <span className="float-right">Prueba · Q 0.00</span></p>
+      <p className="mt-2 text-sm">Vigencia <span className="float-right">{plan.vigenciaDias} días</span></p>
+      <p className="mt-2 text-sm">Periodo que se activa <span className="float-right">{fecha(plan.inicioCicloPrevisto)} – {fecha(fin.toISOString())}</span></p>
+      <p className="mt-2 text-sm">Plan actual <span className="float-right">{suscripcion.data?.plan ? `${suscripcion.data.plan.nombre} · ${dinero(suscripcion.data.plan.precio)}` : 'Prueba · Q 0.00'}</span></p>
       <p className="mt-5 text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Límites del plan</p>
       <p className="mt-2 text-sm">{plan.maxApis ?? 'APIs ilimitadas'} APIs · {plan.cuotaPeticiones.toLocaleString('es-GT')} peticiones · {plan.maxMiembros ?? 'Miembros ilimitados'} miembros</p>
     </section>
@@ -93,7 +104,7 @@ export default function PaginaA22Contratacion() {
         <Campo etiqueta="Titular de la tarjeta" autoComplete="cc-name" value={titular} onChange={event => setTitular(event.target.value)} required />
       </>}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borde pt-5">
-        <p className="text-sm text-tinta-suave">A pagar hoy <strong className="ml-3 font-display text-[26px] text-tinta">{dinero(plan.precio)}</strong></p>
+        <p className="text-sm text-tinta-suave">Total a pagar hoy <strong className="ml-3 font-display text-[26px] text-tinta">{dinero(plan.precio)}</strong></p>
         <Boton type="submit" deshabilitado={contratar.isPending}>{contratar.isPending ? 'Procesando…' : 'Pagar ' + dinero(plan.precio) + ' y contratar'}</Boton>
       </div>
     </form>

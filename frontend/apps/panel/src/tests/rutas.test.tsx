@@ -79,8 +79,8 @@ beforeEach(() => {
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
     http.get('http://localhost/api/planes-plataforma', () => HttpResponse.json([
-      { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false },
-      { id: 'escala', nombre: 'Escala mensual', descripcion: 'Plan', precio: 1500, moneda: 'GTQ', vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false },
+      { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
+      { id: 'escala', nombre: 'Escala mensual', descripcion: 'Plan', precio: 1500, moneda: 'GTQ', vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
     ])),
     http.get('http://localhost/api/suscripcion', () => HttpResponse.json({
       plan: { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan', precio: 199, moneda: 'GTQ', vigenciaDias: 30 },

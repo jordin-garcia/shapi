@@ -11,12 +11,18 @@ import PaginaA25CambioPlan from './A2-5-CambioPlan';
 import PaginaB14Suscripcion from './B1-4-Suscripcion';
 
 const API = 'http://localhost/api';
-const lanzamiento = { id: 'plan-1', nombre: 'Lanzamiento', descripcion: 'Empezar a cobrar por una API existente', precio: 199, moneda: 'GTQ' as const, vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false };
+const lanzamiento = { id: 'plan-1', nombre: 'Lanzamiento', descripcion: 'Empezar a cobrar por una API existente', precio: 199, moneda: 'GTQ' as const, vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false, inicioCicloPrevisto: '2026-08-24T06:00:00Z' };
 const producto = { ...lanzamiento, id: 'plan-2', nombre: 'Producto', descripcion: 'Proveedores con clientes establecidos', precio: 599, maxApis: 10, maxMiembros: 10, cuotaPeticiones: 2000000, dominioPropio: true };
+const prueba = { ...lanzamiento, id: 'trial', nombre: 'Prueba', precio: 0, maxApis: 1, maxMiembros: 1, cuotaPeticiones: 10000, esPrueba: true };
 const suscripcion = {
   plan: { id: lanzamiento.id, nombre: lanzamiento.nombre, descripcion: lanzamiento.descripcion, precio: lanzamiento.precio, moneda: 'GTQ' as const, vigenciaDias: 30 },
   estado: 'activa' as const, periodo: { inicio: '2026-08-24T06:00:00Z', fin: '2026-09-22T06:00:00Z' },
   proximaRenovacion: '2026-09-23T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4821', graciaHasta: null, diasRestantesCiclo: 13, diasRestantes: 0, cambioProgramado: null,
+};
+const suscripcionPrueba = {
+  ...suscripcion,
+  plan: { id: prueba.id, nombre: prueba.nombre, descripcion: prueba.descripcion, precio: 0, moneda: 'GTQ' as const, vigenciaDias: 14 },
+  tarjetaEnmascarada: null,
 };
 let client: QueryClient;
 let cambioSolicitado = false;
@@ -31,12 +37,12 @@ afterEach(() => { cleanup(); client.clear(); server.resetHandlers(); cambioSolic
 describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
   it('A2.1 muestra los planes, precios y límites de plataforma', async () => {
     server.use(
-      http.get(API + '/planes-plataforma', () => HttpResponse.json([{ ...lanzamiento, id: 'trial', nombre: 'Prueba', esPrueba: true }, lanzamiento, producto])),
-      http.get(API + '/suscripcion', () => HttpResponse.json({ title: 'Sin suscripción', codigo: 'suscripcion_no_encontrada' }, { status: 404, headers: { 'Content-Type': 'application/problem+json' } })),
+      http.get(API + '/planes-plataforma', () => HttpResponse.json([prueba, lanzamiento, producto])),
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcionPrueba)),
     );
     renderizar('/panel/suscripcion/planes', <PaginaA21PlanesPlataforma />);
     expect(await screen.findByRole('heading', { name: 'Los planes de Shapi.' })).toBeDefined();
-    expect(screen.getAllByText('Q 199.00')).toHaveLength(2);
+    expect(screen.getByText('Q 199.00')).toBeDefined();
     expect(screen.getByText(/2,000,000/)).toBeDefined();
   });
 
@@ -48,7 +54,11 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
         const body = await request.json() as { planId: string; tarjeta: { numero: string } };
         expect(body.planId).toBe(lanzamiento.id);
         expect(body.tarjeta.numero).toBe('4242424242424242');
-        return HttpResponse.json({ id: 'sub-1', estado: 'activa' }, { status: 201 });
+        return HttpResponse.json({
+          id: 'sub-1', plan: { id: lanzamiento.id, nombre: lanzamiento.nombre, precio: lanzamiento.precio, moneda: 'GTQ', vigenciaDias: 30 },
+          estado: 'activa', periodo: { inicio: lanzamiento.inicioCicloPrevisto, fin: '2026-09-22T06:00:00Z' },
+          proximaRenovacion: '2026-09-23T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4242',
+        }, { status: 201 });
       }),
     );
     renderizar('/panel/suscripcion/contratar/plan-1', <Routes><Route path="/panel/suscripcion/contratar/:plan" element={<PaginaA22Contratacion />} /></Routes>);
@@ -60,12 +70,15 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 199.00 y contratar' }));
     expect(await screen.findByRole('heading', { name: 'Plan activado' })).toBeDefined();
     expect(screen.getByText('El cobro fue autorizado y su suscripción de plataforma ya está vigente.')).toBeDefined();
+    expect(screen.getByText('Lanzamiento · Activa')).toBeDefined();
+    expect(screen.getByText('24 ago 2026 – 22 sept 2026')).toBeDefined();
+    expect(screen.getByText('Visa •••• 4242')).toBeDefined();
   });
 
   it('A2.4 informa del rechazo y mantiene el plan vigente', async () => {
     server.use(
       http.get(API + '/planes-plataforma', () => HttpResponse.json([lanzamiento])),
-      http.get(API + '/suscripcion', () => HttpResponse.json({ title: 'Sin suscripción', codigo: 'suscripcion_no_encontrada' }, { status: 404, headers: { 'Content-Type': 'application/problem+json' } })),
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcionPrueba)),
       http.post(API + '/suscripcion/contratar', () => HttpResponse.json({ title: 'No se autorizó el cobro.', codigo: 'pago_rechazado' }, { status: 402, headers: { 'Content-Type': 'application/problem+json' } })),
     );
     renderizar('/panel/suscripcion/contratar/plan-1', <Routes><Route path="/panel/suscripcion/contratar/:plan" element={<PaginaA22Contratacion />} /></Routes>);
@@ -76,7 +89,10 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     await userEvent.type(screen.getByLabelText('Titular de la tarjeta'), 'Ana Morales');
     await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 199.00 y contratar' }));
     expect(await screen.findByRole('heading', { name: 'Tarjeta rechazada' })).toBeDefined();
-    expect(screen.getByText('No se autorizó el cobro.')).toBeDefined();
+    expect(screen.getByText(/No se autorizó el cobro de Q 199.00/)).toBeDefined();
+    expect(screen.getByText('Lanzamiento · Rechazado')).toBeDefined();
+    expect(screen.getByText('Visa •••• 0002')).toBeDefined();
+    expect(screen.getByText(/Prueba · Q 0.00 · Sin cambios/)).toBeDefined();
   });
 
   it('A2.5 muestra el cálculo de prorrateo y confirma el cambio', async () => {
