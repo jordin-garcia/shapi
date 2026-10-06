@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-05
 depende_de: [JZ-03]
 requisitos: [RF-46]
@@ -46,3 +46,11 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Encolar los correos (cada módulo)
+
+## Resultado
+
+- Se completaron las 12 plantillas de RF-46 en HTML y texto, en español formal, con asuntos específicos y pruebas unitarias que renderizan cada variante sin marcadores pendientes.
+- `MotorPlantillasCorreo` aplica una cabecera común: Shapi con el color principal de la variante 4 para el personal, o el nombre, color y logotipo opcional del portal para consumidores. El nombre se escapa en HTML, `colorPortal` acepta únicamente `#RRGGBB` y `hostPortal` conserva la validación de subdominios permitidos.
+- El logotipo del portal se carga desde `https://{hostPortal}/api/portal/logo` solo cuando `logoPortal` es `"true"`; sin logotipo se muestra únicamente el nombre del portal.
+- Se documentaron en 10 §6 los datos requeridos por cada plantilla para que los módulos que las encolan compartan el mismo contrato.
+- Archivos principales: `src/Shapi.Infraestructura/Correo/MotorPlantillasCorreo.cs`, `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs`, `src/Shapi.Infraestructura/Correo/Plantillas/` y `tests/Shapi.Api.Tests/Correo/`.

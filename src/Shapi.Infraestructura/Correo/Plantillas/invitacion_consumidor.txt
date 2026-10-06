@@ -1,0 +1,9 @@
+Invitación al portal
+
+Hola, {{nombre}}.
+
+Usted recibió una invitación para usar {{nombreApi}}.
+Puede aceptarla aquí:
+{{enlace}}
+
+Este enlace vence en 7 días. Si usted no esperaba esta invitación, puede ignorar este mensaje.

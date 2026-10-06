@@ -1,0 +1,7 @@
+Aviso de cuota de plataforma
+
+Hola, {{nombre}}.
+
+Usted alcanzó el {{porcentaje}} % de la cuota de llamadas de su plan de plataforma.
+Revise su consumo y las opciones disponibles aquí:
+{{enlace}}

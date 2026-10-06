@@ -59,3 +59,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **JZ-13:** el entorno E2E puede ejecutar `dotnet run --project src/Shapi.Trabajador -- sembrar-demo --reiniciar` antes de los flujos para reconstruir datos deterministas.
   - **Todos:** las cuentas y claves fijas están en `docs/manual-tecnico.md`; en producción simulada los orígenes predeterminados son `http://origen-envios:8080` y `http://origen-agro:8080`.
+
+## 2026-10-05 · JZ-11 · Plantillas de correo completas
+- Hecho: se completaron las 12 plantillas de RF-46 en HTML y texto, con asuntos específicos, marca de Shapi para el personal, marca blanca para consumidores, logotipo opcional y pruebas unitarias para cada plantilla y variante.
+- Decisiones: la marca se agrega de forma centralizada en `MotorPlantillasCorreo`; el portal exige `nombrePortal`, `hostPortal` y `colorPortal` válido, y usa el logotipo solo con `logoPortal: "true"`. Los marcadores requeridos quedaron documentados en 10 §6.
+- Pendiente o aviso para otros:
+  - **EM-10 y EM-13:** para `pago_rechazado`, `suscripcion_en_gracia`, `suscripcion_suspendida`, `prueba_por_vencer` y `aviso_cuota_plataforma`, use los marcadores documentados en 10 §6.
+  - **EM-12 y EM-15:** `invitacion_miembro` recibe `nombre`, `nombreOrganizacion` y `enlace`; `invitacion_consumidor` recibe `nombre`, `nombreApi` y `enlace`, además de la marca del portal.
+  - **JZ-08, JZ-09 y JZ-10:** `organizacion_suspendida`, `definir_contrasena` y `respuesta_caso` ya están listas; sus marcadores están en 10 §6.
+  - **Todos:** todo correo de consumidor debe incluir `nombrePortal`, `hostPortal`, `colorPortal` y, si corresponde, `logoPortal: "true"`; el motor rechaza una marca incompleta o un color distinto de `#RRGGBB`.

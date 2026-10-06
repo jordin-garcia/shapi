@@ -1,0 +1,7 @@
+Su prueba está por vencer
+
+Hola, {{nombre}}.
+
+Su período de Prueba termina el {{fechaFin}}.
+Usted puede elegir un plan para mantener sus APIs en servicio aquí:
+{{enlace}}
