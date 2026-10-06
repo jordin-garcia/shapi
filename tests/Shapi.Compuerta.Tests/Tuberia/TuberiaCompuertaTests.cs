@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shapi.Compuerta.Contexto;
 using Shapi.Compuerta.Filtros;
+using Shapi.Compuerta.Medicion;
 using Shapi.Compuerta.Reenvio;
 
 namespace Shapi.Compuerta.Tests.Tuberia;
@@ -10,6 +11,11 @@ namespace Shapi.Compuerta.Tests.Tuberia;
 // RNF-13: la tubería de filtros (08 §3).
 public class TuberiaCompuertaTests
 {
+    private sealed class MedicionDePrueba : IMedicionPeticion
+    {
+        public Task MedirAsync(ContextoPeticion contexto, Func<Task> siguiente) => siguiente();
+    }
+
     [Fact]
     public async Task RNF_13_Procesar_UnFiltroRechaza_DetieneLaCadenaYNoReenvia()
     {
@@ -23,7 +29,7 @@ public class TuberiaCompuertaTests
                 new FiltroDePrueba("tercero", registro, ResultadoFiltro.Continuar),
             ],
             reenvio,
-            NullLogger<TuberiaCompuerta>.Instance);
+            NullLogger<TuberiaCompuerta>.Instance, new MedicionDePrueba());
         var http = NuevoContexto();
 
         await tuberia.ProcesarAsync(http);
@@ -46,7 +52,7 @@ public class TuberiaCompuertaTests
                 new FiltroDePrueba("segundo", registro, ResultadoFiltro.Continuar),
             ],
             new ReenvioRegistrado(registro),
-            NullLogger<TuberiaCompuerta>.Instance);
+            NullLogger<TuberiaCompuerta>.Instance, new MedicionDePrueba());
 
         await tuberia.ProcesarAsync(NuevoContexto());
 
@@ -60,7 +66,7 @@ public class TuberiaCompuertaTests
             new Dictionary<string, string> { ["WWW-Authenticate"] = "ApiKey header=\"X-Api-Key\"" });
         var tuberia = new TuberiaCompuerta(
             new LectorSinDatos(),
-            [new FiltroDePrueba("unico", [], rechazo)], new ReenvioRegistrado([]), NullLogger<TuberiaCompuerta>.Instance);
+            [new FiltroDePrueba("unico", [], rechazo)], new ReenvioRegistrado([]), NullLogger<TuberiaCompuerta>.Instance, new MedicionDePrueba());
         var http = NuevoContexto();
 
         await tuberia.ProcesarAsync(http);
@@ -77,7 +83,7 @@ public class TuberiaCompuertaTests
         var registro = new List<string>();
         var tuberia = new TuberiaCompuerta(new LectorSinDatos(),
             [new FiltroDePrueba("cors", registro, ResultadoFiltro.Responder(204))], new ReenvioRegistrado(registro),
-            NullLogger<TuberiaCompuerta>.Instance);
+            NullLogger<TuberiaCompuerta>.Instance, new MedicionDePrueba());
         var http = NuevoContexto();
 
         await tuberia.ProcesarAsync(http);
@@ -94,7 +100,7 @@ public class TuberiaCompuertaTests
         var registro = new List<string>();
         var tuberia = new TuberiaCompuerta(new LectorSinDatos(registro),
             [new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar)], new ReenvioRegistrado(registro),
-            NullLogger<TuberiaCompuerta>.Instance);
+            NullLogger<TuberiaCompuerta>.Instance, new MedicionDePrueba());
 
         await tuberia.ProcesarAsync(NuevoContexto());
 
@@ -108,7 +114,7 @@ public class TuberiaCompuertaTests
         var registro = new List<string>();
         var tuberia = new TuberiaCompuerta(new LectorSinDatos(registro),
             [new FiltroDePrueba("primero", registro, ResultadoFiltro.Continuar)], new ReenvioRegistrado(registro),
-            NullLogger<TuberiaCompuerta>.Instance);
+            NullLogger<TuberiaCompuerta>.Instance, new MedicionDePrueba());
         var http = NuevoContexto();
         http.Request.ContentLength = TuberiaCompuerta.LimiteCuerpo + 1;
 

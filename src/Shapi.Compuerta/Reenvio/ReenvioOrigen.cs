@@ -11,7 +11,7 @@ namespace Shapi.Compuerta.Reenvio;
 /// y devuelve la respuesta del origen tal cual (RF-31). Si el reenvío falla antes de que empiece la respuesta,
 /// responde con el contrato de errores (08 §4).
 /// </summary>
-public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker invocador, TiemposOrigen tiempos)
+public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker invocador, TiemposOrigen tiempos, TimeProvider reloj)
     : IReenvioOrigen
 {
     private static readonly ResultadoFiltro Inaccesible = ResultadoFiltro.Rechazar(
@@ -34,8 +34,18 @@ public sealed class ReenvioOrigen(IHttpForwarder reenviador, HttpMessageInvoker 
         // (ActivityTimeout se reinicia con cada byte).
         using var tiempoTotal = new CancellationTokenSource(tiempos.Total);
 
+        var inicio = reloj.GetTimestamp();
         var error = await reenviador.SendAsync(http, api.UrlOrigen, invocador, _configuracion,
-            new TransformadorOrigen(api, clave), tiempoTotal.Token);
+            new TransformadorOrigen(api, clave, () =>
+            {
+                contexto.RespondioOrigen = true;
+                contexto.TiempoEsperaOrigen = reloj.GetElapsedTime(inicio);
+            }), tiempoTotal.Token);
+        if (!contexto.RespondioOrigen)
+        {
+            contexto.TiempoEsperaOrigen = reloj.GetElapsedTime(inicio);
+        }
+        contexto.FalloOrigen = error != ForwarderError.None;
         if (error == ForwarderError.None || http.Response.HasStarted || http.RequestAborted.IsCancellationRequested)
         {
             return;

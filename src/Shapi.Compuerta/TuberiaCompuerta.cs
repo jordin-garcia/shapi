@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.Features;
 using Shapi.Compuerta.Contexto;
 using Shapi.Compuerta.Filtros;
+using Shapi.Compuerta.Medicion;
 using Shapi.Compuerta.Reenvio;
 using Shapi.Contratos;
 using StackExchange.Redis;
@@ -16,7 +17,8 @@ public sealed class TuberiaCompuerta(
     ILectorContexto lector,
     IEnumerable<IFiltroCompuerta> filtros,
     IReenvioOrigen reenvio,
-    ILogger<TuberiaCompuerta> registro)
+    ILogger<TuberiaCompuerta> registro,
+    IMedicionPeticion medicion)
 {
     /// <summary>08 §4: sin Redis no se puede validar nada; el cliente puede reintentar en unos segundos.</summary>
     private static readonly ResultadoFiltro RedisNoDisponible = ResultadoFiltro.Rechazar(
@@ -48,8 +50,15 @@ public sealed class TuberiaCompuerta(
         typeof(FiltroLimitesYCuotas), // 6 · límites por minuto y cuotas (un script Lua)
     ];
 
-    public async Task ProcesarAsync(HttpContext http)
+    public Task ProcesarAsync(HttpContext http)
     {
+        var contexto = new ContextoPeticion(http);
+        return medicion.MedirAsync(contexto, () => ProcesarSinMedicionAsync(contexto));
+    }
+
+    private async Task ProcesarSinMedicionAsync(ContextoPeticion contexto)
+    {
+        var http = contexto.Http;
         // Un cuerpo que anuncia más de 10 MB se rechaza sin ir a Redis. Uno que no lo anuncia (chunked) se corta al
         // pasar el límite, mientras se reenvía.
         if (http.Request.ContentLength > LimiteCuerpo)
@@ -63,7 +72,6 @@ public sealed class TuberiaCompuerta(
             limite.MaxRequestBodySize = LimiteCuerpo;
         }
 
-        var contexto = new ContextoPeticion(http);
         var resultado = await EvaluarAsync(contexto);
         if (!resultado.Continua)
         {

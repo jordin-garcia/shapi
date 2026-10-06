@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-04
 depende_de: [JG-06, EM-01]
 requisitos: [RF-33, RF-34, RNF-05]
@@ -54,3 +54,22 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Fuera de alcance
 - Pantallas de consumo (JG-11, JG-12, JG-13)
 - Estado de los componentes (JZ-12)
+
+## Resultado
+
+- La compuerta mide todas las peticiones, incluidos rechazos y preflight, con contadores, bytes de cuerpos, llamadas realmente descontadas, sumas de latencia y los dos histogramas. Envía los `HINCRBY` y el `SADD` juntos en un pipeline `MULTI/EXEC` con `FireAndForget`.
+- El reenvío mide la espera hasta las cabeceras de la respuesta del origen; si no responde, hasta el fallo. Distingue un código del origen de un rechazo o fallo de la compuerta. Las claves rechazadas no atribuyen consumo a la suscripción leída.
+- El trabajador consolida al arrancar y cada 10 s. Separa hasta 256 llaves por lote mediante un script atómico, inserta el marcador y suma todas las columnas e histogramas en una transacción, y borra las instantáneas después del commit.
+- Cada ciclo toma una sola lectura de llaves pendientes y divide esa lista en grupos de 256. Termina aunque siga llegando tráfico; las llaves nuevas quedan para el siguiente intervalo. Ante el fallo de aplicación de un lote nuevo, no separa más grupos: el resto permanece en `met:pendientes`. Las pruebas verifican tráfico sostenido y un fallo real de PostgreSQL con 257 llaves, seguido de su recuperación sin pérdida ni duplicación.
+- Recupera lotes pendientes al arrancar y en cada intervalo, con rollback ante errores de PostgreSQL y unicidad del marcador ante reintentos concurrentes. Los lotes ya aplicados se borran sin volver a leer sus contadores.
+- La revisión en contexto limpio detectó que `SCAN` puede repetir una llave dentro del mismo lote. La lectura ahora deduplica antes de leer los hashes, con una prueba que reproduce la duplicación. También se precisó la clasificación: un 413 del cuerpo no es un fallo 502/504 del origen, y una respuesta ya iniciada conserva su código del origen.
+- Las rutas retiradas se consolidan con `ruta_id` nulo. Un bloqueo compartido de la API mantiene estables las rutas frente a una recarga de OpenAPI. No hay migraciones ni nuevas dependencias.
+- La revisión automática del PR #79 detectó que referencias borradas por el reinicio de la siembra podían bloquear la consolidación. Se descartan las filas de APIs eliminadas y se conserva el consumo de suscripciones eliminadas bajo su API con `suscripcion_id` nulo. Las suscripciones vigentes se protegen hasta el commit. Cada lote se procesa de forma independiente: uno corrupto queda pendiente sin impedir los demás ni las métricas nuevas, y el error se informa al terminar el ciclo. Las pruebas reproducen las referencias borradas y el lote corrupto antes de corregirlos; verifican recuperación posterior y atribución a suscripciones vigentes.
+- `HistogramaLatencia.CalcularP95` suma el periodo e interpola en su rango, devuelve ausencia de percentil sin peticiones y señala `> 2500 ms` en el último rango. `IConsultaConsumo` ofrece consultas base por API y suscripción, filtradas explícitamente por organización, fechas y entorno.
+- La compuerta y el trabajador escriben sus latidos cada 10 s con TTL de 30 s. El latido del trabajador corre independientemente de la consolidación.
+
+**Precisiones de 08 §7:** los incrementos y el corte del lote son atómicos; los bytes son los efectivamente transferidos; el día se toma al iniciar la petición; los hosts sin API se cuentan con el UUID nulo y conservan sus métricas globales en Redis, sin atribuirlas a un proveedor ni violar la FK de `consumo_diario`.
+
+**Pruebas:** histogramas y p95; peticiones concurrentes y bytes; códigos del origen frente a rechazos; ausencia de espera de Redis; tiempo del origen; claves ajenas y de pruebas; latidos y ejecución periódica; interrupciones antes del corte, antes y después del commit y durante el borrado; rollback, reintentos concurrentes, lotes ya aplicados, rutas retiradas y llaves desaparecidas; consultas con aislamiento de organización.
+
+**Archivos principales:** `src/Shapi.Compuerta/Medicion/**`, `src/Shapi.Trabajador/Consolidacion/**`, `src/Shapi.Aplicacion/Consumo/**`, `src/Shapi.Infraestructura/Consumo/**`, `src/Shapi.Contratos/Redis/{HistogramaMetricas,MetricasDiarias}.cs` y `tests/{Shapi.Api.Tests/Consumo,Shapi.Compuerta.Tests/Medicion}/**`.

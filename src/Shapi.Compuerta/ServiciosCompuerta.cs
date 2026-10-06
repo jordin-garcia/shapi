@@ -1,5 +1,6 @@
 using Shapi.Compuerta.Contexto;
 using Shapi.Compuerta.Filtros;
+using Shapi.Compuerta.Medicion;
 using Shapi.Compuerta.Reenvio;
 using Shapi.Compuerta.Rutas;
 using Shapi.Contratos.Red;
@@ -43,6 +44,8 @@ public static class ServiciosCompuerta
         services.AddSingleton<IReenvioOrigen, ReenvioOrigen>();
 
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IMedicionPeticion, MedicionMiddleware>();
+        services.AddHostedService<LatidoCompuerta>();
         services.AddSingleton<CacheRutas>();
         services.AddSingleton<ILectorContexto, LectorContexto>();
 
@@ -55,7 +58,8 @@ public static class ServiciosCompuerta
             sp.GetRequiredService<ILectorContexto>(),
             TuberiaCompuerta.Orden.Select(filtro => (IFiltroCompuerta)sp.GetRequiredService(filtro)),
             sp.GetRequiredService<IReenvioOrigen>(),
-            sp.GetRequiredService<ILogger<TuberiaCompuerta>>()));
+            sp.GetRequiredService<ILogger<TuberiaCompuerta>>(),
+            sp.GetRequiredService<IMedicionPeticion>()));
         return services;
     }
 }
