@@ -5,8 +5,17 @@ using Yarp.ReverseProxy.Forwarder;
 namespace Shapi.Compuerta.Reenvio;
 
 /// <summary>Las cabeceras hacia el origen (08 §5, RF-31).</summary>
-internal sealed class TransformadorOrigen(ContextoApi api, ContextoClave clave) : HttpTransformer
+internal sealed class TransformadorOrigen(ContextoApi api, ContextoClave clave, Action alRecibirRespuesta) : HttpTransformer
 {
+    public override ValueTask<bool> TransformResponseAsync(HttpContext httpContext, HttpResponseMessage? proxyResponse,
+        CancellationToken cancellationToken)
+    {
+        if (proxyResponse is not null)
+        {
+            alRecibirRespuesta();
+        }
+        return base.TransformResponseAsync(httpContext, proxyResponse, cancellationToken);
+    }
     private const string ReenviadoPara = "X-Forwarded-For";
     private const string ReenviadoProtocolo = "X-Forwarded-Proto";
     private const string ReenviadoHost = "X-Forwarded-Host";

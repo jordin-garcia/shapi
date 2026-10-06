@@ -170,15 +170,22 @@ Con la clave de pruebas, `X-RateLimit-Limit` es 10, y las `X-Cuota-*` informan e
 
 La **latencia de la compuerta** es la latencia total menos el tiempo de espera del origen, medido desde que se envía la petición hasta que llega el primer byte de la respuesta.
 
+Los incrementos de una petición y su `SADD met:pendientes` se envían juntos en un pipeline `MULTI/EXEC` con *fire-and-forget*. Así la consolidación nunca separa una petición entre dos lotes. Los bytes son los cuerpos efectivamente leídos y escritos, sin almacenar su contenido. El día se toma al comenzar la petición, en Guatemala. Si el origen falla sin responder, la espera termina al producirse el fallo; sus 502 y 504 incrementan `ofallo`, mientras que un 502 devuelto por el propio origen incrementa `o5xx`. Las claves rechazadas no atribuyen consumo a una suscripción, aunque el lector haya encontrado una clave de otra API.
+
+Si no se pudo resolver una API (por ejemplo, un host desconocido o un cuerpo rechazado antes de leer Redis), `{api}` es el UUID nulo `00000000-0000-0000-0000-000000000000`, `{ruta}` y `{susc}` son `-` y el entorno es `produccion`. Esos contadores globales se conservan en Redis; no se insertan en `consumo_diario`, que exige una API real. No se atribuyen a un proveedor.
+
 **Consolidación** (el trabajador, cada 10 segundos, es idempotente; ver la secuencia en [06 §5.7](06-arquitectura.md#57-consolidacion-del-consumo)):
 
 1. `lote_id = nuevo UUID`. Por cada llave de `met:pendientes`: `SREM` y luego `RENAME llave → met:lote:{lote_id}:{llave}`. Si la llave ya no existe, se ignora.
+   El `SREM` y los `RENAME` del lote se ejecutan en un único script Lua, que primero valida todas las llaves y cierra la instantánea antes de que pueda leerla otro trabajador. Cada lote contiene hasta 256 llaves para acotar la duración del script; se repite con un nuevo UUID hasta vaciar las métricas de APIs identificadas. Una interrupción no deja un hash sin pertenecer a `met:pendientes` o a un lote recuperable.
 2. Lee todos los `met:lote:{lote_id}:*` y abre una transacción en PostgreSQL:
    - `INSERT INTO lote_consolidado(lote_id)`;
    - `INSERT … ON CONFLICT (fecha, api_id, ruta_id, suscripcion_id, entorno) DO UPDATE SET` sumando cada contador y cada posición de los arreglos del histograma;
    - `COMMIT`.
 3. `DEL met:lote:{lote_id}:*`.
 4. **Recuperación:** al arrancar, el trabajador busca `met:lote:*`. Si el `lote_id` ya está en `lote_consolidado`, solo borra las llaves; si no, repite los pasos 2 y 3.
+
+La recuperación se repite también al principio de cada intervalo de 10 segundos, para recuperarse de fallos temporales sin reiniciar. El marcador usa `ON CONFLICT DO NOTHING` dentro de la misma transacción; un lote ya aplicado no suma contadores otra vez, incluso si otro trabajador lo recupera simultáneamente. Al consolidar, una ruta retirada se trata como `ruta_id` nulo, conforme a 07 §3.5. El UPSERT conserva `creado_en` y actualiza `actualizado_en` con `IReloj`.
 
 **Cálculo del p95** ([RF-35](03-requisitos.md#rf-35)): se suman los histogramas de las filas del periodo y se busca el rango `i` donde la suma acumulada alcanza el 95 % del total. Luego se interpola linealmente entre el límite inferior y el superior de ese rango. El último rango (más de 2500 ms) se reporta como `> 2500 ms`.
 

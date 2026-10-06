@@ -38,4 +38,10 @@ public sealed class ContextoPeticion(HttpContext http)
     /// de pruebas.
     /// </summary>
     public Func<Task>? DevolverReserva { get; set; }
+
+    public bool ClaveValidada { get; set; }
+    public long LlamadasDescontadas { get; set; }
+    public TimeSpan TiempoEsperaOrigen { get; set; }
+    public bool RespondioOrigen { get; set; }
+    public bool FalloOrigen { get; set; }
 }

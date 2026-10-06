@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Shapi.Api.Tests.Cache;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Consumo;
@@ -57,14 +58,14 @@ public sealed class ConsolidacionTests(PostgresPersistencia postgres, RedisCache
         await Consolidar();
         await Consolidar();
         await using var db = CrearDb();
-        var filasFinales = await db.Set<ConsumoDiario>().ToListAsync();
+        var filasFinales = await db.Set<ConsumoDiario>().IgnoreQueryFilters().ToListAsync();
         filasFinales.Sum(x => x.Peticiones).Should().Be(paso == 0 ? 5 : 9);
-        filasFinales.Sum(x => x.HistLatenciaTotal.Sum()).Should().Be(paso == 0 ? 5 : 9);
+        filasFinales.Sum(x => x.HistLatenciaTotal.Sum()).Should().Be(paso == 0 ? 50 : 90);
         filasFinales.Sum(x => x.Llamadas).Should().Be(paso == 0 ? 10 : 18);
         filasFinales.Should().HaveCount(2);
         (await Redis.SetLengthAsync(LlavesRedis.MetricasPendientes)).Should().Be(0);
         var lotesRestantes = new List<RedisKey>();
-        await foreach (var llave in redis.Conexion.GetServers()[0].KeysAsync(pattern: LlavesRedis.PatronLotes))
+        await foreach (var llave in RedisCache.Conexion.GetServers()[0].KeysAsync(pattern: LlavesRedis.PatronLotes))
         {
             lotesRestantes.Add(llave);
         }
@@ -104,7 +105,7 @@ public sealed class ConsolidacionTests(PostgresPersistencia postgres, RedisCache
         await Medir(llave, 2);
         await Consolidar();
         await using var db = CrearDb();
-        var fila = await db.Set<ConsumoDiario>().SingleAsync();
+        var fila = await db.Set<ConsumoDiario>().IgnoreQueryFilters().SingleAsync();
         fila.Fecha.Should().Be(Fecha);
         fila.Entorno.Should().Be(EntornoConsumo.Pruebas);
         fila.Peticiones.Should().Be(5);
@@ -150,6 +151,134 @@ public sealed class ConsolidacionTests(PostgresPersistencia postgres, RedisCache
     public void RNF_05_Intervalos_DeConsolidacionYLatido_SonDiezSegundos()
     {
         new OpcionesConsolidacion().Intervalo.Should().Be(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public async Task RNF_05_LoteYaAplicado_SoloBorraLasLlavesSinVolverALeerContadores()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        var llave = LlavesRedis.Metricas(Fecha, api, null, null, "produccion");
+        await Medir(llave, 3);
+        var lote = Guid.NewGuid();
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        using var alcance = servicios.CreateScope();
+        var capturador = alcance.ServiceProvider.GetRequiredService<LotesMetricasRedis>();
+        await capturador.SepararAsync(lote, CancellationToken.None);
+        await alcance.ServiceProvider.GetRequiredService<RepositorioConsolidacion>()
+            .GuardarAsync(lote, await capturador.LeerAsync(lote, CancellationToken.None), CancellationToken.None);
+        await Redis.HashSetAsync(LlavesRedis.LoteMetricas(lote, llave), "peticiones", "no es un contador");
+        await Consolidar();
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario")).Should().Be(3);
+        (await Redis.KeyExistsAsync(LlavesRedis.LoteMetricas(lote, llave))).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RNF_05_LatidoTrabajador_EscribeElRelojConTtlDeTreintaSegundos()
+    {
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        var latido = servicios.GetServices<IHostedService>().OfType<LatidoTrabajador>().Single();
+        await latido.EscribirAsync(CancellationToken.None);
+        DateTimeOffset.Parse((await Redis.StringGetAsync(LlavesRedis.SaludTrabajador)).ToString(),
+            System.Globalization.CultureInfo.InvariantCulture).Should().Be(Reloj.Ahora);
+        (await Redis.KeyTimeToLiveAsync(LlavesRedis.SaludTrabajador))!.Value.Should()
+            .BeGreaterThan(TimeSpan.FromSeconds(25)).And.BeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public async Task RNF_05_RutaRetiradaYApiDesconocida_NoPierdeMetricasNiUsaUnaFkInexistente()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        await Medir(LlavesRedis.Metricas(Fecha, api, Guid.NewGuid(), null, "produccion"), 3);
+        var globales = LlavesRedis.Metricas(Fecha, Guid.Empty, null, null, "produccion");
+        await Medir(globales, 5);
+        await Consolidar();
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario WHERE ruta_id IS NULL")).Should().Be(3);
+        ((long)await Redis.HashGetAsync(globales, "peticiones")).Should().Be(5);
+    }
+
+    [Fact]
+    public async Task RNF_05_DosConsolidadoresAplicanElMismoLote_UnaSolaSuma()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        await Medir(LlavesRedis.Metricas(Fecha, api, null, null, "produccion"), 7);
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        var lote = Guid.NewGuid();
+        var capturador = servicios.GetRequiredService<LotesMetricasRedis>();
+        await capturador.SepararAsync(lote, CancellationToken.None);
+        var filas = await capturador.LeerAsync(lote, CancellationToken.None);
+        await Task.WhenAll(Enumerable.Range(0, 2).Select(async _ =>
+        {
+            using var alcance = servicios.CreateScope();
+            await alcance.ServiceProvider.GetRequiredService<RepositorioConsolidacion>().GuardarAsync(lote, filas, CancellationToken.None);
+        }));
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario")).Should().Be(7);
+        (await Escalar<long>("SELECT count(*) FROM lote_consolidado")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RNF_05_TrabajoConsolidacion_ConsolidaAlArrancarYEnCadaIntervalo()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        var llave = LlavesRedis.Metricas(Fecha, api, null, null, "produccion");
+        await Medir(llave, 3);
+        await using var servicios = CrearServicios(ajustar: s =>
+        {
+            s.AgregarConsolidacion();
+            s.AddSingleton(new OpcionesConsolidacion { Intervalo = TimeSpan.FromMilliseconds(100) });
+        });
+        var trabajo = servicios.GetServices<IHostedService>().OfType<TrabajoConsolidacion>().Single();
+        await trabajo.StartAsync(CancellationToken.None);
+        try
+        {
+            await EsperarConsumo(3);
+            await Medir(llave, 4);
+            await EsperarConsumo(7);
+        }
+        finally
+        {
+            await trabajo.StopAsync(CancellationToken.None);
+        }
+    }
+
+    private async Task EsperarConsumo(long esperado)
+    {
+        for (var intento = 0; intento < 100; intento++)
+        {
+            if (await Escalar<long>("SELECT coalesce(sum(peticiones),0)::bigint FROM consumo_diario") == esperado)
+            {
+                return;
+            }
+            await Task.Delay(50);
+        }
+        throw new Xunit.Sdk.XunitException($"La consolidación no llegó a {esperado} peticiones.");
+    }
+
+    [Fact]
+    public async Task RNF_05_ErrorAntesDelRename_NoRetiraNingunaLlaveDelConjunto()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        var buena = LlavesRedis.Metricas(Fecha, api, null, null, "produccion");
+        var mala = LlavesRedis.Metricas(Fecha, api, null, null, "pruebas");
+        await Medir(buena, 3);
+        await Redis.StringSetAsync(mala, "tipo equivocado");
+        await Redis.SetAddAsync(LlavesRedis.MetricasPendientes, mala);
+        await Assert.ThrowsAsync<RedisServerException>(Consolidar);
+        (await Redis.SetLengthAsync(LlavesRedis.MetricasPendientes)).Should().Be(2);
+        ((long)await Redis.HashGetAsync(buena, "peticiones")).Should().Be(3);
+        (await Escalar<long>("SELECT count(*) FROM lote_consolidado")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RNF_05_MasDeUnLoteConLlavesDesaparecidas_ProcesaTodasLasMetricas()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        var inexistentes = Enumerable.Range(0, 256).Select(i =>
+            (RedisValue)LlavesRedis.Metricas(Fecha.AddDays(-i - 1), api, null, null, "produccion")).ToArray();
+        await Redis.SetAddAsync(LlavesRedis.MetricasPendientes, inexistentes);
+        await Medir(LlavesRedis.Metricas(Fecha, api, null, null, "produccion"), 3);
+        await Consolidar();
+        (await Redis.SetLengthAsync(LlavesRedis.MetricasPendientes)).Should().Be(0);
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario")).Should().Be(3);
     }
 
     private async Task Consolidar()

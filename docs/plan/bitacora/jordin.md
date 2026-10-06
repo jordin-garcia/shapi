@@ -844,3 +844,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
     Actualiza tu rama desde `main`.
   - **DC-11 y DC-13:** las consultas de claves, pagos y consumo del portal se borran solas al cerrar sesión, al vencer la sesión y al entrar. Se borran todas las consultas salvo `['portal', 'configuracion']` y `['portal', 'sesion']`: no reutilicen esas dos claves para datos del consumidor.
+
+## 2026-10-05 · JG-09 · Medición en la compuerta y consolidación del consumo
+- Hecho: medición de peticiones, rechazos, llamadas descontadas, bytes e histogramas; espera del origen y p95; consolidación cada 10 s con instantáneas atómicas y transacciones idempotentes; recuperación de interrupciones y latidos de compuerta y trabajador con TTL de 30 s; consultas base por API y suscripción con aislamiento de organización.
+- Verificación local: plan válido (68 tareas), 102 pruebas de scripts, compilación sin errores ni advertencias, formato sin cambios, 281 pruebas de la compuerta y 97 pruebas de consumo, caché y módulos. La suite completa del backend corresponde al check `backend` de la CI (protocolo B7).
+- Decisiones: precisiones en 08 §7. Cada petición envía sus incrementos y `SADD` juntos en `MULTI/EXEC` sin esperar Redis; el corte del lote es un script atómico de hasta 256 llaves. Las métricas sin API identificada permanecen en Redis con el UUID nulo. Las rutas retiradas se agrupan en la ruta nula. No se agregaron dependencias ni migraciones.
+- Pendiente o aviso para otros:
+  - **JZ-12:** ya están `salud:compuerta:{instancia}` y `salud:trabajador`, cada 10 s con TTL de 30 s. `lote_consolidado.procesado_en` permite comprobar la consolidación. El latido del trabajador es independiente de PostgreSQL y de la duración del lote.
+  - **JG-11, JG-12 y JG-13:** `IConsultaConsumo`, registrado en el módulo de la API, ofrece `PorApiAsync` y `PorSuscripcionAsync` con organización, periodo inclusivo y entorno opcional. `ConsumoPeriodo` conserva las filas del periodo y ofrece peticiones, llamadas y los dos p95. `Percentil95.Supera2500` indica el texto `> 2500 ms`; sin peticiones, `Milisegundos` es nulo.

@@ -7,20 +7,33 @@ namespace Shapi.Compuerta.Tests.Soporte;
 /// <summary>
 /// Cuenta los viajes a Redis de la compuerta (08 §8): envuelve la conexión real y registra cada comando suelto como un
 /// viaje y cada lote (<c>CreateBatch</c> + <c>Execute</c>) como un solo viaje con todos sus comandos.
+/// Los latidos periódicos se registran aparte: no son viajes que espera el procesamiento de una petición.
 /// </summary>
 public sealed class ContadorRedis
 {
     private readonly ConcurrentQueue<IReadOnlyList<string>> _viajes = new();
+    private readonly ConcurrentQueue<IReadOnlyList<string>> _latidos = new();
 
     /// <summary>Cada viaje, con sus comandos como "<c>Metodo llave</c>".</summary>
     public IReadOnlyList<IReadOnlyList<string>> Viajes => [.. _viajes];
+    public IReadOnlyList<IReadOnlyList<string>> Latidos => [.. _latidos];
 
     public void Reiniciar() => _viajes.Clear();
 
     /// <summary>La conexión envuelta. No cierra la real al desecharse: es la del entorno compartido.</summary>
     public IConnectionMultiplexer Envolver(IConnectionMultiplexer real) => Proxy<IConnectionMultiplexer>.Crear(real, this);
 
-    private void Registrar(IReadOnlyList<string> comandos) => _viajes.Enqueue(comandos);
+    private void Registrar(IReadOnlyList<string> comandos)
+    {
+        if (comandos.All(x => x.StartsWith("StringSetAsync salud:compuerta:", StringComparison.Ordinal)))
+        {
+            _latidos.Enqueue(comandos);
+        }
+        else
+        {
+            _viajes.Enqueue(comandos);
+        }
+    }
 
     private static string Describir(MethodInfo metodo, object?[]? argumentos) =>
         argumentos is [RedisKey llave, ..] ? $"{metodo.Name} {llave}" : metodo.Name;

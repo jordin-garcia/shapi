@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shapi.Compuerta.Filtros;
 using Shapi.Compuerta.Medicion;
 using Shapi.Compuerta.Tests.Soporte;
@@ -79,6 +80,39 @@ public sealed class MedicionTests(EntornoCompuerta entorno) : IClassFixture<Ento
     }
 
     [Fact]
+    public async Task RF_34_Reenvio_MideLaEsperaHastaLaRespuestaDelOrigen()
+    {
+        var host = $"{Guid.NewGuid():N}.api.shapi.localhost";
+        var api = await entorno.SembrarApiAsync(host);
+        await entorno.SembrarClaveAsync(api, ContextoClave.CalcularHash(Clave));
+        var captura = new MedicionCapturada(entorno.Redis);
+        using var fabrica = entorno.Fabrica.WithWebHostBuilder(web => web.ConfigureTestServices(s =>
+            s.AddSingleton<IMedicionPeticion>(captura)));
+        entorno.Origen.Responder = async http =>
+        {
+            await Task.Delay(150);
+            await http.Response.WriteAsync("respuesta");
+        };
+        using var cliente = EntornoCompuerta.Cliente(fabrica, host);
+        cliente.DefaultRequestHeaders.Add("X-Api-Key", Clave);
+        using var respuesta = await cliente.GetAsync("/cotizaciones");
+        captura.Contexto.Should().NotBeNull();
+        captura.Contexto!.RespondioOrigen.Should().BeTrue();
+        captura.Contexto.TiempoEsperaOrigen.Should().BeGreaterThan(TimeSpan.FromMilliseconds(100));
+    }
+
+    private sealed class MedicionCapturada(IConnectionMultiplexer redis) : IMedicionPeticion
+    {
+        public ContextoPeticion? Contexto { get; private set; }
+        public Task MedirAsync(ContextoPeticion contexto, Func<Task> siguiente)
+        {
+            Contexto = contexto;
+            return new MedicionMiddleware(redis, TimeProvider.System, NullLogger<MedicionMiddleware>.Instance)
+                .MedirAsync(contexto, siguiente);
+        }
+    }
+
+    [Fact]
     public async Task RNF_05_LatidoCompuerta_TieneMarcaYVenceEnTreintaSegundos()
     {
         using var cliente = entorno.Cliente("localhost");
@@ -88,7 +122,19 @@ public sealed class MedicionTests(EntornoCompuerta entorno) : IClassFixture<Ento
         await latido.EscribirAsync(CancellationToken.None);
         var llave = LlavesRedis.SaludCompuerta(latido.Instancia);
         DateTimeOffset.TryParse((await entorno.Redis.GetDatabase().StringGetAsync(llave)).ToString(), out _).Should().BeTrue();
-        (await entorno.Redis.GetDatabase().KeyTimeToLiveAsync(llave)).Should().BeInRange(TimeSpan.FromSeconds(25), TimeSpan.FromSeconds(30));
+        (await entorno.Redis.GetDatabase().KeyTimeToLiveAsync(llave))!.Value.Should()
+            .BeGreaterThan(TimeSpan.FromSeconds(25)).And.BeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
+        var primera = await entorno.Redis.GetDatabase().StringGetAsync(llave);
+        var inicio = TimeProvider.System.GetTimestamp();
+        while (TimeProvider.System.GetElapsedTime(inicio) < TimeSpan.FromSeconds(15))
+        {
+            await Task.Delay(100);
+            if (await entorno.Redis.GetDatabase().StringGetAsync(llave) != primera)
+            {
+                return; // El BackgroundService renueva el latido por sí mismo al pasar su intervalo.
+            }
+        }
+        throw new Xunit.Sdk.XunitException("La compuerta no renovó su latido en el intervalo de diez segundos.");
     }
 
     [Theory]

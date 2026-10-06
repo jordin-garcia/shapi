@@ -81,7 +81,14 @@ public sealed class FiltroLimitesYCuotas(
 
         if (!reserva.EsPruebas)
         {
-            contexto.DevolverReserva = () => DevolverAsync(db, reserva, conteo);
+            contexto.LlamadasDescontadas = reserva.Peso;
+            contexto.DevolverReserva = async () =>
+            {
+                if (await DevolverAsync(db, reserva, conteo))
+                {
+                    contexto.LlamadasDescontadas = 0;
+                }
+            };
         }
 
         return ResultadoFiltro.Continuar;
@@ -247,7 +254,7 @@ public sealed class FiltroLimitesYCuotas(
     /// 08 §3: si el origen no se pudo conectar (502), la petición no llegó y se devuelve la cuota reservada. Los
     /// contadores por minuto no se devuelven. Si Redis falla, solo se registra: el 502 se responde igual.
     /// </summary>
-    private async Task DevolverAsync(IDatabase db, Reserva reserva, Conteo conteo)
+    private async Task<bool> DevolverAsync(IDatabase db, Reserva reserva, Conteo conteo)
     {
         try
         {
@@ -261,10 +268,12 @@ public sealed class FiltroLimitesYCuotas(
             lote.Execute();
             await Task.WhenAll(pendientes);
             conteo.Cuota -= reserva.Peso;
+            return true;
         }
         catch (RedisException excepcion)
         {
             registro.LogWarning("No se pudo devolver la cuota de una petición que no llegó al origen: {Motivo}", excepcion.Message);
+            return false;
         }
     }
 

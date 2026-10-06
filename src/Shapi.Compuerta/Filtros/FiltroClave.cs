@@ -51,6 +51,7 @@ public sealed partial class FiltroClave : IFiltroCompuerta
             return Invalida;
         }
 
+        contexto.ClaveValidada = true;
         return ResultadoFiltro.Continuar;
     }
 
