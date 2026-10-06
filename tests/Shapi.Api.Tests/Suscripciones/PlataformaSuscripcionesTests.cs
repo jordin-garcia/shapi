@@ -321,6 +321,37 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         Publicador.Publicadas.Should().Contain(sub);
     }
 
+    // RF-25: si se rechaza el cobro de una subida, se conserva el plan y periodo vigentes.
+    [Fact]
+    public async Task RF_25_Cambiar_SubidaRechazadaConservaPlanYPeriodo()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var origen = await NuevoPlanPlataforma();
+        var destino = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 599 WHERE id = '{destino}'");
+        var medio = await NuevoMedioPago(org, null);
+        var inicio = Reloj.Ahora.AddDays(-17);
+        var fin = Reloj.Ahora.AddDays(13);
+        var sub = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin, medio_pago_id)
+            VALUES (gen_random_uuid(), '{org}', '{origen}', 'activa', '{inicio:O}', '{fin:O}', '{medio}') RETURNING id
+            """);
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Post, "/api/suscripcion/cambiar", org, user,
+            new { planId = destino, tarjeta = Tarjeta("4000000000000002") });
+
+        response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
+        (await Escalar<Guid>($"SELECT plan_id FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(origen);
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be("activa");
+        (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(inicio.UtcDateTime);
+        (await Escalar<DateTime>($"SELECT fin FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(fin.UtcDateTime);
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'cambio_plan' AND estado = 'rechazado' AND monto = 173.34")).Should().Be(1);
+        (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(1);
+    }
+
     // RF-20: el propietario puede pagar en gracia y el ciclo empieza de nuevo el día del pago.
     [Fact]
     public async Task RF_20_Pagar_ReactivaLaSuscripcionYPublicaOrganizacion()
@@ -339,6 +370,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be("activa");
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE objetivo_tipo = 'suscripcion_plataforma' AND objetivo_id = '{sub}' AND accion = 'suscripcion_plataforma.cambiada'")).Should().Be(1);
         Publicador.Publicadas.Should().Contain(sub);
     }
 

@@ -368,6 +368,8 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             throw;
         }
         await publicador.PublicarSuscripcion(actual.Id, ct);
+        await Registrar(http, org, actual.Id, AccionesBitacora.SuscripcionPlataformaCambiada,
+            $"Reactivó la suscripción de plataforma del plan {plan.Nombre}.", ct);
         return TypedResults.Ok(new { estado = "activa", inicio = actual.Inicio, fin = actual.Fin });
     }
 
