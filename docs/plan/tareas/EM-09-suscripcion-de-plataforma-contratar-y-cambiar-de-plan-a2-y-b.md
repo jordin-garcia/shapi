@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-05
 depende_de: [EM-06, EM-03, JG-04]
 requisitos: [RF-19, RF-20, RF-25]
@@ -56,3 +56,10 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ## Fuera de alcance
 - Renovación automática (EM-10)
 - Límites del plan (EM-13)
+
+## Resultado
+
+- Se implementaron `GET /api/planes-plataforma`, la consulta de suscripción y los flujos de contratación, cambio, cancelación del cambio programado y reactivación por pago. Las operaciones de contratación guardan el medio de pago tokenizado, registran el pago y la bitácora, y publican la suscripción en Redis después del commit.
+- Se implementaron las pantallas A2.1–A2.5 y B1.4 con los estados vigente, en gracia y suspendida, incluidos el prorrateo, los límites, la tarjeta registrada y las fechas en formato de Guatemala.
+- Se agregó el contrato OpenAPI y se generaron sus tipos TypeScript. Las pruebas cubren los montos del prorrateo, los endpoints, el rechazo de tarjetas, el permiso del propietario y el aislamiento de organizaciones.
+- Evidencia local: compilación y formato de .NET; 10 pruebas de integración de suscripciones y 3 unitarias de prorrateo; lint, typecheck, 304 pruebas de frontend y build; ocho capturas de los estados de las pantallas comparadas con sus mockups. La suite completa del backend queda a cargo de CI según el protocolo B7.

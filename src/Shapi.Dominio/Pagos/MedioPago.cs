@@ -41,4 +41,13 @@ public class MedioPago
             AnioVencimiento = checked((short)anio),
         };
     }
+
+    public static MedioPago CrearParaOrganizacion(Guid organizacionId, string token, string marca, string ultimos4, string titular,
+        int mes, int anio, DateTimeOffset ahora)
+    {
+        var medio = CrearParaConsumidor(organizacionId, token, marca, ultimos4, titular, mes, anio);
+        medio.ConsumidorId = null;
+        medio.OrganizacionId = organizacionId;
+        return medio;
+    }
 }

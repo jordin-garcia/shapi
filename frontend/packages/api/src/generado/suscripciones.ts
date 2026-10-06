@@ -1,4 +1,106 @@
 export interface paths {
+    "/api/planes-plataforma": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista los planes de plataforma activos por orden */
+        get: operations["listarPlanesPlataforma"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suscripcion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta la suscripción de plataforma de la organización */
+        get: operations["obtenerSuscripcionPlataforma"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suscripcion/contratar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contrata un plan de plataforma */
+        post: operations["contratarPlanPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suscripcion/cambiar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia o programa un cambio de plan de plataforma */
+        post: operations["cambiarPlanPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suscripcion/cambio-programado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancela el cambio de plan programado */
+        delete: operations["cancelarCambioPlanPlataforma"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suscripcion/pagar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Paga y reactiva una suscripción en gracia o suspendida */
+        post: operations["pagarSuscripcionPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/portal/suscripciones": {
         parameters: {
             query?: never;
@@ -37,6 +139,71 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PlanPlataforma: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            descripcion: string;
+            precio: number;
+            /** @constant */
+            moneda: "GTQ";
+            vigenciaDias: number;
+            maxApis?: number | null;
+            maxMiembros?: number | null;
+            /** Format: int64 */
+            cuotaPeticiones: number;
+            dominioPropio: boolean;
+            esPrueba: boolean;
+        };
+        PeticionSuscripcionPlataforma: {
+            /** Format: uuid */
+            planId: string;
+            /** @default false */
+            usarRegistrada: boolean;
+            tarjeta?: components["schemas"]["Tarjeta"] | null;
+        };
+        PeticionPagoPlataforma: {
+            /** @default false */
+            usarRegistrada: boolean;
+            tarjeta?: components["schemas"]["Tarjeta"] | null;
+        };
+        SuscripcionPlataforma: {
+            plan: {
+                /** Format: uuid */
+                id?: string;
+                nombre?: string;
+                descripcion?: string;
+                precio?: number;
+                /** @constant */
+                moneda?: "GTQ";
+                vigenciaDias?: number;
+            };
+            /** @enum {string} */
+            estado: "activa" | "en_gracia" | "suspendida" | "finalizada";
+            periodo: {
+                /** Format: date-time */
+                inicio?: string;
+                /** Format: date-time */
+                fin?: string;
+            };
+            /** Format: date-time */
+            proximaRenovacion: string;
+            tarjetaEnmascarada?: string | null;
+            /** Format: date-time */
+            graciaHasta?: string | null;
+            diasRestantesCiclo?: number;
+            diasRestantes?: number;
+            /** Format: date-time */
+            ultimoRechazoEn?: string | null;
+            consumidoresAfectados?: number;
+            cambioProgramado?: {
+                /** Format: uuid */
+                planId?: string;
+                nombre?: string;
+                /** Format: date-time */
+                efectivoDesde?: string;
+            } | null;
+        };
         PeticionContratarPlan: {
             /** Format: uuid */
             planId: string;
@@ -124,6 +291,181 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listarPlanesPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Planes de plataforma disponibles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanPlataforma"][];
+                };
+            };
+        };
+    };
+    obtenerSuscripcionPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plan, estado, periodo, tarjeta y cambio programado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuscripcionPlataforma"];
+                };
+            };
+            /** @description No existe una suscripción vigente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    contratarPlanPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionSuscripcionPlataforma"];
+            };
+        };
+        responses: {
+            /** @description Plan contratado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobro rechazado */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Plan no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ya existe una suscripción de pago vigente */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cambiarPlanPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionSuscripcionPlataforma"];
+            };
+        };
+        responses: {
+            /** @description Cambio aplicado o programado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobro rechazado */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La organización excede los límites del plan */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelarCambioPlanPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cambio cancelado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pagarSuscripcionPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionPagoPlataforma"];
+            };
+        };
+        responses: {
+            /** @description Suscripción reactivada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobro rechazado */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     contratarPlanApi: {
         parameters: {
             query?: never;

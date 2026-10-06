@@ -3,6 +3,84 @@ info:
   title: API de Suscripciones de Shapi
   version: 1.0.0
 paths:
+  /api/planes-plataforma:
+    get:
+      summary: Lista los planes de plataforma activos por orden
+      operationId: listarPlanesPlataforma
+      responses:
+        "200":
+          description: Planes de plataforma disponibles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanPlataforma"
+  /api/suscripcion:
+    get:
+      summary: Consulta la suscripción de plataforma de la organización
+      operationId: obtenerSuscripcionPlataforma
+      responses:
+        "200":
+          description: Plan, estado, periodo, tarjeta y cambio programado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuscripcionPlataforma"
+        "404":
+          description: No existe una suscripción vigente
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+  /api/suscripcion/contratar:
+    post:
+      summary: Contrata un plan de plataforma
+      operationId: contratarPlanPlataforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionSuscripcionPlataforma"
+      responses:
+        "201": { description: Plan contratado }
+        "402": { description: Cobro rechazado }
+        "404": { description: Plan no encontrado }
+        "409": { description: Ya existe una suscripción de pago vigente }
+  /api/suscripcion/cambiar:
+    post:
+      summary: Cambia o programa un cambio de plan de plataforma
+      operationId: cambiarPlanPlataforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionSuscripcionPlataforma"
+      responses:
+        "200": { description: Cambio aplicado o programado }
+        "402": { description: Cobro rechazado }
+        "422": { description: La organización excede los límites del plan }
+  /api/suscripcion/cambio-programado:
+    delete:
+      summary: Cancela el cambio de plan programado
+      operationId: cancelarCambioPlanPlataforma
+      responses:
+        "204": { description: Cambio cancelado }
+  /api/suscripcion/pagar:
+    post:
+      summary: Paga y reactiva una suscripción en gracia o suspendida
+      operationId: pagarSuscripcionPlataforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionPagoPlataforma"
+      responses:
+        "200": { description: Suscripción reactivada }
+        "402": { description: Cobro rechazado }
   /api/portal/suscripciones:
     post:
       summary: Contrata un plan de API y emite sus claves
@@ -82,6 +160,73 @@ paths:
                 $ref: "#/components/schemas/Problema"
 components:
   schemas:
+    PlanPlataforma:
+      type: object
+      required: [id, nombre, descripcion, precio, moneda, vigenciaDias, cuotaPeticiones, dominioPropio, esPrueba]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        descripcion: { type: string }
+        precio: { type: number }
+        moneda: { type: string, const: GTQ }
+        vigenciaDias: { type: integer }
+        maxApis: { type: [integer, "null"] }
+        maxMiembros: { type: [integer, "null"] }
+        cuotaPeticiones: { type: integer, format: int64 }
+        dominioPropio: { type: boolean }
+        esPrueba: { type: boolean }
+    PeticionSuscripcionPlataforma:
+      type: object
+      required: [planId]
+      properties:
+        planId: { type: string, format: uuid }
+        usarRegistrada: { type: boolean, default: false }
+        tarjeta:
+          oneOf:
+            - $ref: "#/components/schemas/Tarjeta"
+            - type: "null"
+    PeticionPagoPlataforma:
+      type: object
+      properties:
+        usarRegistrada: { type: boolean, default: false }
+        tarjeta:
+          oneOf:
+            - $ref: "#/components/schemas/Tarjeta"
+            - type: "null"
+    SuscripcionPlataforma:
+      type: object
+      required: [plan, estado, periodo, proximaRenovacion]
+      properties:
+        plan:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            nombre: { type: string }
+            descripcion: { type: string }
+            precio: { type: number }
+            moneda: { type: string, const: GTQ }
+            vigenciaDias: { type: integer }
+        estado: { type: string, enum: [activa, en_gracia, suspendida, finalizada] }
+        periodo:
+          type: object
+          properties:
+            inicio: { type: string, format: date-time }
+            fin: { type: string, format: date-time }
+        proximaRenovacion: { type: string, format: date-time }
+        tarjetaEnmascarada: { type: [string, "null"] }
+        graciaHasta: { type: [string, "null"], format: date-time }
+        diasRestantesCiclo: { type: integer }
+        diasRestantes: { type: integer }
+        ultimoRechazoEn: { type: [string, "null"], format: date-time }
+        consumidoresAfectados: { type: integer }
+        cambioProgramado:
+          oneOf:
+            - type: object
+              properties:
+                planId: { type: string, format: uuid }
+                nombre: { type: string }
+                efectivoDesde: { type: string, format: date-time }
+            - type: "null"
     PeticionContratarPlan:
       type: object
       required: [planId]
