@@ -90,6 +90,13 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         var cobro = await pasarela.CobrarAsync(medio.TokenPasarela, plan.Precio, $"plataforma:{org}:{Guid.NewGuid():N}", false);
         if (!cobro.Exitoso)
         {
+            if (anterior is not null && cobro.Error != CodigosError.PasarelaNoDisponible)
+            {
+                db.Add(Pago.PlataformaRechazado(anterior.Id, ConceptoPago.Contratacion, plan.Precio,
+                    $"Contratación del plan {plan.Nombre}", cobro.Error ?? CodigosError.PagoRechazado));
+                await db.SaveChangesAsync(ct);
+            }
+
             return Error(cobro.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
             cobro.Error == CodigosError.PasarelaNoDisponible ? cobro.Error : CodigosError.PagoRechazado,
             cobro.Error == CodigosError.PasarelaNoDisponible ? "La pasarela no está disponible." : "La tarjeta fue rechazada.",
@@ -166,6 +173,13 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 $"plataforma:{org}:{Guid.NewGuid():N}", false);
             if (!pagoCompleto.Exitoso)
             {
+                if (pagoCompleto.Error != CodigosError.PasarelaNoDisponible)
+                {
+                    db.Add(Pago.PlataformaRechazado(actual.Id, ConceptoPago.Contratacion, destino.Precio,
+                        $"Contratación del plan {destino.Nombre}", pagoCompleto.Error ?? CodigosError.PagoRechazado));
+                    await db.SaveChangesAsync(ct);
+                }
+
                 return Error(pagoCompleto.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
                 pagoCompleto.Error == CodigosError.PasarelaNoDisponible ? pagoCompleto.Error : CodigosError.PagoRechazado,
                 "No se autorizó el cobro.", new { motivo = pagoCompleto.Error });
@@ -211,6 +225,10 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         {
             var apis = await db.Set<Shapi.Dominio.Apis.Api>().IgnoreQueryFilters().CountAsync(x => x.OrganizacionId == org, ct);
             var miembros = await db.Set<Shapi.Dominio.Organizaciones.Membresia>().IgnoreQueryFilters().CountAsync(x => x.OrganizacionId == org, ct);
+            var invitaciones = await db.Set<Shapi.Dominio.Identidad.Token>().IgnoreQueryFilters()
+                .CountAsync(x => x.OrganizacionId == org && x.Tipo == Shapi.Dominio.Identidad.TipoToken.InvitacionMiembro
+                    && x.UsadoEn == null && x.ExpiraEn > ahora, ct);
+            miembros += invitaciones;
             if ((destino.MaxApis is not null && apis > destino.MaxApis) || (destino.MaxMiembros is not null && miembros > destino.MaxMiembros))
             {
                 return Error(422, CodigosError.ExcedeLimitesDelPlan, "La organización excede los límites del plan de destino.");
@@ -235,6 +253,13 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             var cobro = await pasarela.CobrarAsync(prep.Medio!.TokenPasarela, valores.APagar, $"cambio:{actual.Id}:{Guid.NewGuid():N}", false);
             if (!cobro.Exitoso)
             {
+                if (cobro.Error != CodigosError.PasarelaNoDisponible)
+                {
+                    db.Add(Pago.PlataformaRechazado(actual.Id, ConceptoPago.CambioPlan, valores.APagar,
+                        $"{origen.Nombre} → {destino.Nombre} · diferencia prorrateada", cobro.Error ?? CodigosError.PagoRechazado));
+                    await db.SaveChangesAsync(ct);
+                }
+
                 return Error(cobro.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
                 cobro.Error == CodigosError.PasarelaNoDisponible ? cobro.Error : CodigosError.PagoRechazado,
                 "No se autorizó el cambio de plan.", new { motivo = cobro.Error });
@@ -310,6 +335,13 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         var cobro = await pasarela.CobrarAsync(prep.Medio!.TokenPasarela, plan.Precio, $"reactivacion:{actual.Id}:{Guid.NewGuid():N}", false);
         if (!cobro.Exitoso)
         {
+            if (cobro.Error != CodigosError.PasarelaNoDisponible)
+            {
+                db.Add(Pago.PlataformaRechazado(actual.Id, ConceptoPago.Reactivacion, plan.Precio,
+                    $"Reactivación del plan {plan.Nombre}", cobro.Error ?? CodigosError.PagoRechazado));
+                await db.SaveChangesAsync(ct);
+            }
+
             return Error(cobro.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
             cobro.Error == CodigosError.PasarelaNoDisponible ? cobro.Error : CodigosError.PagoRechazado, "No se autorizó el pago.",
             new { motivo = cobro.Error });

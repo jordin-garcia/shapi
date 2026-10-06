@@ -65,4 +65,15 @@ public class Pago
             PeriodoInicio = inicio,
             PeriodoFin = fin,
         };
+
+    public static Pago PlataformaRechazado(Guid suscripcionId, ConceptoPago concepto, decimal monto, string descripcion, string motivo) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        SuscripcionPlataformaId = suscripcionId,
+        Concepto = concepto,
+        Descripcion = descripcion,
+        Monto = monto,
+        Estado = EstadoPago.Rechazado,
+        MotivoRechazo = motivo,
+    };
 }

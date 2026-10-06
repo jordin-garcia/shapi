@@ -34,6 +34,8 @@ export default function PaginaA21PlanesPlataforma() {
   if (consulta.isError) return <EstadoError mensaje="No se pudieron cargar los planes." reintentar={() => void consulta.refetch()} />;
   const planAnual = consulta.data.find(plan => plan.nombre === 'Escala anual');
   const visibles = consulta.data.filter(plan => plan.nombre !== 'Escala anual');
+  const cambiar = actual.data?.estado === 'activa' && actual.data.plan.precio > 0;
+  const rutaPlan = (id: string) => `/panel/suscripcion/${cambiar ? 'cambiar' : 'contratar'}/${id}`;
   return <main>
     <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Planes de plataforma</p>
     <h1 className="mt-2 font-display text-[44px] leading-[1.15]">Los planes de Shapi.</h1>
@@ -63,10 +65,10 @@ export default function PaginaA21PlanesPlataforma() {
             ? <Boton disabled className="w-full">Prueba</Boton>
           : plan.nombre === 'Escala mensual' && planAnual
             ? <div className="mt-auto flex flex-col gap-3">
-              <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-4 text-sm font-medium text-white" to={'/panel/suscripcion/contratar/' + plan.id}>Contratar mensual</Link>
-              <Link className="inline-flex h-[46px] items-center justify-center rounded-base border border-borde-campo px-4 text-sm font-medium text-tinta" to={'/panel/suscripcion/contratar/' + planAnual.id}>Contratar anual</Link>
+              <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-4 text-sm font-medium text-white" to={rutaPlan(plan.id)}>{cambiar ? 'Cambiar mensual' : 'Contratar mensual'}</Link>
+              <Link className="inline-flex h-[46px] items-center justify-center rounded-base border border-borde-campo px-4 text-sm font-medium text-tinta" to={rutaPlan(planAnual.id)}>{cambiar ? 'Cambiar anual' : 'Contratar anual'}</Link>
             </div>
-          : <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-5 font-medium text-white hover:bg-principal-hover" to={'/panel/suscripcion/contratar/' + plan.id}>Contratar</Link>}
+          : <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-5 font-medium text-white hover:bg-principal-hover" to={rutaPlan(plan.id)}>{cambiar ? 'Cambiar plan' : 'Contratar'}</Link>}
       </article>)}
     </section>
   </main>;

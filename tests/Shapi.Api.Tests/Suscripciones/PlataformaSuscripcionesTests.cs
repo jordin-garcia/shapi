@@ -155,7 +155,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{nueva}' AND estado = 'autorizado' AND monto = 199")).Should().Be(1);
     }
 
-    // RF-20: un rechazo deja la suscripción de Prueba vigente y no guarda tarjeta ni pago.
+    // RF-20: un rechazo queda registrado y deja la suscripción de Prueba vigente sin guardar tarjeta.
     [Fact]
     public async Task RF_20_Contratar_TarjetaRechazadaDejaSuscripcionIgual()
     {
@@ -166,7 +166,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         response.StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{prueba}'")).Should().Be("activa");
         (await Escalar<long>("SELECT count(*) FROM suscripcion_plataforma WHERE estado <> 'finalizada'")).Should().Be(1);
-        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{prueba}' AND estado = 'rechazado' AND monto = 199 AND motivo_rechazo = 'fondos_insuficientes'")).Should().Be(1);
         (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);
     }
 
@@ -256,6 +256,31 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         var sub = await NuevaSuscripcionPlataforma(org, actual);
         await NuevaApi(org);
         await NuevaApi(org);
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Post, "/api/suscripcion/cambiar", org, user, new { planId = destino });
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        body.RootElement.GetProperty("codigo").GetString().Should().Be("excede_limites_del_plan");
+        (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE id = '{sub}' AND plan_siguiente_id IS NULL")).Should().Be(1);
+    }
+
+    // RF-43: las invitaciones pendientes y vigentes también ocupan un espacio del límite de miembros.
+    [Fact]
+    public async Task RF_43_CambiarBajada_InvitacionesVigentesExcedenLimiteDeMiembros()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var actual = await NuevoPlanPlataforma();
+        var destino = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 99, max_miembros = 1 WHERE id = '{destino}'");
+        var sub = await NuevaSuscripcionPlataforma(org, actual);
+        await Ejecutar($"""
+            INSERT INTO token (id, tipo, hash_token, organizacion_id, correo, rol, expira_en)
+            VALUES (gen_random_uuid(), 'invitacion_miembro', repeat('a', 64), '{org}', 'invitado@example.com', 'editor', '{Reloj.Ahora.AddDays(7):O}')
+            """);
         using var client = Factory.CreateClient();
 
         using var response = await Enviar(client, HttpMethod.Post, "/api/suscripcion/cambiar", org, user, new { planId = destino });

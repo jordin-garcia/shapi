@@ -46,6 +46,16 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     expect(screen.getByText(/2,000,000/)).toBeDefined();
   });
 
+  it('A2.1 enlaza a cambiar de plan cuando la organización ya tiene un plan de pago', async () => {
+    server.use(
+      http.get(API + '/planes-plataforma', () => HttpResponse.json([lanzamiento, producto])),
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcion)),
+    );
+    renderizar('/panel/suscripcion/planes', <PaginaA21PlanesPlataforma />);
+    const cambiar = await screen.findByRole('link', { name: 'Cambiar plan' });
+    expect(cambiar.getAttribute('href')).toBe('/panel/suscripcion/cambiar/plan-2');
+  });
+
   it('A2.2 y A2.3 contrata con tarjeta y confirma la activación', async () => {
     server.use(
       http.get(API + '/planes-plataforma', () => HttpResponse.json([lanzamiento])),
@@ -132,6 +142,9 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     expect(await screen.findByRole('heading', { name: 'Suscripción de plataforma' })).toBeDefined();
     expect(screen.getByText('Visa •••• 4821')).toBeDefined();
     expect(screen.getByText('Renovación automática')).toBeDefined();
+    expect(screen.getByText('Activa')).toBeDefined();
+    expect(screen.getByText('Q 199.00')).toBeDefined();
+    expect(screen.getByText('Vigencia de 30 días')).toBeDefined();
   });
 
   it('B1.4 en gracia permite pagar con otra tarjeta y reactivar', async () => {
@@ -141,6 +154,9 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     );
     renderizar('/panel/suscripcion', <PaginaB14Suscripcion />);
     expect(await screen.findByText(/Quedan 5 días/)).toBeDefined();
+    expect(screen.getByText('En gracia')).toBeDefined();
+    expect(screen.getByText('Q 199.00')).toBeDefined();
+    expect(screen.getByText('Vigencia de 30 días')).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: 'Pagar con otra tarjeta' }));
     expect(screen.getByLabelText('Número de tarjeta')).toBeDefined();
   });
@@ -149,6 +165,9 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     server.use(http.get(API + '/suscripcion', () => HttpResponse.json({ ...suscripcion, estado: 'suspendida', graciaHasta: '2026-09-30T06:00:00Z' })));
     renderizar('/panel/suscripcion', <PaginaB14Suscripcion />);
     expect(await screen.findByRole('heading', { name: 'Su tráfico está detenido' })).toBeDefined();
+    expect(screen.getByText('Suspendida')).toBeDefined();
+    expect(screen.getByText('Q 199.00')).toBeDefined();
+    expect(screen.getByText('Vigencia de 30 días')).toBeDefined();
     expect(screen.getByText(/Sus claves, las suscripciones de sus consumidores y su historial se conservan/)).toBeDefined();
     expect(screen.getByRole('button', { name: 'Pagar con otra tarjeta' })).toBeDefined();
   });

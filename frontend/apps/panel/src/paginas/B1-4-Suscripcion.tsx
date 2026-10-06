@@ -7,6 +7,7 @@ import { Link } from 'react-router';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const fecha = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
+const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
 
 export default function PaginaB14Suscripcion() {
   const cache = useQueryClient();
@@ -42,6 +43,7 @@ export default function PaginaB14Suscripcion() {
   const s = consulta.data;
   const gracia = s.estado === 'en_gracia';
   const suspendida = s.estado === 'suspendida';
+  const estado = gracia ? 'En gracia' : suspendida ? 'Suspendida' : 'Activa';
   return <main className="mx-auto max-w-[880px]">
     <h1 className="font-display text-[32px]">Suscripción de plataforma</h1>
     <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">Su plan de Shapi, su vigencia y la tarjeta con la que se renueva.</p>
@@ -54,8 +56,13 @@ export default function PaginaB14Suscripcion() {
       <p className="mt-3 text-sm leading-relaxed">Desde el {s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)} sus APIs dejaron de responder: la compuerta rechaza con 403 las peticiones de sus consumidores. Sus claves, las suscripciones de sus consumidores y su historial se conservan. El tráfico se restablece en cuanto se autorice el cobro.</p>
     </section>}
     <section className="mt-8 rounded-base border border-borde bg-panel p-6">
-      <p className="text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Plan de plataforma</p>
-      <h2 className="mt-2 font-display text-[25px]">{s.plan.nombre}</h2>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Plan de plataforma</p>
+          <div className="mt-2 flex items-center gap-3"><h2 className="font-display text-[25px]">{s.plan.nombre}</h2><span className="rounded-full border border-borde px-3 py-1 text-xs font-medium">{estado}</span></div>
+        </div>
+        <div className="text-right"><p className="font-display text-[25px]">{dinero(s.plan.precio)}</p><p className="text-sm text-tinta-suave">Vigencia de {s.plan.vigenciaDias} días</p></div>
+      </div>
       <p className="mt-5 text-sm">{gracia || suspendida ? 'Periodo vencido' : 'Periodo activo'}</p>
       <p className="mt-1 text-[15px]">{fecha(s.periodo.inicio || s.proximaRenovacion)} – {fecha(s.periodo.fin || s.proximaRenovacion)}</p>
       <div className="mt-5 grid gap-4 border-t border-borde pt-5 sm:grid-cols-2">
