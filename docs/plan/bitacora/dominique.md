@@ -81,3 +81,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **EM-18:** `GET /api/portal/auth/sesion` necesita devolver `destino` para que DC-08 pueda distinguir `/cuenta/suscripcion` de `/planes`. Se creó EM-18 con el contrato y las dos pruebas de integración requeridas.
   - **Dominique:** no marcar DC-08 como hecha hasta integrar EM-18 y completar la comprobación manual con el entorno levantado.
+
+## 2026-10-05 · DC-06 · Configuración por ruta y publicación
+- Hecho: configuración transaccional de límite, caché y peso por ruta; publicación y despublicación con requisitos, bitácora y Redis; contrato y tipos; A3.5 y acciones funcionales en A3.1; pruebas dirigidas de integración, Redis y Vitest.
+- Decisiones: `detalle.faltan` usa `ruta_expuesta` y `plan_activo`; la caché de rutas no GET se envía como cero; `publicada_en` conserva la fecha de la publicación más reciente al despublicar.
+- Pendiente o aviso para otros:
+  - **DC-14:** DC-06 publica en Redis después del `commit`; reutilice el mismo orden al regenerar el secreto y verificar o quitar el dominio propio.

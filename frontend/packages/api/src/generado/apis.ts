@@ -80,6 +80,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apis/{id}/configuracion-rutas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Configura el consumo de las rutas de una API */
+        put: operations["configurarRutasApi"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/publicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica una API */
+        post: operations["publicarApi"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/despublicar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Despublica una API sin borrar sus datos */
+        post: operations["despublicarApi"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -131,6 +182,31 @@ export interface components {
             resumen?: string | null;
             descripcion?: string | null;
             expuesta: boolean;
+            /** @description Nulo cuando la ruta no tiene límite propio. */
+            limiteMinuto: number | null;
+            cacheSegundos: number;
+            pesoLlamadas: number;
+        };
+        ConfiguracionRuta: {
+            /** Format: uuid */
+            rutaId: string;
+            /** @description Se omite o se envía nulo para quitar el límite propio. */
+            limiteMinuto?: number | null;
+            /** @description Solo puede ser mayor que cero en rutas GET. */
+            cacheSegundos: number;
+            pesoLlamadas: number;
+        };
+        EstadoPublicacionApi: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            estado: "publicada" | "despublicada";
+            /** @description Fecha de la publicación más reciente; se conserva al despublicar. */
+            publicadaEn: string | null;
+            /** Format: uri */
+            urlApi: string;
+            /** Format: uri */
+            urlPortal: string;
         };
         /** @description La especificación que la API tiene cargada. No se guarda el nombre del archivo. */
         ResumenEspecificacion: {
@@ -181,7 +257,7 @@ export interface components {
             title: string;
             status: number;
             /** @enum {string} */
-            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida";
+            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida" | "correo_no_verificado" | "publicacion_incompleta";
             detalle?: {
                 [key: string]: unknown;
             };
@@ -462,6 +538,104 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
+        };
+    };
+    configurarRutasApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfiguracionRuta"][];
+            };
+        };
+        responses: {
+            /** @description Configuración guardada; si la API está publicada, también se republicó en Redis. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaRutas"];
+                };
+            };
+            400: components["responses"]["DatosInvalidos"];
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    publicarApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API publicada y configuración enviada a la compuerta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoPublicacionApi"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+            /** @description Correo sin verificar o configuración incompleta. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    despublicarApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API despublicada y configuración reenviada a la compuerta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoPublicacionApi"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
         };
     };
 }

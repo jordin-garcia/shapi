@@ -98,4 +98,29 @@ public class Api : IPerteneceAOrganizacion
         EspecificacionCargadaEn = ahora;
         ActualizadoEn = ahora;
     }
+
+    public bool Publicar(DateTimeOffset ahora)
+    {
+        if (Estado == EstadoApi.Publicada)
+        {
+            return false;
+        }
+
+        Estado = EstadoApi.Publicada;
+        PublicadaEn = ahora;
+        ActualizadoEn = ahora;
+        return true;
+    }
+
+    public bool Despublicar(DateTimeOffset ahora)
+    {
+        if (Estado != EstadoApi.Publicada)
+        {
+            return false;
+        }
+
+        Estado = EstadoApi.Despublicada;
+        ActualizadoEn = ahora;
+        return true;
+    }
 }

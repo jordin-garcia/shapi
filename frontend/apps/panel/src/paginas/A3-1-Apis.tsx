@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { crearCliente } from '@shapi/api';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { crearCliente, ErrorApi } from '@shapi/api';
 import type { paths } from '@shapi/api/apis';
-import { EstadoCargando, EstadoError, Etiqueta, Tabla } from '@shapi/ui';
+import { Aviso, EstadoCargando, EstadoError, Etiqueta, Tabla } from '@shapi/ui';
 import { Link } from 'react-router';
 
 const cliente = crearCliente<paths>(window.location.origin);
@@ -11,6 +12,8 @@ function EnlaceRegistro() {
 }
 
 export default function PaginaA31Apis() {
+  const cache = useQueryClient();
+  const [errorPublicacion, setErrorPublicacion] = useState<string>();
   const consulta = useQuery({
     queryKey: ['apis'],
     queryFn: async ({ signal }) => {
@@ -19,6 +22,35 @@ export default function PaginaA31Apis() {
       return data;
     },
     retry: false,
+  });
+  const publicacion = useMutation({
+    mutationFn: async ({ id, publicar }: { id: string; publicar: boolean }) => {
+      const parametros = { params: { path: { id }, header: { 'X-Requested-With': 'shapi' as const } } };
+      const { data, response } = publicar
+        ? await cliente.POST('/api/apis/{id}/publicar', parametros)
+        : await cliente.POST('/api/apis/{id}/despublicar', parametros);
+      if (!response.ok || !data) throw new Error('No se pudo cambiar la publicación.');
+      return data;
+    },
+    onSuccess: data => {
+      cache.setQueryData<typeof consulta.data>(['apis'], actual => actual ? {
+        ...actual,
+        elementos: actual.elementos.map(api => api.id === data.id ? { ...api, estado: data.estado } : api),
+      } : actual);
+      setErrorPublicacion(undefined);
+    },
+    onError: fallo => {
+      if (fallo instanceof ErrorApi && fallo.codigo === 'publicacion_incompleta') {
+        const faltan = Array.isArray(fallo.detalle?.faltan) ? fallo.detalle.faltan : [];
+        const mensajes = [
+          faltan.includes('ruta_expuesta') ? 'Exponga al menos una ruta.' : undefined,
+          faltan.includes('plan_activo') ? 'Cree o active al menos un plan.' : undefined,
+        ].filter(Boolean);
+        setErrorPublicacion([fallo.titulo, ...mensajes].join(' '));
+        return;
+      }
+      setErrorPublicacion(fallo instanceof ErrorApi ? fallo.titulo : 'No se pudo cambiar la publicación. Inténtelo de nuevo.');
+    },
   });
 
   if (consulta.isPending) return <EstadoCargando />;
@@ -46,6 +78,7 @@ export default function PaginaA31Apis() {
     </div>
 
     <section className="mt-8 rounded-base border border-borde bg-panel p-5" aria-label="APIs registradas">
+      {errorPublicacion && <div className="mb-4"><Aviso estado="error">{errorPublicacion}</Aviso></div>}
       <Tabla
         encabezados={elementos.length === 0 ? ['API', 'Estado', 'Acción'] : ['API', 'Subdominio', 'Estado', 'Acción']}
         filas={elementos.map(api => {
@@ -54,7 +87,17 @@ export default function PaginaA31Apis() {
             <Link key="nombre" className="font-medium text-tinta hover:text-principal" to={`/panel/apis/${encodeURIComponent(api.id)}/especificacion`}>{api.nombre}</Link>,
             <span key="subdominio">{api.subdominio}</span>,
             <Etiqueta key="estado" estado={api.estado === 'publicada' ? 'correcto' : 'neutro'}>{estado}</Etiqueta>,
-            <span key="accion" className="font-medium text-principal">{api.estado === 'publicada' ? 'Despublicar' : 'Publicar'}</span>,
+            <button
+              key="accion"
+              type="button"
+              className="font-medium text-principal hover:underline disabled:text-tinta-inactiva disabled:no-underline"
+              disabled={publicacion.isPending && publicacion.variables?.id === api.id}
+              onClick={() => publicacion.mutate({ id: api.id, publicar: api.estado !== 'publicada' })}
+            >
+              {publicacion.isPending && publicacion.variables?.id === api.id
+                ? 'Procesando…'
+                : api.estado === 'publicada' ? 'Despublicar' : 'Publicar'}
+            </button>,
           ];
         })}
       />

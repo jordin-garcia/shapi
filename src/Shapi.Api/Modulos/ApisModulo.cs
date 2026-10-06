@@ -30,6 +30,8 @@ public static class ApisModulo
         services.AddScoped<CargarEspecificacion>();
         services.AddScoped<ListarRutas>();
         services.AddScoped<ActualizarExposicionRutas>();
+        services.AddScoped<ConfigurarRutas>();
+        services.AddScoped<CambiarPublicacionApi>();
         return services;
     }
 

@@ -22,6 +22,12 @@ public static class Endpoints
         grupo.MapGet("/{id:guid}/rutas", ObtenerRutas).RequireAuthorization(Permisos.VerApis);
         grupo.MapPut("/{id:guid}/rutas/exposicion", ActualizarExposicion)
             .RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapPut("/{id:guid}/configuracion-rutas", ActualizarConfiguracion)
+            .RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapPost("/{id:guid}/publicar", Publicar)
+            .RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapPost("/{id:guid}/despublicar", Despublicar)
+            .RequireAuthorization(Permisos.ConfigurarApis);
         return app;
     }
 
@@ -137,6 +143,58 @@ public static class Endpoints
         return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
     }
 
+    private static async Task<IResult> ActualizarConfiguracion(
+        Guid id,
+        [FromBody] ConfiguracionRutaSolicitada?[] cambios,
+        HttpContext contexto,
+        ConfigurarRutas casoUso,
+        CancellationToken cancelacion)
+    {
+        var resultado = await casoUso.Ejecutar(
+            id,
+            OrganizacionId(contexto.User),
+            new SolicitudConfiguracionRutas(cambios),
+            cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> Publicar(
+        Guid id,
+        HttpContext contexto,
+        CambiarPublicacionApi casoUso,
+        IConfiguration configuracion,
+        CancellationToken cancelacion)
+    {
+        var resultado = await casoUso.Publicar(
+            id,
+            OrganizacionId(contexto.User),
+            Actor(contexto),
+            cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor, configuracion)) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> Despublicar(
+        Guid id,
+        HttpContext contexto,
+        CambiarPublicacionApi casoUso,
+        IConfiguration configuracion,
+        CancellationToken cancelacion)
+    {
+        var resultado = await casoUso.Despublicar(
+            id,
+            OrganizacionId(contexto.User),
+            Actor(contexto),
+            cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor, configuracion)) : Problema(resultado.Error);
+    }
+
+    private static ActorRegistroApi Actor(HttpContext contexto) => new(
+        Guid.Parse(contexto.User.FindFirstValue(ClaimTypes.NameIdentifier)!),
+        contexto.User.FindFirstValue(ClaimTypes.Name)
+            ?? contexto.User.FindFirstValue(ClaimTypes.Email)
+            ?? "Usuario",
+        contexto.Connection.RemoteIpAddress?.ToString());
+
     private static RespuestaListaRutas Respuesta(ListaRutas lista) => new(
         lista.ApiId,
         lista.ApiNombre,
@@ -166,7 +224,30 @@ public static class Endpoints
         especificacion.Rutas.Select(Respuesta).ToArray());
 
     private static RespuestaRuta Respuesta(RutaAdministrada ruta) => new(
-        ruta.Id, ruta.Metodo, ruta.Patron, ruta.Resumen, ruta.Descripcion, ruta.Expuesta);
+        ruta.Id,
+        ruta.Metodo,
+        ruta.Patron,
+        ruta.Resumen,
+        ruta.Descripcion,
+        ruta.Expuesta,
+        ruta.LimiteMinuto,
+        ruta.CacheSegundos,
+        ruta.PesoLlamadas);
+
+    private static RespuestaEstadoPublicacion Respuesta(EstadoPublicacionApi api, IConfiguration configuracion)
+    {
+        var dominioBase = configuracion["SHAPI_DOMINIO_BASE"]?.Trim().TrimEnd('.').ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(dominioBase))
+        {
+            dominioBase = "shapi.localhost";
+        }
+        return new RespuestaEstadoPublicacion(
+            api.Id,
+            api.Estado.ToString().ToLowerInvariant(),
+            api.PublicadaEn,
+            $"https://{api.Subdominio}.api.{dominioBase}",
+            $"https://{api.Subdominio}.{dominioBase}");
+    }
 
     private static IResult Problema(Error error)
     {
@@ -176,6 +257,8 @@ public static class Endpoints
             CodigosError.ApiNoEncontrada => StatusCodes.Status404NotFound,
             CodigosError.SubdominioOcupado => StatusCodes.Status409Conflict,
             CodigosError.OrigenNoPermitido or CodigosError.OrigenInaccesible or CodigosError.EspecificacionInvalida
+                => StatusCodes.Status422UnprocessableEntity,
+            CodigosError.CorreoNoVerificado or CodigosError.PublicacionIncompleta
                 => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError,
         };
@@ -218,7 +301,17 @@ public static class Endpoints
         string Patron,
         string? Resumen,
         string? Descripcion,
-        bool Expuesta);
+        bool Expuesta,
+        int? LimiteMinuto,
+        int CacheSegundos,
+        int PesoLlamadas);
+
+    private sealed record RespuestaEstadoPublicacion(
+        Guid Id,
+        string Estado,
+        DateTimeOffset? PublicadaEn,
+        string UrlApi,
+        string UrlPortal);
 
     private sealed record RespuestaResumenEspecificacion(
         string Titulo,

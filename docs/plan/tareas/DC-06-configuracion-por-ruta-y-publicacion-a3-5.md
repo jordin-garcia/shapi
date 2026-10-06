@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-04
 depende_de: [DC-05, JG-04]
 requisitos: [RF-13, RF-14]
@@ -52,3 +52,10 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Planes (EM-07)
+
+## Resultado
+
+- Se agregaron la configuración por ruta y las operaciones para publicar y despublicar una API, con validación, aislamiento por organización, bitácora y publicación en Redis después del `commit`.
+- A3.5 reproduce la tabla del mockup y A3.1 ejecuta Publicar y Despublicar, actualiza el estado y explica los requisitos que faltan.
+- `publicacion_incompleta` identifica los requisitos pendientes con los valores estables `ruta_expuesta` y `plan_activo` en `detalle.faltan`.
+- Se amplió `contratos/openapi/apis.yaml` y se regeneraron los tipos TypeScript. Las columnas y restricciones ya existían, por lo que no hizo falta una migración.
