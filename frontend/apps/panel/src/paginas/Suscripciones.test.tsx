@@ -95,6 +95,23 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     expect(screen.getByText(/Prueba · Q 0.00 · Sin cambios/)).toBeDefined();
   });
 
+  it('A2.2 comunica una caída de pasarela sin presentarla como rechazo de tarjeta', async () => {
+    server.use(
+      http.get(API + '/planes-plataforma', () => HttpResponse.json([lanzamiento])),
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcionPrueba)),
+      http.post(API + '/suscripcion/contratar', () => HttpResponse.json({ title: 'La pasarela no está disponible.', codigo: 'pasarela_no_disponible' }, { status: 503, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+    renderizar('/panel/suscripcion/contratar/plan-1', <Routes><Route path="/panel/suscripcion/contratar/:plan" element={<PaginaA22Contratacion />} /></Routes>);
+    await userEvent.type(await screen.findByLabelText('Número de tarjeta'), '4242424242424242');
+    await userEvent.type(screen.getByLabelText('Mes de vencimiento'), '12');
+    await userEvent.type(screen.getByLabelText('Año de vencimiento'), '2030');
+    await userEvent.type(screen.getByLabelText('Código de seguridad'), '123');
+    await userEvent.type(screen.getByLabelText('Titular de la tarjeta'), 'Ana Morales');
+    await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 199.00 y contratar' }));
+    expect(await screen.findByText('La pasarela no está disponible.')).toBeDefined();
+    expect(screen.queryByRole('heading', { name: 'Tarjeta rechazada' })).toBeNull();
+  });
+
   it('A2.5 muestra el cálculo de prorrateo y confirma el cambio', async () => {
     server.use(
       http.get(API + '/planes-plataforma', () => HttpResponse.json([lanzamiento, producto])),

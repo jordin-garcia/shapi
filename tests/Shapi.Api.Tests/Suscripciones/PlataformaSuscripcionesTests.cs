@@ -135,6 +135,26 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         Publicador.Publicadas.Should().Contain(nueva);
     }
 
+    // RF-20: un plan gratuito vigente puede pasar a uno de pago y su ciclo se cierra al contratar.
+    [Fact]
+    public async Task RF_20_Contratar_DesdePlanGratuitoGuardaPagoYActivaNuevoCiclo()
+    {
+        var (org, user, gratuito, pago) = await Escenario();
+        await Ejecutar($"UPDATE plan_plataforma SET nombre = 'Gratis', precio = 0, es_prueba = false WHERE id = '{gratuito}'");
+        using var client = Factory.CreateClient();
+        using var response = await Enviar(client, HttpMethod.Post, "/api/suscripcion/contratar", org, user,
+            new { planId = pago, tarjeta = Tarjeta("4242424242424242") });
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var nueva = body.GetProperty("id").GetGuid();
+        var inicioCiclo = Shapi.Dominio.Suscripciones.Suscripcion.InicioDeCiclo(Reloj.Ahora);
+        body.GetProperty("periodo").GetProperty("inicio").GetDateTimeOffset().Should().Be(inicioCiclo);
+        body.GetProperty("proximaRenovacion").GetDateTimeOffset().Should().Be(inicioCiclo.AddDays(30));
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{gratuito}'")).Should().Be("finalizada");
+        (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE id = '{nueva}' AND estado = 'activa' AND plan_id = '{pago}'")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{nueva}' AND estado = 'autorizado' AND monto = 199")).Should().Be(1);
+    }
+
     // RF-20: un rechazo deja la suscripción de Prueba vigente y no guarda tarjeta ni pago.
     [Fact]
     public async Task RF_20_Contratar_TarjetaRechazadaDejaSuscripcionIgual()

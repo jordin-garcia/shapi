@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { crearCliente } from '@shapi/api';
+import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/suscripciones';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { useParams } from 'react-router';
@@ -24,6 +24,7 @@ export default function PaginaA22Contratacion() {
   const [titular, setTitular] = useState('');
   const [usarRegistrada, setUsarRegistrada] = useState(true);
   const [resultado, setResultado] = useState<Resultado>();
+  const [errorContratacion, setErrorContratacion] = useState<string>();
   const planes = useQuery({
     queryKey: ['planes-plataforma'],
     queryFn: async ({ signal }) => {
@@ -58,7 +59,13 @@ export default function PaginaA22Contratacion() {
       return data;
     },
     onSuccess: datos => setResultado({ tipo: 'exito', datos }),
-    onError: () => setResultado({ tipo: 'rechazo', tarjeta: tarjetaEnmascarada() }),
+    onError: error => {
+      if (error instanceof ErrorApi && error.estado === 402 && error.codigo === 'pago_rechazado') {
+        setResultado({ tipo: 'rechazo', tarjeta: tarjetaEnmascarada() });
+        return;
+      }
+      setErrorContratacion(error instanceof ErrorApi ? error.titulo : 'No se pudo completar la contratación. Intente de nuevo.');
+    },
   });
   function tarjetaEnmascarada() {
     if (usarRegistrada && suscripcion.data?.tarjetaEnmascarada) return suscripcion.data.tarjetaEnmascarada;
@@ -86,7 +93,8 @@ export default function PaginaA22Contratacion() {
       <p className="mt-5 text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Límites del plan</p>
       <p className="mt-2 text-sm">{plan.maxApis ?? 'APIs ilimitadas'} APIs · {plan.cuotaPeticiones.toLocaleString('es-GT')} peticiones · {plan.maxMiembros ?? 'Miembros ilimitados'} miembros</p>
     </section>
-    <form className="mt-6 space-y-4" onSubmit={event => { event.preventDefault(); contratar.mutate(); }}>
+    <form className="mt-6 space-y-4" onSubmit={event => { event.preventDefault(); setErrorContratacion(undefined); contratar.mutate(); }}>
+      {errorContratacion && <Aviso estado="error">{errorContratacion}</Aviso>}
       <h2 className="font-display text-[21px]">Datos de la tarjeta</h2>
       <p className="text-sm leading-relaxed text-tinta-suave">Shapi no guarda el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.</p>
       {suscripcion.data?.tarjetaEnmascarada && <fieldset className="space-y-3 text-sm">

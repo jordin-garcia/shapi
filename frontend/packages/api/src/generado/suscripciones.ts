@@ -181,6 +181,37 @@ export interface components {
             proximaRenovacion: string;
             tarjetaEnmascarada: string;
         };
+        ResultadoCambioProrrateado: {
+            /** @constant */
+            estado: "activa";
+            credito: number;
+            cargo: number;
+            aPagar: number;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+        };
+        ResultadoCambioProgramado: {
+            /** @constant */
+            estado: "programado";
+            /** Format: uuid */
+            planSiguienteId: string;
+            /** Format: date-time */
+            efectivoDesde: string;
+        };
+        ResultadoSinCambios: {
+            /** @constant */
+            estado: "sin_cambios";
+        };
+        ResultadoPagoSuscripcionPlataforma: {
+            /** @constant */
+            estado: "activa";
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+        };
         PeticionSuscripcionPlataforma: {
             /** Format: uuid */
             planId: string;
@@ -457,12 +488,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Cambio aplicado o programado */
+            /** @description Cambio aplicado, contratado desde plan de prueba/gratuito, sin cambios o programado */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ResultadoCambioProrrateado"] | components["schemas"]["ResultadoContratacionPlataforma"] | components["schemas"]["ResultadoCambioProgramado"] | components["schemas"]["ResultadoSinCambios"];
+                };
             };
             /** @description Datos inválidos o no hay tarjeta registrada (`datos_invalidos`) */
             400: {
@@ -542,12 +575,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Suscripción reactivada */
+            /** @description Suscripción reactivada con el ciclo nuevo */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ResultadoPagoSuscripcionPlataforma"];
+                };
             };
             /** @description Datos inválidos o no hay tarjeta registrada (`datos_invalidos`) */
             400: {
