@@ -2,12 +2,14 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/suscripciones';
+import type { components as componentesPlanes, paths as pathsPlanes } from '@shapi/api/planes';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { useParams } from 'react-router';
 import Confirmacion from './A2-3-Confirmacion';
 import Rechazo from './A2-4-Rechazo';
 
 const cliente = crearCliente<paths>(window.location.origin);
+const clientePlanes = crearCliente<pathsPlanes>(window.location.origin);
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
 const inicioCicloDeHoy = () => {
   const partes = Object.fromEntries(new Intl.DateTimeFormat('en', {
@@ -18,6 +20,7 @@ const inicioCicloDeHoy = () => {
 const fecha = (valor: string) => new Intl.DateTimeFormat('es-GT', {
   day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala',
 }).format(new Date(valor));
+type Plan = componentesPlanes['schemas']['PlanPlataforma'];
 type ResultadoContratacion = components['schemas']['ResultadoContratacionPlataforma'];
 type Resultado = { tipo: 'exito'; datos: ResultadoContratacion } | { tipo: 'rechazo'; tarjeta: string };
 
@@ -34,13 +37,13 @@ export default function PaginaA22Contratacion() {
   const planes = useQuery({
     queryKey: ['planes-plataforma'],
     queryFn: async ({ signal }) => {
-      const { data, response } = await cliente.GET('/api/planes-plataforma', { signal });
+      const { data, response } = await clientePlanes.GET('/api/planes-plataforma', { signal });
       if (!response.ok || !data) throw new Error('No se pudieron cargar los planes.');
       return data;
     },
     retry: false,
   });
-  const plan = planes.data?.find(item => item.id === planId);
+  const plan: Plan | undefined = planes.data?.find(item => item.id === planId);
   const suscripcion = useQuery({
     queryKey: ['suscripcion-plataforma'],
     queryFn: async ({ signal }) => {

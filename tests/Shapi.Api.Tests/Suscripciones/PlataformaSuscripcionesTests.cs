@@ -398,6 +398,29 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
     }
 
+    // RF-20: dos contrataciones simultáneas desde Prueba generan un cobro y una suscripción de pago.
+    [Fact]
+    public async Task RF_20_Contratar_ConcurrentesNoDuplicanCobro()
+    {
+        _demoraPagosMs = 250;
+        var (org, user, _, plan) = await Escenario();
+        using var client = Factory.CreateClient();
+        var solicitud = new { planId = plan, tarjeta = Tarjeta("4242424242424242") };
+
+        var respuestas = await Task.WhenAll(
+            Enviar(client, HttpMethod.Post, "/api/suscripcion/contratar", org, user, solicitud),
+            Enviar(client, HttpMethod.Post, "/api/suscripcion/contratar", org, user, solicitud));
+
+        respuestas.Select(r => r.StatusCode).Should().ContainSingle(codigo => codigo == HttpStatusCode.Created);
+        respuestas.Select(r => r.StatusCode).Should().ContainSingle(codigo => codigo == HttpStatusCode.Conflict);
+        foreach (var response in respuestas)
+        {
+            response.Dispose();
+        }
+        (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE organizacion_id = '{org}' AND plan_id = '{plan}' AND estado = 'activa'")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM pago p JOIN suscripcion_plataforma s ON s.id = p.suscripcion_plataforma_id WHERE s.organizacion_id = '{org}' AND p.concepto = 'contratacion' AND p.estado = 'autorizado'")).Should().Be(1);
+    }
+
     // RF-25: dos cambios simultáneos cobran y aplican el mismo cambio una sola vez.
     [Fact]
     public async Task RF_25_Cambiar_ConcurrentesNoCobranDosVeces()

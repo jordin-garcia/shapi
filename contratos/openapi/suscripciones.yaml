@@ -3,19 +3,6 @@ info:
   title: API de Suscripciones de Shapi
   version: 1.0.0
 paths:
-  /api/planes-plataforma:
-    get:
-      summary: Lista los planes de plataforma activos por orden
-      operationId: listarPlanesPlataforma
-      responses:
-        "200":
-          description: Planes de plataforma disponibles
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PlanPlataforma"
   /api/suscripcion:
     get:
       summary: Consulta la suscripción de plataforma de la organización
@@ -253,22 +240,6 @@ paths:
                 $ref: "#/components/schemas/Problema"
 components:
   schemas:
-    PlanPlataforma:
-      type: object
-      required: [id, nombre, descripcion, precio, moneda, vigenciaDias, cuotaPeticiones, dominioPropio, esPrueba, inicioCicloPrevisto]
-      properties:
-        id: { type: string, format: uuid }
-        nombre: { type: string }
-        descripcion: { type: string }
-        precio: { type: number }
-        moneda: { type: string, const: GTQ }
-        vigenciaDias: { type: integer }
-        maxApis: { type: [integer, "null"] }
-        maxMiembros: { type: [integer, "null"] }
-        cuotaPeticiones: { type: integer, format: int64 }
-        dominioPropio: { type: boolean }
-        esPrueba: { type: boolean }
-        inicioCicloPrevisto: { type: string, format: date-time }
     ResultadoContratacionPlataforma:
       type: object
       required: [id, plan, estado, periodo, proximaRenovacion, tarjetaEnmascarada]

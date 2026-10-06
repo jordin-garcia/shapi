@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { crearCliente, ErrorApi } from '@shapi/api';
-import type { components, paths } from '@shapi/api/suscripciones';
+import type { paths } from '@shapi/api/suscripciones';
+import type { components as componentesPlanes, paths as pathsPlanes } from '@shapi/api/planes';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link, useParams } from 'react-router';
 
 const cliente = crearCliente<paths>(window.location.origin);
-type Plan = components['schemas']['PlanPlataforma'];
+const clientePlanes = crearCliente<pathsPlanes>(window.location.origin);
+type Plan = componentesPlanes['schemas']['PlanPlataforma'];
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
 const fecha = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
 
@@ -23,7 +25,7 @@ export default function PaginaA25CambioPlan() {
   const planes = useQuery({
     queryKey: ['planes-plataforma'],
     queryFn: async ({ signal }) => {
-      const { data, response } = await cliente.GET('/api/planes-plataforma', { signal });
+      const { data, response } = await clientePlanes.GET('/api/planes-plataforma', { signal });
       if (!response.ok || !data) throw new Error('No se pudieron cargar los planes.');
       return data;
     },

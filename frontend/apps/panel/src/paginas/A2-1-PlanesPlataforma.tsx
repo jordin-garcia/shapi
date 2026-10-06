@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { crearCliente } from '@shapi/api';
-import type { components, paths } from '@shapi/api/suscripciones';
+import type { components, paths } from '@shapi/api/planes';
+import type { paths as pathsSuscripciones } from '@shapi/api/suscripciones';
 import { Boton, EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link } from 'react-router';
 
 const cliente = crearCliente<paths>(window.location.origin);
+const clienteSuscripciones = crearCliente<pathsSuscripciones>(window.location.origin);
 type Plan = components['schemas']['PlanPlataforma'];
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
 
@@ -22,7 +24,7 @@ export default function PaginaA21PlanesPlataforma() {
     queryKey: ['suscripcion-plataforma'],
     queryFn: async ({ signal }) => {
       try {
-        const { data, response } = await cliente.GET('/api/suscripcion', { signal });
+        const { data, response } = await clienteSuscripciones.GET('/api/suscripcion', { signal });
         return response.ok ? (data ?? null) : null;
       } catch {
         return null;
