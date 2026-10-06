@@ -79,11 +79,11 @@ beforeEach(() => {
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
     http.get('http://localhost/api/planes-plataforma', () => HttpResponse.json([
-      { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
-      { id: 'escala', nombre: 'Escala mensual', descripcion: 'Plan', precio: 1500, moneda: 'GTQ', vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
+      { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan para empezar', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
+      { id: 'escala', nombre: 'Escala mensual', descripcion: 'Plan para crecer', precio: 1500, moneda: 'GTQ', vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
     ])),
     http.get('http://localhost/api/suscripcion', () => HttpResponse.json({
-      plan: { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan', precio: 199, moneda: 'GTQ', vigenciaDias: 30 },
+      plan: { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan para empezar', precio: 199, vigenciaDias: 30 },
       estado: 'activa', periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-29T06:00:00Z' },
       proximaRenovacion: '2026-09-30T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4821', graciaHasta: null, diasRestantesCiclo: 5, diasRestantes: 0, cambioProgramado: null,
     })),

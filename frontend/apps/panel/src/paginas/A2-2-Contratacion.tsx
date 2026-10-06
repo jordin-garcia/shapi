@@ -9,6 +9,12 @@ import Rechazo from './A2-4-Rechazo';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
+const inicioCicloDeHoy = () => {
+  const partes = Object.fromEntries(new Intl.DateTimeFormat('en', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Guatemala',
+  }).formatToParts(new Date()).map(parte => [parte.type, parte.value]));
+  return new Date(Date.UTC(Number(partes.year), Number(partes.month) - 1, Number(partes.day), 6));
+};
 const fecha = (valor: string) => new Intl.DateTimeFormat('es-GT', {
   day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala',
 }).format(new Date(valor));
@@ -78,7 +84,7 @@ export default function PaginaA22Contratacion() {
   if (!plan) return <Aviso estado="error">No se encontró el plan seleccionado.</Aviso>;
   if (resultado?.tipo === 'exito') return <Confirmacion contratacion={resultado.datos} />;
   if (resultado?.tipo === 'rechazo') return <Rechazo planId={plan.id} plan={plan.nombre} monto={dinero(plan.precio)} tarjeta={resultado.tarjeta} suscripcion={suscripcion.data ?? null} />;
-  const inicio = new Date(plan.inicioCicloPrevisto);
+  const inicio = plan.inicioCicloPrevisto ? new Date(plan.inicioCicloPrevisto) : inicioCicloDeHoy();
   const fin = new Date(inicio.getTime() + (plan.vigenciaDias - 1) * 86_400_000);
   return <main className="mx-auto max-w-[760px] rounded-base border border-borde bg-panel p-8 md:p-10">
     <h1 className="font-display text-[32px] leading-tight">Contratación de un plan superior</h1>
@@ -88,7 +94,7 @@ export default function PaginaA22Contratacion() {
       <p className="mt-1 text-sm text-tinta-suave">{plan.descripcion}</p>
       <p className="mt-4 text-sm">Precio <span className="float-right font-medium">{dinero(plan.precio)} cada {plan.vigenciaDias} días</span></p>
       <p className="mt-2 text-sm">Vigencia <span className="float-right">{plan.vigenciaDias} días</span></p>
-      <p className="mt-2 text-sm">Periodo que se activa <span className="float-right">{fecha(plan.inicioCicloPrevisto)} – {fecha(fin.toISOString())}</span></p>
+      <p className="mt-2 text-sm">Periodo que se activa <span className="float-right">{fecha(inicio.toISOString())} – {fecha(fin.toISOString())}</span></p>
       <p className="mt-2 text-sm">Plan actual <span className="float-right">{suscripcion.data?.plan ? `${suscripcion.data.plan.nombre} · ${dinero(suscripcion.data.plan.precio)}` : 'Prueba · Q 0.00'}</span></p>
       <p className="mt-5 text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Límites del plan</p>
       <p className="mt-2 text-sm">{plan.maxApis ?? 'APIs ilimitadas'} APIs · {plan.cuotaPeticiones.toLocaleString('es-GT')} peticiones · {plan.maxMiembros ?? 'Miembros ilimitados'} miembros</p>

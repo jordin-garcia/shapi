@@ -141,6 +141,9 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
     public async Task<IResult> Cambiar(HttpContext http, PeticionSuscripcionPlataforma p, CancellationToken ct)
     {
         var org = OrganizacionId(http.User);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({org.ToString()}, 0))", ct);
         var ahora = reloj.Ahora;
         var actual = await db.Set<SuscripcionPlataforma>().SingleOrDefaultAsync(x => x.OrganizacionId == org && x.Estado == EstadoSuscripcion.Activa, ct);
         if (actual is null)
@@ -178,6 +181,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                     db.Add(Pago.PlataformaRechazado(actual.Id, ConceptoPago.Contratacion, destino.Precio,
                         $"Contratación del plan {destino.Nombre}", pagoCompleto.Error ?? CodigosError.PagoRechazado));
                     await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
                 }
 
                 return Error(pagoCompleto.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
@@ -189,7 +193,6 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             var nuevaCompleta = SuscripcionPlataforma.Contratar(org, destino, medioCompleto.Id, ahora);
             try
             {
-                await using var tx = await db.Database.BeginTransactionAsync(ct);
                 if (prepCompleto.EsNueva)
                 {
                     db.Add(medioCompleto);
@@ -236,6 +239,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             actual.ProgramarCambio(destino.Id, ahora);
             await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
             await Registrar(http, org, actual.Id, AccionesBitacora.SuscripcionPlataformaCambiada, $"Programó el cambio a {destino.Nombre}.", ct);
             return TypedResults.Ok(new { estado = "programado", planSiguienteId = destino.Id, efectivoDesde = actual.Fin });
         }
@@ -258,6 +262,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                     db.Add(Pago.PlataformaRechazado(actual.Id, ConceptoPago.CambioPlan, valores.APagar,
                         $"{origen.Nombre} → {destino.Nombre} · diferencia prorrateada", cobro.Error ?? CodigosError.PagoRechazado));
                     await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
                 }
 
                 return Error(cobro.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
@@ -270,7 +275,6 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         var medioId = prep.Medio?.Id ?? actual.MedioPagoId;
         try
         {
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
             if (prep.EsNueva)
             {
                 db.Add(prep.Medio!);
@@ -319,6 +323,9 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
     public async Task<IResult> Pagar(HttpContext http, PeticionPagoPlataforma p, CancellationToken ct)
     {
         var org = OrganizacionId(http.User);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({org.ToString()}, 0))", ct);
         var actual = await db.Set<SuscripcionPlataforma>().SingleOrDefaultAsync(x => x.OrganizacionId == org && (x.Estado == EstadoSuscripcion.EnGracia || x.Estado == EstadoSuscripcion.Suspendida), ct);
         if (actual is null)
         {
@@ -340,6 +347,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 db.Add(Pago.PlataformaRechazado(actual.Id, ConceptoPago.Reactivacion, plan.Precio,
                     $"Reactivación del plan {plan.Nombre}", cobro.Error ?? CodigosError.PagoRechazado));
                 await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
             }
 
             return Error(cobro.Error == CodigosError.PasarelaNoDisponible ? 503 : 402,
@@ -350,7 +358,6 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         var ahora = reloj.Ahora;
         try
         {
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
             if (prep.EsNueva)
             {
                 db.Add(prep.Medio!);

@@ -59,12 +59,13 @@ public sealed class AuthPlataformaPrueba(IOptionsMonitor<AuthenticationSchemeOpt
 public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) : BaseDePrueba(postgres), IAsyncLifetime
 {
     private WebApplicationFactory<Program>? _factory;
+    private int _demoraPagosMs;
     private PublicadorSuscripcionFalso Publicador => _factory!.Services.GetRequiredService<PublicadorSuscripcionFalso>();
     private WebApplicationFactory<Program> Factory => _factory ??= new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
         builder.UseSetting("SHAPI_APLICAR_MIGRACIONES", "true");
         builder.UseSetting("SHAPI_POSTGRES_CADENA", Cadena);
-        builder.UseSetting("Pagos:DemoraMs", "0");
+        builder.UseSetting("Pagos:DemoraMs", _demoraPagosMs.ToString());
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<IReloj>(Reloj);
@@ -372,6 +373,91 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE objetivo_tipo = 'suscripcion_plataforma' AND objetivo_id = '{sub}' AND accion = 'suscripcion_plataforma.cambiada'")).Should().Be(1);
         Publicador.Publicadas.Should().Contain(sub);
+    }
+
+    // RF-20: una suscripción suspendida también puede reactivarse con un pago aprobado.
+    [Fact]
+    public async Task RF_20_Pagar_DesdeSuspendidaReactivaLaSuscripcion()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await NuevoPlanPlataforma();
+        var sub = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{org}', '{plan}', 'suspendida', '{Reloj.Ahora.AddDays(-30):O}', '{Reloj.Ahora.AddDays(-7):O}', '{Reloj.Ahora.AddDays(-1):O}') RETURNING id
+            """);
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Post, "/api/suscripcion/pagar", org, user,
+            new { tarjeta = Tarjeta("4242424242424242") });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be("activa");
+        (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(Shapi.Dominio.Suscripciones.Suscripcion.InicioDeCiclo(Reloj.Ahora).UtcDateTime);
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
+    }
+
+    // RF-25: dos cambios simultáneos cobran y aplican el mismo cambio una sola vez.
+    [Fact]
+    public async Task RF_25_Cambiar_ConcurrentesNoCobranDosVeces()
+    {
+        _demoraPagosMs = 250;
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var origen = await NuevoPlanPlataforma();
+        var destino = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 599 WHERE id = '{destino}'");
+        var medio = await NuevoMedioPago(org, null);
+        var sub = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin, medio_pago_id)
+            VALUES (gen_random_uuid(), '{org}', '{origen}', 'activa', '{Reloj.Ahora.AddDays(-17):O}', '{Reloj.Ahora.AddDays(13):O}', '{medio}') RETURNING id
+            """);
+        using var client = Factory.CreateClient();
+        var solicitud = new { planId = destino, usarRegistrada = true };
+
+        var respuestas = await Task.WhenAll(
+            Enviar(client, HttpMethod.Post, "/api/suscripcion/cambiar", org, user, solicitud),
+            Enviar(client, HttpMethod.Post, "/api/suscripcion/cambiar", org, user, solicitud));
+
+        respuestas.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.OK);
+        foreach (var response in respuestas)
+        {
+            response.Dispose();
+        }
+        (await Escalar<Guid>($"SELECT plan_id FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(destino);
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'cambio_plan' AND estado = 'autorizado'")).Should().Be(1);
+    }
+
+    // RF-20: dos pagos simultáneos reactivan una vez y el segundo encuentra la suscripción activa.
+    [Fact]
+    public async Task RF_20_Pagar_ConcurrentesReactivanUnaSolaVez()
+    {
+        _demoraPagosMs = 250;
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await NuevoPlanPlataforma();
+        var sub = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{org}', '{plan}', 'en_gracia', '{Reloj.Ahora.AddDays(-30):O}', '{Reloj.Ahora:O}', '{Reloj.Ahora.AddDays(7):O}') RETURNING id
+            """);
+        using var client = Factory.CreateClient();
+        var solicitud = new { tarjeta = Tarjeta("4242424242424242") };
+
+        var respuestas = await Task.WhenAll(
+            Enviar(client, HttpMethod.Post, "/api/suscripcion/pagar", org, user, solicitud),
+            Enviar(client, HttpMethod.Post, "/api/suscripcion/pagar", org, user, solicitud));
+
+        respuestas.Select(r => r.StatusCode).Should().ContainSingle(codigo => codigo == HttpStatusCode.OK);
+        respuestas.Select(r => r.StatusCode).Should().ContainSingle(codigo => codigo == HttpStatusCode.NotFound);
+        foreach (var response in respuestas)
+        {
+            response.Dispose();
+        }
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be("activa");
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
     }
 
     private async Task<(Guid Organizacion, Guid Usuario, Guid Prueba, Guid Pago)> Escenario()
