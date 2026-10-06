@@ -37,6 +37,7 @@ const implementadas: Record<string, string> = {
   'A3-2': 'Registrar una API',
   'A3-3': 'Cargar especificación OpenAPI',
   'A3-4': 'Rutas expuestas',
+  'A3-5': 'Configuración por ruta',
   'A4-1': 'Planes de la API',
   'A8-1': 'Mi perfil',
   'B3-2': 'Bitácora de acciones sensibles',
