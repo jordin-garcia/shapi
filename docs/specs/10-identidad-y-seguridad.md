@@ -84,6 +84,25 @@ Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan co
 | `aviso_cuota_plataforma` | Propietario | Al cruzar el 80 % y el 100 % de la cuota |
 | `respuesta_caso` | La otra parte del caso | Mensaje nuevo en un caso |
 
+Cada plantilla recibe estos datos para su contenido, además de los datos de marca del portal cuando el destinatario es un consumidor:
+
+| Plantilla | Datos requeridos |
+|---|---|
+| `verificacion_correo` | `nombre`, `token` |
+| `recuperacion` | `nombre`, `token` |
+| `invitacion_miembro` | `nombre`, `nombreOrganizacion`, `enlace` |
+| `invitacion_consumidor` | `nombre`, `nombreApi`, `enlace` |
+| `definir_contrasena` | `nombre`, `enlace` |
+| `pago_rechazado` | `nombre`, `nombrePlan`, `motivo`, `enlace` |
+| `suscripcion_en_gracia` | `nombre`, `nombrePlan`, `fechaSuspension`, `enlace` |
+| `suscripcion_suspendida` | `nombre`, `nombrePlan`, `enlace` |
+| `organizacion_suspendida` | `nombre`, `nombreOrganizacion`, `motivo`, `enlace` |
+| `prueba_por_vencer` | `nombre`, `fechaFin`, `enlace` |
+| `aviso_cuota_plataforma` | `nombre`, `porcentaje`, `enlace` |
+| `respuesta_caso` | `nombre`, `numeroCaso` (por ejemplo, `CAS-104`), `asunto`, `enlace` |
+
+Las fechas llegan ya formateadas en español y los enlaces son absolutos. El motor arma por sí mismo el `enlace` de `verificacion_correo` y `recuperacion` a partir del `token` y del ámbito de la cuenta.
+
 **Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`. Un error al armar el correo, por ejemplo un `hostPortal` inválido, también cuenta como intento fallido.
 
 **Varios trabajadores:** cada correo se toma en su propia transacción con `SELECT … FOR UPDATE SKIP LOCKED`, así que dos trabajadores nunca envían el mismo correo. En cuanto el servidor SMTP acepta el mensaje, el correo se guarda como `enviado`, aunque falle el cierre de la sesión (`QUIT`) o el trabajador se esté deteniendo.
