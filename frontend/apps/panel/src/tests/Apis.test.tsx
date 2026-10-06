@@ -9,6 +9,7 @@ import PaginaA31Apis from '../paginas/A3-1-Apis';
 import PaginaA32Registro from '../paginas/A3-2-Registro';
 import PaginaA33Especificacion from '../paginas/A3-3-Especificacion';
 import PaginaA34Rutas from '../paginas/A3-4-Rutas';
+import PaginaA35ConfigRutas from '../paginas/A3-5-ConfigRutas';
 
 const API = 'http://localhost/api/apis';
 let cliente: QueryClient;
@@ -81,6 +82,37 @@ describe('RF-14 · A3.1 Lista de APIs', () => {
 
     expect(await screen.findByText('No se pudieron cargar las APIs.')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDefined();
+  });
+
+  it('publica, despublica y muestra lo que falta para publicar', async () => {
+    let accion = '';
+    server.use(
+      http.get(API, () => HttpResponse.json({
+        total: 2, planNombre: 'Producto', maxApis: 10,
+        elementos: [
+          { id: 'api-1', nombre: 'API publicada', subdominio: 'publicada', estado: 'publicada' },
+          { id: 'api-2', nombre: 'API borrador', subdominio: 'borrador', estado: 'borrador' },
+        ],
+      })),
+      http.post(`${API}/api-1/despublicar`, ({ request }) => {
+        accion = request.headers.get('X-Requested-With') ?? '';
+        return HttpResponse.json({ id: 'api-1', estado: 'despublicada', publicadaEn: '2026-10-05T12:00:00Z', urlApi: 'https://publicada.api.shapi.localhost', urlPortal: 'https://publicada.shapi.localhost' });
+      }),
+      http.post(`${API}/api-2/publicar`, () => HttpResponse.json({
+        type: 'about:blank', title: 'Complete la configuración antes de publicar la API.', status: 422,
+        codigo: 'publicacion_incompleta', detalle: { faltan: ['ruta_expuesta', 'plan_activo'] },
+      }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+
+    envolver(<PaginaA31Apis />);
+    await screen.findByRole('heading', { name: 'APIs de la organización' });
+    await userEvent.click(screen.getByRole('button', { name: 'Despublicar' }));
+    expect(await screen.findAllByRole('button', { name: 'Publicar' })).toHaveLength(2);
+    expect(accion).toBe('shapi');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Publicar' })[1]);
+    const aviso = await screen.findByRole('alert');
+    expect(aviso.textContent).toContain('Exponga al menos una ruta.');
+    expect(aviso.textContent).toContain('Cree o active al menos un plan.');
   });
 });
 
@@ -180,11 +212,11 @@ describe('RF-08 y RF-47 · A3.2 Registro de API', () => {
 
 const API_ID = '0199a5b2-7c3d-7e4f-8a9b-0c1d2e3f4a5b';
 const RUTAS = [
-  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000001', metodo: 'POST', patron: '/cotizaciones', resumen: 'Cotizar un envío', descripcion: null, expuesta: true },
-  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000002', metodo: 'POST', patron: '/guias', resumen: 'Crear una guía', descripcion: null, expuesta: true },
-  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000003', metodo: 'GET', patron: '/tarifas', resumen: 'Listar tarifas', descripcion: null, expuesta: false },
-  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000004', metodo: 'GET', patron: '/rastreo', resumen: 'Rastrear una guía', descripcion: null, expuesta: true },
-  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000005', metodo: 'GET', patron: '/cobertura', resumen: 'Consultar cobertura', descripcion: null, expuesta: true },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000001', metodo: 'POST', patron: '/cotizaciones', resumen: 'Cotizar un envío', descripcion: null, expuesta: true, limiteMinuto: 120, cacheSegundos: 0, pesoLlamadas: 1 },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000002', metodo: 'POST', patron: '/guias', resumen: 'Crear una guía', descripcion: null, expuesta: true, limiteMinuto: 60, cacheSegundos: 0, pesoLlamadas: 5 },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000003', metodo: 'GET', patron: '/tarifas', resumen: 'Listar tarifas', descripcion: null, expuesta: false, limiteMinuto: null, cacheSegundos: 0, pesoLlamadas: 1 },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000004', metodo: 'GET', patron: '/rastreo', resumen: 'Rastrear una guía', descripcion: null, expuesta: true, limiteMinuto: 300, cacheSegundos: 30, pesoLlamadas: 1 },
+  { id: '0199a5b2-7c3d-7e4f-8a9b-000000000005', metodo: 'GET', patron: '/cobertura', resumen: 'Consultar cobertura', descripcion: null, expuesta: true, limiteMinuto: 120, cacheSegundos: 3600, pesoLlamadas: 1 },
 ] as const;
 
 describe('RF-09 · A3.3 Especificación OpenAPI', () => {
@@ -372,5 +404,41 @@ describe('RF-10 · A3.4 Rutas expuestas', () => {
       expect(radio.className).toContain(clase);
     }
     expect(radio.closest('div')?.className).toContain('gap-7');
+  });
+});
+
+describe('RF-13 · A3.5 Configuración por ruta', () => {
+  it('reproduce el mockup, deshabilita caché para POST y guarda el lote', async () => {
+    let cuerpo: unknown;
+    let csrf: string | null = null;
+    server.use(
+      http.get(`${API}/${API_ID}/rutas`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1, especificacion: null,
+      })),
+      http.put(`${API}/${API_ID}/configuracion-rutas`, async ({ request }) => {
+        cuerpo = await request.json();
+        csrf = request.headers.get('X-Requested-With');
+        return HttpResponse.json({ apiId: API_ID, apiNombre: 'API de Cotización de Envíos', elementos: RUTAS, totalExpuestas: 4, totalOcultas: 1, especificacion: null });
+      }),
+    );
+
+    envolver(<Routes><Route path="/panel/apis/:id/configuracion-rutas" element={<PaginaA35ConfigRutas />} /></Routes>, `/panel/apis/${API_ID}/configuracion-rutas`);
+    expect(await screen.findByRole('heading', { name: 'Configuración por ruta' })).toBeDefined();
+    expect(screen.getAllByRole('columnheader').map(celda => celda.textContent)).toEqual(['Método', 'Ruta', 'Límite por minuto', 'Caché', 'Peso en llamadas']);
+    expect(screen.queryByText('/tarifas')).toBeNull();
+    expect(screen.getByLabelText('Caché de POST /cotizaciones').hasAttribute('disabled')).toBe(true);
+    const peso = screen.getByLabelText('Peso en llamadas de POST /cotizaciones');
+    await userEvent.clear(peso);
+    await userEvent.type(peso, '5');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar configuración' }));
+
+    expect(await screen.findByText('La configuración por ruta se guardó.')).toBeDefined();
+    expect(csrf).toBe('shapi');
+    expect(cuerpo).toEqual(RUTAS.filter(ruta => ruta.expuesta).map(ruta => ({
+      rutaId: ruta.id,
+      limiteMinuto: ruta.limiteMinuto,
+      cacheSegundos: ruta.metodo === 'GET' ? ruta.cacheSegundos : 0,
+      pesoLlamadas: ruta.patron === '/cotizaciones' ? 5 : ruta.pesoLlamadas,
+    })));
   });
 });

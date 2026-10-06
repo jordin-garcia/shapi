@@ -70,4 +70,26 @@ public class Ruta
         ActualizadoEn = ahora;
         return true;
     }
+
+    /// <summary>Configura el consumo de la ruta. Los límites reflejan las restricciones persistidas (RF-13).</summary>
+    public void Configurar(int? limiteMinuto, int cacheSegundos, int pesoLlamadas, DateTimeOffset ahora)
+    {
+        if (limiteMinuto is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limiteMinuto));
+        }
+        if (cacheSegundos is < 0 or > 86400 || cacheSegundos > 0 && Metodo != MetodoHttp.Get)
+        {
+            throw new ArgumentOutOfRangeException(nameof(cacheSegundos));
+        }
+        if (pesoLlamadas is < 1 or > 1000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pesoLlamadas));
+        }
+
+        LimiteMinuto = limiteMinuto;
+        CacheSegundos = cacheSegundos;
+        PesoLlamadas = pesoLlamadas;
+        ActualizadoEn = ahora;
+    }
 }

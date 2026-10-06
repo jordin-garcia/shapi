@@ -90,6 +90,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
     private Guid _organizacionId;
+    private Guid _usuarioId;
 
     public async Task InitializeAsync()
     {
@@ -124,6 +125,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false, AllowAutoRedirect = false });
         await _cliente.GetAsync("/salud");
         _organizacionId = await CrearOrganizacion("Envíos Xelajú, S.A.");
+        _usuarioId = await CrearUsuario(_organizacionId, "ana@envios.test", verificado: true, "propietario");
     }
 
     public async Task DisposeAsync()
@@ -847,6 +849,101 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.False((await ObtenerRutas(otraApiId)).GetProperty("elementos")[0].GetProperty("expuesta").GetBoolean());
     }
 
+    // RF-13
+    [Fact]
+    public async Task RF_13_ConfiguracionRutas_ValidaGuardaYRepublicaApiPublicada()
+    {
+        var apiId = await RegistrarYObtenerId("configuracion");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutas = (await ObtenerRutas(apiId)).GetProperty("elementos").EnumerateArray().ToArray();
+        var post = rutas.First(r => r.GetProperty("metodo").GetString() == "POST").GetProperty("id").GetGuid();
+        var get = rutas.First(r => r.GetProperty("metodo").GetString() == "GET").GetProperty("id").GetGuid();
+        await MarcarPublicada(apiId);
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/configuracion-rutas", new[]
+        {
+            new { rutaId = post, limiteMinuto = (int?)120, cacheSegundos = 0, pesoLlamadas = 5 },
+            new { rutaId = get, limiteMinuto = (int?)null, cacheSegundos = 3600, pesoLlamadas = 1 },
+        });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var listado = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        var configuradas = listado.GetProperty("elementos").EnumerateArray().ToArray();
+        Assert.Equal(5, configuradas.Single(r => r.GetProperty("id").GetGuid() == post).GetProperty("pesoLlamadas").GetInt32());
+        Assert.Equal(3600, configuradas.Single(r => r.GetProperty("id").GetGuid() == get).GetProperty("cacheSegundos").GetInt32());
+        Assert.Contains(apiId, _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas);
+
+        object[] invalidas =
+        [
+            new { rutaId = post, limiteMinuto = (int?)0, cacheSegundos = 0, pesoLlamadas = 1 },
+            new { rutaId = post, limiteMinuto = (int?)1, cacheSegundos = 30, pesoLlamadas = 1 },
+            new { rutaId = get, limiteMinuto = (int?)1, cacheSegundos = 86401, pesoLlamadas = 1 },
+            new { rutaId = get, limiteMinuto = (int?)1, cacheSegundos = 0, pesoLlamadas = 1001 },
+        ];
+        foreach (var invalida in invalidas)
+        {
+            using var fallo = await EnviarAutenticado(
+                HttpMethod.Put,
+                $"/api/apis/{apiId}/configuracion-rutas",
+                new[] { invalida });
+            await AfirmarProblema(fallo, HttpStatusCode.BadRequest, "datos_invalidos");
+        }
+    }
+
+    // RF-14
+    [Fact]
+    public async Task RF_14_PublicarYDespublicar_ValidaRequisitosGuardaBitacoraYRepublica()
+    {
+        var apiId = await RegistrarYObtenerId("publicacion");
+        Assert.Equal(HttpStatusCode.OK, (await CargarEspecificacion(
+            apiId,
+            "origenes-demo/envios-xelaju/cotizacion-envios.yaml")).StatusCode);
+        var rutaId = (await ObtenerRutas(apiId)).GetProperty("elementos")[0].GetProperty("id").GetGuid();
+        var noVerificado = await CrearUsuario(_organizacionId, "sin-verificar@envios.test", verificado: false, "editor");
+
+        using (var respuestaCorreo = await EnviarAutenticado(
+            HttpMethod.Post, $"/api/apis/{apiId}/publicar", null, usuarioId: noVerificado))
+        {
+            await AfirmarProblema(respuestaCorreo, (HttpStatusCode)422, "correo_no_verificado");
+        }
+
+        using (var incompleta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/publicar", null))
+        {
+            var problema = await AfirmarProblema(incompleta, (HttpStatusCode)422, "publicacion_incompleta");
+            Assert.Equal(2, problema.GetProperty("detalle").GetProperty("faltan").GetArrayLength());
+        }
+
+        using (var exponer = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", new[]
+        {
+            new { rutaId, expuesta = true },
+        }))
+        {
+            Assert.Equal(HttpStatusCode.OK, exponer.StatusCode);
+        }
+        await CrearPlanActivo(apiId);
+
+        using var publicar = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/publicar", null);
+        Assert.Equal(HttpStatusCode.OK, publicar.StatusCode);
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        var api = await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(a => a.Id == apiId);
+        Assert.Equal(EstadoApi.Publicada, api.Estado);
+        Assert.NotNull(api.PublicadaEn);
+        Assert.Contains(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
+            entrada => entrada.ObjetivoId == apiId && entrada.Accion == "api.publicada");
+
+        using var despublicar = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/despublicar", null);
+        Assert.Equal(HttpStatusCode.OK, despublicar.StatusCode);
+        db.ChangeTracker.Clear();
+        Assert.Equal(EstadoApi.Despublicada,
+            (await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(a => a.Id == apiId)).Estado);
+        Assert.Contains(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
+            entrada => entrada.ObjetivoId == apiId && entrada.Accion == "api.despublicada");
+        Assert.True(_fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas.Count(id => id == apiId) >= 2);
+    }
+
     private static void AfirmarConsumoConsolidado(
         ConsumoDiario consumo,
         long valor,
@@ -924,12 +1021,17 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         return Convert.ToInt32(await comando.ExecuteScalarAsync());
     }
 
-    private async Task<HttpResponseMessage> EnviarAutenticado(HttpMethod metodo, string ruta, object? cuerpo, string rol = "Propietario")
+    private async Task<HttpResponseMessage> EnviarAutenticado(
+        HttpMethod metodo,
+        string ruta,
+        object? cuerpo,
+        string rol = "Propietario",
+        Guid? usuarioId = null)
     {
         var peticion = new HttpRequestMessage(metodo, ruta);
         peticion.Headers.Add("X-Prueba-Organizacion", _organizacionId.ToString());
         peticion.Headers.Add("X-Prueba-Rol", rol);
-        peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
+        peticion.Headers.Add("X-Prueba-Usuario", (usuarioId ?? _usuarioId).ToString());
         peticion.Headers.Add("X-Requested-With", "shapi");
         if (cuerpo is HttpContent contenido)
         {
@@ -962,6 +1064,43 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             """;
         comando.Parameters.AddWithValue("nombre", nombre);
         return (Guid)(await comando.ExecuteScalarAsync())!;
+    }
+
+    private async Task<Guid> CrearUsuario(Guid organizacionId, string correo, bool verificado, string rol)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            WITH usuario_nuevo AS (
+                INSERT INTO usuario (id, nombre, correo, hash_contrasena, correo_verificado_en, estado)
+                VALUES (gen_random_uuid(), 'Ana Lucía Morales', @correo, 'hash',
+                        CASE WHEN @verificado THEN now() ELSE NULL END, 'activo')
+                RETURNING id
+            )
+            INSERT INTO membresia (id, usuario_id, organizacion_id, rol)
+            SELECT gen_random_uuid(), id, @organizacion, @rol FROM usuario_nuevo
+            RETURNING usuario_id
+            """;
+        comando.Parameters.AddWithValue("correo", correo);
+        comando.Parameters.AddWithValue("verificado", verificado);
+        comando.Parameters.AddWithValue("organizacion", organizacionId);
+        comando.Parameters.AddWithValue("rol", rol);
+        return (Guid)(await comando.ExecuteScalarAsync())!;
+    }
+
+    private async Task CrearPlanActivo(Guid apiId)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            INSERT INTO plan_api
+                (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), @api, 'Básico', 'Plan activo', 0, true, 30, 5000, 60, true)
+            """;
+        comando.Parameters.AddWithValue("api", apiId);
+        await comando.ExecuteNonQueryAsync();
     }
 
     private async Task<Guid> InsertarApi(Guid organizacionId, string subdominio)

@@ -126,6 +126,9 @@ public sealed class CargarEspecificacion(
                 r.Resumen,
                 r.Descripcion,
                 r.Expuesta,
+                r.LimiteMinuto,
+                r.CacheSegundos,
+                r.PesoLlamadas,
                 Orden(r.Definicion)))
             .OrderBy(r => r.Orden)
             .ThenBy(r => r.Patron, StringComparer.Ordinal)

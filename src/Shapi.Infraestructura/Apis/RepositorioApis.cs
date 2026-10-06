@@ -71,6 +71,13 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
             .Select(u => u.Nombre)
             .FirstOrDefaultAsync(cancelacion);
 
+    public Task<bool> CorreoVerificado(Guid usuarioId, CancellationToken cancelacion = default) =>
+        db.Set<Usuario>()
+            .AnyAsync(u => u.Id == usuarioId && u.CorreoVerificadoEn != null, cancelacion);
+
+    public Task<bool> ExistePlanActivo(Guid apiId, CancellationToken cancelacion = default) =>
+        db.Set<PlanApi>().AnyAsync(p => p.ApiId == apiId && p.Activo, cancelacion);
+
     public Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default) =>
         db.Set<Api>().SingleOrDefaultAsync(a => a.Id == apiId && a.OrganizacionId == organizacionId, cancelacion);
 

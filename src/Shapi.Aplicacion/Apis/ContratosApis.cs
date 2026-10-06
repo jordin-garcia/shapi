@@ -62,6 +62,9 @@ public sealed record RutaAdministrada(
     string? Resumen,
     string? Descripcion,
     bool Expuesta,
+    int? LimiteMinuto,
+    int CacheSegundos,
+    int PesoLlamadas,
     int Orden);
 
 /// <summary>La especificación que la API tiene cargada, para la tarjeta del archivo de A3.3.</summary>
@@ -98,6 +101,20 @@ public sealed record CambioExposicionRuta(Guid? RutaId, bool? Expuesta);
 
 public sealed record SolicitudExposicionRutas(IReadOnlyList<CambioExposicionRuta?> Cambios, ActorRegistroApi Actor);
 
+public sealed record ConfiguracionRutaSolicitada(
+    Guid? RutaId,
+    int? LimiteMinuto,
+    int? CacheSegundos,
+    int? PesoLlamadas);
+
+public sealed record SolicitudConfiguracionRutas(IReadOnlyList<ConfiguracionRutaSolicitada?> Cambios);
+
+public sealed record EstadoPublicacionApi(
+    Guid Id,
+    string Subdominio,
+    EstadoApi Estado,
+    DateTimeOffset? PublicadaEn);
+
 public interface ILectorEspecificacionOpenApi
 {
     Task<ResultadoLecturaEspecificacion> Leer(
@@ -131,6 +148,10 @@ public interface IRepositorioApis
     Task<ListaApis> Listar(Guid organizacionId, CancellationToken cancelacion = default);
 
     Task<string?> ObtenerNombreUsuario(Guid usuarioId, CancellationToken cancelacion = default);
+
+    Task<bool> CorreoVerificado(Guid usuarioId, CancellationToken cancelacion = default);
+
+    Task<bool> ExistePlanActivo(Guid apiId, CancellationToken cancelacion = default);
 
     Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default);
 

@@ -3,7 +3,7 @@ info:
   title: API de Control - APIs
   version: 1.0.0
   description: |
-    Registro, especificación y rutas de las APIs de una organización (DC-04 y DC-05).
+    Registro, especificación, rutas y publicación de las APIs de una organización (DC-04 a DC-06).
     La sesión viaja en la cookie `shapi_sesion` y los métodos no seguros exigen
     `X-Requested-With: shapi`.
 servers:
@@ -191,6 +191,91 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problema'
 
+  /api/apis/{id}/configuracion-rutas:
+    put:
+      summary: Configura el consumo de las rutas de una API
+      operationId: configurarRutasApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ConfiguracionRuta'
+      responses:
+        '200':
+          description: Configuración guardada; si la API está publicada, también se republicó en Redis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaRutas'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermisoOCsrf'
+        '404':
+          $ref: '#/components/responses/ApiNoEncontrada'
+
+  /api/apis/{id}/publicar:
+    post:
+      summary: Publica una API
+      operationId: publicarApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '200':
+          description: API publicada y configuración enviada a la compuerta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoPublicacionApi'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermisoOCsrf'
+        '404':
+          $ref: '#/components/responses/ApiNoEncontrada'
+        '422':
+          description: Correo sin verificar o configuración incompleta.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+
+  /api/apis/{id}/despublicar:
+    post:
+      summary: Despublica una API sin borrar sus datos
+      operationId: despublicarApi
+      security:
+        - cookieSesion: []
+      parameters:
+        - $ref: '#/components/parameters/ApiId'
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '200':
+          description: API despublicada y configuración reenviada a la compuerta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoPublicacionApi'
+        '401':
+          $ref: '#/components/responses/SinSesion'
+        '403':
+          $ref: '#/components/responses/SinPermisoOCsrf'
+        '404':
+          $ref: '#/components/responses/ApiNoEncontrada'
+
 components:
   securitySchemes:
     cookieSesion:
@@ -345,7 +430,7 @@ components:
 
     RutaAdministrada:
       type: object
-      required: [id, metodo, patron, expuesta]
+      required: [id, metodo, patron, expuesta, limiteMinuto, cacheSegundos, pesoLlamadas]
       properties:
         id:
           type: string
@@ -361,6 +446,66 @@ components:
           type: [string, 'null']
         expuesta:
           type: boolean
+        limiteMinuto:
+          description: Nulo cuando la ruta no tiene límite propio.
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+        cacheSegundos:
+          type: integer
+          minimum: 0
+          maximum: 86400
+        pesoLlamadas:
+          type: integer
+          minimum: 1
+          maximum: 1000
+
+    ConfiguracionRuta:
+      type: object
+      required: [rutaId, cacheSegundos, pesoLlamadas]
+      properties:
+        rutaId:
+          type: string
+          format: uuid
+        limiteMinuto:
+          description: Se omite o se envía nulo para quitar el límite propio.
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+        cacheSegundos:
+          type: integer
+          minimum: 0
+          maximum: 86400
+          description: Solo puede ser mayor que cero en rutas GET.
+        pesoLlamadas:
+          type: integer
+          minimum: 1
+          maximum: 1000
+
+    EstadoPublicacionApi:
+      type: object
+      required: [id, estado, publicadaEn, urlApi, urlPortal]
+      properties:
+        id:
+          type: string
+          format: uuid
+        estado:
+          type: string
+          enum: [publicada, despublicada]
+        publicadaEn:
+          description: Fecha de la publicación más reciente; se conserva al despublicar.
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        urlApi:
+          type: string
+          format: uri
+        urlPortal:
+          type: string
+          format: uri
 
     ResumenEspecificacion:
       type: object
@@ -465,7 +610,7 @@ components:
           type: integer
         codigo:
           type: string
-          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida]
+          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida, correo_no_verificado, publicacion_incompleta]
         detalle:
           type: object
           additionalProperties: true
