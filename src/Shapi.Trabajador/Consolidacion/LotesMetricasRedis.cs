@@ -25,21 +25,31 @@ public sealed class LotesMetricasRedis(IConnectionMultiplexer redis)
         return cantidad
         """;
 
-    public async Task<int> SepararAsync(Guid loteId, CancellationToken cancelacion)
+    public async Task<IReadOnlyList<string>> LlavesPendientesAsync(CancellationToken cancelacion)
     {
-        var db = redis.GetDatabase();
-        var pendientes = await db.SetMembersAsync(LlavesRedis.MetricasPendientes).WaitAsync(cancelacion);
+        var pendientes = await redis.GetDatabase().SetMembersAsync(LlavesRedis.MetricasPendientes).WaitAsync(cancelacion);
         // Sin API identificada no existe una FK válida: esas métricas globales se conservan en Redis.
-        var llaves = pendientes.Select(x => x.ToString())
+        return pendientes.Select(x => x.ToString())
             .Where(x => MetricasDiarias.DesdeLlave(x, new Dictionary<string, long>()).ApiId != Guid.Empty)
-            .Order(StringComparer.Ordinal).Take(256).ToArray();
-        if (llaves.Length == 0)
+            .Order(StringComparer.Ordinal).ToArray();
+    }
+
+    public async Task<int> SepararAsync(Guid loteId, CancellationToken cancelacion) =>
+        await SepararAsync(loteId, (await LlavesPendientesAsync(cancelacion)).Take(256).ToArray(), cancelacion);
+
+    public async Task<int> SepararAsync(Guid loteId, IReadOnlyList<string> llaves, CancellationToken cancelacion)
+    {
+        if (llaves.Count > 256)
+        {
+            throw new ArgumentOutOfRangeException(nameof(llaves), "Un lote no puede superar 256 llaves.");
+        }
+        if (llaves.Count == 0)
         {
             return 0;
         }
         RedisKey[] claves = [LlavesRedis.MetricasPendientes,
             .. llaves.SelectMany(x => new RedisKey[] { x, LlavesRedis.LoteMetricas(loteId, x) })];
-        return (int)await db.ScriptEvaluateAsync(Separar, claves).WaitAsync(cancelacion);
+        return (int)await redis.GetDatabase().ScriptEvaluateAsync(Separar, claves).WaitAsync(cancelacion);
     }
 
     public async Task<IReadOnlyList<Guid>> LotesPendientesAsync(CancellationToken cancelacion)

@@ -288,6 +288,85 @@ public sealed class ConsolidacionTests(PostgresPersistencia postgres, RedisCache
         await alcance.ServiceProvider.GetRequiredService<ConsolidarConsumo>().EjecutarAsync(CancellationToken.None);
     }
 
+    // RNF-03, RNF-05, RF-34: el tráfico nuevo pertenece al siguiente ciclo y no prolonga el actual.
+    [Fact]
+    public async Task RNF_05_TraficoContinuo_TerminaElCicloYDejaLasMetricasNuevasPendientes()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        var llave = LlavesRedis.Metricas(Fecha, api, null, null, "produccion");
+        await Medir(llave, 3);
+        await Ejecutar("""
+            CREATE FUNCTION demorar_consumo() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN PERFORM pg_sleep(0.1); RETURN NEW; END $$;
+            CREATE TRIGGER demora BEFORE INSERT ON consumo_diario
+            FOR EACH ROW EXECUTE FUNCTION demorar_consumo();
+            """);
+        using var detener = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var escritor = Task.Run(async () =>
+        {
+            while (!detener.IsCancellationRequested)
+            {
+                await Redis.HashIncrementAsync(llave, "peticiones", 1);
+                await Redis.SetAddAsync(LlavesRedis.MetricasPendientes, llave);
+                await Task.Delay(5);
+            }
+        });
+        try
+        {
+            await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+            using var alcance = servicios.CreateScope();
+            var consolidacion = alcance.ServiceProvider.GetRequiredService<ConsolidarConsumo>().EjecutarAsync(detener.Token);
+            try
+            {
+                await consolidacion.WaitAsync(TimeSpan.FromSeconds(3));
+                detener.IsCancellationRequested.Should().BeFalse();
+                (await Redis.SetContainsAsync(LlavesRedis.MetricasPendientes, llave)).Should().BeTrue();
+                (await Escalar<long>("SELECT count(*) FROM lote_consolidado")).Should().Be(1);
+            }
+            finally
+            {
+                // No cerrar el DbContext mientras siga activo un comando si la regresión agota el plazo.
+                await detener.CancelAsync();
+                try
+                {
+                    await consolidacion;
+                }
+                catch (OperationCanceledException) when (detener.IsCancellationRequested)
+                {
+                }
+            }
+        }
+        finally
+        {
+            await detener.CancelAsync();
+            await escritor;
+        }
+    }
+
+    [Fact]
+    public async Task RNF_05_PostgresFalla_NoSeparaMasDeUnLoteNuevoPorCiclo()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        for (var i = 0; i < 257; i++)
+        {
+            await Medir(LlavesRedis.Metricas(Fecha.AddDays(-i), api, null, null, "produccion"), 1);
+        }
+        await Ejecutar("""
+            CREATE FUNCTION rechazar_consumo() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN RAISE EXCEPTION 'PostgreSQL indisponible'; END $$;
+            CREATE TRIGGER rechazo BEFORE INSERT ON consumo_diario
+            FOR EACH ROW EXECUTE FUNCTION rechazar_consumo();
+            """);
+        await Assert.ThrowsAnyAsync<Exception>(Consolidar);
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        (await servicios.GetRequiredService<LotesMetricasRedis>().LotesPendientesAsync(CancellationToken.None)).Should().HaveCount(1);
+        (await Redis.SetLengthAsync(LlavesRedis.MetricasPendientes)).Should().Be(1);
+        (await Escalar<long>("SELECT count(*) FROM lote_consolidado")).Should().Be(0);
+        await Ejecutar("DROP TRIGGER rechazo ON consumo_diario");
+        await Consolidar();
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario")).Should().Be(257);
+    }
+
     // RF-33, RF-34, RNF-05: reiniciar la siembra puede borrar padres con métricas todavía en Redis.
     [Theory]
     [InlineData(true)]
