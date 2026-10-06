@@ -187,6 +187,8 @@ Si no se pudo resolver una API (por ejemplo, un host desconocido o un cuerpo rec
 
 La recuperación se repite también al principio de cada intervalo de 10 segundos, para recuperarse de fallos temporales sin reiniciar. El marcador usa `ON CONFLICT DO NOTHING` dentro de la misma transacción; un lote ya aplicado no suma contadores otra vez, incluso si otro trabajador lo recupera simultáneamente. Cada lote deduplica las llaves devueltas por `SCAN` antes de leer sus hashes: Redis puede devolver una misma llave varias veces. Al consolidar, una ruta retirada se trata como `ruta_id` nulo, conforme a 07 §3.5. El UPSERT conserva `creado_en` y actualiza `actualizado_en` con `IReloj`.
 
+Si una API fue eliminada (por ejemplo al reiniciar la siembra de demostración), se descartan sus filas pendientes y el marcador registra que el lote se procesó; no se atribuyen a otra API. Si solo desapareció la suscripción, sus contadores se conservan bajo la API con `suscripcion_id` nulo. Las referencias vigentes se protegen hasta el commit. Un fallo de un lote no impide procesar los otros lotes recuperados ni separar y procesar métricas nuevas: se conserva la instantánea fallida y, al terminar el ciclo, se informa el error para reintentar en el próximo intervalo.
+
 **Cálculo del p95** ([RF-35](03-requisitos.md#rf-35)): se suman los histogramas de las filas del periodo y se busca el rango `i` donde la suma acumulada alcanza el 95 % del total. Luego se interpola linealmente entre el límite inferior y el superior de ese rango. El último rango (más de 2500 ms) se reporta como `> 2500 ms`.
 
 ## 8. Rendimiento

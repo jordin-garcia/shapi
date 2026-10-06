@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Shapi.Infraestructura.Consumo;
 
 namespace Shapi.Trabajador.Consolidacion;
@@ -6,10 +7,23 @@ public sealed class ConsolidarConsumo(LotesMetricasRedis lotes, RepositorioConso
 {
     public async Task EjecutarAsync(CancellationToken cancelacion)
     {
+        Exception? fallo = null;
+        async Task IntentarAsync(Guid lote)
+        {
+            try
+            {
+                await AplicarAsync(lote, cancelacion);
+            }
+            catch (Exception excepcion) when (excepcion is not OperationCanceledException)
+            {
+                // Conservar el lote fallido y procesar los demás. El trabajo registra el error al final del ciclo.
+                fallo ??= excepcion;
+            }
+        }
         // Se recupera también en cada intervalo: una caída temporal de PostgreSQL no requiere reiniciar el proceso.
         foreach (var lote in await lotes.LotesPendientesAsync(cancelacion))
         {
-            await AplicarAsync(lote, cancelacion);
+            await IntentarAsync(lote);
         }
         while (true)
         {
@@ -19,7 +33,11 @@ public sealed class ConsolidarConsumo(LotesMetricasRedis lotes, RepositorioConso
             {
                 break;
             }
-            await AplicarAsync(lote, cancelacion);
+            await IntentarAsync(lote);
+        }
+        if (fallo is not null)
+        {
+            ExceptionDispatchInfo.Capture(fallo).Throw();
         }
     }
 

@@ -56,19 +56,40 @@ public sealed class RepositorioConsolidacion(ShapiDbContext db, IReloj reloj)
             protegerApi.Parameters.AddWithValue("api", grupo.Key);
             if (await protegerApi.ExecuteScalarAsync(cancelacion) is null)
             {
-                throw new InvalidOperationException("La API de las métricas ya no existe.");
+                // Reiniciar la siembra puede borrar la API antes de consolidar su tráfico anterior.
+                // Ya no hay un proveedor al que atribuir estas filas: el lote registra su descarte definitivo.
+                continue;
             }
             var rutasVigentes = await db.Set<Shapi.Dominio.Apis.Ruta>().IgnoreQueryFilters().Where(x => x.ApiId == grupo.Key)
                 .Select(x => x.Id).ToListAsync(cancelacion);
+            var suscripciones = grupo.Where(x => x.SuscripcionId.HasValue).Select(x => x.SuscripcionId!.Value)
+                .Distinct().Order().ToArray();
+            var suscripcionesVigentes = new HashSet<Guid>();
+            if (suscripciones.Length > 0)
+            {
+                // Mantener las FK estables hasta el COMMIT, incluso ante una eliminación concurrente.
+                await using var protegerSuscripciones = new NpgsqlCommand("""
+                    SELECT id FROM suscripcion_api WHERE api_id = @api AND id = ANY(@ids)
+                    ORDER BY id FOR KEY SHARE
+                    """, conexion, (NpgsqlTransaction)transaccion.GetDbTransaction());
+                protegerSuscripciones.Parameters.AddWithValue("api", grupo.Key);
+                protegerSuscripciones.Parameters.AddWithValue("ids", suscripciones);
+                await using var lector = await protegerSuscripciones.ExecuteReaderAsync(cancelacion);
+                while (await lector.ReadAsync(cancelacion))
+                {
+                    suscripcionesVigentes.Add(lector.GetGuid(0));
+                }
+            }
             foreach (var fila in grupo.OrderBy(x => x.Fecha).ThenBy(x => x.RutaId).ThenBy(x => x.SuscripcionId).ThenBy(x => x.Entorno))
             {
                 var ruta = fila.RutaId is { } id && rutasVigentes.Contains(id) ? fila.RutaId : null;
+                var suscripcion = fila.SuscripcionId is { } susc && suscripcionesVigentes.Contains(susc) ? fila.SuscripcionId : null;
                 List<object> parametros =
                 [
                     new NpgsqlParameter("fecha", NpgsqlDbType.Date) { Value = fila.Fecha },
                     new NpgsqlParameter("api", NpgsqlDbType.Uuid) { Value = fila.ApiId },
                     new NpgsqlParameter("ruta", NpgsqlDbType.Uuid) { Value = (object?)ruta ?? DBNull.Value },
-                    new NpgsqlParameter("suscripcion", NpgsqlDbType.Uuid) { Value = (object?)fila.SuscripcionId ?? DBNull.Value },
+                    new NpgsqlParameter("suscripcion", NpgsqlDbType.Uuid) { Value = (object?)suscripcion ?? DBNull.Value },
                     new NpgsqlParameter("entorno", fila.Entorno), new NpgsqlParameter("ahora", ahora),
                     new NpgsqlParameter("hist_t", fila.Histograma("h_t_")), new NpgsqlParameter("hist_c", fila.Histograma("h_c_")),
                     .. MetricasDiarias.Columnas.Keys.Select(x => new NpgsqlParameter(x, fila.Contador(x))),

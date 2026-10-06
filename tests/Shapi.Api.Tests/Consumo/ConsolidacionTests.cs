@@ -288,6 +288,77 @@ public sealed class ConsolidacionTests(PostgresPersistencia postgres, RedisCache
         await alcance.ServiceProvider.GetRequiredService<ConsolidarConsumo>().EjecutarAsync(CancellationToken.None);
     }
 
+    // RF-33, RF-34, RNF-05: reiniciar la siembra puede borrar padres con métricas todavía en Redis.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RNF_05_ReferenciasEliminadas_NoBloqueanOtrosLotesNiLasMetricasNuevas(bool apiEliminada)
+    {
+        var organizacion = await NuevaOrganizacion();
+        var api = await NuevaApi(organizacion);
+        var suscripcion = await NuevaSuscripcionApi(await NuevoConsumidor(organizacion), api, await NuevoPlanApi(api));
+        var eliminada = await NuevaApi(await NuevaOrganizacion());
+        var llave = LlavesRedis.Metricas(Fecha, apiEliminada ? eliminada : api, null,
+            apiEliminada ? null : suscripcion, "produccion");
+        await Medir(llave, 5);
+        await Ejecutar($"DELETE FROM api WHERE id = '{eliminada}'");
+        await Ejecutar($"DELETE FROM suscripcion_api WHERE id = '{suscripcion}'");
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        var capturador = servicios.GetRequiredService<LotesMetricasRedis>();
+        await capturador.SepararAsync(Guid.Parse("00000000-0000-0000-0000-000000000001"), CancellationToken.None);
+        var valida = LlavesRedis.Metricas(Fecha, api, null, null, "produccion");
+        await Medir(valida, 3);
+        await capturador.SepararAsync(Guid.Parse("00000000-0000-0000-0000-000000000002"), CancellationToken.None);
+        await Medir(valida, 7);
+        await Consolidar();
+        await Consolidar();
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario WHERE suscripcion_id IS NULL"))
+            .Should().Be(apiEliminada ? 10 : 15);
+        (await capturador.LotesPendientesAsync(CancellationToken.None)).Should().BeEmpty();
+        (await Redis.SetLengthAsync(LlavesRedis.MetricasPendientes)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RF_34_SuscripcionVigente_ConservaLaAtribucionYElAislamientoDeLaConsulta()
+    {
+        var organizacion = await NuevaOrganizacion();
+        var api = await NuevaApi(organizacion);
+        var suscripcion = await NuevaSuscripcionApi(await NuevoConsumidor(organizacion), api, await NuevoPlanApi(api));
+        await Medir(LlavesRedis.Metricas(Fecha, api, null, suscripcion, "produccion"), 3);
+        await Consolidar();
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        using var alcance = servicios.CreateScope();
+        var consulta = alcance.ServiceProvider.GetRequiredService<IConsultaConsumo>();
+        (await consulta.PorSuscripcionAsync(organizacion, suscripcion, Fecha, Fecha)).Peticiones.Should().Be(3);
+        (await consulta.PorSuscripcionAsync(Guid.NewGuid(), suscripcion, Fecha, Fecha)).Peticiones.Should().Be(0);
+        (await Escalar<Guid>("SELECT suscripcion_id FROM consumo_diario")).Should().Be(suscripcion);
+    }
+
+    [Fact]
+    public async Task RNF_05_LoteCorrupto_ConservaElLoteYProcesaLosDemasAntesDeInformarElError()
+    {
+        var api = await NuevaApi(await NuevaOrganizacion());
+        var llave = LlavesRedis.Metricas(Fecha, api, null, null, "produccion");
+        await Medir(llave, 5);
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        var capturador = servicios.GetRequiredService<LotesMetricasRedis>();
+        var corrupto = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        await capturador.SepararAsync(corrupto, CancellationToken.None);
+        await Redis.HashSetAsync(LlavesRedis.LoteMetricas(corrupto, llave), "peticiones", "corrupto");
+        await Medir(llave, 3);
+        await capturador.SepararAsync(Guid.Parse("00000000-0000-0000-0000-000000000002"), CancellationToken.None);
+        await Medir(llave, 7);
+        await Assert.ThrowsAnyAsync<Exception>(Consolidar);
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario")).Should().Be(10);
+        (await capturador.LotesPendientesAsync(CancellationToken.None)).Should().Equal(corrupto);
+        (await Escalar<long>($"SELECT count(*) FROM lote_consolidado WHERE lote_id = '{corrupto}'")).Should().Be(0);
+        (await Redis.SetLengthAsync(LlavesRedis.MetricasPendientes)).Should().Be(0);
+        await Redis.HashSetAsync(LlavesRedis.LoteMetricas(corrupto, llave), "peticiones", 5);
+        await Consolidar();
+        (await Escalar<long>("SELECT sum(peticiones)::bigint FROM consumo_diario")).Should().Be(15);
+        (await capturador.LotesPendientesAsync(CancellationToken.None)).Should().BeEmpty();
+    }
+
     private async Task Medir(string llave, long cantidad)
     {
         HashEntry[] campos =
