@@ -1,0 +1,7 @@
+Su suscripción está en período de gracia
+
+Hola, {{nombre}}.
+
+Su suscripción al plan {{nombrePlan}} entró en período de gracia.
+Usted puede actualizar su método de pago antes del {{fechaSuspension}} para evitar la suspensión:
+{{enlace}}

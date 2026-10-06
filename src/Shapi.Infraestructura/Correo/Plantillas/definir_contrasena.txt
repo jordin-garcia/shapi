@@ -1,0 +1,8 @@
+Defina su contraseña
+
+Hola, {{nombre}}.
+
+Se creó una cuenta para usted. Para definir su contraseña, abra el siguiente enlace:
+{{enlace}}
+
+Este enlace vence en 7 días. Si usted no reconoce esta cuenta, puede ignorar este mensaje.

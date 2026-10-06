@@ -1,0 +1,9 @@
+Nueva respuesta en su caso
+
+Hola, {{nombre}}.
+
+Usted recibió una nueva respuesta en el caso {{numeroCaso}}.
+Asunto: {{asunto}}
+
+Puede ver el caso aquí:
+{{enlace}}

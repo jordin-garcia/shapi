@@ -145,7 +145,7 @@ public sealed class EnvioCorreoTests(EntornoCorreo entorno) : IAsyncLifetime
         var correo = new CorreoSaliente(
             "verificacion_correo",
             "ana@ejemplo.com",
-            """{"nombre":"Ana","token":"token-1","nombrePortal":"Envíos Xelajú"}""",
+            """{"nombre":"Ana","token":"token-1","nombrePortal":"Envíos Xelajú","hostPortal":"envios.shapi.localhost","colorPortal":"#E11D48"}""",
             "Verifique su correo",
             _reloj.Ahora);
         db.Add(correo);
@@ -181,7 +181,7 @@ public sealed class EnvioCorreoTests(EntornoCorreo entorno) : IAsyncLifetime
         db.Add(new CorreoSaliente(
             "verificacion_correo",
             "cuerpo@ejemplo.com",
-            """{"nombre":"Ana <López>","token":"a+b&c","hostPortal":"envios.shapi.localhost"}""",
+            """{"nombre":"Ana <López>","token":"a+b&c","nombrePortal":"Envíos Xelajú","hostPortal":"envios.shapi.localhost","colorPortal":"#E11D48"}""",
             "Verifique su correo",
             _reloj.Ahora));
         await db.SaveChangesAsync();

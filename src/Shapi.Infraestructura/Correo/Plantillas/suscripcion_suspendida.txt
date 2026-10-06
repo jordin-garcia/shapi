@@ -1,0 +1,7 @@
+Su suscripción fue suspendida
+
+Hola, {{nombre}}.
+
+Su suscripción al plan {{nombrePlan}} fue suspendida porque el pago sigue pendiente.
+Usted puede revisar su suscripción y actualizar el método de pago aquí:
+{{enlace}}

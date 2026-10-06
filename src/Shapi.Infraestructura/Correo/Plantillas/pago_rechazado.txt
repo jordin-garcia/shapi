@@ -1,0 +1,9 @@
+No pudimos procesar su pago
+
+Hola, {{nombre}}.
+
+No fue posible procesar la renovación de su plan {{nombrePlan}}.
+Motivo: {{motivo}}
+
+Para que usted pueda mantener el servicio, revise su método de pago:
+{{enlace}}
