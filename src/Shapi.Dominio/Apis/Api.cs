@@ -114,7 +114,7 @@ public class Api : IPerteneceAOrganizacion
 
     public bool Despublicar(DateTimeOffset ahora)
     {
-        if (Estado == EstadoApi.Despublicada)
+        if (Estado != EstadoApi.Publicada)
         {
             return false;
         }

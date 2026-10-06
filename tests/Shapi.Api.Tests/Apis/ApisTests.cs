@@ -944,6 +944,23 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.True(_fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas.Count(id => id == apiId) >= 2);
     }
 
+    // RF-14 / 07 §5: solo una API publicada puede pasar a despublicada.
+    [Fact]
+    public async Task RF_14_DespublicarApiEnBorrador_NoCambiaEstadoNiRegistraBitacora()
+    {
+        var apiId = await RegistrarYObtenerId("borrador-no-despublicar");
+
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/despublicar", null);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        Assert.Equal(EstadoApi.Borrador,
+            (await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(api => api.Id == apiId)).Estado);
+        Assert.DoesNotContain(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
+            entrada => entrada.ObjetivoId == apiId && entrada.Accion == "api.despublicada");
+    }
+
     // RNF-08 y 04 §3.1: todos los endpoints nuevos aíslan organizaciones y solo permiten configurar al propietario/editor.
     [Fact]
     public async Task RF_13_RF_14_EndpointsNuevos_ApiAjenaResponde404YLector403()
