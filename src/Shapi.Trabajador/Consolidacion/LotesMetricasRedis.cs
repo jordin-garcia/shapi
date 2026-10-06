@@ -55,9 +55,16 @@ public sealed class LotesMetricasRedis(IConnectionMultiplexer redis)
     public async Task<IReadOnlyList<MetricasDiarias>> LeerAsync(Guid loteId, CancellationToken cancelacion)
     {
         var filas = new List<MetricasDiarias>();
+        var vistas = new HashSet<RedisKey>();
         var prefijo = LlavesRedis.LoteMetricas(loteId, "");
         await foreach (var llave in BuscarAsync(LlavesRedis.PatronLote(loteId), cancelacion))
         {
+            // SCAN puede repetir una llave durante su recorrido. El marcador solo evita reaplicar el lote;
+            // también hay que evitar sumar dos veces un hash dentro de la misma transacción.
+            if (!vistas.Add(llave))
+            {
+                continue;
+            }
             var campos = await redis.GetDatabase().HashGetAllAsync(llave).WaitAsync(cancelacion);
             if (campos.Length > 0)
             {

@@ -84,11 +84,11 @@ public sealed class MedicionMiddleware(
 
     private static string? ContadorRespuesta(ContextoPeticion contexto)
     {
-        if (contexto.FalloOrigen)
+        var codigo = contexto.Http.Response.StatusCode;
+        if (contexto.FalloOrigen && !contexto.RespondioOrigen && codigo is 502 or 504)
         {
             return "ofallo";
         }
-        var codigo = contexto.Http.Response.StatusCode;
         if (contexto.RespondioOrigen)
         {
             return (codigo / 100) switch { 2 => "o2xx", 3 => "o3xx", 4 => "o4xx", 5 => "o5xx", _ => null };

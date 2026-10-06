@@ -44,7 +44,10 @@ public sealed class RegistroMetricasTests
     [InlineData(502, true, false, "o5xx")]
     [InlineData(502, false, true, "ofallo")]
     [InlineData(504, false, true, "ofallo")]
-    public void RF_33_Respuesta_DistingueRechazosCodigosDelOrigenYFallos(int estado, bool respondio, bool fallo, string contador)
+    [InlineData(413, false, true, null)]
+    [InlineData(200, true, true, "o2xx")]
+    [InlineData(502, true, true, "o5xx")]
+    public void RF_33_Respuesta_DistingueRechazosCodigosDelOrigenYFallos(int estado, bool respondio, bool fallo, string? contador)
     {
         var redis = Substitute.For<IConnectionMultiplexer>();
         var db = Substitute.For<IDatabase>();
@@ -55,6 +58,14 @@ public sealed class RegistroMetricasTests
         contexto.Http.Response.StatusCode = estado;
         new MedicionMiddleware(redis, TimeProvider.System, NullLogger<MedicionMiddleware>.Instance)
             .Registrar(contexto, new DateOnly(2026, 10, 5), TimeSpan.FromMilliseconds(1), 0, 0);
-        _ = transaccion.Received().HashIncrementAsync(Arg.Any<RedisKey>(), contador, 1, CommandFlags.FireAndForget);
+        if (contador is null)
+        {
+            _ = transaccion.DidNotReceive().HashIncrementAsync(Arg.Any<RedisKey>(), "ofallo", 1, CommandFlags.FireAndForget);
+            _ = transaccion.Received().HashIncrementAsync(Arg.Any<RedisKey>(), "peticiones", 1, CommandFlags.FireAndForget);
+        }
+        else
+        {
+            _ = transaccion.Received().HashIncrementAsync(Arg.Any<RedisKey>(), contador, 1, CommandFlags.FireAndForget);
+        }
     }
 }
