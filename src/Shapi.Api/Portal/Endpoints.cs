@@ -12,6 +12,8 @@ public static class Endpoints
             .AllowAnonymous();
         app.MapGet("/api/portal/logo", Logo)
             .AllowAnonymous();
+        app.MapGet("/api/portal/documentacion", Documentacion)
+            .AllowAnonymous();
         return app;
     }
 
@@ -58,6 +60,21 @@ public static class Endpoints
 
         var tipoContenido = portal.TipoLogo == LogoTipo.Svg ? "image/svg+xml" : "image/png";
         return TypedResults.File(portal.Logo, tipoContenido);
+    }
+
+    private static async Task<IResult> Documentacion(
+        HttpRequest peticion,
+        IResolutorPortal resolutor,
+        IConsultorDocumentacionPortal consultor,
+        CancellationToken cancelacion)
+    {
+        var portal = await resolutor.Resolver(peticion.Host.Host, cancelacion);
+        if (portal is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(await consultor.Consultar(portal, cancelacion));
     }
 
     private sealed record ConfiguracionPortal(

@@ -10,6 +10,7 @@ public static class PortalModulo
     public static IServiceCollection AgregarModuloPortal(this IServiceCollection services)
     {
         services.AddScoped<IResolutorPortal, ResolutorPortal>();
+        services.AddScoped<IConsultorDocumentacionPortal, ConsultorDocumentacionPortal>();
         return services;
     }
 

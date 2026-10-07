@@ -1,0 +1,174 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { createMemoryRouter, type RouterProviderProps } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { http, HttpResponse } from 'msw';
+import App from '../App';
+import { crearRutas } from '../rutas';
+import { server } from '../../../../test/servidor';
+
+const configuracionEnvios = {
+  nombrePortal: 'Envíos Xelajú',
+  colorPrincipal: '#B8322A',
+  urlLogo: null,
+  bienvenida: 'Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.',
+  nombreApi: 'API de Cotización de Envíos',
+  descripcionApi: 'Cotice envíos entre municipios, genere guías, consulte la cobertura y rastree sus paquetes.',
+  hostPortal: 'envios.shapi.localhost',
+  hostApi: 'envios.api.shapi.localhost',
+  nombreOrganizacion: 'Envíos Xelajú, S.A.',
+};
+
+const rutasEnvios = [
+  {
+    metodo: 'POST', patron: '/cotizaciones', resumen: 'Cotizar un envío',
+    descripcion: 'Calcula el costo de un envío con **datos seguros**. <script>alert("xss")</script>',
+    parametros: [
+      { nombre: 'origen', tipo: 'string', obligatorio: true, descripcion: 'Código del municipio de origen' },
+      { nombre: 'peso_kg', tipo: 'number', obligatorio: false, descripcion: 'Peso del paquete' },
+    ],
+    ejemploPeticion: { origen: '0901', peso_kg: 2.5 },
+    ejemploRespuesta: { tarifa: 'Q 38.50' }, codigoRespuesta: 200, pesoLlamadas: 1,
+    urlCompleta: 'https://envios.api.shapi.localhost/cotizaciones',
+  },
+  {
+    metodo: 'POST', patron: '/guias', resumen: 'Crear una guía', descripcion: 'Genera una guía.',
+    parametros: [], ejemploPeticion: { cotizacion: 'COT-1' }, ejemploRespuesta: { guia: 'GX-1' },
+    codigoRespuesta: 200, pesoLlamadas: 5, urlCompleta: 'https://envios.api.shapi.localhost/guias',
+  },
+];
+
+const configuracionAgro = {
+  ...configuracionEnvios,
+  nombrePortal: 'Agro Precios',
+  colorPrincipal: '#2F7D4A',
+  bienvenida: 'Consulte los precios del día en los mercados mayoristas de Guatemala.',
+  nombreApi: 'API de Precios de Mercado',
+  nombreOrganizacion: 'Agro Datos, S.A.',
+};
+
+const rutasAgro = [{
+  metodo: 'GET', patron: '/precios', resumen: 'Consultar precios',
+  descripcion: 'Devuelve el precio del día de un producto en un mercado.',
+  parametros: [
+    { nombre: 'producto', tipo: 'string', obligatorio: true, descripcion: 'Clave del producto' },
+    { nombre: 'mercado', tipo: 'string', obligatorio: true, descripcion: 'Clave del mercado mayorista' },
+    { nombre: 'fecha', tipo: 'string', obligatorio: false, descripcion: 'Fecha del precio. Si se omite, se devuelve el precio del día' },
+  ],
+  ejemploPeticion: { producto: 'frijol_negro', mercado: 'cenma' },
+  ejemploRespuesta: { producto: 'Frijol negro', mercado: 'CENMA', unidad: 'quintal', precio: 'Q 510.00', fecha: '10 sep 2026' },
+  codigoRespuesta: 200, pesoLlamadas: 1,
+  urlCompleta: 'https://agro.api.shapi.localhost/precios',
+}];
+
+let cliente: QueryClient;
+
+function montar(ruta: string) {
+  const enrutador = createMemoryRouter(crearRutas(), { initialEntries: [ruta] });
+  const vista = render(
+    <QueryClientProvider client={cliente}>
+      <App enrutador={enrutador as RouterProviderProps['router']} />
+    </QueryClientProvider>,
+  );
+  return { ...vista, enrutador };
+}
+
+function responder(configuracion = configuracionEnvios, rutas: unknown[] = rutasEnvios) {
+  server.use(
+    http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json(configuracion)),
+    http.get('http://localhost/api/portal/documentacion', () => HttpResponse.json({ rutas })),
+  );
+}
+
+beforeEach(() => {
+  cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  responder();
+});
+
+afterEach(() => {
+  cleanup();
+  cliente.clear();
+});
+
+describe('RF-16 · inicio y documentación generados', () => {
+  it('A5.0 muestra bienvenida, primer ejemplo, rutas, pesos y el espacio para planes', async () => {
+    montar('/');
+
+    expect(await screen.findByRole('heading', { name: configuracionEnvios.bienvenida })).toBeDefined();
+    expect(screen.getByText(configuracionEnvios.descripcionApi)).toBeDefined();
+    expect(screen.getByText((_, elemento) => elemento?.tagName === 'PRE' && elemento.textContent?.includes('"origen": "0901"') === true)).toBeDefined();
+    expect(screen.getByText((_, elemento) => elemento?.tagName === 'PRE' && elemento.textContent?.includes('"tarifa": "Q 38.50"') === true)).toBeDefined();
+    expect(screen.getByText('Descuenta 1 llamada de su cuota')).toBeDefined();
+    expect(screen.getByText('Descuenta 5 llamadas de su cuota')).toBeDefined();
+    expect(screen.getByText('datos seguros').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*datos seguros\*\*/)).toBeNull();
+    expect(document.querySelector('script')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Planes de la API' })).toBeDefined();
+  });
+
+  it('A5.5 genera la documentación de Agro con su marca, ruta, parámetros y ejemplos', async () => {
+    responder(configuracionAgro, rutasAgro);
+    const { container, enrutador } = montar('/documentacion');
+
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/GET%20%2Fprecios'));
+    expect(await screen.findByRole('heading', { name: '/precios' })).toBeDefined();
+    expect(screen.getByText('API de Precios de Mercado')).toBeDefined();
+    expect(screen.getByText('https://agro.api.shapi.localhost/precios')).toBeDefined();
+    expect(screen.getByText('producto')).toBeDefined();
+    expect(screen.getByText('mercado')).toBeDefined();
+    expect(screen.getByText('fecha')).toBeDefined();
+    expect(screen.getAllByText('Sí')).toHaveLength(2);
+    expect(screen.getByText((_, elemento) => elemento?.tagName === 'PRE' && elemento.textContent?.includes('"precio": "Q 510.00"') === true)).toBeDefined();
+    expect(screen.getByText('Descuenta 1 llamada de su cuota')).toBeDefined();
+    expect(container.firstElementChild?.getAttribute('style')).toContain('--marca-principal: #2F7D4A');
+  });
+
+  it('/documentacion redirige a la primera ruta y permite elegir otra desde la lista lateral', async () => {
+    const { enrutador } = montar('/documentacion');
+
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/POST%20%2Fcotizaciones'));
+    expect(await screen.findByRole('heading', { name: '/cotizaciones' })).toBeDefined();
+    expect(screen.getByText('https://envios.api.shapi.localhost/cotizaciones')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Probar en la consola' }).getAttribute('href')).toBe('/consola');
+    expect(screen.getByText('datos seguros').tagName).toBe('STRONG');
+    expect(document.querySelector('script')).toBeNull();
+    expect(screen.getByText('texto')).toBeDefined();
+    expect(screen.getByText('número')).toBeDefined();
+
+    await userEvent.click(screen.getByRole('link', { name: /POST\/guias/ }));
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/POST%20%2Fguias'));
+    expect(await screen.findByRole('heading', { name: '/guias' })).toBeDefined();
+  });
+
+  it('distingue rutas con el mismo patrón por su método', async () => {
+    responder(configuracionEnvios, [
+      { ...rutasEnvios[0], metodo: 'GET', patron: '/pedidos', descripcion: 'Consulta pedidos.' },
+      { ...rutasEnvios[0], metodo: 'POST', patron: '/pedidos', descripcion: 'Crea un pedido.' },
+    ]);
+    const { enrutador } = montar('/documentacion');
+
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/GET%20%2Fpedidos'));
+    const enlaces = await screen.findAllByRole('link', { name: /pedidos/ });
+    expect(enlaces[0].getAttribute('aria-current')).toBe('page');
+    expect(enlaces[1].getAttribute('aria-current')).toBeNull();
+
+    await userEvent.click(enlaces[1]);
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/POST%20%2Fpedidos'));
+    expect(screen.getByText('Crea un pedido.')).toBeDefined();
+    expect(screen.getAllByRole('link', { name: /pedidos/ })[1].getAttribute('aria-current')).toBe('page');
+  });
+
+  it.each([
+    ['Envíos Xelajú', configuracionEnvios, rutasEnvios, 'Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.', '/cotizaciones'],
+    ['Agro Precios', configuracionAgro, rutasAgro,
+    'Consulte los precios del día en los mercados mayoristas de Guatemala.', '/precios'],
+  ])('usa los datos y la marca de %s', async (_nombre, configuracion, rutas, bienvenida, patron) => {
+    responder(configuracion, rutas);
+    const { container } = montar('/');
+
+    expect(await screen.findByRole('heading', { name: bienvenida })).toBeDefined();
+    expect(screen.getAllByText(patron).length).toBeGreaterThan(0);
+    expect(container.firstElementChild?.getAttribute('style')).toContain(`--marca-principal: ${configuracion.colorPrincipal}`);
+  });
+});

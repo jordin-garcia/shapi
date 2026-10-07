@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: API de Control - Portal
   version: 1.0.0
-  description: Configuración pública y logotipo del portal de marca blanca resuelto por host.
+  description: Configuración, logotipo y documentación pública del portal de marca blanca resuelto por host.
 servers:
   - url: https://{subdominio}.shapi.localhost
     description: Portal de una API detrás del borde
@@ -54,6 +54,20 @@ paths:
         '404':
           description: El host no corresponde a una API publicada o el portal no tiene logotipo.
 
+  /api/portal/documentacion:
+    get:
+      summary: Obtiene la documentación pública de las rutas expuestas
+      operationId: obtenerDocumentacionPortal
+      responses:
+        '200':
+          description: Documentación generada desde la especificación de la API publicada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentacionPortal'
+        '404':
+          description: El host no corresponde a una API publicada.
+
 components:
   schemas:
     ConfiguracionPortal:
@@ -95,3 +109,85 @@ components:
         hostApi:
           type: string
           example: envios.api.shapi.localhost
+    DocumentacionPortal:
+      type: object
+      required: [rutas]
+      properties:
+        rutas:
+          type: array
+          items:
+            $ref: '#/components/schemas/RutaDocumentada'
+    RutaDocumentada:
+      type: object
+      required:
+        - metodo
+        - patron
+        - resumen
+        - descripcion
+        - parametros
+        - ejemploPeticion
+        - ejemploRespuesta
+        - codigoRespuesta
+        - pesoLlamadas
+        - urlCompleta
+      properties:
+        metodo:
+          type: string
+          example: POST
+        patron:
+          type: string
+          example: /cotizaciones
+        resumen:
+          type: [string, 'null']
+        descripcion:
+          type: [string, 'null']
+          description: Markdown proveniente de la especificación OpenAPI.
+        parametros:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParametroDocumentado'
+        ejemploPeticion:
+          description: Ejemplo JSON de cuerpo o valores de parámetros, si la especificación lo incluye.
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: array
+              items: {}
+            - type: string
+            - type: number
+            - type: boolean
+            - type: 'null'
+        ejemploRespuesta:
+          description: Ejemplo JSON de la primera respuesta exitosa que lo incluya.
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: array
+              items: {}
+            - type: string
+            - type: number
+            - type: boolean
+            - type: 'null'
+        codigoRespuesta:
+          type: [integer, 'null']
+          example: 200
+        pesoLlamadas:
+          type: integer
+          minimum: 1
+        urlCompleta:
+          type: string
+          format: uri
+          example: https://envios.api.shapi.localhost/cotizaciones
+    ParametroDocumentado:
+      type: object
+      required: [nombre, tipo, obligatorio, descripcion]
+      properties:
+        nombre:
+          type: string
+        tipo:
+          type: string
+          example: string
+        obligatorio:
+          type: boolean
+        descripcion:
+          type: [string, 'null']
