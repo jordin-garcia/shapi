@@ -90,7 +90,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
 ## 2026-10-06 · DC-07 · Portal público: inicio y documentación (A5.0, A5.1 y A5.5)
 - Hecho: endpoint público de documentación por host; contrato y tipos generados; inicio y detalle de documentación alimentados por la especificación; Markdown sanitizado; marcas de Envíos Xelajú y Agro Precios cubiertas por pruebas.
-- Decisiones: las rutas respetan el orden guardado en su definición; la URL usa un dominio propio verificado cuando existe y, en otro caso, el host canónico; los ejemplos se obtienen del cuerpo y de la primera respuesta 2xx documentada.
+- Decisiones: las rutas respetan el orden guardado en su definición y se identifican por método y patrón; la URL usa un dominio propio verificado cuando existe y, en otro caso, el host canónico; los ejemplos se obtienen del cuerpo y de la primera respuesta 2xx documentada.
 - Pendiente o aviso para otros:
   - **DC-09:** A5.0 deja reservada la sección de planes para su implementación.
   - **DC-10:** A5.1/A5.5 enlazan “Probar en la consola” a `/consola`; el endpoint y los tipos de documentación ya están disponibles.

@@ -111,7 +111,7 @@ describe('RF-16 · inicio y documentación generados', () => {
     responder(configuracionAgro, rutasAgro);
     const { container, enrutador } = montar('/documentacion');
 
-    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/%2Fprecios'));
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/GET%20%2Fprecios'));
     expect(await screen.findByRole('heading', { name: '/precios' })).toBeDefined();
     expect(screen.getByText('API de Precios de Mercado')).toBeDefined();
     expect(screen.getByText('https://agro.api.shapi.localhost/precios')).toBeDefined();
@@ -127,7 +127,7 @@ describe('RF-16 · inicio y documentación generados', () => {
   it('/documentacion redirige a la primera ruta y permite elegir otra desde la lista lateral', async () => {
     const { enrutador } = montar('/documentacion');
 
-    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/%2Fcotizaciones'));
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/POST%20%2Fcotizaciones'));
     expect(await screen.findByRole('heading', { name: '/cotizaciones' })).toBeDefined();
     expect(screen.getByText('https://envios.api.shapi.localhost/cotizaciones')).toBeDefined();
     expect(screen.getByRole('link', { name: 'Probar en la consola' }).getAttribute('href')).toBe('/consola');
@@ -137,8 +137,26 @@ describe('RF-16 · inicio y documentación generados', () => {
     expect(screen.getByText('número')).toBeDefined();
 
     await userEvent.click(screen.getByRole('link', { name: /POST\/guias/ }));
-    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/%2Fguias'));
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/POST%20%2Fguias'));
     expect(await screen.findByRole('heading', { name: '/guias' })).toBeDefined();
+  });
+
+  it('distingue rutas con el mismo patrón por su método', async () => {
+    responder(configuracionEnvios, [
+      { ...rutasEnvios[0], metodo: 'GET', patron: '/pedidos', descripcion: 'Consulta pedidos.' },
+      { ...rutasEnvios[0], metodo: 'POST', patron: '/pedidos', descripcion: 'Crea un pedido.' },
+    ]);
+    const { enrutador } = montar('/documentacion');
+
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/GET%20%2Fpedidos'));
+    const enlaces = await screen.findAllByRole('link', { name: /pedidos/ });
+    expect(enlaces[0].getAttribute('aria-current')).toBe('page');
+    expect(enlaces[1].getAttribute('aria-current')).toBeNull();
+
+    await userEvent.click(enlaces[1]);
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/POST%20%2Fpedidos'));
+    expect(screen.getByText('Crea un pedido.')).toBeDefined();
+    expect(screen.getAllByRole('link', { name: /pedidos/ })[1].getAttribute('aria-current')).toBe('page');
   });
 
   it.each([

@@ -24,8 +24,8 @@ export function useDocumentacionPortal() {
   });
 }
 
-export function rutaDocumentacion(patron: string) {
-  return `/documentacion/${encodeURIComponent(patron)}`;
+export function rutaDocumentacion(metodo: string, patron: string) {
+  return `/documentacion/${encodeURIComponent(`${metodo} ${patron}`)}`;
 }
 
 export function textoPeso(peso: number) {
@@ -55,23 +55,24 @@ export default function Documentacion() {
   if (consulta.data.rutas.length === 0) {
     return <div className="p-11"><h1 className="font-display text-[32px]">Documentación</h1><p className="mt-3 text-tinta-suave">No hay rutas publicadas.</p></div>;
   }
-  if (!ruta) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].patron)} replace />;
+  if (!ruta) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].metodo, consulta.data.rutas[0].patron)} replace />;
 
-  const patron = decodeURIComponent(ruta);
-  const seleccionada = consulta.data.rutas.find(item => item.patron === patron);
-  if (!seleccionada) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].patron)} replace />;
+  const identificador = decodeURIComponent(ruta);
+  const seleccionada = consulta.data.rutas.find(item => `${item.metodo} ${item.patron}` === identificador);
+  if (!seleccionada) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].metodo, consulta.data.rutas[0].patron)} replace />;
 
   return (
     <div className="grid min-h-[720px] grid-cols-[272px_minmax(0,1fr)] bg-fondo">
       <aside className="border-r border-borde bg-panel px-4 py-7" aria-label="Rutas documentadas">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-[.14em] text-tinta-suave">Documentación</p>
+        <p className="px-3 text-[11px] font-semibold uppercase tracking-[.14em] text-tinta-suave">API</p>
         <nav className="mt-3 flex flex-col gap-1">
+          <Link to={rutaDocumentacion(seleccionada.metodo, seleccionada.patron)} className="rounded-base bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] px-3 py-2 text-[14px] font-medium text-[var(--marca-principal)]">Documentación</Link>
           {consulta.data.rutas.map(item => (
             <Link
               key={`${item.metodo}-${item.patron}`}
-              to={rutaDocumentacion(item.patron)}
-              aria-current={item.patron === seleccionada.patron ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-base px-3 py-2 text-[14px] ${item.patron === seleccionada.patron
+              to={rutaDocumentacion(item.metodo, item.patron)}
+              aria-current={item.metodo === seleccionada.metodo && item.patron === seleccionada.patron ? 'page' : undefined}
+              className={`flex items-center gap-3 rounded-base py-2 pl-6 pr-3 text-[14px] ${item.metodo === seleccionada.metodo && item.patron === seleccionada.patron
                 ? 'bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] text-[var(--marca-principal)] font-medium'
                 : 'text-[#2B3547]'}`}
             >
@@ -79,6 +80,14 @@ export default function Documentacion() {
               <span className="truncate">{item.patron}</span>
             </Link>
           ))}
+          <Link to="/consola" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Consola de pruebas</Link>
+          <Link to="/planes" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Planes</Link>
+        </nav>
+        <p className="mt-7 px-3 text-[11px] font-semibold uppercase tracking-[.14em] text-tinta-suave">Mi cuenta</p>
+        <nav className="mt-3 flex flex-col gap-1" aria-label="Mi cuenta">
+          <Link to="/cuenta/suscripcion" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Suscripción y claves</Link>
+          <Link to="/cuenta/consumo" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Consumo</Link>
+          <Link to="/cuenta/pagos" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Pagos</Link>
         </nav>
       </aside>
 

@@ -59,7 +59,7 @@ export default function Inicio() {
           : (
             <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
               {consulta.data.rutas.map(ruta => (
-                <Link key={`${ruta.metodo}-${ruta.patron}`} to={rutaDocumentacion(ruta.patron)} className="flex min-h-56 flex-col gap-3.5 rounded-base border border-borde bg-panel p-6 text-tinta hover:no-underline">
+                <Link key={`${ruta.metodo}-${ruta.patron}`} to={rutaDocumentacion(ruta.metodo, ruta.patron)} className="flex min-h-56 flex-col gap-3.5 rounded-base border border-borde bg-panel p-6 text-tinta hover:no-underline">
                   <span className="text-[12px] font-semibold tracking-[.06em] text-[var(--marca-principal)]">{ruta.metodo}</span>
                   <span className="font-display text-[22px] font-normal tracking-[-.02em]">{ruta.patron}</span>
                   <div className="min-h-[63px] text-[14px] leading-[1.5] text-tinta-suave [&_strong]:font-semibold [&_strong]:text-tinta">
