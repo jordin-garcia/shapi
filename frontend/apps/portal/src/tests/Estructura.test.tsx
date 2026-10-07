@@ -153,7 +153,7 @@ describe('RF-16 · rutas y navegación pública', () => {
     const enlace = within(await screen.findByRole('banner')).getByRole('link', { name: 'Documentación' });
     expect(enlace.getAttribute('href')).toBe('/documentacion');
     await userEvent.click(enlace);
-    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/%2Fcotizaciones'));
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/GET%20%2Fcotizaciones'));
     expect(await screen.findByRole('heading', { name: '/cotizaciones' })).toBeDefined();
   });
 
