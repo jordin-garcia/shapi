@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-06
 depende_de: [DC-03, DC-05]
 requisitos: [RF-16, RF-15]
@@ -53,3 +53,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ## Fuera de alcance
 - Planes en el inicio (DC-09)
 - Consola (DC-10)
+
+## Resultado
+- Se publicó `GET /api/portal/documentacion`, que resuelve el portal por host y devuelve únicamente rutas expuestas, ordenadas y documentadas desde su definición OpenAPI.
+- A5.0, A5.1 y A5.5 se generan con la configuración, marca, rutas, parámetros, ejemplos, peso y URL de cada API; el Markdown se renderiza sanitizado.
+- Se agregaron pruebas de integración del endpoint y pruebas Vitest con las marcas y datos aprobados de Envíos Xelajú y Agro Precios.
+- La sección de planes permanece reservada para DC-09 y el botón de consola enlaza la ruta que implementará DC-10.
