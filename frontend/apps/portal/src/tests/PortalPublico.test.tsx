@@ -39,6 +39,29 @@ const rutasEnvios = [
   },
 ];
 
+const configuracionAgro = {
+  ...configuracionEnvios,
+  nombrePortal: 'Agro Precios',
+  colorPrincipal: '#2F7D4A',
+  bienvenida: 'Consulte los precios del día en los mercados mayoristas de Guatemala.',
+  nombreApi: 'API de Precios de Mercado',
+  nombreOrganizacion: 'Agro Datos, S.A.',
+};
+
+const rutasAgro = [{
+  metodo: 'GET', patron: '/precios', resumen: 'Consultar precios',
+  descripcion: 'Devuelve el precio del día de un producto en un mercado.',
+  parametros: [
+    { nombre: 'producto', tipo: 'string', obligatorio: true, descripcion: 'Clave del producto' },
+    { nombre: 'mercado', tipo: 'string', obligatorio: true, descripcion: 'Clave del mercado mayorista' },
+    { nombre: 'fecha', tipo: 'string', obligatorio: false, descripcion: 'Fecha del precio. Si se omite, se devuelve el precio del día' },
+  ],
+  ejemploPeticion: { producto: 'frijol_negro', mercado: 'cenma' },
+  ejemploRespuesta: { producto: 'Frijol negro', mercado: 'CENMA', unidad: 'quintal', precio: 'Q 510.00', fecha: '10 sep 2026' },
+  codigoRespuesta: 200, pesoLlamadas: 1,
+  urlCompleta: 'https://agro.api.shapi.localhost/precios',
+}];
+
 let cliente: QueryClient;
 
 function montar(ruta: string) {
@@ -51,7 +74,7 @@ function montar(ruta: string) {
   return { ...vista, enrutador };
 }
 
-function responder(configuracion = configuracionEnvios, rutas = rutasEnvios) {
+function responder(configuracion = configuracionEnvios, rutas: unknown[] = rutasEnvios) {
   server.use(
     http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json(configuracion)),
     http.get('http://localhost/api/portal/documentacion', () => HttpResponse.json({ rutas })),
@@ -78,7 +101,27 @@ describe('RF-16 · inicio y documentación generados', () => {
     expect(screen.getByText((_, elemento) => elemento?.tagName === 'PRE' && elemento.textContent?.includes('"tarifa": "Q 38.50"') === true)).toBeDefined();
     expect(screen.getByText('Descuenta 1 llamada de su cuota')).toBeDefined();
     expect(screen.getByText('Descuenta 5 llamadas de su cuota')).toBeDefined();
+    expect(screen.getByText('datos seguros').tagName).toBe('STRONG');
+    expect(screen.queryByText(/\*\*datos seguros\*\*/)).toBeNull();
+    expect(document.querySelector('script')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Planes de la API' })).toBeDefined();
+  });
+
+  it('A5.5 genera la documentación de Agro con su marca, ruta, parámetros y ejemplos', async () => {
+    responder(configuracionAgro, rutasAgro);
+    const { container, enrutador } = montar('/documentacion');
+
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/%2Fprecios'));
+    expect(await screen.findByRole('heading', { name: '/precios' })).toBeDefined();
+    expect(screen.getByText('API de Precios de Mercado')).toBeDefined();
+    expect(screen.getByText('https://agro.api.shapi.localhost/precios')).toBeDefined();
+    expect(screen.getByText('producto')).toBeDefined();
+    expect(screen.getByText('mercado')).toBeDefined();
+    expect(screen.getByText('fecha')).toBeDefined();
+    expect(screen.getAllByText('Sí')).toHaveLength(2);
+    expect(screen.getByText((_, elemento) => elemento?.tagName === 'PRE' && elemento.textContent?.includes('"precio": "Q 510.00"') === true)).toBeDefined();
+    expect(screen.getByText('Descuenta 1 llamada de su cuota')).toBeDefined();
+    expect(container.firstElementChild?.getAttribute('style')).toContain('--marca-principal: #2F7D4A');
   });
 
   it('/documentacion redirige a la primera ruta y permite elegir otra desde la lista lateral', async () => {
@@ -100,12 +143,7 @@ describe('RF-16 · inicio y documentación generados', () => {
 
   it.each([
     ['Envíos Xelajú', configuracionEnvios, rutasEnvios, 'Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.', '/cotizaciones'],
-    ['Agro Precios', {
-      ...configuracionEnvios,
-      nombrePortal: 'Agro Precios', colorPrincipal: '#2F7D4A',
-      bienvenida: 'Consulte los precios del día en los mercados mayoristas de Guatemala.',
-      nombreApi: 'API de Precios de Mercado', nombreOrganizacion: 'Agro Datos, S.A.',
-    }, [{ ...rutasEnvios[0], metodo: 'GET', patron: '/precios', resumen: 'Consultar precios', pesoLlamadas: 3 }],
+    ['Agro Precios', configuracionAgro, rutasAgro,
     'Consulte los precios del día en los mercados mayoristas de Guatemala.', '/precios'],
   ])('usa los datos y la marca de %s', async (_nombre, configuracion, rutas, bienvenida, patron) => {
     responder(configuracion, rutas);

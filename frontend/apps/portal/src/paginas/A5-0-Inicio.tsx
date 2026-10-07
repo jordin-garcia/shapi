@@ -1,5 +1,7 @@
 import { EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link } from 'react-router';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import { rutaDocumentacion, textoPeso, useDocumentacionPortal } from './A5-1-Documentacion';
 
@@ -60,7 +62,11 @@ export default function Inicio() {
                 <Link key={`${ruta.metodo}-${ruta.patron}`} to={rutaDocumentacion(ruta.patron)} className="flex min-h-56 flex-col gap-3.5 rounded-base border border-borde bg-panel p-6 text-tinta hover:no-underline">
                   <span className="text-[12px] font-semibold tracking-[.06em] text-[var(--marca-principal)]">{ruta.metodo}</span>
                   <span className="font-display text-[22px] font-normal tracking-[-.02em]">{ruta.patron}</span>
-                  <p className="min-h-[63px] text-[14px] leading-[1.5] text-tinta-suave">{ruta.descripcion ?? ruta.resumen}</p>
+                  <div className="min-h-[63px] text-[14px] leading-[1.5] text-tinta-suave [&_strong]:font-semibold [&_strong]:text-tinta">
+                    {ruta.descripcion
+                      ? <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{ruta.descripcion}</ReactMarkdown>
+                      : ruta.resumen}
+                  </div>
                   <span className="mt-auto border-t border-borde pt-3.5 text-[13px] text-tinta-suave">{textoPeso(ruta.pesoLlamadas)}</span>
                 </Link>
               ))}

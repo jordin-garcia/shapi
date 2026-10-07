@@ -90,7 +90,6 @@ export default function Documentacion() {
               <span className="text-[15px] font-semibold tracking-[.06em] text-[var(--marca-principal)]">{seleccionada.metodo}</span>
               <h1 className="font-display text-[32px] font-normal tracking-[-.02em] text-tinta">{seleccionada.patron}</h1>
             </div>
-            {seleccionada.resumen && <p className="mt-2 text-[15px] text-tinta-suave">{seleccionada.resumen}</p>}
             {seleccionada.descripcion && (
               <div className="mt-2 text-[15px] leading-[1.55] text-tinta-suave [&_strong]:font-semibold [&_strong]:text-tinta">
                 <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{seleccionada.descripcion}</ReactMarkdown>
