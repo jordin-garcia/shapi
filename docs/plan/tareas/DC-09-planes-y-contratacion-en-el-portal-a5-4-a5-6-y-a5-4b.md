@@ -3,9 +3,9 @@ id: DC-09
 titulo: Planes y contratación en el portal (A5.4, A5.6 y A5.4b)
 persona: dominique
 responsable: Dominique Contreras
-avance: 3
+avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-07
 depende_de: [DC-08, EM-08, EM-07]
 requisitos: [RF-19, RF-20, RF-26]
@@ -50,3 +50,10 @@ Verificación manual con el entorno levantado:
 
 ## Fuera de alcance
 - Suscripción y claves en la cuenta (DC-11)
+
+## Resultado
+- Se implementaron A5.4, A5.6 y A5.4b con planes activos, estado vacío, validación de acceso, contratación gratuita y pago con tarjeta.
+- Se reutilizó la sección de planes en A5.0 y se consumieron `GET /api/portal/planes` y `POST /api/portal/suscripciones` mediante los tipos generados.
+- La confirmación muestra las dos claves completas una sola vez, permite copiarlas y las retira al salir hacia documentación.
+- Pruebas Vitest/MSW cubren planes, sesión, correo sin verificar, pago aprobado/rechazado y plan gratuito.
+- La verificación manual quedó pendiente porque el entorno local levantado no incluye el servicio de API de control; la suite frontend sí pasó completa.

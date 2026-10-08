@@ -95,3 +95,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **DC-09:** A5.0 deja reservada la sección de planes para su implementación.
   - **DC-10:** A5.1/A5.5 enlazan “Probar en la consola” a `/consola`; el endpoint y los tipos de documentación ya están disponibles.
   - **DC-12:** el portal aplica la marca devuelta por la configuración de forma dinámica.
+
+## 2026-10-07 · DC-09 · Planes y contratación en el portal (A5.4, A5.6 y A5.4b)
+- Hecho: se implementaron la lista de planes y su estado vacío, el formulario de pago, el alta directa de planes gratuitos y la confirmación con claves de producción y pruebas de exposición única. A5.0 reutiliza la misma sección de planes.
+- Decisiones: los planes se filtran por `activo`; la sesión solo se consulta al intentar contratar desde la página pública; las claves completas viven únicamente en el estado de la confirmación y desaparecen al salir de ella.
+- Verificación: lint sin errores (11 avisos existentes de Fast Refresh), typecheck de api/ui/portal/panel, builds de portal/panel y 334 pruebas Vitest aprobadas. El entorno Docker se levantó, pero no incluye API de control para completar el flujo manual.
+- Pendiente o aviso para otros:
+  - **DC-11:** la pantalla de cuenta deberá consultar la suscripción persistida; A5.4b no guarda ni vuelve a solicitar las claves completas.
+  - **DC-10:** `/documentacion` es el destino de salida de la confirmación y conserva el enlace ya implementado.

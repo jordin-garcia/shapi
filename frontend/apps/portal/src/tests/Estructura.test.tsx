@@ -47,6 +47,11 @@ beforeEach(() => {
       ejemploPeticion: null, ejemploRespuesta: null, codigoRespuesta: null, pesoLlamadas: 1,
       urlCompleta: 'https://envios.api.shapi.localhost/cotizaciones',
     }] })),
+    http.get('http://localhost/api/portal/planes', () => HttpResponse.json([{
+      id: 'basico', apiId: 'api-1', nombre: 'Básico', descripcion: 'Para empezar.', precio: 149,
+      moneda: 'GTQ', esGratuito: false, vigenciaDias: 30, cuotaLlamadas: 5000,
+      limiteMinuto: 30, activo: true,
+    }])),
     http.get('http://localhost/api/portal/auth/sesion', () => HttpResponse.json({
       consumidor: { nombre: 'María José Quiñónez', nombreEmpresa: 'Mercadito Antigua' },
       correoVerificado: true,
@@ -137,13 +142,28 @@ describe('RF-15 · marca dinámica del portal', () => {
 describe('RF-16 · rutas y navegación pública', () => {
   it.each([
     ['/consola', 'A5.2'],
-    ['/planes', 'A5.4'],
-    ['/contratar/basico', 'A5.6'],
   ])('%s muestra la página de relleno %s', async (ruta, id) => {
     montar(ruta);
 
     expect(await screen.findByRole('heading', { name: new RegExp(`^${id.replace('.', '\\.')}`) })).toBeDefined();
-    expect(screen.getByRole('banner')).toBeDefined();
+    expect(screen.getAllByRole('banner').length).toBeGreaterThan(0);
+  });
+
+  it('A5.4 muestra los planes reales del portal', async () => {
+    montar('/planes');
+
+    expect(await screen.findByRole('heading', { name: 'Planes de la API' })).toBeDefined();
+    expect(screen.getByText('Básico')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Contratar' })).toBeDefined();
+    expect(screen.getAllByRole('banner').length).toBeGreaterThan(0);
+  });
+
+  it('A5.6 muestra la contratación del plan seleccionado', async () => {
+    montar('/contratar/basico');
+
+    expect(await screen.findByRole('heading', { name: 'Contratación de un plan' })).toBeDefined();
+    expect(screen.getByText('Datos de la tarjeta')).toBeDefined();
+    expect(screen.getAllByRole('banner').length).toBeGreaterThan(0);
   });
 
   // 11 §4: «Documentación» lleva a /documentacion y DC-07 redirige a la primera ruta expuesta.
