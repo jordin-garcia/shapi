@@ -9,7 +9,7 @@ estado: pendiente
 programada: 2026-10-13
 depende_de: []
 requisitos: [RF-16, RF-19]
-pantallas: [A5.3, A5.4, A5.6, A5.4b]
+pantallas: [A5.1, A5.3, A5.4, A5.6, A5.4b]
 ---
 
 # DC-17 · Barra lateral del portal en planes y pago, y texto de A5.3
@@ -17,16 +17,17 @@ pantallas: [A5.3, A5.4, A5.6, A5.4b]
 **Responsable:** Dominique Contreras · **Avance:** 3 · **Prioridad:** P2 · **Sin dependencias**
 
 ## Objetivo
-Que A5.4, A5.6 y A5.4b se vean como sus mockups, con la barra lateral del portal (secciones «API» y «Mi cuenta» y, con sesión, el nombre de la consumidora), y corregir el texto repetido de A5.3.
+Que A5.4, A5.6 y A5.4b se vean como sus mockups, con la barra lateral del portal (secciones «API» y «Mi cuenta»), que esa barra y la de A5.1 muestren a la consumidora cuando hay sesión, y corregir el texto repetido de A5.3.
 
 ## Contexto que debes leer
 - `docs/plan/convergencia/2026-10-08.md` (pasos 3 y 4 del guion)
 - `docs/specs/11-interfaz.md` §"Comportamiento del portal y de sus pantallas de acceso" (barra de documentación y barra de la cuenta)
-- Mockups: `mockups/A5/Planes.dc.html`, `mockups/A5/PlanesVacia.dc.html`, `mockups/A5/Pago.dc.html`, `mockups/A5/Confirmacion.dc.html`, `mockups/A5/Registro.dc.html`
+- Mockups: `mockups/A5/Documentacion.dc.html`, `mockups/A5/Planes.dc.html`, `mockups/A5/PlanesVacia.dc.html`, `mockups/A5/Pago.dc.html`, `mockups/A5/Confirmacion.dc.html`, `mockups/A5/Registro.dc.html`
 
 ## Archivos que creas o modificas
 - `frontend/apps/portal/src/rutas.tsx` (modificar)
 - `frontend/apps/portal/src/layouts/**` (modificar)
+- `frontend/apps/portal/src/paginas/A5-1-Documentacion.tsx` (modificar, criterio 2)
 - `frontend/apps/portal/src/paginas/A5-3-Registro.tsx` (modificar)
 - `frontend/apps/portal/src/paginas/A5-4-Planes.tsx`, `A5-4b-Confirmacion.tsx` y `A5-6-Pago.tsx` (modificar, si hace falta)
 - `frontend/apps/portal/src/tests/**`
