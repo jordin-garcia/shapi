@@ -47,7 +47,7 @@ node scripts/tareas.mjs --validar
 - Implementar correcciones
 
 ## Resultado
-- Informe en `docs/plan/convergencia/2026-10-08.md`, con la tabla de los 33 requisitos del avance (26 ✅, 6 ⚠️ y 1 ❌) y el resultado de cada paso del guion 2, recorrido en el ambiente productivo simulado.
+- Informe en `docs/plan/convergencia/2026-10-08.md`, con la tabla de los 33 requisitos del avance (25 ✅, 7 ⚠️ y 1 ❌) y el resultado de cada paso del guion 2, recorrido en el ambiente productivo simulado.
 - El paso 1 falla: `sembrar-demo` se cae dentro del contenedor del trabajador (`CultureNotFoundException`, `es-GT` en `SiembraDemo.cs:295`). Los pasos 2 a 6 funcionan.
 - Tareas nuevas, cada una con dueño y prioridad: JZ-17 (P1, siembra en el ambiente productivo), JZ-18 (P1, RNF-14), JG-19 (P2, RNF-02 y RNF-04), DC-17 (P2, barra lateral de A5.4/A5.6/A5.4b y texto de A5.3), EM-19 (P2, pruebas de backend del portal) y EM-20 (P3, medio de pago en A5.4b).
 - Ninguna persona queda sobrecargada, así que ninguna tarea baja a P3. Se regeneró el calendario y DC-09 vuelve a `avance: 3`.
