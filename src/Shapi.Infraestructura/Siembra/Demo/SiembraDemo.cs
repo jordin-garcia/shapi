@@ -356,14 +356,14 @@ public sealed class SiembraDemo(
         return api;
     }
 
+    /// <summary>"24 de septiembre". Sin depender de la cultura del sistema: las imágenes Alpine no traen ICU (JZ-17).</summary>
+    private static string DiaYMes(DateTimeOffset fecha) => $"{fecha.Day} de {Meses[fecha.Month - 1]}";
+
     /// <summary>
     /// Crea la cuenta o, si ya existe, la restablece: el nombre, la contraseña de la demostración, el correo
     /// verificado, sin bloqueo y en su estado. No se borra al reiniciar, porque pudo dejar casos, mensajes o
     /// reversiones en otras organizaciones (auditoría 2026-10-03, H-29).
     /// </summary>
-    /// <summary>"24 de septiembre". Sin depender de la cultura del sistema: las imágenes Alpine no traen ICU (JZ-17).</summary>
-    private static string DiaYMes(DateTimeOffset fecha) => $"{fecha.Day} de {Meses[fecha.Month - 1]}";
-
     private static Usuario CrearUsuario(string nombre, string correo, PasswordHasher<Usuario> hasher,
         DateTimeOffset ahora, IReadOnlyDictionary<string, Usuario> existentes, bool desactivado = false)
     {

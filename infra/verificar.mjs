@@ -29,6 +29,10 @@ const dockerDesktop = join(
 );
 const ejecutableDocker = process.env.SHAPI_DOCKER_BIN
   ?? (process.platform === "win32" && existsSync(dockerDesktop) ? dockerDesktop : "docker");
+// JZ-17: con --sembrar, al final se siembra la demostración en el ambiente productivo y se llama a la compuerta.
+const sembrar = process.argv.includes("--sembrar");
+// Mercadito Antigua, producción (docs/manual-tecnico.md §"Sembrar la demostración").
+const claveDemoEnvios = "shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e";
 
 // Compose lee el .env de la carpeta del archivo (infra/), no el de la raíz: se pasa con --env-file (H-68).
 const rutaEntornoActivo = existsSync(rutaEntornoLocal) ? rutaEntornoLocal : rutaEntorno;
@@ -136,6 +140,73 @@ function solicitar(url, opciones = {}) {
     peticion.on("timeout", () => peticion.destroy(new Error(`Tiempo agotado: ${url}`)));
     peticion.on("error", (error) => reject(new Error(`${url}: ${error.message}`, { cause: error })));
   });
+}
+
+function enviarJson(url, cuerpo, cabeceras = {}) {
+  const datos = JSON.stringify(cuerpo);
+  return new Promise((resolve, reject) => {
+    const peticion = https.request(
+      url,
+      {
+        method: "POST",
+        rejectUnauthorized: false,
+        lookup: resolverLocal,
+        timeout: 5_000,
+        maxVersion: "TLSv1.2",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(datos),
+          ...cabeceras,
+        },
+      },
+      (respuesta) => {
+        let texto = "";
+        respuesta.setEncoding("utf8");
+        respuesta.on("data", (parte) => (texto += parte));
+        respuesta.on("end", () => resolve({ statusCode: respuesta.statusCode, cuerpo: texto }));
+      },
+    );
+
+    peticion.on("timeout", () => peticion.destroy(new Error(`Tiempo agotado: ${url}`)));
+    peticion.on("error", (error) => reject(new Error(`${url}: ${error.message}`, { cause: error })));
+    peticion.end(datos);
+  });
+}
+
+// La siembra registra cada consulta SQL: se guarda su salida completa y, si falla, se muestra el final.
+function sembrarDemo() {
+  try {
+    execFileSync(
+      ejecutableDocker,
+      [...argumentosCompose, "exec", "-T", "trabajador", "dotnet", "Shapi.Trabajador.dll", "sembrar-demo"],
+      { cwd: raiz, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 256 * 1024 * 1024 },
+    );
+  } catch (error) {
+    const final = (texto) => (texto ?? "").slice(-4_000);
+    throw new Error(
+      `sembrar-demo falló en el contenedor del trabajador: ${error.message}\n${final(error.stdout)}\n${final(error.stderr)}`,
+    );
+  }
+}
+
+async function cotizarConClaveDemo() {
+  const limite = Date.now() + 30_000;
+  let ultima;
+  while (Date.now() < limite) {
+    try {
+      ultima = await enviarJson(
+        "https://envios.api.shapi.localhost/cotizaciones",
+        { origen: "Quetzaltenango", destino: "Antigua Guatemala", peso_kg: 2 },
+        { "X-Api-Key": claveDemoEnvios },
+      );
+      if (ultima.statusCode === 200) return ultima;
+    } catch (error) {
+      ultima = { statusCode: 0, cuerpo: error.message };
+    }
+    await esperar(1_000);
+  }
+
+  return ultima;
 }
 
 function iniciarServidor(puerto, destino) {
@@ -287,6 +358,8 @@ exigirTexto(
     "infra/borde/Dockerfile",
     "ghcr.io/jordin-garcia/shapi-${{ matrix.nombre }}:latest",
     "ghcr.io/jordin-garcia/shapi-${{ matrix.nombre }}:${{ github.sha }}",
+    // JZ-17: el check ambiente-productivo siembra la demostración y llama a la compuerta.
+    "node infra/verificar.mjs --sembrar",
   ],
   ".github/workflows/publicar-imagenes.yml",
 );
@@ -498,6 +571,10 @@ const produccionActiva = serviciosProyecto.some(
 argumentosCompose = produccionActiva
   ? argumentosComposeProduccion
   : argumentosComposeDesarrollo;
+assert.ok(
+  !sembrar || produccionActiva,
+  "--sembrar necesita el ambiente productivo simulado (infra/compose.prod.yml) levantado",
+);
 
 ejecutarDocker([
   ...argumentosCompose,
@@ -664,6 +741,17 @@ for (const host of [
   );
 }
 
+// RNF-14 (JZ-17): todo lo anterior comprueba el ambiente sin siembra; recién aquí se siembra.
+if (sembrar) {
+  sembrarDemo();
+  const cotizacion = await cotizarConClaveDemo();
+  assert.equal(
+    cotizacion.statusCode,
+    200,
+    `POST https://envios.api.shapi.localhost/cotizaciones con la clave de la siembra respondió ${cotizacion.statusCode}: ${cotizacion.cuerpo}`,
+  );
+}
+
 console.log("✓ Configuración declarativa de desarrollo y producción completa");
 if (produccionActiva) {
   console.log("✓ Los contenedores con healthcheck están sanos y el trabajador está en ejecución");
@@ -675,3 +763,6 @@ if (produccionActiva) {
 }
 console.log("✓ Caddy usa HTTPS, agrega cabeceras y no publica /interno/*");
 console.log("✓ https://correo.shapi.localhost responde correctamente");
+if (sembrar) {
+  console.log("✓ sembrar-demo funciona en el contenedor del trabajador y la compuerta responde 200 con una clave de la siembra");
+}
