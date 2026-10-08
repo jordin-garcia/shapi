@@ -14,6 +14,12 @@ export function fechaLarga(valor: string) {
   }).format(new Date(valor));
 }
 
+export function diaAnterior(valor: string) {
+  const fecha = new Date(valor);
+  fecha.setUTCDate(fecha.getUTCDate() - 1);
+  return fecha.toISOString();
+}
+
 export function fechaHora(valor: string) {
   const fecha = new Date(valor);
   const hora = new Intl.DateTimeFormat('es-GT', {

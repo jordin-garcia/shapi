@@ -12,8 +12,8 @@ export function EtiquetaEstado({ estado }: { estado: 'abierto' | 'cerrado' }) {
   </span>;
 }
 
-export function Conversacion({ caso, proveedor }: { caso: Caso; proveedor: boolean }) {
-  return <section aria-label="Conversación" className="mt-6 rounded-base border border-borde bg-panel p-5">
+export function Conversacion({ caso, proveedor, integrada = false }: { caso: Caso; proveedor: boolean; integrada?: boolean }) {
+  return <section aria-label="Conversación" className={integrada ? '' : 'mt-6 rounded-base border border-borde bg-panel p-5'}>
     <h2 className="font-display text-[20px] leading-[1.3]">Conversación</h2>
     <div className="mt-4 flex flex-col gap-4">
       {caso.mensajes.map((mensaje: Mensaje) => {

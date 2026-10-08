@@ -6,15 +6,16 @@ paths:
   /api/casos:
     get:
       operationId: listarCasosProveedor
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Tamano'
       responses:
         '200':
           description: Casos de la organizacion de la sesion.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CasoListado'
+                $ref: '#/components/schemas/PaginaCasosProveedor'
     post:
       operationId: abrirCasoProveedor
       requestBody:
@@ -73,15 +74,16 @@ paths:
   /api/admin/casos:
     get:
       operationId: listarCasosAdministracion
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Tamano'
       responses:
         '200':
           description: Todos los casos de soporte.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CasoListadoAdministracion'
+                $ref: '#/components/schemas/PaginaCasosAdministracion'
     post:
       operationId: abrirCasoAdministracion
       requestBody:
@@ -187,6 +189,21 @@ paths:
           $ref: '#/components/responses/NoEncontrado'
 components:
   parameters:
+    Pagina:
+      name: pagina
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Tamano:
+      name: tamano
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
     NumeroCaso:
       name: numero
       in: path
@@ -214,6 +231,28 @@ components:
           schema:
             $ref: '#/components/schemas/Problema'
   schemas:
+    PaginaCasosProveedor:
+      type: object
+      required: [elementos, total]
+      properties:
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CasoListado'
+        total:
+          type: integer
+          minimum: 0
+    PaginaCasosAdministracion:
+      type: object
+      required: [elementos, total]
+      properties:
+        elementos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CasoListadoAdministracion'
+        total:
+          type: integer
+          minimum: 0
     AbrirCasoProveedor:
       type: object
       required: [asunto, descripcion]

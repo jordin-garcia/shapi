@@ -32,8 +32,8 @@ public static class Endpoints
     }
 
     private static async Task<IResult> ListarProveedor(
-        HttpContext http, ListarCasos casoUso, CancellationToken cancelacion) =>
-        TypedResults.Ok(await casoUso.Proveedor(OrganizacionId(http.User), cancelacion));
+        HttpContext http, ListarCasos casoUso, CancellationToken cancelacion, int pagina = 1, int tamano = 20) =>
+        TypedResults.Ok(await casoUso.Proveedor(OrganizacionId(http.User), pagina, tamano, cancelacion));
 
     private static async Task<IResult> AbrirProveedor(
         HttpContext http,
@@ -70,13 +70,13 @@ public static class Endpoints
         }
 
         return resultado.Valor is null
-            ? TypedResults.NotFound()
+            ? NoEncontrado()
             : TypedResults.Created($"/api/casos/{numero}", resultado.Valor);
     }
 
     private static async Task<IResult> ListarAdministracion(
-        ListarCasos casoUso, CancellationToken cancelacion) =>
-        TypedResults.Ok(await casoUso.Administracion(cancelacion));
+        ListarCasos casoUso, CancellationToken cancelacion, int pagina = 1, int tamano = 20) =>
+        TypedResults.Ok(await casoUso.Administracion(pagina, tamano, cancelacion));
 
     private static async Task<IResult> ListarOrganizaciones(
         ListarOrganizacionesParaCaso casoUso, CancellationToken cancelacion) =>
@@ -122,7 +122,7 @@ public static class Endpoints
         }
 
         return resultado.Valor is null
-            ? TypedResults.NotFound()
+            ? NoEncontrado()
             : TypedResults.Created($"/api/admin/casos/{numero}", resultado.Valor);
     }
 
@@ -150,7 +150,8 @@ public static class Endpoints
         return Problemas.Crear(estado, error.Codigo, error.Mensaje, error.Detalle as IDictionary<string, string[]>);
     }
 
-    private static IResult NoEncontrado() => TypedResults.NotFound();
+    private static IResult NoEncontrado() =>
+        Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.CasoNoEncontrado, "No se encontro el caso.");
 
     private static Guid OrganizacionId(ClaimsPrincipal usuario) =>
         Guid.Parse(usuario.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);

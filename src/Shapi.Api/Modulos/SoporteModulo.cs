@@ -1,4 +1,6 @@
 using Shapi.Api.Soporte;
+using Shapi.Aplicacion.Soporte;
+using Shapi.Infraestructura.Soporte;
 
 namespace Shapi.Api.Modulos;
 
@@ -7,6 +9,7 @@ public static class SoporteModulo
 {
     public static IServiceCollection AgregarModuloSoporte(this IServiceCollection services)
     {
+        services.AddScoped<IRepositorioSoporte, RepositorioSoporte>();
         services.AddScoped<ListarCasos>();
         services.AddScoped<ListarOrganizacionesParaCaso>();
         services.AddScoped<AbrirCaso>();

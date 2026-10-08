@@ -41,10 +41,12 @@ export default function PaginaA72Caso() {
       </div>
       <EtiquetaEstado estado={caso.estado} />
     </header>
-    <Conversacion caso={caso} proveedor />
-    {caso.estado === 'abierto' ? <form className="mt-6 rounded-base border border-borde bg-panel p-5" onSubmit={e => { e.preventDefault(); responder.mutate(); }}>
+    <section className="mt-8 max-w-[860px] rounded-base border border-borde bg-panel p-5">
+    <Conversacion caso={caso} proveedor integrada />
+    {caso.estado === 'abierto' ? <form className="mt-5 border-t border-borde pt-5" onSubmit={e => { e.preventDefault(); responder.mutate(); }}>
       <label className={claseEtiqueta}>Su respuesta<textarea className={claseCampo} required rows={4} maxLength={4000} placeholder="Escriba su respuesta para el equipo de soporte" value={cuerpo} onChange={e => setCuerpo(e.target.value)} /></label>
-      <div className="mt-4 flex justify-end"><button className={claseBoton} disabled={responder.isPending}>Enviar respuesta</button></div>
-    </form> : <p className="mt-6 rounded-base border border-borde bg-fondo p-4 text-tinta-suave">Este caso está cerrado y ya no admite respuestas.</p>}
+      <div className="mt-5"><button className={claseBoton} disabled={responder.isPending}>Enviar respuesta</button></div>
+    </form> : <p className="mt-5 border-t border-borde pt-5 text-tinta-suave">Este caso está cerrado y ya no admite respuestas.</p>}
+    </section>
   </main>;
 }

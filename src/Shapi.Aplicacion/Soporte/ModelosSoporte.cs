@@ -1,4 +1,8 @@
+using Shapi.Dominio.Soporte;
+
 namespace Shapi.Aplicacion.Soporte;
+
+public sealed record Pagina<T>(IReadOnlyList<T> Elementos, int Total);
 
 public sealed record SolicitudAbrirCaso(string Asunto, Guid? ApiId, string Descripcion);
 
@@ -57,3 +61,31 @@ public sealed record ResumenOrganizacionCaso(
 public sealed record OpcionApiCaso(Guid Id, string Nombre);
 
 public sealed record OpcionOrganizacionCaso(Guid Id, string Nombre, IReadOnlyList<OpcionApiCaso> Apis);
+
+public sealed record DestinatarioCaso(string Nombre, string Correo, bool Plataforma);
+
+public interface ITransaccionSoporte : IAsyncDisposable
+{
+    Task Confirmar(CancellationToken cancelacion);
+}
+
+public interface IRepositorioSoporte
+{
+    Task<Pagina<CasoListado>> ListarProveedor(Guid organizacionId, int pagina, int tamano, CancellationToken cancelacion);
+    Task<Pagina<CasoListadoAdministracion>> ListarAdministracion(int pagina, int tamano, CancellationToken cancelacion);
+    Task<IReadOnlyList<OpcionOrganizacionCaso>> ListarOrganizaciones(CancellationToken cancelacion);
+    Task<bool> ExisteOrganizacionProveedor(Guid organizacionId, CancellationToken cancelacion);
+    Task<bool> ApiPertenece(Guid apiId, Guid organizacionId, CancellationToken cancelacion);
+    Task Agregar(Caso caso, CancellationToken cancelacion);
+    Task<Caso?> ObtenerProveedor(int numero, Guid organizacionId, bool bloquear, CancellationToken cancelacion);
+    Task<Caso?> ObtenerAdministracion(int numero, bool bloquear, CancellationToken cancelacion);
+    Task GuardarMensaje(CasoMensaje mensaje, CancellationToken cancelacion);
+    Task GuardarCambios(CancellationToken cancelacion);
+    Task<CasoDetalle?> Detalle(Caso caso, CancellationToken cancelacion);
+    Task<ResumenOrganizacionCaso?> ResumenOrganizacion(int numero, CancellationToken cancelacion);
+    Task<MensajeCaso> PresentarMensaje(CasoMensaje mensaje, CancellationToken cancelacion);
+    Task<DestinatarioCaso?> DestinatarioProveedor(Caso caso, CancellationToken cancelacion);
+    Task<DestinatarioCaso?> DestinatarioPlataforma(Guid? asignadoA, CancellationToken cancelacion);
+    string EnlaceCaso(bool plataforma, int numero);
+    Task<ITransaccionSoporte> IniciarTransaccion(CancellationToken cancelacion);
+}

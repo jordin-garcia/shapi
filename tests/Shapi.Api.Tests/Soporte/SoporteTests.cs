@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
@@ -71,30 +72,45 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
     public async Task RF_40_Proveedor_PuedeAbrirListarYConsultarSusCasos(Rol rol)
     {
         var (usuario, organizacion) = await CrearUsuario($"Persona {rol}", rol, TipoOrganizacion.Proveedor);
+        var (soporte, _) = await CrearUsuario($"Soporte {rol}", Rol.Soporte, TipoOrganizacion.Plataforma);
         var api = await CrearApi(organizacion.Id, $"api-{Guid.NewGuid():N}"[..20]);
         var cookie = await CrearSesion(usuario.Id);
+        var cookieSoporte = await CrearSesion(soporte.Id);
 
         var abrir = await Enviar(HttpMethod.Post, "/api/casos", cookie,
             new { asunto = "El dominio propio no verifica", apiId = api.Id, descripcion = "Sigue pendiente." });
 
         Assert.Equal(HttpStatusCode.Created, abrir.StatusCode);
         var creado = await abrir.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.StartsWith("CAS-", $"CAS-{creado.GetProperty("numero").GetInt32()}");
+        var numero = creado.GetProperty("numero").GetInt32();
+        Assert.True(numero >= 100);
         Assert.Single(creado.GetProperty("mensajes").EnumerateArray());
 
+        var responder = await Enviar(HttpMethod.Post, $"/api/admin/casos/{numero}/mensajes", cookieSoporte,
+            new { cuerpo = "Estamos revisando el caso." });
+        Assert.Equal(HttpStatusCode.Created, responder.StatusCode);
+
         var lista = await Enviar(HttpMethod.Get, "/api/casos", cookie);
-        var elementos = await lista.Content.ReadFromJsonAsync<JsonElement>();
+        var pagina = await lista.Content.ReadFromJsonAsync<JsonElement>();
+        var elementos = pagina.GetProperty("elementos");
         Assert.Single(elementos.EnumerateArray());
+        Assert.Equal(1, pagina.GetProperty("total").GetInt32());
         Assert.Equal(api.Nombre, elementos[0].GetProperty("apiNombre").GetString());
 
         var otro = await CrearUsuario("Persona ajena", Rol.Propietario, TipoOrganizacion.Proveedor);
         var otroCookie = await CrearSesion(otro.Usuario.Id);
-        var aislado = await Enviar(HttpMethod.Get, $"/api/casos/{creado.GetProperty("numero").GetInt32()}", otroCookie);
-        Assert.Equal(HttpStatusCode.NotFound, aislado.StatusCode);
+        var aislado = await Enviar(HttpMethod.Get, $"/api/casos/{numero}", otroCookie);
+        await AfirmarProblema(aislado, HttpStatusCode.NotFound, "caso_no_encontrado");
+        Assert.Equal("application/problem+json", aislado.Content.Headers.ContentType?.MediaType);
 
         await using var db = Db(out var scope);
         using var _ = scope;
         Assert.True(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().AnyAsync(e => e.Accion == "caso.abierto"));
+        var correos = await db.Set<CorreoSaliente>()
+            .Where(c => c.Plantilla == "respuesta_caso" && c.Destinatario == usuario.Correo)
+            .Select(c => c.Datos)
+            .ToListAsync();
+        Assert.Contains(correos, datos => datos.Contains($"CAS-{numero}", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -167,6 +183,86 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
         Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Get, "/api/admin/casos", cookieSoporte)).StatusCode);
     }
 
+    [Fact]
+    public async Task RF_40_RespuestaYCierreConcurrentes_NoDejanMensajesEnUnCasoYaCerrado()
+    {
+        var (propietaria, _) = await CrearUsuario("Propietaria concurrente", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var (soporte, _) = await CrearUsuario("Soporte concurrente", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var cookiePropietaria = await CrearSesion(propietaria.Id);
+        var cookieSoporte = await CrearSesion(soporte.Id);
+        var abierto = await Enviar(HttpMethod.Post, "/api/casos", cookiePropietaria,
+            new { asunto = "Caso concurrente", descripcion = "Primer mensaje." });
+        var numero = (await abierto.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("numero").GetInt32();
+
+        var responder = Enviar(HttpMethod.Post, $"/api/casos/{numero}/mensajes", cookiePropietaria,
+            new { cuerpo = "Respuesta concurrente." });
+        var cerrar = Enviar(HttpMethod.Post, $"/api/admin/casos/{numero}/cerrar", cookieSoporte);
+        await Task.WhenAll(responder, cerrar);
+        var respuestaConcurrente = await responder;
+        var cierreConcurrente = await cerrar;
+
+        Assert.Equal(HttpStatusCode.NoContent, cierreConcurrente.StatusCode);
+        Assert.True(respuestaConcurrente.StatusCode is HttpStatusCode.Created or HttpStatusCode.UnprocessableEntity);
+        if (respuestaConcurrente.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            await AfirmarProblema(respuestaConcurrente, HttpStatusCode.UnprocessableEntity, "caso_cerrado");
+        }
+
+        var detalle = await Enviar(HttpMethod.Get, $"/api/casos/{numero}", cookiePropietaria);
+        var json = await detalle.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("cerrado", json.GetProperty("estado").GetString());
+        Assert.Equal(respuestaConcurrente.StatusCode == HttpStatusCode.Created ? 2 : 1,
+            json.GetProperty("mensajes").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task RF_40_Apertura_SiFallaElCorreo_RevierteCasoYBitacora()
+    {
+        var (propietaria, _) = await CrearUsuario("Propietaria atomica", Rol.Propietario, TipoOrganizacion.Proveedor);
+        await CrearUsuario("Soporte atomico", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var cookie = await CrearSesion(propietaria.Id);
+        var casosAntes = await Contar<Caso>();
+        var bitacoraAntes = await Contar<EntradaBitacoraDominio>();
+        await using var fabrica = _fabrica.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IColaCorreo>();
+            services.AddScoped<IColaCorreo, ColaCorreoQueFalla>();
+        }));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var respuesta = await Enviar(cliente, HttpMethod.Post, "/api/casos", cookie,
+            new { asunto = "Debe revertirse", descripcion = "El correo falla." });
+
+        Assert.Equal(HttpStatusCode.InternalServerError, respuesta.StatusCode);
+        Assert.Equal(casosAntes, await Contar<Caso>());
+        Assert.Equal(bitacoraAntes, await Contar<EntradaBitacoraDominio>());
+    }
+
+    [Fact]
+    public async Task RF_40_Cierre_SiFallaLaBitacora_ConservaElCasoAbierto()
+    {
+        var (propietaria, _) = await CrearUsuario("Propietaria cierre", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var (soporte, _) = await CrearUsuario("Soporte cierre", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var cookiePropietaria = await CrearSesion(propietaria.Id);
+        var cookieSoporte = await CrearSesion(soporte.Id);
+        var abierto = await Enviar(HttpMethod.Post, "/api/casos", cookiePropietaria,
+            new { asunto = "Cierre atomico", descripcion = "Debe seguir abierto." });
+        var numero = (await abierto.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("numero").GetInt32();
+        await using var fabrica = _fabrica.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IBitacora>();
+            services.AddScoped<IBitacora, BitacoraQueFalla>();
+        }));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        var respuesta = await Enviar(cliente, HttpMethod.Post, $"/api/admin/casos/{numero}/cerrar", cookieSoporte);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, respuesta.StatusCode);
+        var detalle = await Enviar(HttpMethod.Get, $"/api/casos/{numero}", cookiePropietaria);
+        var json = await detalle.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("abierto", json.GetProperty("estado").GetString());
+    }
+
     private async Task<(Usuario Usuario, Organizacion Organizacion)> CrearUsuario(string nombre, Rol rol, TipoOrganizacion tipo)
     {
         await using var db = Db(out var scope);
@@ -207,6 +303,10 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
     }
 
     private Task<HttpResponseMessage> Enviar(HttpMethod metodo, string url, string cookie, object? cuerpo = null)
+        => Enviar(_cliente, metodo, url, cookie, cuerpo);
+
+    private static Task<HttpResponseMessage> Enviar(
+        HttpClient cliente, HttpMethod metodo, string url, string cookie, object? cuerpo = null)
     {
         var peticion = new HttpRequestMessage(metodo, url);
         peticion.Headers.Add("Cookie", cookie);
@@ -216,7 +316,14 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
             peticion.Content = JsonContent.Create(cuerpo);
         }
 
-        return _cliente.SendAsync(peticion);
+        return cliente.SendAsync(peticion);
+    }
+
+    private async Task<int> Contar<T>() where T : class
+    {
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        return await db.Set<T>().IgnoreQueryFilters().CountAsync();
     }
 
     private static async Task AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
@@ -230,5 +337,17 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
     {
         scope = _fabrica.Services.CreateScope();
         return scope.ServiceProvider.GetRequiredService<ShapiDbContext>();
+    }
+
+    private sealed class ColaCorreoQueFalla : IColaCorreo
+    {
+        public Task Encolar(string plantilla, string destinatario, object datos, CancellationToken cancelacion = default) =>
+            throw new InvalidOperationException("Fallo simulado al encolar.");
+    }
+
+    private sealed class BitacoraQueFalla : IBitacora
+    {
+        public Task Registrar(Shapi.Aplicacion.Comun.EntradaBitacora entrada, CancellationToken cancelacion = default) =>
+            throw new InvalidOperationException("Fallo simulado al registrar.");
     }
 }

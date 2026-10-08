@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -51,7 +51,7 @@ describe('RF-40 · A7 Casos del proveedor', () => {
   it('reproduce la lista y permite abrir un caso', async () => {
     let enviado: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API}/api/casos`, () => HttpResponse.json([{ numero: 104, asunto: caso.asunto, apiNombre: caso.apiNombre, estado: 'abierto', creadoEn: caso.creadoEn, respuestas: 2 }])),
+      http.get(`${API}/api/casos`, () => HttpResponse.json({ elementos: [{ numero: 104, asunto: caso.asunto, apiNombre: caso.apiNombre, estado: 'abierto', creadoEn: caso.creadoEn, respuestas: 2 }], total: 1 })),
       http.get(`${API}/api/apis`, () => HttpResponse.json({
         elementos: [{ id: '11111111-1111-1111-1111-111111111111', nombre: caso.apiNombre, subdominio: 'envios', estado: 'publicada' }],
         total: 1, planNombre: 'Producto', maxApis: 5,
@@ -95,6 +95,8 @@ describe('RF-40 · A7 Casos del proveedor', () => {
     expect(await screen.findByRole('heading', { name: caso.asunto })).toBeDefined();
     expect(screen.getByText('El dominio sigue pendiente.')).toBeDefined();
     expect(screen.getByText('Estoy revisando el registro.')).toBeDefined();
+    const conversacion = screen.getByRole('region', { name: 'Conversación' });
+    expect(within(conversacion.parentElement!).getByLabelText('Su respuesta')).toBeDefined();
     await userEvent.type(screen.getByLabelText('Su respuesta'), 'Ya hice el cambio.');
     await userEvent.click(screen.getByRole('button', { name: 'Enviar respuesta' }));
     await waitFor(() => expect(cuerpo).toBe('Ya hice el cambio.'));
@@ -105,7 +107,7 @@ describe('RF-40 · A6.4 Casos de administracion', () => {
   it('reproduce la variante vacia y registra un caso a nombre de una organizacion', async () => {
     let enviado: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API}/api/admin/casos`, () => HttpResponse.json([])),
+      http.get(`${API}/api/admin/casos`, () => HttpResponse.json({ elementos: [], total: 0 })),
       http.get(`${API}/api/admin/casos/organizaciones`, () => HttpResponse.json([{
         id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', nombre: 'Envios Xelaju, S.A.',
         apis: [{ id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', nombre: 'API de Cotizacion de Envios' }],
@@ -119,6 +121,7 @@ describe('RF-40 · A6.4 Casos de administracion', () => {
     mostrar(<PaginaA64Casos />);
 
     expect(await screen.findByRole('heading', { name: 'Todavía no hay casos' })).toBeDefined();
+    expect(screen.queryByLabelText(/API afectada/)).toBeNull();
     await userEvent.selectOptions(screen.getByLabelText('Organización'), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
     await userEvent.type(screen.getByLabelText('Asunto'), 'Reporte telefonico');
     await userEvent.type(screen.getByLabelText('Descripción'), 'La organización reportó una falla.');
@@ -131,7 +134,7 @@ describe('RF-40 · A6.4 Casos de administracion', () => {
     let asignaciones = 0;
     let cierres = 0;
     server.use(
-      http.get(`${API}/api/admin/casos/104`, () => HttpResponse.json(caso)),
+      http.get(`${API}/api/admin/casos/104`, () => HttpResponse.json({ ...caso, asignadoA: null })),
       http.get(`${API}/api/admin/casos/104/organizacion`, () => HttpResponse.json({
         organizacion: caso.organizacion, apiAfectada: caso.apiNombre, plan: 'Producto',
         cicloInicio: '2026-08-24T06:00:00Z', cicloFin: '2026-09-23T06:00:00Z', estado: 'activa',
@@ -146,6 +149,8 @@ describe('RF-40 · A6.4 Casos de administracion', () => {
     expect(await screen.findByText('Datos de la organización')).toBeDefined();
     expect(screen.getByText('Solo lectura. Con el rol de soporte usted consulta los datos de la organización, pero no puede modificarlos.')).toBeDefined();
     expect(screen.getByText('api.enviosxelaju.localhost')).toBeDefined();
+    expect(screen.getByText('24 ago 2026 – 22 sep 2026')).toBeDefined();
+    expect(within(screen.getByRole('region', { name: 'Conversación' }).parentElement!).getByLabelText('Respuesta')).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: 'Asignarme el caso' }));
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar el caso' }));
     await waitFor(() => expect([asignaciones, cierres]).toEqual([1, 1]));

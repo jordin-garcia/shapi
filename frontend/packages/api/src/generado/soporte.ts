@@ -177,6 +177,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PaginaCasosProveedor: {
+            elementos: components["schemas"]["CasoListado"][];
+            total: number;
+        };
+        PaginaCasosAdministracion: {
+            elementos: components["schemas"]["CasoListadoAdministracion"][];
+            total: number;
+        };
         AbrirCasoProveedor: {
             asunto: string;
             /** Format: uuid */
@@ -294,6 +302,8 @@ export interface components {
         };
     };
     parameters: {
+        Pagina: number;
+        Tamano: number;
         NumeroCaso: number;
     };
     requestBodies: never;
@@ -304,7 +314,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     listarCasosProveedor: {
         parameters: {
-            query?: never;
+            query?: {
+                pagina?: components["parameters"]["Pagina"];
+                tamano?: components["parameters"]["Tamano"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -317,7 +330,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CasoListado"][];
+                    "application/json": components["schemas"]["PaginaCasosProveedor"];
                 };
             };
         };
@@ -401,7 +414,10 @@ export interface operations {
     };
     listarCasosAdministracion: {
         parameters: {
-            query?: never;
+            query?: {
+                pagina?: components["parameters"]["Pagina"];
+                tamano?: components["parameters"]["Tamano"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -414,7 +430,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CasoListadoAdministracion"][];
+                    "application/json": components["schemas"]["PaginaCasosAdministracion"];
                 };
             };
         };
