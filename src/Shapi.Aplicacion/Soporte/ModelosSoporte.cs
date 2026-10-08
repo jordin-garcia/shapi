@@ -83,7 +83,7 @@ public interface IRepositorioSoporte
     Task GuardarCambios(CancellationToken cancelacion);
     Task<CasoDetalle?> Detalle(Caso caso, CancellationToken cancelacion);
     Task<ResumenOrganizacionCaso?> ResumenOrganizacion(int numero, CancellationToken cancelacion);
-    Task<MensajeCaso> PresentarMensaje(CasoMensaje mensaje, CancellationToken cancelacion);
+    Task<MensajeCaso> PresentarMensaje(CasoMensaje mensaje, Guid organizacionCasoId, CancellationToken cancelacion);
     Task<DestinatarioCaso?> DestinatarioProveedor(Caso caso, CancellationToken cancelacion);
     Task<DestinatarioCaso?> DestinatarioPlataforma(Guid? asignadoA, CancellationToken cancelacion);
     string EnlaceCaso(bool plataforma, int numero);

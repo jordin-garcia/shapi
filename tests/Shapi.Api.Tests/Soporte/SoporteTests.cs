@@ -171,6 +171,33 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
     }
 
     [Fact]
+    public async Task RF_40_Conversacion_ConservaMensajesDeUnMiembroRetirado()
+    {
+        var (propietaria, organizacion) = await CrearUsuario("Autora retirada", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var (soporte, _) = await CrearUsuario("Soporte historial", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var cookiePropietaria = await CrearSesion(propietaria.Id);
+        var cookieSoporte = await CrearSesion(soporte.Id);
+        var abierto = await Enviar(HttpMethod.Post, "/api/casos", cookiePropietaria,
+            new { asunto = "Conservar historial", descripcion = "Mensaje de la autora." });
+        var numero = (await abierto.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("numero").GetInt32();
+        await using (var db = Db(out var scope))
+        {
+            using var _ = scope;
+            await db.Set<Membresia>().IgnoreQueryFilters()
+                .Where(m => m.UsuarioId == propietaria.Id && m.OrganizacionId == organizacion.Id)
+                .ExecuteDeleteAsync();
+        }
+
+        var detalle = await Enviar(HttpMethod.Get, $"/api/admin/casos/{numero}", cookieSoporte);
+
+        Assert.Equal(HttpStatusCode.OK, detalle.StatusCode);
+        var mensaje = (await detalle.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("mensajes")[0];
+        Assert.Equal(propietaria.Nombre, mensaje.GetProperty("autor").GetString());
+        Assert.Equal("exmiembro", mensaje.GetProperty("rol").GetString());
+        Assert.False(mensaje.GetProperty("esPersonalPlataforma").GetBoolean());
+    }
+
+    [Fact]
     public async Task RF_40_Permisos_SeparanPanelProveedorYAdministracion()
     {
         var (propietario, _) = await CrearUsuario("Propietario", Rol.Propietario, TipoOrganizacion.Proveedor);

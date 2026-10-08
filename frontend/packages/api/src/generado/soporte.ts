@@ -229,7 +229,7 @@ export interface components {
             id: string;
             autor: string;
             /** @enum {string} */
-            rol: "propietario" | "editor" | "lector" | "administrador" | "soporte";
+            rol: "propietario" | "editor" | "lector" | "administrador" | "soporte" | "exmiembro";
             cuerpo: string;
             /** Format: date-time */
             creadoEn: string;
@@ -458,7 +458,6 @@ export interface operations {
                 };
             };
             400: components["responses"]["DatosInvalidos"];
-            404: components["responses"]["NoEncontrado"];
         };
     };
     listarOrganizacionesParaCaso: {

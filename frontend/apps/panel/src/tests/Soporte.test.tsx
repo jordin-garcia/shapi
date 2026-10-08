@@ -93,9 +93,14 @@ describe('RF-40 · A7 Casos del proveedor', () => {
     mostrar(<PaginaA72Caso />, '/panel/soporte/104', '/panel/soporte/:numero');
 
     expect(await screen.findByRole('heading', { name: caso.asunto })).toBeDefined();
-    expect(screen.getByText('El dominio sigue pendiente.')).toBeDefined();
-    expect(screen.getByText('Estoy revisando el registro.')).toBeDefined();
+    const mensajeProveedor = screen.getByText('El dominio sigue pendiente.').closest('article')!;
+    const mensajePlataforma = screen.getByText('Estoy revisando el registro.').closest('article')!;
+    expect(mensajeProveedor.className).toContain('w-full');
+    expect(mensajeProveedor.className).not.toContain('rounded-base');
+    expect(mensajePlataforma.className).toContain('w-full');
+    expect(mensajePlataforma.className).toContain('bg-fondo');
     const conversacion = screen.getByRole('region', { name: 'Conversación' });
+    expect(mensajeProveedor.parentElement?.className).toContain('border-t');
     expect(within(conversacion.parentElement!).getByLabelText('Su respuesta')).toBeDefined();
     await userEvent.type(screen.getByLabelText('Su respuesta'), 'Ya hice el cambio.');
     await userEvent.click(screen.getByRole('button', { name: 'Enviar respuesta' }));

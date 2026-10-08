@@ -186,7 +186,7 @@ public sealed class ResponderCaso(
         await repositorio.GuardarMensaje(mensaje, cancelacion);
         await notificador.Notificar(caso, personalPlataforma, cancelacion);
         await transaccion.Confirmar(cancelacion);
-        return await repositorio.PresentarMensaje(mensaje, cancelacion);
+        return await repositorio.PresentarMensaje(mensaje, caso.OrganizacionId, cancelacion);
     }
 }
 

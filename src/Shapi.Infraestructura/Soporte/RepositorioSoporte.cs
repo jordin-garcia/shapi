@@ -140,7 +140,7 @@ public sealed class RepositorioSoporte(ShapiDbContext db, IReloj reloj, IConfigu
         var mensajes = new List<MensajeCaso>(mensajesBase.Count);
         foreach (var mensaje in mensajesBase)
         {
-            mensajes.Add(await PresentarMensaje(mensaje, cancelacion));
+            mensajes.Add(await PresentarMensaje(mensaje, caso.OrganizacionId, cancelacion));
         }
 
         return new CasoDetalle(
@@ -204,22 +204,29 @@ public sealed class RepositorioSoporte(ShapiDbContext db, IReloj reloj, IConfigu
             dominio is null ? null : dominio.Estado.ToString().ToLowerInvariant());
     }
 
-    public async Task<MensajeCaso> PresentarMensaje(CasoMensaje mensaje, CancellationToken cancelacion)
+    public async Task<MensajeCaso> PresentarMensaje(
+        CasoMensaje mensaje, Guid organizacionCasoId, CancellationToken cancelacion)
     {
-        var autor = await (
-            from usuario in db.Set<Usuario>().IgnoreQueryFilters().AsNoTracking()
-            join membresia in db.Set<Membresia>().IgnoreQueryFilters().AsNoTracking() on usuario.Id equals membresia.UsuarioId
-            join organizacion in db.Set<Organizacion>().IgnoreQueryFilters().AsNoTracking()
-                on membresia.OrganizacionId equals organizacion.Id
-            where usuario.Id == mensaje.AutorId
-            orderby organizacion.Tipo == TipoOrganizacion.Plataforma descending
-            select new
-            {
-                usuario.Nombre,
-                Rol = membresia.Rol.ToString().ToLower(),
-                Plataforma = organizacion.Tipo == TipoOrganizacion.Plataforma,
-            }).FirstAsync(cancelacion);
-        return new(mensaje.Id, autor.Nombre, autor.Rol, mensaje.Cuerpo, mensaje.CreadoEn, autor.Plataforma);
+        var nombre = await db.Set<Usuario>().IgnoreQueryFilters().AsNoTracking()
+            .Where(u => u.Id == mensaje.AutorId)
+            .Select(u => u.Nombre)
+            .SingleOrDefaultAsync(cancelacion) ?? "Usuario retirado";
+        var rolOrganizacion = await db.Set<Membresia>().IgnoreQueryFilters().AsNoTracking()
+            .Where(m => m.UsuarioId == mensaje.AutorId && m.OrganizacionId == organizacionCasoId)
+            .Select(m => (Rol?)m.Rol)
+            .SingleOrDefaultAsync(cancelacion);
+        var rolPlataforma = rolOrganizacion.HasValue
+            ? null
+            : await (
+                from membresia in db.Set<Membresia>().IgnoreQueryFilters().AsNoTracking()
+                join organizacion in db.Set<Organizacion>().IgnoreQueryFilters().AsNoTracking()
+                    on membresia.OrganizacionId equals organizacion.Id
+                where membresia.UsuarioId == mensaje.AutorId && organizacion.Tipo == TipoOrganizacion.Plataforma
+                select (Rol?)membresia.Rol)
+                .FirstOrDefaultAsync(cancelacion);
+        var plataforma = rolPlataforma.HasValue;
+        var rol = (rolOrganizacion ?? rolPlataforma)?.ToString().ToLowerInvariant() ?? "exmiembro";
+        return new(mensaje.Id, nombre, rol, mensaje.Cuerpo, mensaje.CreadoEn, plataforma);
     }
 
     public async Task<DestinatarioCaso?> DestinatarioProveedor(Caso caso, CancellationToken cancelacion)

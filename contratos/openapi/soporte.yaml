@@ -101,8 +101,6 @@ paths:
                 $ref: '#/components/schemas/CasoDetalle'
         '400':
           $ref: '#/components/responses/DatosInvalidos'
-        '404':
-          $ref: '#/components/responses/NoEncontrado'
   /api/admin/casos/organizaciones:
     get:
       operationId: listarOrganizacionesParaCaso
@@ -350,7 +348,7 @@ components:
           type: string
         rol:
           type: string
-          enum: [propietario, editor, lector, administrador, soporte]
+          enum: [propietario, editor, lector, administrador, soporte, exmiembro]
         cuerpo:
           type: string
         creadoEn:

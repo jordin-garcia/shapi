@@ -15,20 +15,20 @@ export function EtiquetaEstado({ estado }: { estado: 'abierto' | 'cerrado' }) {
 export function Conversacion({ caso, proveedor, integrada = false }: { caso: Caso; proveedor: boolean; integrada?: boolean }) {
   return <section aria-label="Conversación" className={integrada ? '' : 'mt-6 rounded-base border border-borde bg-panel p-5'}>
     <h2 className="font-display text-[20px] leading-[1.3]">Conversación</h2>
-    <div className="mt-4 flex flex-col gap-4">
+    <div className="mt-5 flex flex-col gap-4 border-t border-borde pt-5">
       {caso.mensajes.map((mensaje: Mensaje) => {
-        const propio = proveedor ? !mensaje.esPersonalPlataforma : mensaje.esPersonalPlataforma;
-        return <article key={mensaje.id} className={propio
-          ? 'ml-auto w-[82%] rounded-base border border-[#C8D7F8] bg-[#F3F7FF] p-4'
-          : 'mr-auto w-[82%] rounded-base border border-borde bg-fondo p-4'}>
-          <p className="text-[14px] font-semibold">{mensaje.autor}
-            {propio && proveedor ? <span className="font-normal text-tinta-suave"> (usted)</span> : null}
-          </p>
-          <p className="text-[13px] text-tinta-suave">
+        const propio = proveedor && !mensaje.esPersonalPlataforma;
+        return <article key={mensaje.id} className={mensaje.esPersonalPlataforma
+          ? 'w-full rounded-base border border-borde bg-fondo px-4 py-[14px]'
+          : 'w-full'}>
+          <p className="text-[14px] text-tinta-suave">
+            <span className="font-semibold text-tinta">{mensaje.autor}</span>
+            {propio ? ' (usted)' : ''}
+            {' · '}
             {mensaje.esPersonalPlataforma ? (proveedor ? 'Soporte de Shapi · ' : `${titulo(mensaje.rol)} · `) : (!proveedor ? `${titulo(mensaje.rol)} · ${caso.organizacion} · ` : '')}
             {fechaHora(mensaje.creadoEn)}
           </p>
-          <p className="mt-3 whitespace-pre-wrap text-[15px] leading-[1.6] text-[#2B3547]">{mensaje.cuerpo}</p>
+          <p className="mt-[6px] whitespace-pre-wrap text-[15px] leading-[1.6] text-[#2B3547]">{mensaje.cuerpo}</p>
         </article>;
       })}
     </div>
