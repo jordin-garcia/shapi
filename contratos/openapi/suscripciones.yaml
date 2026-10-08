@@ -3,6 +3,164 @@ info:
   title: API de Suscripciones de Shapi
   version: 1.0.0
 paths:
+  /api/suscripcion:
+    get:
+      summary: Consulta la suscripción de plataforma de la organización
+      operationId: obtenerSuscripcionPlataforma
+      responses:
+        "200":
+          description: Plan, estado, periodo, tarjeta y cambio programado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuscripcionPlataforma"
+        "404":
+          description: No existe una suscripción vigente
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
+  /api/suscripcion/contratar:
+    post:
+      summary: Contrata un plan de plataforma
+      operationId: contratarPlanPlataforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionSuscripcionPlataforma"
+      responses:
+        "201":
+          description: Plan contratado y datos del ciclo activado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultadoContratacionPlataforma"
+        "400":
+          description: Datos inválidos o no hay tarjeta registrada (`datos_invalidos`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "402":
+          description: La pasarela rechazó el cobro (`pago_rechazado`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404":
+          description: Plan no encontrado
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "409":
+          description: Ya existe una suscripción de pago vigente
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "422":
+          description: Tarjeta inválida o vencida
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "503":
+          description: La pasarela de pagos no está disponible (`pasarela_no_disponible`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+  /api/suscripcion/cambiar:
+    post:
+      summary: Cambia o programa un cambio de plan de plataforma
+      operationId: cambiarPlanPlataforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionSuscripcionPlataforma"
+      responses:
+        "200":
+          description: Cambio aplicado, contratado desde plan de prueba/gratuito, sin cambios o programado
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ResultadoCambioProrrateado"
+                  - $ref: "#/components/schemas/ResultadoContratacionPlataforma"
+                  - $ref: "#/components/schemas/ResultadoCambioProgramado"
+                  - $ref: "#/components/schemas/ResultadoSinCambios"
+        "400":
+          description: Datos inválidos o no hay tarjeta registrada (`datos_invalidos`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "402":
+          description: La pasarela rechazó el cobro (`pago_rechazado`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404":
+          description: Suscripción o plan no encontrado
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "422":
+          description: Tarjeta inválida o vencida, u organización fuera de los límites del plan
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "503":
+          description: La pasarela de pagos no está disponible (`pasarela_no_disponible`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+  /api/suscripcion/cambio-programado:
+    delete:
+      summary: Cancela el cambio de plan programado
+      operationId: cancelarCambioPlanPlataforma
+      responses:
+        "204": { description: Cambio cancelado }
+  /api/suscripcion/pagar:
+    post:
+      summary: Paga y reactiva un plan de pago en gracia o suspendido
+      operationId: pagarSuscripcionPlataforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionPagoPlataforma"
+      responses:
+        "200":
+          description: Suscripción reactivada con el ciclo nuevo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultadoPagoSuscripcionPlataforma"
+        "400":
+          description: Datos inválidos o no hay tarjeta registrada (`datos_invalidos`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "402":
+          description: La pasarela rechazó el cobro (`pago_rechazado`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404":
+          description: No hay una suscripción que requiera pago
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "422":
+          description: Tarjeta inválida o vencida, o el plan es Prueba o gratuito (`requiere_plan_de_pago`); debe contratar un plan de pago
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "503":
+          description: La pasarela de pagos no está disponible (`pasarela_no_disponible`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
   /api/portal/suscripciones:
     post:
       summary: Contrata un plan de API y emite sus claves
@@ -82,6 +240,117 @@ paths:
                 $ref: "#/components/schemas/Problema"
 components:
   schemas:
+    ResultadoContratacionPlataforma:
+      type: object
+      required: [id, plan, estado, periodo, proximaRenovacion, tarjetaEnmascarada]
+      properties:
+        id: { type: string, format: uuid }
+        plan:
+          type: object
+          required: [id, nombre, precio, moneda, vigenciaDias]
+          properties:
+            id: { type: string, format: uuid }
+            nombre: { type: string }
+            precio: { type: number }
+            moneda: { type: string, const: GTQ }
+            vigenciaDias: { type: integer }
+        estado: { type: string, const: activa }
+        periodo:
+          type: object
+          required: [inicio, fin]
+          properties:
+            inicio: { type: string, format: date-time }
+            fin: { type: string, format: date-time }
+        proximaRenovacion: { type: string, format: date-time }
+        tarjetaEnmascarada: { type: string }
+    ResultadoCambioProrrateado:
+      type: object
+      required: [estado, credito, cargo, aPagar, inicio, fin]
+      properties:
+        estado: { type: string, const: activa }
+        credito: { type: number }
+        cargo: { type: number }
+        aPagar: { type: number }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+    ResultadoCambioProgramado:
+      type: object
+      required: [estado, planSiguienteId, efectivoDesde]
+      properties:
+        estado: { type: string, const: programado }
+        planSiguienteId: { type: string, format: uuid }
+        efectivoDesde: { type: string, format: date-time }
+    ResultadoSinCambios:
+      type: object
+      required: [estado]
+      properties:
+        estado: { type: string, const: sin_cambios }
+    ResultadoPagoSuscripcionPlataforma:
+      type: object
+      required: [estado, inicio, fin]
+      properties:
+        estado: { type: string, const: activa }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+    PeticionSuscripcionPlataforma:
+      type: object
+      required: [planId]
+      properties:
+        planId: { type: string, format: uuid }
+        usarRegistrada: { type: boolean, default: false }
+        tarjeta:
+          oneOf:
+            - $ref: "#/components/schemas/Tarjeta"
+            - type: "null"
+    PeticionPagoPlataforma:
+      type: object
+      properties:
+        usarRegistrada: { type: boolean, default: false }
+        tarjeta:
+          oneOf:
+            - $ref: "#/components/schemas/Tarjeta"
+            - type: "null"
+    SuscripcionPlataforma:
+      type: object
+      required: [plan, estado, periodo, proximaRenovacion]
+      properties:
+        plan:
+          type: object
+          required: [id, nombre, descripcion, precio, moneda, vigenciaDias, maxApis, maxMiembros, cuotaPeticiones, dominioPropio, esPrueba]
+          properties:
+            id: { type: string, format: uuid }
+            nombre: { type: string }
+            descripcion: { type: string }
+            precio: { type: number }
+            moneda: { type: string, const: GTQ }
+            vigenciaDias: { type: integer }
+            maxApis: { type: [integer, "null"] }
+            maxMiembros: { type: [integer, "null"] }
+            cuotaPeticiones: { type: integer, format: int64 }
+            dominioPropio: { type: boolean }
+            esPrueba: { type: boolean }
+        estado: { type: string, enum: [activa, en_gracia, suspendida, finalizada] }
+        periodo:
+          type: object
+          required: [inicio, fin]
+          properties:
+            inicio: { type: string, format: date-time }
+            fin: { type: string, format: date-time }
+        proximaRenovacion: { type: string, format: date-time }
+        tarjetaEnmascarada: { type: [string, "null"] }
+        graciaHasta: { type: [string, "null"], format: date-time }
+        diasRestantesCiclo: { type: integer }
+        diasRestantes: { type: integer }
+        ultimoRechazoEn: { type: [string, "null"], format: date-time }
+        consumidoresAfectados: { type: integer }
+        cambioProgramado:
+          oneOf:
+            - type: object
+              properties:
+                planId: { type: string, format: uuid }
+                nombre: { type: string }
+                efectivoDesde: { type: string, format: date-time }
+            - type: "null"
     PeticionContratarPlan:
       type: object
       required: [planId]

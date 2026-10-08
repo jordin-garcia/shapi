@@ -50,4 +50,30 @@ public class Pago
         Estado = EstadoPago.Rechazado,
         MotivoRechazo = motivo,
     };
+
+    public static Pago PlataformaAutorizado(Guid suscripcionId, Guid medioPagoId, ConceptoPago concepto, decimal monto,
+        string descripcion, string referencia, DateTimeOffset inicio, DateTimeOffset fin) => new()
+        {
+            Id = Guid.CreateVersion7(),
+            SuscripcionPlataformaId = suscripcionId,
+            MedioPagoId = medioPagoId,
+            Concepto = concepto,
+            Descripcion = descripcion,
+            Monto = monto,
+            Estado = EstadoPago.Autorizado,
+            ReferenciaPasarela = referencia,
+            PeriodoInicio = inicio,
+            PeriodoFin = fin,
+        };
+
+    public static Pago PlataformaRechazado(Guid suscripcionId, ConceptoPago concepto, decimal monto, string descripcion, string motivo) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        SuscripcionPlataformaId = suscripcionId,
+        Concepto = concepto,
+        Descripcion = descripcion,
+        Monto = monto,
+        Estado = EstadoPago.Rechazado,
+        MotivoRechazo = motivo,
+    };
 }

@@ -39,6 +39,10 @@ const implementadas: Record<string, string> = {
   'A3-4': 'Rutas expuestas',
   'A3-5': 'Configuración por ruta',
   'A4-1': 'Planes de la API',
+  'A2-1': 'Los planes de Shapi.',
+  'A2-2': 'Contratación de un plan superior',
+  'A2-5': 'Cambio de plan',
+  'B1-4': 'Suscripción de plataforma',
   'A6-4': 'Casos',
   'A6-4b': 'El dominio propio no verifica',
   'A7-1': 'Casos de soporte',
@@ -78,6 +82,15 @@ beforeEach(() => {
       totalOcultas: 0,
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
+    http.get('http://localhost/api/planes-plataforma', () => HttpResponse.json([
+      { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan para empezar', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
+      { id: 'escala', nombre: 'Escala mensual', descripcion: 'Plan para crecer', precio: 1500, moneda: 'GTQ', vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
+    ])),
+    http.get('http://localhost/api/suscripcion', () => HttpResponse.json({
+      plan: { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan para empezar', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false },
+      estado: 'activa', periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-29T06:00:00Z' },
+      proximaRenovacion: '2026-09-30T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4821', graciaHasta: null, diasRestantesCiclo: 5, diasRestantes: 0, cambioProgramado: null,
+    })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/casos', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/casos/:numero', () => HttpResponse.json({

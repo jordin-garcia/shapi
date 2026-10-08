@@ -8,6 +8,7 @@ public static class SuscripcionesModulo
     public static IServiceCollection AgregarModuloSuscripciones(this IServiceCollection services)
     {
         services.AddScoped<ContratacionApi>();
+        services.AddScoped<PlataformaSuscripcionesApi>();
         return services;
     }
 

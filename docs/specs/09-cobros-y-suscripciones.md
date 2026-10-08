@@ -100,6 +100,12 @@ a_pagar = max(cargo − credito, 0)
 - Si `a_pagar > 0`, se cobra al medio de pago registrado o a una tarjeta nueva. Si el cobro se rechaza, **no cambia nada**.
 - El pago queda con `concepto = cambio_plan` y una descripción del tipo "Lanzamiento → Producto · diferencia prorrateada".
 - Un cambio **desde un plan gratuito o desde Prueba** crea una suscripción nueva (la anterior queda `finalizada`), cobra el precio completo y empieza el ciclo hoy (A2.2).
+- `POST /api/suscripcion/pagar` solo reactiva planes de pago. Prueba (`es_prueba = true`) y los planes de precio cero responden **422 `requiere_plan_de_pago`**, sin tokenizar, cobrar ni modificar la suscripción. En gracia o suspensión, B1.4 ofrece **«Contratar un plan de pago»**, que lleva a A2.1; desde allí se contrata por A2.2.
+- Después de aplicar una subida o programar una bajada en A2.5, se vuelve a B1.4 con los datos actualizados: el plan nuevo o «A partir del {fin} su plan será {X}».
+- Si el plan de pago está en gracia o suspendido, A2.1 ofrece **«Reactivar suscripción»** y lleva a B1.4 para pagarlo antes de cambiar de plan.
+- Los errores de plataforma son `suscripcion_existente` (409 al intentar contratar con un plan de pago vigente), `suscripcion_no_encontrada` (404 si no existe una suscripción en el estado que requiere la operación) y `plan_no_encontrado` (404 si el destino no existe, está inactivo o es Prueba).
+- Cancelar un cambio programado inexistente devuelve 204 sin registrar una acción nueva en la bitácora.
+- La consulta de suscripción conserva los datos y límites completos del plan vigente aunque esté desactivado. A2.5 toma de allí el plan actual, para permitir cambiar desde un plan que ya no aparece en el catálogo público.
 
 ### Cambiar un plan de API entre gratuito y de pago
 
