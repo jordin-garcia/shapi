@@ -1,0 +1,392 @@
+openapi: 3.0.3
+info:
+  title: Soporte de Shapi
+  version: 1.0.0
+paths:
+  /api/casos:
+    get:
+      operationId: listarCasosProveedor
+      responses:
+        '200':
+          description: Casos de la organizacion de la sesion.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CasoListado'
+    post:
+      operationId: abrirCasoProveedor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbrirCasoProveedor'
+      responses:
+        '201':
+          description: Caso abierto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasoDetalle'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+  /api/casos/{numero}:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    get:
+      operationId: consultarCasoProveedor
+      responses:
+        '200':
+          description: Caso con su conversacion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasoDetalle'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /api/casos/{numero}/mensajes:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    post:
+      operationId: responderCasoProveedor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevoMensaje'
+      responses:
+        '201':
+          description: Mensaje agregado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MensajeCaso'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '422':
+          $ref: '#/components/responses/CasoCerrado'
+  /api/admin/casos:
+    get:
+      operationId: listarCasosAdministracion
+      responses:
+        '200':
+          description: Todos los casos de soporte.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CasoListadoAdministracion'
+    post:
+      operationId: abrirCasoAdministracion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbrirCasoAdministracion'
+      responses:
+        '201':
+          description: Caso registrado a nombre de la organizacion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasoDetalle'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /api/admin/casos/organizaciones:
+    get:
+      operationId: listarOrganizacionesParaCaso
+      responses:
+        '200':
+          description: Organizaciones proveedoras y sus APIs para registrar un caso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OpcionOrganizacionCaso'
+  /api/admin/casos/{numero}:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    get:
+      operationId: consultarCasoAdministracion
+      responses:
+        '200':
+          description: Caso con su conversacion.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CasoDetalle'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /api/admin/casos/{numero}/asignar:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    post:
+      operationId: asignarCaso
+      responses:
+        '204':
+          description: Caso asignado al usuario de la sesion.
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /api/admin/casos/{numero}/mensajes:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    post:
+      operationId: responderCasoAdministracion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevoMensaje'
+      responses:
+        '201':
+          description: Mensaje agregado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MensajeCaso'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '422':
+          $ref: '#/components/responses/CasoCerrado'
+  /api/admin/casos/{numero}/cerrar:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    post:
+      operationId: cerrarCaso
+      responses:
+        '204':
+          description: Caso cerrado.
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+  /api/admin/casos/{numero}/organizacion:
+    parameters:
+      - $ref: '#/components/parameters/NumeroCaso'
+    get:
+      operationId: consultarOrganizacionDelCaso
+      responses:
+        '200':
+          description: Resumen de la organizacion, solo lectura.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumenOrganizacionCaso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+components:
+  parameters:
+    NumeroCaso:
+      name: numero
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 100
+  responses:
+    DatosInvalidos:
+      description: Datos invalidos.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+    NoEncontrado:
+      description: Caso u organizacion inexistente.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+    CasoCerrado:
+      description: El caso ya esta cerrado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+  schemas:
+    AbrirCasoProveedor:
+      type: object
+      required: [asunto, descripcion]
+      properties:
+        asunto:
+          type: string
+          maxLength: 120
+        apiId:
+          type: string
+          format: uuid
+          nullable: true
+        descripcion:
+          type: string
+          maxLength: 4000
+    AbrirCasoAdministracion:
+      allOf:
+        - $ref: '#/components/schemas/AbrirCasoProveedor'
+        - type: object
+          required: [organizacionId]
+          properties:
+            organizacionId:
+              type: string
+              format: uuid
+    NuevoMensaje:
+      type: object
+      required: [cuerpo]
+      properties:
+        cuerpo:
+          type: string
+          maxLength: 4000
+    CasoListado:
+      type: object
+      required: [numero, asunto, estado, creadoEn, respuestas]
+      properties:
+        numero:
+          type: integer
+        asunto:
+          type: string
+        apiNombre:
+          type: string
+          nullable: true
+        estado:
+          type: string
+          enum: [abierto, cerrado]
+        creadoEn:
+          type: string
+          format: date-time
+        respuestas:
+          type: integer
+          minimum: 0
+    CasoListadoAdministracion:
+      allOf:
+        - $ref: '#/components/schemas/CasoListado'
+        - type: object
+          required: [organizacion]
+          properties:
+            organizacion:
+              type: string
+    CasoDetalle:
+      type: object
+      required: [numero, asunto, estado, organizacion, creadoPor, creadoEn, mensajes]
+      properties:
+        numero:
+          type: integer
+        asunto:
+          type: string
+        estado:
+          type: string
+          enum: [abierto, cerrado]
+        organizacion:
+          type: string
+        apiNombre:
+          type: string
+          nullable: true
+        creadoPor:
+          type: string
+        asignadoA:
+          type: string
+          nullable: true
+        creadoEn:
+          type: string
+          format: date-time
+        mensajes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MensajeCaso'
+    MensajeCaso:
+      type: object
+      required: [id, autor, rol, cuerpo, creadoEn, esPersonalPlataforma]
+      properties:
+        id:
+          type: string
+          format: uuid
+        autor:
+          type: string
+        rol:
+          type: string
+          enum: [propietario, editor, lector, administrador, soporte]
+        cuerpo:
+          type: string
+        creadoEn:
+          type: string
+          format: date-time
+        esPersonalPlataforma:
+          type: boolean
+    ResumenOrganizacionCaso:
+      type: object
+      required: [organizacion, plan, cicloInicio, cicloFin, estado, numeroApis, numeroConsumidores]
+      properties:
+        organizacion:
+          type: string
+        apiAfectada:
+          type: string
+          nullable: true
+        plan:
+          type: string
+        cicloInicio:
+          type: string
+          format: date-time
+        cicloFin:
+          type: string
+          format: date-time
+        estado:
+          type: string
+          enum: [activa, en_gracia, suspendida]
+        numeroApis:
+          type: integer
+        numeroConsumidores:
+          type: integer
+        dominioPropio:
+          type: string
+          nullable: true
+        verificacionDominio:
+          type: string
+          nullable: true
+          enum: [pendiente, verificado, fallido]
+    OpcionOrganizacionCaso:
+      type: object
+      required: [id, nombre, apis]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        apis:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpcionApiCaso'
+    OpcionApiCaso:
+      type: object
+      required: [id, nombre]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+    Problema:
+      type: object
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+        errores:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

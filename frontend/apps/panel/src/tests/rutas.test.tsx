@@ -39,6 +39,10 @@ const implementadas: Record<string, string> = {
   'A3-4': 'Rutas expuestas',
   'A3-5': 'Configuración por ruta',
   'A4-1': 'Planes de la API',
+  'A6-4': 'Casos',
+  'A6-4b': 'El dominio propio no verifica',
+  'A7-1': 'Casos de soporte',
+  'A7-2': 'El dominio propio no verifica',
   'A8-1': 'Mi perfil',
   'B3-2': 'Bitácora de acciones sensibles',
 };
@@ -75,6 +79,21 @@ beforeEach(() => {
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
+    http.get('http://localhost/api/casos', () => HttpResponse.json([])),
+    http.get('http://localhost/api/casos/:numero', () => HttpResponse.json({
+      numero: 123, asunto: 'El dominio propio no verifica', estado: 'abierto', organizacion: 'EnvÃ­os XelajÃº, S.A.',
+      creadoPor: 'Ana', creadoEn: '2026-09-11T14:12:00Z', mensajes: [],
+    })),
+    http.get('http://localhost/api/admin/casos', () => HttpResponse.json([])),
+    http.get('http://localhost/api/admin/casos/organizaciones', () => HttpResponse.json([])),
+    http.get('http://localhost/api/admin/casos/:numero', () => HttpResponse.json({
+      numero: 123, asunto: 'El dominio propio no verifica', estado: 'abierto', organizacion: 'EnvÃ­os XelajÃº, S.A.',
+      creadoPor: 'Ana', creadoEn: '2026-09-11T14:12:00Z', mensajes: [],
+    })),
+    http.get('http://localhost/api/admin/casos/:numero/organizacion', () => HttpResponse.json({
+      organizacion: 'EnvÃ­os XelajÃº, S.A.', plan: 'Producto', cicloInicio: '2026-08-24T06:00:00Z',
+      cicloFin: '2026-09-23T06:00:00Z', estado: 'activa', numeroApis: 2, numeroConsumidores: 4,
+    })),
   );
 });
 afterEach(() => { cleanup(); cliente.clear(); });

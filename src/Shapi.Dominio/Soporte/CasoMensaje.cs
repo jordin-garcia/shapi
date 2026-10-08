@@ -9,4 +9,13 @@ public class CasoMensaje
     public DateTimeOffset CreadoEn { get; private set; }
 
     protected CasoMensaje() { }
+
+    public CasoMensaje(Guid casoId, Guid autorId, string cuerpo, DateTimeOffset creadoEn)
+    {
+        Id = Guid.CreateVersion7();
+        CasoId = casoId;
+        AutorId = autorId;
+        Cuerpo = cuerpo;
+        CreadoEn = creadoEn;
+    }
 }
