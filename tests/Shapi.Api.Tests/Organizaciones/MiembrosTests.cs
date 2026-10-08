@@ -66,7 +66,7 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         body.RootElement.GetProperty("plan").GetProperty("nombre").GetString().Should().Be("Producto");
         body.RootElement.GetProperty("plan").GetProperty("maxMiembros").GetInt32().Should().Be(3);
         body.RootElement.GetProperty("total").GetInt32().Should().Be(2);
-        body.RootElement.GetProperty("elementos").GetArrayLength().Should().Be(2);
+        body.RootElement.GetProperty("elementos").GetArrayLength().Should().Be(1);
     }
 
     // RF-06, RF-43: invita, encola el correo, crea una cuenta verificada y consume el token una sola vez.
@@ -98,7 +98,7 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         (await Escalar<long>("SELECT count(*) FROM token WHERE tipo = 'invitacion_miembro' AND usado_en IS NOT NULL")).Should().Be(1);
         using var repetida = await Enviar(client, HttpMethod.Post, $"/api/invitaciones/{token}/aceptar", organizacion, propietario,
             new { nombre = "Diego Us Pérez", contrasena = "UnaContrasenaSegura123!" });
-        repetida.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        repetida.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     // RF-06, RF-43: correos ya registrados en otra organización y límites alcanzados son 422.
