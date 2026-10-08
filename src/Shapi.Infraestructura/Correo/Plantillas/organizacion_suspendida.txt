@@ -1,0 +1,9 @@
+Su organización fue suspendida
+
+Hola, {{nombre}}.
+
+La organización {{nombreOrganizacion}} fue suspendida.
+Motivo: {{motivo}}
+
+Usted puede consultar los detalles o comunicarse con soporte aquí:
+{{enlace}}

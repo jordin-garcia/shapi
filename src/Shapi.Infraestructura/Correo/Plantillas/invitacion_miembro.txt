@@ -1,0 +1,9 @@
+Invitación a una organización
+
+Hola, {{nombre}}.
+
+Usted recibió una invitación para formar parte de {{nombreOrganizacion}}.
+Puede aceptarla aquí:
+{{enlace}}
+
+Este enlace vence en 7 días. Si usted no esperaba esta invitación, puede ignorar este mensaje.

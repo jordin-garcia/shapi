@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-07
 depende_de: [JZ-03, DC-02]
 requisitos: [RF-40]
@@ -54,3 +54,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Adjuntos
+
+## Resultado
+- Se implementaron los casos de uso paginados para proveedores, soporte y administradores, con aislamiento por organización, asignación, conversación, cierre y resumen de organización de solo lectura.
+- Las aperturas, respuestas y cierres usan transacciones; las respuestas y el cierre bloquean el caso para impedir mensajes posteriores al cierre. Cada mensaje encola `respuesta_caso` para la otra parte y la bitácora registra `caso.abierto` y `caso.cerrado`.
+- Se agregó el contrato `contratos/openapi/soporte.yaml`, sus tipos TypeScript y las cuatro pantallas A6.4, A6.4b, A7.1 y A7.2 de acuerdo con los mockups.
+- Se cubrieron permisos de propietario, editor, lector, soporte y administrador; aislamiento, paginación, concurrencia, atomicidad, correo, bitácora, error `caso_cerrado` y las pantallas con pruebas de integración, dominio y Vitest.

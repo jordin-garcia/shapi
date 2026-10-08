@@ -9,6 +9,7 @@ namespace Shapi.Infraestructura.Correo;
 public sealed partial class MotorPlantillasCorreo
 {
     private const string PrefijoRecursos = "Shapi.Infraestructura.Correo.Plantillas";
+    private const string ColorShapi = "#3B6FF0";
 
     /// <summary>Nombre visible del remitente en los correos del personal (10 §6).</summary>
     public const string NombreRemitentePersonal = "Shapi";
@@ -34,16 +35,63 @@ public sealed partial class MotorPlantillasCorreo
     {
         var datos = LeerDatos(datosJson);
         AgregarEnlace(plantilla, datos);
+        var marca = CrearMarca(datos);
 
-        var html = Reemplazar(Cargar(plantilla, "html"), datos, escaparHtml: true);
-        var texto = Reemplazar(Cargar(plantilla, "txt"), datos, escaparHtml: false);
-        // 10 §6: los correos de un portal salen con el nombre del portal; los del personal, con el de Shapi.
-        var nombreRemitente = datos.TryGetValue("nombrePortal", out var nombrePortal) && !string.IsNullOrWhiteSpace(nombrePortal)
-            ? nombrePortal
-            : NombreRemitentePersonal;
+        var html = AplicarMarcaHtml(Reemplazar(Cargar(plantilla, "html"), datos, escaparHtml: true), marca);
+        var texto = AplicarMarcaTexto(Reemplazar(Cargar(plantilla, "txt"), datos, escaparHtml: false), marca);
 
-        return new CorreoRenderizado(html, texto, nombreRemitente);
+        return new CorreoRenderizado(html, texto, marca.Nombre);
     }
+
+    private MarcaCorreo CrearMarca(IReadOnlyDictionary<string, string> datos)
+    {
+        if (!datos.TryGetValue("nombrePortal", out var nombrePortal))
+        {
+            return new MarcaCorreo(NombreRemitentePersonal, ColorShapi, null);
+        }
+
+        if (string.IsNullOrWhiteSpace(nombrePortal))
+        {
+            throw new InvalidOperationException("El dato 'nombrePortal' no puede estar vacío.");
+        }
+
+        var hostPortal = HostPortalRequerido(datos);
+        if (!datos.TryGetValue("colorPortal", out var colorPortal) || !ColorHexadecimal().IsMatch(colorPortal))
+        {
+            throw new InvalidOperationException("El dato 'colorPortal' debe tener el formato #RRGGBB.");
+        }
+
+        var logoPortal = datos.TryGetValue("logoPortal", out var tieneLogo)
+            && string.Equals(tieneLogo, "true", StringComparison.Ordinal)
+                ? $"https://{hostPortal}/api/portal/logo"
+                : null;
+
+        return new MarcaCorreo(nombrePortal, colorPortal, logoPortal);
+    }
+
+    private static string AplicarMarcaHtml(string html, MarcaCorreo marca)
+    {
+        const string aperturaCuerpo = "<body>";
+        if (!html.Contains(aperturaCuerpo, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("La plantilla HTML debe contener la etiqueta <body>.");
+        }
+
+        var nombre = WebUtility.HtmlEncode(marca.Nombre);
+        var logo = marca.LogoUrl is null
+            ? string.Empty
+            : $"  <img src=\"{WebUtility.HtmlEncode(marca.LogoUrl)}\" alt=\"{nombre}\" style=\"display: block; max-width: 200px; max-height: 48px; margin-bottom: 12px;\">\n";
+        var encabezado =
+            $"<body style=\"margin: 0; color: #0B1220; font-family: 'IBM Plex Sans', Arial, sans-serif; line-height: 1.6;\">\n" +
+            $"<header style=\"border-top: 4px solid {marca.Color}; padding: 20px 0 16px; margin-bottom: 24px;\">\n" +
+            logo +
+            $"  <strong style=\"color: {marca.Color}; font-family: Sora, Arial, sans-serif; font-size: 24px; font-weight: 500;\">{nombre}</strong>\n" +
+            "</header>";
+
+        return html.Replace(aperturaCuerpo, encabezado, StringComparison.Ordinal);
+    }
+
+    private static string AplicarMarcaTexto(string texto, MarcaCorreo marca) => $"{marca.Nombre}\n\n{texto}";
 
     private void AgregarEnlace(string plantilla, IDictionary<string, string> datos)
     {
@@ -73,6 +121,21 @@ public sealed partial class MotorPlantillasCorreo
             return _dominioBase;
         }
 
+        return ValidarHostPortal(hostPortal);
+    }
+
+    private string HostPortalRequerido(IReadOnlyDictionary<string, string> datos)
+    {
+        if (!datos.TryGetValue("hostPortal", out var hostPortal) || string.IsNullOrWhiteSpace(hostPortal))
+        {
+            throw new InvalidOperationException("Falta el dato 'hostPortal' para la marca del portal.");
+        }
+
+        return ValidarHostPortal(hostPortal);
+    }
+
+    private string ValidarHostPortal(string hostPortal)
+    {
         var host = hostPortal.Trim().ToLowerInvariant();
         if (!_hostPortal.IsMatch(host) || SubdominiosReservados.Contiene(host[..host.IndexOf('.')]))
         {
@@ -132,4 +195,9 @@ public sealed partial class MotorPlantillasCorreo
 
     [GeneratedRegex(@"^[a-z0-9_]+$", RegexOptions.CultureInvariant)]
     private static partial Regex NombrePlantilla();
+
+    [GeneratedRegex(@"^#[0-9A-Fa-f]{6}$", RegexOptions.CultureInvariant)]
+    private static partial Regex ColorHexadecimal();
+
+    private sealed record MarcaCorreo(string Nombre, string Color, string? LogoUrl);
 }

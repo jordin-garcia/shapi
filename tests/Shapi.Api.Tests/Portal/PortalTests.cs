@@ -149,6 +149,73 @@ public sealed class PortalTests(ContenedorPostgresPortal postgres)
         Assert.Equal("nosniff", respuesta.Headers.GetValues("X-Content-Type-Options").Single());
     }
 
+    [Fact]
+    public async Task RF_16_Documentacion_DevuelveSoloRutasExpuestasConParametrosYEjemplos()
+    {
+        // RF-16 · CA1: la documentación se genera de las rutas expuestas y conserva el orden de OpenAPI.
+        var apiId = await InsertarApi("envios", "publicada");
+        await InsertarRuta(apiId, "GET", "/oculta", false, 1, """
+            {"orden":0,"parametros":[],"cuerpo":null,"respuestas":{}}
+            """);
+        await InsertarRuta(apiId, "POST", "/cotizaciones", true, 5, """
+            {
+              "orden":1,
+              "parametros":[],
+              "cuerpo":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["origen"],"properties":{"origen":{"type":"string","description":"Código de origen"},"peso":{"type":"number","description":"Peso en kg"}}},"example":{"origen":"0901","peso":2.5}}}},
+              "respuestas":{"200":{"content":{"application/json":{"example":{"tarifa":"Q 38.50"}}}}}
+            }
+            """, "Cotizar", "Calcula **una cotización**.");
+        await InsertarRuta(apiId, "GET", "/rastreo", true, 1, """
+            {
+              "orden":2,
+              "parametros":[{"name":"guia","required":true,"description":"Número de guía","schema":{"type":"string"},"example":"GX-1"}],
+              "cuerpo":null,
+              "respuestas":{"200":{"content":{"application/json":{"example":{"estado":"en_transito"}}}}}
+            }
+            """, "Rastrear", "Consulta una guía.");
+
+        using var respuesta = await Enviar("/api/portal/documentacion", "envios.shapi.localhost");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        var rutas = json.GetProperty("rutas").EnumerateArray().ToArray();
+        Assert.Equal(2, rutas.Length);
+        Assert.Equal("/cotizaciones", rutas[0].GetProperty("patron").GetString());
+        Assert.Equal("POST", rutas[0].GetProperty("metodo").GetString());
+        Assert.Equal("Cotizar", rutas[0].GetProperty("resumen").GetString());
+        Assert.Equal("Calcula **una cotización**.", rutas[0].GetProperty("descripcion").GetString());
+        Assert.Equal(5, rutas[0].GetProperty("pesoLlamadas").GetInt32());
+        Assert.Equal("https://envios.api.shapi.localhost/cotizaciones", rutas[0].GetProperty("urlCompleta").GetString());
+        Assert.Equal("0901", rutas[0].GetProperty("ejemploPeticion").GetProperty("origen").GetString());
+        Assert.Equal("Q 38.50", rutas[0].GetProperty("ejemploRespuesta").GetProperty("tarifa").GetString());
+        Assert.Equal(200, rutas[0].GetProperty("codigoRespuesta").GetInt32());
+        var parametros = rutas[0].GetProperty("parametros").EnumerateArray().ToArray();
+        Assert.Equal(2, parametros.Length);
+        var origen = parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "origen");
+        var peso = parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "peso");
+        Assert.Equal("string", origen.GetProperty("tipo").GetString());
+        Assert.True(origen.GetProperty("obligatorio").GetBoolean());
+        Assert.False(peso.GetProperty("obligatorio").GetBoolean());
+        Assert.Equal("GX-1", rutas[1].GetProperty("ejemploPeticion").GetProperty("guia").GetString());
+        Assert.DoesNotContain(rutas, ruta => ruta.GetProperty("patron").GetString() == "/oculta");
+    }
+
+    [Fact]
+    public async Task RF_16_Documentacion_DominioPropioVerificado_UsaSuUrl()
+    {
+        // RF-16 · CA1: un dominio propio verificado reemplaza el host canónico de la API.
+        var apiId = await InsertarApi("envios", "publicada");
+        await InsertarRuta(apiId, "GET", "/rastreo", true, 1,
+            "{\"orden\":1,\"parametros\":[],\"cuerpo\":null,\"respuestas\":{}}");
+        await InsertarDominioPropio(apiId, "api.envios.test", "verificado");
+
+        using var respuesta = await Enviar("/api/portal/documentacion", "envios.shapi.localhost");
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal("https://api.envios.test/rastreo",
+            json.GetProperty("rutas")[0].GetProperty("urlCompleta").GetString());
+    }
+
     [Theory]
     [InlineData("despublicada", "envios.shapi.localhost")]
     [InlineData("publicada", "inexistente.shapi.localhost")]
@@ -209,5 +276,48 @@ public sealed class PortalTests(ContenedorPostgresPortal postgres)
         var peticion = new HttpRequestMessage(HttpMethod.Get, ruta);
         peticion.Headers.Host = host;
         return _cliente.SendAsync(peticion);
+    }
+
+    private async Task InsertarRuta(
+        Guid apiId,
+        string metodo,
+        string patron,
+        bool expuesta,
+        int peso,
+        string definicion,
+        string? resumen = null,
+        string? descripcion = null)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            INSERT INTO ruta (id, api_id, metodo, patron, resumen, descripcion, definicion, expuesta, cache_segundos, peso_llamadas)
+            VALUES (gen_random_uuid(), @apiId, @metodo, @patron, @resumen, @descripcion, CAST(@definicion AS jsonb), @expuesta, 0, @peso)
+            """;
+        comando.Parameters.AddWithValue("apiId", apiId);
+        comando.Parameters.AddWithValue("metodo", metodo.ToUpperInvariant());
+        comando.Parameters.AddWithValue("patron", patron);
+        comando.Parameters.AddWithValue("resumen", (object?)resumen ?? DBNull.Value);
+        comando.Parameters.AddWithValue("descripcion", (object?)descripcion ?? DBNull.Value);
+        comando.Parameters.AddWithValue("definicion", definicion);
+        comando.Parameters.AddWithValue("expuesta", expuesta);
+        comando.Parameters.AddWithValue("peso", peso);
+        await comando.ExecuteNonQueryAsync();
+    }
+
+    private async Task InsertarDominioPropio(Guid apiId, string dominio, string estado)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            INSERT INTO dominio_propio (id, api_id, dominio, destino_cname, estado, verificado_en, actualizado_en)
+            VALUES (gen_random_uuid(), @apiId, @dominio, 'envios.api.shapi.localhost', @estado, now(), now())
+            """;
+        comando.Parameters.AddWithValue("apiId", apiId);
+        comando.Parameters.AddWithValue("dominio", dominio);
+        comando.Parameters.AddWithValue("estado", estado);
+        await comando.ExecuteNonQueryAsync();
     }
 }

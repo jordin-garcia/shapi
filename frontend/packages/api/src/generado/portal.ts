@@ -33,6 +33,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/documentacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtiene la documentación pública de las rutas expuestas */
+        get: operations["obtenerDocumentacionPortal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -56,6 +73,42 @@ export interface components {
             nombreOrganizacion: string;
             /** @example envios.api.shapi.localhost */
             hostApi: string;
+        };
+        DocumentacionPortal: {
+            rutas: components["schemas"]["RutaDocumentada"][];
+        };
+        RutaDocumentada: {
+            /** @example POST */
+            metodo: string;
+            /** @example /cotizaciones */
+            patron: string;
+            resumen: string | null;
+            /** @description Markdown proveniente de la especificación OpenAPI. */
+            descripcion: string | null;
+            parametros: components["schemas"]["ParametroDocumentado"][];
+            /** @description Ejemplo JSON de cuerpo o valores de parámetros, si la especificación lo incluye. */
+            ejemploPeticion: {
+                [key: string]: unknown;
+            } | unknown[] | string | number | boolean | null;
+            /** @description Ejemplo JSON de la primera respuesta exitosa que lo incluya. */
+            ejemploRespuesta: {
+                [key: string]: unknown;
+            } | unknown[] | string | number | boolean | null;
+            /** @example 200 */
+            codigoRespuesta: number | null;
+            pesoLlamadas: number;
+            /**
+             * Format: uri
+             * @example https://envios.api.shapi.localhost/cotizaciones
+             */
+            urlCompleta: string;
+        };
+        ParametroDocumentado: {
+            nombre: string;
+            /** @example string */
+            tipo: string;
+            obligatorio: boolean;
+            descripcion: string | null;
         };
     };
     responses: never;
@@ -117,6 +170,33 @@ export interface operations {
                 };
             };
             /** @description El host no corresponde a una API publicada o el portal no tiene logotipo. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    obtenerDocumentacionPortal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documentación generada desde la especificación de la API publicada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentacionPortal"];
+                };
+            };
+            /** @description El host no corresponde a una API publicada. */
             404: {
                 headers: {
                     [name: string]: unknown;

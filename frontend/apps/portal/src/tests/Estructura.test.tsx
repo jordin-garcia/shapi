@@ -42,6 +42,11 @@ beforeEach(() => {
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   server.use(
     http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json(configuracion)),
+    http.get('http://localhost/api/portal/documentacion', () => HttpResponse.json({ rutas: [{
+      metodo: 'GET', patron: '/cotizaciones', resumen: 'Cotizar', descripcion: 'Cotiza envíos.', parametros: [],
+      ejemploPeticion: null, ejemploRespuesta: null, codigoRespuesta: null, pesoLlamadas: 1,
+      urlCompleta: 'https://envios.api.shapi.localhost/cotizaciones',
+    }] })),
     http.get('http://localhost/api/portal/auth/sesion', () => HttpResponse.json({
       consumidor: { nombre: 'María José Quiñónez', nombreEmpresa: 'Mercadito Antigua' },
       correoVerificado: true,
@@ -131,8 +136,6 @@ describe('RF-15 · marca dinámica del portal', () => {
 
 describe('RF-16 · rutas y navegación pública', () => {
   it.each([
-    ['/', 'A5.0'],
-    ['/documentacion/cotizaciones', 'A5.1'],
     ['/consola', 'A5.2'],
     ['/planes', 'A5.4'],
     ['/contratar/basico', 'A5.6'],
@@ -143,15 +146,15 @@ describe('RF-16 · rutas y navegación pública', () => {
     expect(screen.getByRole('banner')).toBeDefined();
   });
 
-  // Decidido (3 oct, DC-03): «Documentación» lleva a /documentacion, que existe (DC-07 la redirigirá a la primera ruta).
-  it('los enlaces de Documentación llevan a una ruta que existe', async () => {
+  // 11 §4: «Documentación» lleva a /documentacion y DC-07 redirige a la primera ruta expuesta.
+  it('los enlaces de Documentación llevan a la primera ruta expuesta', async () => {
     const { enrutador } = montar('/');
 
     const enlace = within(await screen.findByRole('banner')).getByRole('link', { name: 'Documentación' });
     expect(enlace.getAttribute('href')).toBe('/documentacion');
     await userEvent.click(enlace);
-    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion'));
-    expect(await screen.findByRole('heading', { name: /^A5\.1/ })).toBeDefined();
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/documentacion/GET%20%2Fcotizaciones'));
+    expect(await screen.findByRole('heading', { name: '/cotizaciones' })).toBeDefined();
   });
 
   // H-79: la ruta comodín muestra «Página no encontrada».

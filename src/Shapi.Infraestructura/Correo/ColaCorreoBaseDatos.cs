@@ -20,10 +20,20 @@ public class ColaCorreoBaseDatos(ShapiDbContext db, IReloj reloj) : IColaCorreo
         await db.SaveChangesAsync(cancelacion);
     }
 
-    private static string AsuntoPara(string plantilla) => plantilla switch
+    internal static string AsuntoPara(string plantilla) => plantilla switch
     {
         "verificacion_correo" => "Verifique su correo",
         "recuperacion" => "Recupere su contraseña",
+        "invitacion_miembro" => "Invitación a una organización",
+        "invitacion_consumidor" => "Invitación a un portal",
+        "definir_contrasena" => "Defina su contraseña",
+        "pago_rechazado" => "No pudimos procesar su pago",
+        "suscripcion_en_gracia" => "Su suscripción está en período de gracia",
+        "suscripcion_suspendida" => "Su suscripción fue suspendida",
+        "organizacion_suspendida" => "Su organización fue suspendida",
+        "prueba_por_vencer" => "Su prueba está por vencer",
+        "aviso_cuota_plataforma" => "Aviso de cuota de plataforma",
+        "respuesta_caso" => "Nueva respuesta en su caso",
         _ => "Tiene una notificación",
     };
 }
