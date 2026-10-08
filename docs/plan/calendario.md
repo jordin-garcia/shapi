@@ -46,13 +46,15 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Lun 5 oct | — | **EM-09** Suscripción de plataforma: contratar y cambiar de plan (A2 y B1.4) | — | **JZ-11** Plantillas de correo completas |
 | Mar 6 oct | — | — | **DC-07** Portal público: inicio y documentación (A5.0, A5.1 y A5.5) | — |
 | Mié 7 oct | — | **EM-12** Miembros e invitaciones (A4.2 y A8.2) | **DC-09** Planes y contratación en el portal (A5.4, A5.6 y A5.4b) | **JZ-10** Casos de soporte (A6.4, A6.4b, A7.1 y A7.2) |
-| Jue 8 oct | **JG-08** Convergencia del Avance 2 | — | — | — |
+| Jue 8 oct | **JG-08** Convergencia del Avance 2 | — | — | **JZ-17** Siembra de demostración en el ambiente productivo simulado |
 | Sáb 10 oct | **JG-11** Consumo, latencia y errores por API (B1.1) | **EM-10** Cierre de ciclo: renovación, gracia, suspensión y fin de la Prueba | **DC-11** Suscripción y claves del consumidor (B2.3 a B2.6) | **JZ-08** Administración de organizaciones (A6.2 y A6.2b) |
+| Dom 11 oct | — | — | — | **JZ-18** Levantar el ambiente con la siembra en un solo comando (RNF-14) |
 | Lun 12 oct | **JG-10** Pantalla de claves del proveedor (A4.3 y A4.3b) | **EM-11** Historial de pagos (B1.3 y la API de B2.2) | **DC-10** Consola de pruebas del portal (A5.2) | **JZ-09** Cuentas de administración y soporte (A6.5) |
+| Mar 13 oct | — | **EM-19** Pruebas de backend del acceso del consumidor | **DC-17** Barra lateral del portal en planes y pago, y texto de A5.3 | — |
 | Mié 14 oct | **JG-12** Consumo del ciclo para el consumidor (B2.1) | **EM-13** Límites del plan de plataforma y cambio de plan del consumidor | **DC-14** Dominio propio, DNS simulado y secreto de origen (A3.6) | **JZ-12** Estado de los componentes (B3.1) |
 | Vie 16 oct | **JG-13** Consumo y facturación por consumidor (B1.2) | **EM-14** Administración: planes de plataforma y pagos (A6.1 y A6.3) | **DC-13** Pagos y cambio de plan del consumidor (B2.2 y B2.7) | — |
-| Sáb 17 oct | — | — | — | **JZ-14** Pruebas de carga (RNF-01 y RNF-03) |
-| Dom 18 oct | — | **EM-15** Invitar consumidores (B1.5) | **DC-15** Sitio público: inicio de Shapi (A0.1) | — |
+| Sáb 17 oct | — | **EM-20** Medio de pago en la confirmación de la contratación (A5.4b) | — | **JZ-14** Pruebas de carga (RNF-01 y RNF-03) |
+| Dom 18 oct | **JG-19** Prueba de la compuerta sin PostgreSQL, API de control ni trabajador (RNF-02 y RNF-04) | **EM-15** Invitar consumidores (B1.5) | **DC-15** Sitio público: inicio de Shapi (A0.1) | — |
 | Mar 20 oct | — | — | **DC-12** Personalización del portal (A3.7) | — |
 | Jue 22 oct | **JG-14** Convergencia del Avance 3 | — | — | — |
 | Sáb 24 oct | **JG-16** Generador de PDF y documentos de requisitos y de diseño | **EM-16** Pruebas de aislamiento entre organizaciones y de permisos | **DC-16** Revisión visual contra los mockups | **JZ-13** Pruebas E2E de los flujos principales |
@@ -98,7 +100,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Jordin | JG-03 (revisión con Claude y tablero del plan), JG-04 (publicación en Redis), JG-05 (filtros de la compuerta), JG-06 (límites y cuotas), JG-07 (claves), JG-08 (convergencia, jueves 8) |
 | Emilio | EM-04 (recuperación y perfil), EM-05 (identidad del consumidor), EM-06 (pasarela simulada), EM-07 (planes de API), EM-08 (contratación de un plan de API) |
 | Dominique | DC-03 (estructura del portal), DC-04 (registrar una API), DC-05 (especificación y rutas), DC-06 (configuración y publicación), DC-07 (portal público), DC-08 (acceso del consumidor) |
-| José Pablo | JZ-04 (bitácora), JZ-05 (siembra de demostración), JZ-06 (imágenes y ambiente productivo), JZ-07 (E2E y capturas) |
+| José Pablo | JZ-04 (bitácora), JZ-05 (siembra de demostración), JZ-06 (imágenes y ambiente productivo), JZ-07 (E2E y capturas), JZ-17 (siembra en el ambiente productivo, creada en JG-08) |
 
 **Guion de demostración 2:**
 1. Ambiente productivo simulado (`compose.prod.yml`) con la siembra de demostración.
@@ -114,10 +116,10 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 
 | Persona | Tareas |
 |---|---|
-| Jordin | JG-09 (medición y consolidación), JG-10 (claves en el panel), JG-11 (consumo B1.1), JG-12 (consumo B2.1), JG-13 (consumo por consumidor), JG-14 (convergencia, jueves 22) |
-| Emilio | EM-09 (suscripción de plataforma), EM-10 (renovación, gracia y suspensión), EM-11 (historial de pagos), EM-12 (miembros), EM-13 (límites y cambio de plan del consumidor), EM-14 (administración de planes y pagos), EM-15 (invitar consumidores) |
-| Dominique | DC-09 (contratación en el portal), DC-10 (consola de pruebas), DC-11 (suscripción y claves del consumidor), DC-12 (personalización del portal), DC-13 (pagos y cambio de plan del consumidor), DC-14 (dominio propio), DC-15 (inicio de Shapi) |
-| José Pablo | JZ-08 (organizaciones), JZ-09 (cuentas de plataforma), JZ-10 (casos de soporte), JZ-11 (plantillas de correo), JZ-12 (estado de los componentes) |
+| Jordin | JG-09 (medición y consolidación), JG-10 (claves en el panel), JG-11 (consumo B1.1), JG-12 (consumo B2.1), JG-13 (consumo por consumidor), JG-19 (compuerta sin PostgreSQL), JG-14 (convergencia, jueves 22) |
+| Emilio | EM-09 (suscripción de plataforma), EM-10 (renovación, gracia y suspensión), EM-11 (historial de pagos), EM-12 (miembros), EM-13 (límites y cambio de plan del consumidor), EM-14 (administración de planes y pagos), EM-15 (invitar consumidores), EM-19 (pruebas del acceso del consumidor), EM-20 (medio de pago en A5.4b, P3) |
+| Dominique | DC-09 (contratación en el portal), DC-10 (consola de pruebas), DC-11 (suscripción y claves del consumidor), DC-12 (personalización del portal), DC-13 (pagos y cambio de plan del consumidor), DC-14 (dominio propio), DC-15 (inicio de Shapi), DC-17 (barra lateral en planes y pago) |
+| José Pablo | JZ-08 (organizaciones), JZ-09 (cuentas de plataforma), JZ-10 (casos de soporte), JZ-11 (plantillas de correo), JZ-12 (estado de los componentes), JZ-18 (levantar y sembrar con un comando) |
 
 **Guion de demostración 3:**
 1. María José contrata el plan Comercio con la tarjeta 4242…, recibe sus claves una sola vez, prueba la consola, consume la API y ve su consumo por ruta.
