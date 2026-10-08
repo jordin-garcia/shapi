@@ -39,6 +39,7 @@ const implementadas: Record<string, string> = {
   'A3-4': 'Rutas expuestas',
   'A3-5': 'Configuración por ruta',
   'A4-1': 'Planes de la API',
+  'A4-2': 'Miembros y roles',
   'A2-1': 'Los planes de Shapi.',
   'A2-2': 'Contratación de un plan superior',
   'A2-5': 'Cambio de plan',
@@ -48,6 +49,7 @@ const implementadas: Record<string, string> = {
   'A7-1': 'Casos de soporte',
   'A7-2': 'El dominio propio no verifica',
   'A8-1': 'Mi perfil',
+  'A8-2': 'El enlace ya no sirve',
   'B3-2': 'Bitácora de acciones sensibles',
 };
 async function esperarPantalla(id: string) {
@@ -86,6 +88,11 @@ beforeEach(() => {
       { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan para empezar', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
       { id: 'escala', nombre: 'Escala mensual', descripcion: 'Plan para crecer', precio: 1500, moneda: 'GTQ', vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false, inicioCicloPrevisto: '2026-10-05T06:00:00Z' },
     ])),
+    http.get('http://localhost/api/miembros', () => HttpResponse.json({
+      elementos: [{ id: 'm-1', usuarioId: 'u-1', nombre: 'Ana', correo: 'ana@enviosxelaju.com', rol: 'propietario', agregadoEn: '2026-10-01T06:00:00Z' }],
+      total: 1, invitacionesPendientes: 0, organizacion: 'Envíos Xelajú, S.A.', usuarioActualId: 'u-1',
+      plan: { nombre: 'Producto', maxMiembros: 10 },
+    })),
     http.get('http://localhost/api/suscripcion', () => HttpResponse.json({
       plan: { id: 'lanzamiento', nombre: 'Lanzamiento', descripcion: 'Plan para empezar', precio: 199, moneda: 'GTQ', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, dominioPropio: false, esPrueba: false },
       estado: 'activa', periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-29T06:00:00Z' },

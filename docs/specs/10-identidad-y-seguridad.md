@@ -90,7 +90,7 @@ Cada plantilla recibe estos datos para su contenido, además de los datos de mar
 |---|---|
 | `verificacion_correo` | `nombre`, `token` |
 | `recuperacion` | `nombre`, `token` |
-| `invitacion_miembro` | `nombre`, `nombreOrganizacion`, `enlace` |
+| `invitacion_miembro` | `nombre`, `nombreOrganizacion`, `token` |
 | `invitacion_consumidor` | `nombre`, `nombreApi`, `enlace` |
 | `definir_contrasena` | `nombre`, `enlace` |
 | `pago_rechazado` | `nombre`, `nombrePlan`, `motivo`, `enlace` |

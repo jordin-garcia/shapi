@@ -11,7 +11,7 @@ public class MotorPlantillasCorreoTests
     {
         { "verificacion_correo", """{"nombre":"Ana","token":"token-1"}""" },
         { "recuperacion", """{"nombre":"Ana","token":"token-1"}""" },
-        { "invitacion_miembro", """{"nombre":"Ana","nombreOrganizacion":"Acme","enlace":"https://shapi.localhost/invitacion?token=token-1"}""" },
+        { "invitacion_miembro", """{"nombre":"Ana","nombreOrganizacion":"Acme","token":"token-1"}""" },
         { "invitacion_consumidor", """{"nombre":"Ana","nombreApi":"API de envíos","enlace":"https://envios.shapi.localhost/invitacion?token=token-1"}""" },
         { "definir_contrasena", """{"nombre":"Ana","enlace":"https://shapi.localhost/definir-contrasena?token=token-1"}""" },
         { "pago_rechazado", """{"nombre":"Ana","nombrePlan":"Profesional","motivo":"Fondos insuficientes","enlace":"https://shapi.localhost/pagos"}""" },
@@ -95,6 +95,18 @@ public class MotorPlantillasCorreoTests
         WebUtility.HtmlDecode(resultado.Html).Should().Contain("Envíos <Xelajú>");
         resultado.Html.Should().NotContain("<img");
         resultado.Html.Should().NotContain("/api/portal/logo");
+    }
+
+    // RF-06: el enlace para un miembro siempre apunta al dominio base y se calcula desde el token sin persistirlo como URL.
+    [Fact]
+    public void RF_06_InvitacionMiembro_GeneraElEnlaceDesdeElTokenEnElDominioBase()
+    {
+        var motor = CrearMotor();
+
+        var resultado = motor.Renderizar("invitacion_miembro", """{"nombre":"Ana","nombreOrganizacion":"Acme","token":"token-1"}""");
+
+        resultado.Html.Should().Contain("https://shapi.localhost/invitacion?token=token-1");
+        resultado.Texto.Should().Contain("https://shapi.localhost/invitacion?token=token-1");
     }
 
     // RF-46

@@ -1,0 +1,193 @@
+openapi: 3.1.0
+info:
+  title: API de Organizaciones de Shapi
+  version: 1.0.0
+paths:
+  /api/miembros:
+    get:
+      summary: Lista los miembros y el uso del límite de la organización
+      operationId: listarMiembros
+      responses:
+        "200":
+          description: Miembros, cantidad total con invitaciones vigentes y plan actual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListaMiembros"
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo el propietario puede administrar miembros }
+        "404": { description: Organización o suscripción no encontrada }
+  /api/miembros/invitaciones:
+    post:
+      summary: Invita a una persona como editor o lector
+      operationId: invitarMiembro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionInvitarMiembro"
+      responses:
+        "202": { description: Invitación creada y correo encolado }
+        "400":
+          description: Correo o rol inválido
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo el propietario puede invitar miembros }
+        "409": { description: La persona ya pertenece a la organización o tiene una invitación vigente }
+        "422":
+          description: Correo de otra organización o límite de miembros alcanzado
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+  /api/miembros/{id}/rol:
+    put:
+      summary: Cambia el rol de un miembro
+      operationId: cambiarRolMiembro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionCambiarRolMiembro"
+      responses:
+        "200": { description: Rol actualizado }
+        "400":
+          description: Rol inválido
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo el propietario puede cambiar roles }
+        "404": { description: Miembro no encontrado en esta organización }
+        "422": { description: No se puede cambiar el rol del propietario }
+  /api/miembros/{id}:
+    delete:
+      summary: Quita a un miembro de la organización
+      operationId: quitarMiembro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Miembro quitado }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo el propietario puede quitar miembros }
+        "404": { description: Miembro no encontrado en esta organización }
+        "422": { description: No se puede quitar al propietario }
+  /api/invitaciones/{token}:
+    get:
+      summary: Consulta una invitación de miembro vigente
+      operationId: consultarInvitacionMiembro
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Datos de la invitación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitacionMiembro"
+        "404": { description: Invitación vencida, usada o inexistente }
+  /api/invitaciones/{token}/aceptar:
+    post:
+      summary: Acepta una invitación y crea una cuenta o agrega una membresía
+      operationId: aceptarInvitacionMiembro
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeticionAceptarInvitacionMiembro"
+      responses:
+        "201": { description: Cuenta verificada (si no existía) y membresía creadas }
+        "400":
+          description: Nombre o contraseña inválidos
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404": { description: Invitación vencida, usada o inexistente }
+        "422": { description: El correo ya pertenece a otra organización }
+components:
+  schemas:
+    ListaMiembros:
+      type: object
+      required: [elementos, total, invitacionesPendientes, organizacion, usuarioActualId, plan]
+      properties:
+        elementos:
+          type: array
+          items: { $ref: "#/components/schemas/Miembro" }
+        total: { type: integer, description: Miembros e invitaciones vigentes }
+        invitacionesPendientes: { type: integer }
+        organizacion: { type: string }
+        usuarioActualId: { type: string, format: uuid }
+        plan: { $ref: "#/components/schemas/PlanMiembros" }
+    Miembro:
+      type: object
+      required: [id, usuarioId, nombre, correo, rol, esActual]
+      properties:
+        id: { type: string, format: uuid }
+        usuarioId: { type: string, format: uuid }
+        nombre: { type: string }
+        correo: { type: string, format: email }
+        rol: { type: string, enum: [propietario, editor, lector] }
+        esActual: { type: boolean }
+    PlanMiembros:
+      type: object
+      required: [nombre]
+      properties:
+        nombre: { type: string }
+        maxMiembros: { type: [integer, "null"], minimum: 1 }
+    PeticionInvitarMiembro:
+      type: object
+      required: [correo, rol]
+      properties:
+        correo: { type: string, format: email }
+        rol: { type: string, enum: [editor, lector] }
+    PeticionCambiarRolMiembro:
+      type: object
+      required: [rol]
+      properties:
+        rol: { type: string, enum: [editor, lector] }
+    InvitacionMiembro:
+      type: object
+      required: [organizacion, nombrePropietario, correo, rol, expiraEn, cuentaExistente]
+      properties:
+        organizacion: { type: string }
+        nombrePropietario: { type: string }
+        correo: { type: string, format: email }
+        rol: { type: string, enum: [editor, lector] }
+        expiraEn: { type: string, format: date-time }
+        cuentaExistente: { type: boolean }
+    PeticionAceptarInvitacionMiembro:
+      type: object
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 200 }
+        contrasena: { type: string, minLength: 10, maxLength: 128 }
+    Problema:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        codigo: { type: string }
+        detalle:
+          type: object
+          properties:
+            limite: { type: string }

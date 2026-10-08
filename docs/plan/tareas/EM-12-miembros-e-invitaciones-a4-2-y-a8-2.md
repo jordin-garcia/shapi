@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-07
 depende_de: [EM-04]
 requisitos: [RF-06, RF-07, RF-43]
@@ -53,3 +53,11 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Cuentas de plataforma (JZ-09)
+
+## Resultado
+- Implementé la consulta y administración de miembros, invitaciones con expiración de siete días, aceptación con cuenta verificada y bitácora; añadí los endpoints y el contrato OpenAPI.
+- Implementé A4.2 y A8.2 con sus estados de lista, límite del plan, invitación, confirmación para quitar y aceptación; regeneré los tipos de TypeScript.
+- Añadí pruebas de integración para permisos, aislamiento, límites, invitaciones, expiración, re-invitación, validación de contraseña, cambios de membresía y el enlace de invitación sin token duplicado en el outbox; añadí pruebas Vitest para miembros e invitaciones.
+- Decisiones: las invitaciones vigentes cuentan para el límite de miembros. Si se vuelve a invitar una cuenta sin organización, se conserva la cuenta y sus credenciales y se agrega solo la membresía; RF-06 y CU-04 quedaron precisados.
+- Con autorización del usuario, ajusté `MotorPlantillasCorreo` para construir el enlace de invitación desde el token al renderizar, y actualicé 10 §6 con los datos requeridos.
+- Verificación local: compilación sin advertencias ni errores, formato, validación del plan, lint, typecheck, 340 pruebas de frontend y build pasan. Las 66 pruebas de plantillas de correo pasan. Las pruebas API compilan, pero no pudieron ejecutarse porque este entorno no tiene Docker (`/var/run/docker.sock`). La revisión independiente quedó en LISTO; falta confirmar la nueva CI antes de integrar.
