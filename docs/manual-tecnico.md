@@ -177,6 +177,14 @@ los dos orígenes estén sanos. El trabajador no expone HTTP y permanece en esta
 `running`; JZ-12 agregará su latido `salud:trabajador` en Redis. Solamente los
 puertos 80 y 443 del borde quedan publicados, ambos en `127.0.0.1`.
 
+Con `node infra/verificar.mjs --sembrar`, después de esas comprobaciones, que
+esperan un ambiente sin siembra, el verificador ejecuta `sembrar-demo` dentro del
+contenedor del trabajador y comprueba que `POST https://envios.api.shapi.localhost/cotizaciones`
+responde 200 con la clave de producción de Mercadito Antigua. Así lo ejecuta el
+check `ambiente-productivo` de la CI. Por eso el verificador, con o sin
+`--sembrar`, falla sobre un ambiente que ya está sembrado: hay que ejecutarlo
+recién levantado.
+
 La API aplica las migraciones al iniciar. La API y el trabajador comparten el
 volumen `dpkeys`, que conserva las llaves con las que se protegen los secretos de
 origen.

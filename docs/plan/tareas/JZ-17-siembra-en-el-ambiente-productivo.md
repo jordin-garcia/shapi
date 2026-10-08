@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 2
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-08
 depende_de: []
 requisitos: [RNF-14]
@@ -55,3 +55,12 @@ node infra/verificar.mjs
 
 ## Notas
 - Es P1 porque sin ella falla el paso 1 del guion 2, el de la demostración del viernes 9 de octubre. Mientras no esté integrada, la convergencia del 8 de octubre sembró con un parche local que no se confirmó.
+
+## Resultado
+La terminó el coordinador (Jordin), porque era P1 para la demostración del 9 de octubre y José Pablo no la había empezado (protocolo §E1).
+
+- **Causa:** `SiembraDemo.cs` armaba la fecha del mensaje del caso CAS-104 con `CultureInfo.GetCultureInfo("es-GT")`. Las imágenes `dotnet/aspnet:10.0-alpine` corren en modo de globalización invariante, sin ICU, y en ese modo pedir una cultura de país lanza `CultureNotFoundException`.
+- **Corrección (criterio 3):** la fecha se arma con `DiaYMes`, a partir de una tabla propia de meses en español, como `FiltroLimitesYCuotas.Fecha` en la compuerta. La siembra ya no depende de la cultura del sistema. No se agregó ICU a las imágenes.
+- **Prueba que lo habría detectado (criterio 4):** `tests/Shapi.Api.Tests` corre con `<InvariantGlobalization>true</InvariantGlobalization>`, igual que los contenedores. Con el código anterior, 10 pruebas de `SiembraDemoTests` fallaban con la misma excepción del contenedor. `RNF_14_LasPruebasCorrenSinCulturasDePais_ComoLasImagenesAlpine` impide que se quite ese modo sin que se note. El mensaje esperado de CAS-104 es ahora el texto literal («24 de septiembre»), en lugar de formatearse con la cultura en la prueba.
+- **CI (criterio 2):** `node infra/verificar.mjs --sembrar` primero hace todas las comprobaciones de un ambiente sin siembra (incluida la de que `envios.api.shapi.localhost` responde 404). Después ejecuta `sembrar-demo` dentro del contenedor del trabajador y comprueba que `POST https://envios.api.shapi.localhost/cotizaciones`, con la clave de producción de Mercadito Antigua, responde 200. El paso del job `ambiente-productivo` en `publicar-imagenes.yml` usa esa opción, y el verificador exige que la mantenga. Sin el ambiente productivo levantado, `--sembrar` falla con un mensaje claro.
+- **Archivos:** `src/Shapi.Infraestructura/Siembra/Demo/SiembraDemo.cs`, `infra/verificar.mjs`, `.github/workflows/publicar-imagenes.yml`, `tests/Shapi.Api.Tests/Shapi.Api.Tests.csproj`, `tests/Shapi.Api.Tests/Siembra/SiembraDemoTests.cs` y `docs/manual-tecnico.md` (§"Levantar y verificar").
