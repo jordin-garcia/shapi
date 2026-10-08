@@ -205,8 +205,12 @@ public static class MiembrosApi
             where membresia.OrganizacionId == organizacionId && membresia.Rol == Rol.Propietario
             select cuenta.Nombre
         ).SingleOrDefaultAsync(cancelacion);
-        var cuentaExistente = await db.Set<Usuario>().IgnoreQueryFilters().AnyAsync(cuenta => cuenta.Correo == invitacion.Correo
-            && !db.Set<Membresia>().IgnoreQueryFilters().Any(membresia => membresia.UsuarioId == cuenta.Id), cancelacion);
+        var cuentaInvitada = await db.Set<Usuario>().IgnoreQueryFilters().AsNoTracking()
+            .Where(cuenta => cuenta.Correo == invitacion.Correo)
+            .Select(cuenta => new { cuenta.Id })
+            .SingleOrDefaultAsync(cancelacion);
+        var cuentaExistente = cuentaInvitada is not null
+            && !await db.Set<Membresia>().IgnoreQueryFilters().AnyAsync(membresia => membresia.UsuarioId == cuentaInvitada.Id, cancelacion);
         return TypedResults.Ok(new
         {
             organizacion = org,

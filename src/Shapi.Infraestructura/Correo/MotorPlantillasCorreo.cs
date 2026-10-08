@@ -105,7 +105,7 @@ public sealed partial class MotorPlantillasCorreo
             throw new InvalidOperationException($"Falta el dato 'token' para la plantilla '{plantilla}'.");
         }
 
-        var host = HostDelEnlace(datos);
+        var host = plantilla == "invitacion_miembro" ? _dominioBase : HostDelEnlace(datos);
         var ruta = plantilla switch
         {
             "verificacion_correo" => "verificar-correo",
