@@ -30,10 +30,11 @@ Que A5.4, A5.6 y A5.4b se vean como sus mockups, con la barra lateral del portal
 - `frontend/apps/portal/src/paginas/A5-3-Registro.tsx` (modificar)
 - `frontend/apps/portal/src/paginas/A5-4-Planes.tsx`, `A5-4b-Confirmacion.tsx` y `A5-6-Pago.tsx` (modificar, si hace falta)
 - `frontend/apps/portal/src/tests/**`
+- `docs/specs/11-interfaz.md` §"Comportamiento del portal y de sus pantallas de acceso" (modificar, criterio 2)
 
 ## Criterios de aceptación
 1. `/planes` y `/contratar/:plan`, incluida la confirmación A5.4b, usan la misma barra lateral que A5.1, con las secciones «API» y «Mi cuenta» de sus mockups, en lugar del encabezado público con «Entrar» y «Crear cuenta».
-2. Si hay una sesión de consumidor, la barra muestra su nombre y su empresa y la acción de cerrar sesión, como en `Planes.dc.html`. Sin sesión, se aplica la misma regla que en A5.1 (11 §"Barra de documentación"): los enlaces de cuenta se muestran sin datos del consumidor.
+2. **Regla nueva, que precisa 11 §"Barra de documentación":** en las páginas públicas del portal con barra lateral (A5.1, A5.4, A5.6 y A5.4b), si hay una sesión de consumidor, la barra muestra su nombre, su empresa y la acción de cerrar sesión, como en `Planes.dc.html` y `Documentacion.dc.html`. Sin sesión, los enlaces de cuenta se muestran sin datos del consumidor, como hoy en A5.1. El PR actualiza esa precisión de `11-interfaz.md`, que hoy dice que esos datos aparecen únicamente dentro del área autenticada.
 3. A5.3 dice «obtiene sus claves de la {nombre de la API}», como el mockup. Hoy la siembra llama a la API «API de Cotización de Envíos» y la pantalla muestra «la API de API de Cotización de Envíos». Si el nombre no empieza por «API», se antepone «la API», como hace `TextoBitacora.cs`.
 4. Al verificar el correo desde el portal (A5.8 → `/planes`), la consumidora ve su nombre en la barra sin recargar la página.
 

@@ -7,14 +7,14 @@ avance: 3
 prioridad: P3
 estado: pendiente
 programada: 2026-10-17
-depende_de: []
+depende_de: [DC-17]
 requisitos: [RF-20]
 pantallas: [A5.4b]
 ---
 
 # EM-20 · Medio de pago en la confirmación de la contratación (A5.4b)
 
-**Responsable:** Emilio Méndez · **Avance:** 3 · **Prioridad:** P3 · **Sin dependencias**
+**Responsable:** Emilio Méndez · **Avance:** 3 · **Prioridad:** P3 · **Depende de:** DC-17
 
 ## Objetivo
 Que la respuesta de la contratación incluya el medio de pago y que A5.4b muestre la fila «Medio de pago» de su mockup, que DC-09 tuvo que omitir.

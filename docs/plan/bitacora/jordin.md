@@ -872,10 +872,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
 ## 2026-10-08 · JG-08 · Convergencia del Avance 2
 - Hecho: informe en `docs/plan/convergencia/2026-10-08.md`. De 33 requisitos del avance, 26 están ✅, 6 ⚠️ y 1 ❌ (RNF-14). Se recorrió el guion 2 en el ambiente productivo simulado: funcionan los pasos 2 a 6 y falla el 1, porque `sembrar-demo` se cae en el contenedor (`CultureNotFoundException` por `es-GT` en `SiembraDemo.cs:295`). Se crearon JZ-17 (P1), JZ-18 (P1), JG-19 (P2), DC-17 (P2), EM-19 (P2) y EM-20 (P3), y se regeneró el calendario.
-- Decisiones: nadie queda sobrecargado (2.5 a 3.5 tareas por semana), así que nada baja a P3. JZ-18 es P1 porque RNF-14 es el mínimo del lineamiento de despliegue. DC-09 vuelve a `avance: 3`. Para recorrer el guion se sembró con un parche local (`InvariantCulture`) que no se confirmó.
+- Decisiones: nadie queda sobrecargado (3 a 3.5 tareas por semana), así que nada baja a P3. JZ-18 es P1 porque RNF-14 es el mínimo del lineamiento de despliegue. DC-09 vuelve a `avance: 3`. Para recorrer el guion se sembró con un parche local (`InvariantCulture`) que no se confirmó.
 - Pendiente o aviso para otros:
   - **JZ-17:** es urgente: sin ella, el paso 1 del guion 2 falla en la demostración del viernes 9. Si no llega a tiempo, la demostración siembra en desarrollo.
   - **José Pablo:** JZ-18 (un solo comando con siembra, RNF-14) depende de JZ-17.
-  - **Dominique:** corregí `avance: final` → `avance: 3` en el archivo de DC-09; el PR #86 lo había cambiado. DC-17 alinea A5.4, A5.6 y A5.4b con sus mockups (barra lateral con la consumidora) y corrige el texto «la API de API…» de A5.3. Actualiza tu rama desde `main` cuando se integre.
+  - **Dominique:** corregí `avance: final` → `avance: 3` en el archivo de DC-09; el PR #86 lo había cambiado. DC-17 alinea A5.4, A5.6 y A5.4b con sus mockups (barra lateral con la consumidora) y corrige el texto «la API de API…» de A5.3; precisa en 11 §"Barra de documentación" que, con sesión, las páginas públicas con barra lateral muestran a la consumidora. EM-20 (después de DC-17) tocará `A5-4b-Confirmacion.tsx` para la fila «Medio de pago». Actualiza tu rama desde `main` cuando se integre.
   - **Emilio:** EM-19 completa pruebas de backend del portal para RF-02 a RF-05, y EM-20 (P3) agrega el medio de pago a la respuesta de la contratación, que A5.4b necesita.
   - **Todos:** para el paso 4 del guion, María José ya existe en la siembra; registren a otra consumidora.

@@ -31,6 +31,7 @@ Cumplir RNF-14: que todo el sistema se levante con **un solo comando** de `docke
 - `src/Shapi.Trabajador/**` (modificar, si la siembra se dispara al arrancar)
 - `docs/manual-tecnico.md` (modificar)
 - `docs/specs/06-arquitectura.md` §7 (modificar, para dejar el comando)
+- `docs/plan/calendario.md` (modificar solo el paso 1 de los guiones de demostración)
 
 ## Criterios de aceptación
 1. Un solo comando levanta el ambiente productivo simulado y lo deja sembrado. Por ejemplo, un perfil `demo` con un servicio de siembra de una sola ejecución (`docker compose … --profile demo up -d --build`), o una variable que haga sembrar al trabajador al arrancar. El PR explica la opción elegida.

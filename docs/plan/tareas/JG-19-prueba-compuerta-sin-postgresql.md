@@ -34,13 +34,13 @@ Verificar con una prueba automatizada lo que RNF-02 y RNF-04 piden medir: la com
 3. Las pruebas llevan el código del requisito en su nombre (`RNF_02_…`, `RNF_04_…`) y corren en la CI.
 
 ## Pruebas obligatorias
-- Integración con Testcontainers (detener el contenedor de PostgreSQL), o un paso del verificador del ambiente productivo
+- Integración con Testcontainers (detener el contenedor de PostgreSQL), o un paso del verificador del ambiente productivo. En `Shapi.Compuerta.Tests` hace falta referenciar `Testcontainers.PostgreSql`, que ya está en `Directory.Packages.props`
 
 ## Verificación
 Todos estos comandos deben pasar, además de los generales del protocolo (B7):
 ```
 dotnet build Shapi.slnx
-dotnet test tests/Shapi.Compuerta.Tests
+dotnet test tests/Shapi.Compuerta.Tests   # o, si la prueba queda en la API: dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~RNF_0"
 dotnet format Shapi.slnx --verify-no-changes
 ```
 
