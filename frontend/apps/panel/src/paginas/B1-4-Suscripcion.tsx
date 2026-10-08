@@ -4,13 +4,16 @@ import { crearCliente, ErrorApi } from '@shapi/api';
 import type { paths } from '@shapi/api/suscripciones';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link } from 'react-router';
+import { useSesion } from '../modulos/sesion/useSesion';
 
 const cliente = crearCliente<paths>(window.location.origin);
-const fecha = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(value));
+const fecha = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala' }).format(new Date(value));
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
 
 export default function PaginaB14Suscripcion() {
   const cache = useQueryClient();
+  const sesion = useSesion();
+  const puedeGestionar = sesion.data?.rol === 'propietario';
   const [mostrarPago, setMostrarPago] = useState(false);
   const [numero, setNumero] = useState('');
   const [mes, setMes] = useState('');
@@ -41,6 +44,7 @@ export default function PaginaB14Suscripcion() {
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.isError) return <EstadoError mensaje="No se pudo cargar la suscripción." reintentar={() => void consulta.refetch()} />;
   const s = consulta.data;
+  const gratuito = s.plan.esPrueba || s.plan.precio === 0;
   const gracia = s.estado === 'en_gracia';
   const suspendida = s.estado === 'suspendida';
   const estado = gracia ? 'En gracia' : suspendida ? 'Suspendida' : 'Activa';
@@ -49,11 +53,13 @@ export default function PaginaB14Suscripcion() {
     <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">Su plan de Shapi, su vigencia y la tarjeta con la que se renueva.</p>
     {gracia && <section className="mt-6 rounded-base border border-[#D9A42E] bg-[#FFF9E8] p-5">
       <h2 className="font-display text-[22px]">Quedan {s.diasRestantes || 0} días antes de que sus APIs dejen de responder</h2>
-      <p className="mt-3 text-sm leading-relaxed">El cobro de la renovación fue rechazado{s.ultimoRechazoEn ? ' el ' + fecha(s.ultimoRechazoEn) : ''}. Si el {s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)} no hay un cobro autorizado, su suscripción se suspende y la compuerta empieza a rechazar las peticiones de sus consumidores. Mientras dure el periodo de gracia sus APIs siguen respondiendo con normalidad.</p>
+      <p className="mt-3 text-sm leading-relaxed">{gratuito
+        ? 'Su plan gratuito o de Prueba venció. Contrate un plan de pago antes de que termine el periodo de gracia para que sus APIs sigan respondiendo.'
+        : 'El cobro de la renovación fue rechazado' + (s.ultimoRechazoEn ? ' el ' + fecha(s.ultimoRechazoEn) : '') + '. Si el ' + (s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)) + ' no hay un cobro autorizado, su suscripción se suspende y la compuerta empieza a rechazar las peticiones de sus consumidores. Mientras dure el periodo de gracia sus APIs siguen respondiendo con normalidad.'}</p>
     </section>}
     {suspendida && <section className="mt-6 rounded-base border border-[#D66B62] bg-[#FFF2F0] p-5">
       <h2 className="font-display text-[22px]">Su tráfico está detenido</h2>
-      <p className="mt-3 text-sm leading-relaxed">Desde el {s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)} sus APIs dejaron de responder: la compuerta rechaza con 403 las peticiones de sus consumidores. Sus claves, las suscripciones de sus consumidores y su historial se conservan. El tráfico se restablece en cuanto se autorice el cobro.</p>
+      <p className="mt-3 text-sm leading-relaxed">Desde el {s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)} sus APIs dejaron de responder: la compuerta rechaza con 403 las peticiones de sus consumidores. Sus claves, las suscripciones de sus consumidores y su historial se conservan. {gratuito ? 'Contrate un plan de pago para restablecer el tráfico.' : 'El tráfico se restablece en cuanto se autorice el cobro.'}</p>
     </section>}
     <section className="mt-8 rounded-base border border-borde bg-panel p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -66,22 +72,24 @@ export default function PaginaB14Suscripcion() {
       <p className="mt-5 text-sm">{gracia || suspendida ? 'Periodo vencido' : 'Periodo activo'}</p>
       <p className="mt-1 text-[15px]">{fecha(s.periodo.inicio || s.proximaRenovacion)} – {fecha(s.periodo.fin || s.proximaRenovacion)}</p>
       <div className="mt-5 grid gap-4 border-t border-borde pt-5 sm:grid-cols-2">
-        <div><p className="text-sm text-tinta-suave">Renovación automática</p><p className="mt-1">{fecha(s.proximaRenovacion)}</p></div>
+        <div><p className="text-sm text-tinta-suave">{gratuito ? 'Fin del periodo' : 'Renovación automática'}</p><p className="mt-1">{fecha(s.proximaRenovacion)}</p></div>
         <div><p className="text-sm text-tinta-suave">Tarjeta registrada</p><p className="mt-1">{s.tarjetaEnmascarada || 'Sin tarjeta registrada'}</p></div>
       </div>
       {gracia && <p className="mt-5 text-sm">Periodo de gracia hasta {s.graciaHasta ? fecha(s.graciaHasta) : '—'} · {s.diasRestantes || 0} días restantes</p>}
       {(gracia || suspendida) && <div className="mt-5 grid gap-3 border-t border-borde pt-5 text-sm sm:grid-cols-2">
-        <p><span className="text-tinta-suave">Cobro rechazado</span><br />{s.ultimoRechazoEn ? fecha(s.ultimoRechazoEn) : '—'}</p>
+        {!gratuito && <p><span className="text-tinta-suave">Cobro rechazado</span><br />{s.ultimoRechazoEn ? fecha(s.ultimoRechazoEn) : '—'}</p>}
         <p><span className="text-tinta-suave">Periodo de gracia</span><br />{fecha(s.proximaRenovacion)} – {s.graciaHasta ? fecha(new Date(new Date(s.graciaHasta).getTime() - 86400000).toISOString()) : '—'}</p>
         {suspendida && <p><span className="text-tinta-suave">Suspendida desde</span><br />{s.graciaHasta ? fecha(s.graciaHasta) : '—'}</p>}
         {suspendida && <p><span className="text-tinta-suave">Consumidores afectados</span><br />{s.consumidoresAfectados ?? 0} consumidores</p>}
       </div>}
-      {s.estado === 'activa' && <p className="mt-5 text-sm leading-relaxed text-tinta-suave">La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus APIs responden con normalidad.</p>}
+      {s.estado === 'activa' && <p className="mt-5 text-sm leading-relaxed text-tinta-suave">{gratuito ? 'Sus APIs responden con los límites del plan vigente.' : 'La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus APIs responden con normalidad.'}</p>}
       {s.cambioProgramado && <Aviso estado="neutro">A partir del {fecha(s.cambioProgramado.efectivoDesde || s.proximaRenovacion)} su plan será {s.cambioProgramado.nombre}.</Aviso>}
-      {(gracia || suspendida) && <Boton className="mt-6" onClick={() => { setError(''); setMostrarPago(true); }}>Pagar con otra tarjeta</Boton>}
+      {puedeGestionar && (gracia || suspendida) && (gratuito
+        ? <Link className="mt-6 inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-6 text-[15px] font-medium text-white" to="/panel/suscripcion/planes">Contratar un plan de pago</Link>
+        : <Boton className="mt-6" onClick={() => { setError(''); setMostrarPago(true); }}>Pagar con otra tarjeta</Boton>)}
     </section>
     {error && <div className="mt-5"><Aviso estado="error">{error}</Aviso></div>}
-    {mostrarPago && <form className="mt-6 rounded-base border border-borde bg-panel p-6" onSubmit={e => { e.preventDefault(); pagar.mutate(); }}>
+    {puedeGestionar && mostrarPago && !gratuito && <form className="mt-6 rounded-base border border-borde bg-panel p-6" onSubmit={e => { e.preventDefault(); pagar.mutate(); }}>
       <h2 className="font-display text-[21px]">Datos de la tarjeta</h2>
       <p className="mt-2 text-sm text-tinta-suave">Al autorizar el cobro la suscripción se reactiva y comienza un ciclo nuevo desde hoy.</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -94,8 +102,8 @@ export default function PaginaB14Suscripcion() {
       <Boton type="submit" className="mt-5" deshabilitado={pagar.isPending}>{pagar.isPending ? 'Procesando…' : 'Pagar y reactivar'}</Boton>
     </form>}
     <div className="mt-6 flex flex-wrap gap-4 text-sm">
-      <Link className="font-medium text-principal" to="/panel/suscripcion/planes">Cambiar plan</Link>
-      {s.cambioProgramado && <button className="font-medium text-principal underline" onClick={async () => {
+      {puedeGestionar && <Link className="font-medium text-principal" to="/panel/suscripcion/planes">Cambiar plan</Link>}
+      {puedeGestionar && s.cambioProgramado && <button className="font-medium text-principal underline" onClick={async () => {
         const { response } = await cliente.DELETE('/api/suscripcion/cambio-programado');
         if (!response.ok) setError('No se pudo cancelar el cambio programado.');
         else await cache.invalidateQueries({ queryKey: ['suscripcion-plataforma'] });

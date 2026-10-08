@@ -47,7 +47,20 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             .Where(c => c.OrganizacionId == orgId && suscripcionesApi.Any(api => api.ConsumidorId == c.Id)).CountAsync(ct);
         return TypedResults.Ok(new
         {
-            plan = new { id = plan.Id, nombre = plan.Nombre, descripcion = plan.Descripcion, precio = plan.Precio, moneda = "GTQ", vigenciaDias = plan.VigenciaDias },
+            plan = new
+            {
+                id = plan.Id,
+                nombre = plan.Nombre,
+                descripcion = plan.Descripcion,
+                precio = plan.Precio,
+                moneda = "GTQ",
+                vigenciaDias = plan.VigenciaDias,
+                maxApis = plan.MaxApis,
+                maxMiembros = plan.MaxMiembros,
+                cuotaPeticiones = plan.CuotaPeticiones,
+                dominioPropio = plan.DominioPropio,
+                esPrueba = plan.EsPrueba
+            },
             estado = Estado(s.Estado),
             periodo = new { inicio = s.Inicio, fin = s.Fin.AddDays(-1) },
             proximaRenovacion = s.Fin,
@@ -317,6 +330,11 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             return Error(404, "suscripcion_no_encontrada", "No se encontró una suscripción vigente.");
         }
 
+        if (actual.PlanSiguienteId is null)
+        {
+            return TypedResults.NoContent();
+        }
+
         actual.CancelarCambio(reloj.Ahora);
         await db.SaveChangesAsync(ct);
         await Registrar(http, org, actual.Id, AccionesBitacora.SuscripcionPlataformaCambiada, "Canceló el cambio de plan programado.", ct);
@@ -336,6 +354,11 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         }
 
         var plan = await db.Set<PlanPlataforma>().SingleAsync(x => x.Id == actual.PlanId, ct);
+        if (plan.EsPrueba || plan.Precio == 0)
+        {
+            return Error(422, CodigosError.RequierePlanDePago, "Contrate un plan de pago para reactivar sus APIs.");
+        }
+
         var prep = await PrepararMedio(org, actual, p.Tarjeta, p.UsarRegistrada, ct);
         if (prep.Error is not null)
         {

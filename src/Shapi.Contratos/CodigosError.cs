@@ -44,6 +44,7 @@ public static class CodigosError
     public const string ExcedeLimitesDelPlan = "excede_limites_del_plan";
     public const string PlanSinDominioPropio = "plan_sin_dominio_propio";
     public const string SuscripcionExistente = "suscripcion_existente";
+    public const string RequierePlanDePago = "requiere_plan_de_pago";
     public const string PlanDuplicado = "plan_duplicado";
     public const string PlanNoEncontrado = "plan_no_encontrado";
     public const string PlanConSuscripciones = "plan_con_suscripciones";

@@ -76,7 +76,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Paga y reactiva una suscripción en gracia o suspendida */
+        /** Paga y reactiva un plan de pago en gracia o suspendido */
         post: operations["pagarSuscripcionPlataforma"];
         delete?: never;
         options?: never;
@@ -199,6 +199,12 @@ export interface components {
                 /** @constant */
                 moneda: "GTQ";
                 vigenciaDias: number;
+                maxApis: number | null;
+                maxMiembros: number | null;
+                /** Format: int64 */
+                cuotaPeticiones: number;
+                dominioPropio: boolean;
+                esPrueba: boolean;
             };
             /** @enum {string} */
             estado: "activa" | "en_gracia" | "suspendida" | "finalizada";
@@ -556,7 +562,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description Tarjeta inválida o vencida */
+            /** @description Tarjeta inválida o vencida, o el plan es Prueba o gratuito (`requiere_plan_de_pago`); debe contratar un plan de pago */
             422: {
                 headers: {
                     [name: string]: unknown;

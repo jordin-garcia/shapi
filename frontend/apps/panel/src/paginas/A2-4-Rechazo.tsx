@@ -3,15 +3,17 @@ import type { components } from '@shapi/api/suscripciones';
 
 type Suscripcion = components['schemas']['SuscripcionPlataforma'];
 
-export default function PaginaA24Rechazo({ planId, plan, monto, tarjeta, suscripcion }: {
-  planId: string;
+export default function PaginaA24Rechazo({ plan, monto, tarjeta, suscripcion, reintentar }: {
   plan: string;
   monto: string;
   tarjeta: string;
   suscripcion: Suscripcion | null;
+  reintentar: () => void;
 }) {
   const planActual = suscripcion?.plan;
-  const periodoVigente = planActual ? `Sus APIs y sus claves siguen funcionando con los límites del plan ${planActual.nombre}.` : 'Su plan vigente y sus límites siguen sin cambios.';
+  const periodoVigente = suscripcion?.estado === 'suspendida'
+    ? 'Su tráfico sigue detenido. Contrate un plan de pago para restablecerlo.'
+    : planActual ? `Sus APIs y sus claves siguen funcionando con los límites del plan ${planActual.nombre}.` : 'Su plan vigente y sus límites siguen sin cambios.';
   return <section role="alert" className="mx-auto max-w-[720px] rounded-base border border-[#D66B62] bg-[#FFF2F0] p-8 md:p-10">
     <h1 className="font-display text-[32px]">Tarjeta rechazada</h1>
     <p className="mt-3 text-[15px] leading-relaxed">No se autorizó el cobro de {monto}, así que <strong>la suscripción del plan {plan} no se activó</strong>. Puede intentar con otra tarjeta.</p>
@@ -23,7 +25,7 @@ export default function PaginaA24Rechazo({ planId, plan, monto, tarjeta, suscrip
     </dl>
     <p className="mt-6 border-t border-borde pt-6 text-sm leading-relaxed text-tinta-suave">{periodoVigente}</p>
     <div className="mt-6 flex flex-col gap-3">
-      <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-5 font-medium text-white" to={'/panel/suscripcion/contratar/' + planId}>Usar otra tarjeta</Link>
+      <button className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-5 font-medium text-white" onClick={reintentar}>Usar otra tarjeta</button>
       <Link className="text-center text-sm text-principal" to="/panel/suscripcion/planes">Volver a los planes</Link>
     </div>
   </section>;

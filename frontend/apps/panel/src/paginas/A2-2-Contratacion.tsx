@@ -4,7 +4,7 @@ import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/suscripciones';
 import type { components as componentesPlanes, paths as pathsPlanes } from '@shapi/api/planes';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import Confirmacion from './A2-3-Confirmacion';
 import Rechazo from './A2-4-Rechazo';
 
@@ -86,7 +86,14 @@ export default function PaginaA22Contratacion() {
   if (planes.isError) return <EstadoError mensaje="No se pudieron cargar los planes." reintentar={() => void planes.refetch()} />;
   if (!plan) return <Aviso estado="error">No se encontró el plan seleccionado.</Aviso>;
   if (resultado?.tipo === 'exito') return <Confirmacion contratacion={resultado.datos} />;
-  if (resultado?.tipo === 'rechazo') return <Rechazo planId={plan.id} plan={plan.nombre} monto={dinero(plan.precio)} tarjeta={resultado.tarjeta} suscripcion={suscripcion.data ?? null} />;
+  if (resultado?.tipo === 'rechazo') return <Rechazo plan={plan.nombre} monto={dinero(plan.precio)} tarjeta={resultado.tarjeta} suscripcion={suscripcion.data ?? null} reintentar={() => {
+    setResultado(undefined);
+    setErrorContratacion(undefined);
+    setNumero('');
+    setCvv('');
+    setUsarRegistrada(false);
+    contratar.reset();
+  }} />;
   const inicio = plan.inicioCicloPrevisto ? new Date(plan.inicioCicloPrevisto) : inicioCicloDeHoy();
   const fin = new Date(inicio.getTime() + (plan.vigenciaDias - 1) * 86_400_000);
   return <main className="mx-auto max-w-[760px] rounded-base border border-borde bg-panel p-8 md:p-10">
@@ -122,8 +129,9 @@ export default function PaginaA22Contratacion() {
       </>}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borde pt-5">
         <p className="text-sm text-tinta-suave">Total a pagar hoy <strong className="ml-3 font-display text-[26px] text-tinta">{dinero(plan.precio)}</strong></p>
-        <Boton type="submit" deshabilitado={contratar.isPending}>{contratar.isPending ? 'Procesando…' : 'Pagar ' + dinero(plan.precio) + ' y contratar'}</Boton>
+        <Boton type="submit" deshabilitado={contratar.isPending}>{contratar.isPending ? 'Procesando…' : 'Pagar ' + dinero(plan.precio) + ' y activar el plan'}</Boton>
       </div>
     </form>
+    <Link className="mt-5 inline-block text-sm font-medium text-principal" to="/panel/suscripcion/planes">Elegir otro plan</Link>
   </main>;
 }

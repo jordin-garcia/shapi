@@ -353,6 +353,81 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(1);
     }
 
+    // RF-17, RF-25: la consulta conserva el plan actual completo aunque se desactive.
+    [Fact]
+    public async Task RF_25_Consultar_PlanInactivoConservaLimitesParaCambiar()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET activo = false, max_apis = 3, max_miembros = 5, cuota_peticiones = 250000, dominio_propio = true WHERE id = '{plan}'");
+        await NuevaSuscripcionPlataforma(org, plan);
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Get, "/api/suscripcion", org, user, null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var actual = body.GetProperty("plan");
+        actual.GetProperty("id").GetGuid().Should().Be(plan);
+        actual.GetProperty("maxApis").GetInt32().Should().Be(3);
+        actual.GetProperty("maxMiembros").GetInt32().Should().Be(5);
+        actual.GetProperty("cuotaPeticiones").GetInt64().Should().Be(250000);
+        actual.GetProperty("dominioPropio").GetBoolean().Should().BeTrue();
+        actual.GetProperty("esPrueba").GetBoolean().Should().BeFalse();
+    }
+
+    // RF-20, RF-44: la reactivación no permite renovar Prueba ni un plan gratuito.
+    [Theory]
+    [InlineData(true, "en_gracia")]
+    [InlineData(true, "suspendida")]
+    [InlineData(false, "en_gracia")]
+    [InlineData(false, "suspendida")]
+    public async Task RF_44_Pagar_PruebaOGratuitoExigeContratarSinCobrar(bool esPrueba, string estado)
+    {
+        using var client = Factory.CreateClient();
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = esPrueba
+            ? await Escalar<Guid>("SELECT id FROM plan_plataforma WHERE es_prueba = true")
+            : await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 0, es_prueba = {esPrueba} WHERE id = '{plan}'");
+        var inicio = Reloj.Ahora.AddDays(-30);
+        var fin = Reloj.Ahora.AddDays(-1);
+        var sub = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{org}', '{plan}', '{estado}', '{inicio:O}', '{fin:O}', '{Reloj.Ahora.AddDays(7):O}') RETURNING id
+            """);
+        using var response = await Enviar(client, HttpMethod.Post, "/api/suscripcion/pagar", org, user,
+            new { tarjeta = Tarjeta("4242424242424242") });
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("codigo").GetString().Should().Be("requiere_plan_de_pago");
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(estado);
+        (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(inicio.UtcDateTime);
+        (await Escalar<DateTime>($"SELECT fin FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(fin.UtcDateTime);
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}'")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);
+        (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE objetivo_id = '{sub}'")).Should().Be(0);
+        Publicador.Publicadas.Should().BeEmpty();
+    }
+
+    // RF-25: cancelar sin un cambio pendiente es idempotente y no inventa acciones.
+    [Fact]
+    public async Task RF_25_CancelarCambio_SinCambioNoRegistraBitacora()
+    {
+        var (org, user, sub, _) = await Escenario();
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Delete, "/api/suscripcion/cambio-programado", org, user, null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE objetivo_id = '{sub}'")).Should().Be(0);
+    }
+
     // RF-20: el propietario puede pagar en gracia y el ciclo empieza de nuevo el día del pago.
     [Fact]
     public async Task RF_20_Pagar_ReactivaLaSuscripcionYPublicaOrganizacion()

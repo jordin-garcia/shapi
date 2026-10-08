@@ -37,11 +37,13 @@ export default function PaginaA21PlanesPlataforma() {
   const planAnual = consulta.data.find(plan => plan.nombre === 'Escala anual');
   const visibles = consulta.data.filter(plan => plan.nombre !== 'Escala anual');
   const cambiar = actual.data?.estado === 'activa' && actual.data.plan.precio > 0;
+  const reactivar = actual.data != null && actual.data.plan.precio > 0 && ['en_gracia', 'suspendida'].includes(actual.data.estado);
   const rutaPlan = (id: string) => `/panel/suscripcion/${cambiar ? 'cambiar' : 'contratar'}/${id}`;
   return <main>
     <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Planes de plataforma</p>
     <h1 className="mt-2 font-display text-[44px] leading-[1.15]">Los planes de Shapi.</h1>
     <p className="mt-3 text-[16px] leading-[1.6] text-tinta-suave">Precios en quetzales. La vigencia se cuenta desde la contratación del plan.</p>
+    {reactivar && <p className="mt-5 text-sm">Reactive su suscripción antes de cambiar de plan. <Link className="font-medium text-principal underline" to="/panel/suscripcion">Reactivar suscripción</Link></p>}
     <section aria-label="Planes de plataforma" className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
       {visibles.map((plan: Plan) => <article key={plan.id} className={'flex flex-col gap-5 rounded-base border p-6 ' + (plan.nombre === 'Producto' ? 'border-principal bg-white' : 'border-borde bg-panel')}>
         <div>
@@ -52,7 +54,7 @@ export default function PaginaA21PlanesPlataforma() {
         <div className="border-t border-borde pt-4">
           <p className="font-display text-[30px]">{dinero(plan.precio)}</p>
           <p className="text-sm text-tinta-suave">{plan.nombre === 'Escala mensual' ? 'Mensual · vigencia de 30 días' : 'Vigencia de ' + plan.vigenciaDias + ' días'}</p>
-          {plan.nombre === 'Escala mensual' && planAnual && <p className="mt-1 text-sm text-tinta-suave">o {dinero(planAnual.precio)} anual · {planAnual.vigenciaDias} días</p>}
+          {plan.nombre === 'Escala mensual' && planAnual && <p className="mt-1 text-sm text-tinta-suave">o {dinero(planAnual.precio)} anual · {planAnual.vigenciaDias} días y {planAnual.cuotaPeticiones.toLocaleString('es-GT')} peticiones</p>}
         </div>
         <ul className="flex-1 space-y-2 text-sm">
           <li>{plan.maxApis == null ? 'APIs ilimitadas' : plan.maxApis + (plan.maxApis === 1 ? ' API' : ' APIs')}</li>
@@ -61,7 +63,9 @@ export default function PaginaA21PlanesPlataforma() {
           {plan.dominioPropio && <li>Dominio propio</li>}
           {plan.esPrueba && <li>Prueba gratis por {plan.vigenciaDias} días</li>}
         </ul>
-        {plan.id === actual.data?.plan.id
+        {reactivar
+          ? <Boton disabled className="w-full">Reactive su suscripción</Boton>
+          : plan.id === actual.data?.plan.id
           ? <Boton disabled className="w-full">Plan actual</Boton>
           : plan.esPrueba
             ? <Boton disabled className="w-full">Prueba</Boton>

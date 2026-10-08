@@ -121,7 +121,7 @@ paths:
         "204": { description: Cambio cancelado }
   /api/suscripcion/pagar:
     post:
-      summary: Paga y reactiva una suscripción en gracia o suspendida
+      summary: Paga y reactiva un plan de pago en gracia o suspendido
       operationId: pagarSuscripcionPlataforma
       requestBody:
         required: true
@@ -152,7 +152,7 @@ paths:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
         "422":
-          description: Tarjeta inválida o vencida
+          description: Tarjeta inválida o vencida, o el plan es Prueba o gratuito (`requiere_plan_de_pago`); debe contratar un plan de pago
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
@@ -316,7 +316,7 @@ components:
       properties:
         plan:
           type: object
-          required: [id, nombre, descripcion, precio, moneda, vigenciaDias]
+          required: [id, nombre, descripcion, precio, moneda, vigenciaDias, maxApis, maxMiembros, cuotaPeticiones, dominioPropio, esPrueba]
           properties:
             id: { type: string, format: uuid }
             nombre: { type: string }
@@ -324,6 +324,11 @@ components:
             precio: { type: number }
             moneda: { type: string, const: GTQ }
             vigenciaDias: { type: integer }
+            maxApis: { type: [integer, "null"] }
+            maxMiembros: { type: [integer, "null"] }
+            cuotaPeticiones: { type: integer, format: int64 }
+            dominioPropio: { type: boolean }
+            esPrueba: { type: boolean }
         estado: { type: string, enum: [activa, en_gracia, suspendida, finalizada] }
         periodo:
           type: object
