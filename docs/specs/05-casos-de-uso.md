@@ -126,7 +126,7 @@ Formato: **Actor**, **Precondiciones**, **Flujo principal**, **Flujos alternos**
 - **Flujo principal:**
   1. El propietario escribe el correo y el rol (editor o lector) y envía la invitación.
   2. El sistema valida el límite de miembros ([RF-43](03-requisitos.md#rf-43)), crea el token de invitación (vence a los 7 días) y pone en la cola el correo.
-  3. La persona invitada abre el enlace, escribe su nombre y su contraseña, y queda como miembro.
+  3. La persona invitada abre el enlace, escribe su nombre y su contraseña, y queda como miembro. Si ya tiene una cuenta sin organización, se agrega la membresía y conserva sus datos de acceso.
   4. El propietario puede cambiar el rol de un miembro o quitarlo, con confirmación.
 - **Flujos alternos:**
   - **2a.** El correo ya pertenece a otra organización: error `correo_en_otra_organizacion`.

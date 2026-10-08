@@ -58,7 +58,7 @@ export default function PaginaA82Invitacion() {
     return (
       <MarcoAcceso>
         <Encabezado rotulo="Invitación" titulo="Ya es parte de la organización">
-          <p className="text-[15px] leading-relaxed text-tinta-suave">Se aceptó la invitación a {invitacion.organizacion}. Entre con su correo y la contraseña que acaba de crear.</p>
+          <p className="text-[15px] leading-relaxed text-tinta-suave">Se aceptó la invitación a {invitacion.organizacion}. {invitacion.cuentaExistente ? 'Entre con su correo y su contraseña actual.' : 'Entre con su correo y la contraseña que acaba de crear.'}</p>
         </Encabezado>
         <Link className="mt-7 inline-block text-principal hover:underline" to="/entrar">Entrar a Shapi</Link>
       </MarcoAcceso>
@@ -68,6 +68,14 @@ export default function PaginaA82Invitacion() {
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError('');
+    if (invitacion.cuentaExistente) {
+      aceptar.mutate({});
+      return;
+    }
+    if (contrasena.trim().toLowerCase() === invitacion.correo.trim().toLowerCase()) {
+      setError('La contraseña no puede ser igual al correo.');
+      return;
+    }
     aceptar.mutate({ nombre: nombre.trim(), contrasena });
   }
 
@@ -78,20 +86,21 @@ export default function PaginaA82Invitacion() {
     <MarcoAcceso>
       <Encabezado rotulo={`Invitación de ${invitacion.organizacion}`} titulo={`Unirse a ${invitacion.organizacion}`}>
         <p className="text-[15px] leading-relaxed text-tinta-suave">{invitacion.nombrePropietario} lo invitó a administrar las APIs de su organización en Shapi con el rol de <strong className="font-medium text-tinta">{rol}</strong>.</p>
+        {invitacion.cuentaExistente && <p className="text-[15px] leading-relaxed text-tinta-suave">Esta cuenta ya existe. Al aceptar, se agregará esta organización; podrá entrar con su contraseña actual.</p>}
       </Encabezado>
       <form onSubmit={enviar} noValidate>
-        <div className="mt-8 flex flex-col gap-5">
+        {!invitacion.cuentaExistente && <div className="mt-8 flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <label className="text-[13px] font-semibold" htmlFor="correo-invitacion">Correo electrónico</label>
             <input id="correo-invitacion" value={invitacion.correo} disabled className="rounded-lg border border-borde bg-fondo px-3.5 py-3 text-[15px] text-tinta-suave" />
             <p className="m-0 text-[13px] leading-relaxed text-tinta-suave">Es el correo al que llegó la invitación.</p>
           </div>
           <CampoEtiquetado etiqueta="Nombre" value={nombre} onChange={evento => setNombre(evento.target.value)} autoComplete="name" />
-          <CampoEtiquetado etiqueta="Contraseña" type="password" value={contrasena} onChange={evento => setContrasena(evento.target.value)} autoComplete="new-password" />
-        </div>
+          <CampoEtiquetado etiqueta="Contraseña" type="password" maxLength={128} value={contrasena} onChange={evento => setContrasena(evento.target.value)} autoComplete="new-password" />
+        </div>}
         {error && <div className="mt-6"><Aviso estado="error">{error}</Aviso></div>}
         <div className="mt-8 flex flex-col gap-5">
-          <Boton type="submit" className="w-full" deshabilitado={aceptar.isPending || !nombre.trim() || contrasena.length < 10}>
+          <Boton type="submit" className="w-full" deshabilitado={aceptar.isPending || (!invitacion.cuentaExistente && (!nombre.trim() || contrasena.length < 10))}>
             {aceptar.isPending ? 'Aceptando…' : 'Aceptar la invitación'}
           </Boton>
           <p className="m-0 text-center text-sm text-tinta-suave">La invitación vence el {vencimiento}.</p>

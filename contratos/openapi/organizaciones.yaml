@@ -102,7 +102,7 @@ paths:
         "404": { description: Invitación vencida, usada o inexistente }
   /api/invitaciones/{token}/aceptar:
     post:
-      summary: Acepta una invitación y crea la cuenta del miembro
+      summary: Acepta una invitación y crea una cuenta o agrega una membresía
       operationId: aceptarInvitacionMiembro
       parameters:
         - name: token
@@ -116,7 +116,7 @@ paths:
             schema:
               $ref: "#/components/schemas/PeticionAceptarInvitacionMiembro"
       responses:
-        "201": { description: Cuenta verificada y membresía creadas }
+        "201": { description: Cuenta verificada (si no existía) y membresía creadas }
         "400":
           description: Nombre o contraseña inválidos
           content:
@@ -167,19 +167,19 @@ components:
         rol: { type: string, enum: [editor, lector] }
     InvitacionMiembro:
       type: object
-      required: [organizacion, nombrePropietario, correo, rol, expiraEn]
+      required: [organizacion, nombrePropietario, correo, rol, expiraEn, cuentaExistente]
       properties:
         organizacion: { type: string }
         nombrePropietario: { type: string }
         correo: { type: string, format: email }
         rol: { type: string, enum: [editor, lector] }
         expiraEn: { type: string, format: date-time }
+        cuentaExistente: { type: boolean }
     PeticionAceptarInvitacionMiembro:
       type: object
-      required: [nombre, contrasena]
       properties:
         nombre: { type: string, minLength: 1, maxLength: 200 }
-        contrasena: { type: string, minLength: 10 }
+        contrasena: { type: string, minLength: 10, maxLength: 128 }
     Problema:
       type: object
       properties:

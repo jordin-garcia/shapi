@@ -1,4 +1,5 @@
 using FluentValidation;
+using Shapi.Aplicacion.Identidad;
 
 namespace Shapi.Aplicacion.Organizaciones;
 
@@ -32,6 +33,6 @@ public sealed class ValidadorAceptarInvitacionMiembro : AbstractValidator<Petici
     public ValidadorAceptarInvitacionMiembro()
     {
         RuleFor(x => x.Nombre).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Contrasena).NotEmpty().MinimumLength(10);
+        RuleFor(x => x.Contrasena).NotEmpty().Length(ValidadorRegistroProveedor.LargoMinimoContrasena, ValidadorRegistroProveedor.LargoMaximoContrasena);
     }
 }

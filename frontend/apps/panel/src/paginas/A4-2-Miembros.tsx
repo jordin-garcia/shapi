@@ -53,7 +53,7 @@ export default function PaginaA42Miembros() {
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.isError) return <EstadoError mensaje="No se pudieron cargar los miembros." reintentar={() => void consulta.refetch()} />;
   const datos = consulta.data as ListaMiembros;
-  const plan = datos.plan.maxMiembros == null ? 'Miembros ilimitados' : datos.plan.maxMiembros.toLocaleString('es-GT');
+  const plan = datos.plan.maxMiembros == null ? 'miembros ilimitados' : datos.plan.maxMiembros.toLocaleString('es-GT');
   const descripcion = `Personas de ${datos.organizacion} con acceso a Shapi y el rol de cada una. Su plan ${datos.plan.nombre} permite ${plan}${datos.plan.maxMiembros == null ? '' : ' miembros'}; tiene ${datos.total.toLocaleString('es-GT')}.`;
   const limiteAlcanzado = datos.plan.maxMiembros != null && datos.total >= datos.plan.maxMiembros;
 
@@ -127,7 +127,8 @@ export default function PaginaA42Miembros() {
           <form onSubmit={enviar}>
             <div className="mt-5 flex flex-col gap-4 border-t border-borde pt-5">
               <Campo etiqueta="Correo" type="email" placeholder="nombre@enviosxelaju.com" value={correo} onChange={evento => setCorreo(evento.target.value)} required />
-              <Selector aria-label="Rol" value={rol} onChange={evento => setRol(evento.target.value as 'editor' | 'lector')}
+              <label className="text-[13px] font-semibold" htmlFor="rol-miembro">Rol</label>
+              <Selector id="rol-miembro" aria-label="Rol" value={rol} onChange={evento => setRol(evento.target.value as 'editor' | 'lector')}
                 opciones={[{ etiqueta: 'Editor', valor: 'editor' }, { etiqueta: 'Lector', valor: 'lector' }]} />
             </div>
             <p className="mb-0 mt-5 text-sm leading-relaxed text-tinta-suave">Le enviaremos un enlace a ese correo para unirse a {datos.organizacion}.</p>

@@ -51,12 +51,6 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: Plan válido (66 tareas); compilación sin errores ni advertencias; formato, lint, typecheck y build del frontend correctos; 230 pruebas de frontend pasan con `pnpm test --maxWorkers=1`. La ejecución paralela local tuvo tiempos de espera; no se cambiaron las aserciones ni sus límites. Las pruebas de integración locales encontraron un fallo de DNS al descargar imágenes de Docker Hub; el backend del commit anterior ya pasó en la CI. Se requiere confirmar también la CI del commit corregido antes de integrar.
 - Pendiente o aviso para otros: Ninguno sobre contratos; esta corrección mantiene los endpoints y sus tipos.
 
-## 2026-10-07 · EM-12 · Miembros e invitaciones (A4.2 y A8.2)
-- Hecho: Se implementaron la consulta, invitación, cambio de rol y eliminación de miembros; aceptación de invitación con cuenta verificada; bitácora; contrato OpenAPI; pantallas A4.2 y A8.2; y pruebas de integración y Vitest.
-- Decisiones: El token se guarda con hash y se envía en el correo de invitación. Las invitaciones vigentes cuentan para el límite del plan.
-- Pendiente o aviso para otros:
-  - **Jordin:** las pruebas API usan Testcontainers, pero Docker no está disponible en este entorno (`/var/run/docker.sock`). La compilación pasa; confirmar en CI que las pruebas de integración pasan antes de integrar el PR.
-
 ## 2026-09-30 · EM-05 · Identidad del consumidor (backend del portal)
 - Hecho: Se implementaron registro por organización, verificación y reenvío de correo, acceso y salida, consulta de sesión, recuperación y aceptación de invitaciones. La cookie `portal_sesion` valida el ámbito consumidor, la organización y el host del portal. Se agregaron pruebas de integración para correos duplicados entre organizaciones, aislamiento de cookie por host, invitación, bloqueo concurrente, recuperación de correo compartido, salida y límite por IP.
 - Decisiones: La marca y los enlaces de verificación/recuperación usan los datos y el host canónico de `IResolutorPortal`. El servicio de recuperación exige token del ámbito esperado. Se limita por IP registro, verificación, reenvío, acceso, recuperación e invitaciones; restablecer mantiene el alcance del flujo personal. `identidad.ts` se regeneró a partir del contrato.
@@ -86,3 +80,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **DC-15:** ya están disponibles en `contratos/openapi/suscripciones.yaml` los endpoints y tipos de suscripción de plataforma para continuar la tarea dependiente.
   - **Dominique:** actualicé `frontend/apps/panel/src/tests/rutas.test.tsx` para registrar las pantallas EM-09 y simular los endpoints de suscripción; quedó autorizado por el usuario.
+
+## 2026-10-08 · EM-12 · Miembros e invitaciones (A4.2 y A8.2)
+- Hecho: Se implementaron la consulta, invitación, cambio de rol y eliminación de miembros; aceptación de invitación con cuenta verificada; bitácora; contrato OpenAPI; pantallas A4.2 y A8.2; y pruebas de integración y Vitest. La cuenta sin membresías se reutiliza sin alterar su contraseña. El motor de correo construye el enlace de invitación al renderizar el mensaje; el outbox no persiste la URL con el token y el token se elimina al enviar.
+- Decisiones: Las invitaciones vigentes cuentan para el límite del plan. Si se vuelve a invitar una cuenta sin organización, se conservan sus datos de acceso y se agrega solo la membresía; se precisaron RF-06 y CU-04.
+- Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; `node scripts/tareas.mjs --validar` informa 68 tareas válidas. En `frontend/`, `pnpm generar:api`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (340 pruebas) y `pnpm build` pasan. La revisión independiente quedó en LISTO. Las pruebas API compilan, pero Testcontainers no puede iniciar sin Docker (`/var/run/docker.sock`); CI debe confirmar backend antes de integrar.
+- Pendiente o aviso para otros:
+  - **José Pablo:** el motor compartido `MotorPlantillasCorreo` ahora genera el enlace de `invitacion_miembro` a partir del token durante el renderizado; al enviar, los datos persistidos ya no contienen el token.
+  - **Jordin:** las pruebas API usan Testcontainers, pero Docker no está disponible en este entorno (`/var/run/docker.sock`); queda por confirmar `backend` en la siguiente CI.

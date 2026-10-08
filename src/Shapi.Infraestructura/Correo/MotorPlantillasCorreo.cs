@@ -95,7 +95,7 @@ public sealed partial class MotorPlantillasCorreo
 
     private void AgregarEnlace(string plantilla, IDictionary<string, string> datos)
     {
-        if (plantilla is not ("verificacion_correo" or "recuperacion"))
+        if (plantilla is not ("verificacion_correo" or "recuperacion" or "invitacion_miembro"))
         {
             return;
         }
@@ -106,7 +106,12 @@ public sealed partial class MotorPlantillasCorreo
         }
 
         var host = HostDelEnlace(datos);
-        var ruta = plantilla == "verificacion_correo" ? "verificar-correo" : "restablecer";
+        var ruta = plantilla switch
+        {
+            "verificacion_correo" => "verificar-correo",
+            "recuperacion" => "restablecer",
+            _ => "invitacion",
+        };
         datos["enlace"] = $"https://{host}/{ruta}?token={Uri.EscapeDataString(token)}";
     }
 

@@ -93,7 +93,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Acepta una invitación y crea la cuenta del miembro */
+        /** Acepta una invitación y crea una cuenta o agrega una membresía */
         post: operations["aceptarInvitacionMiembro"];
         delete?: never;
         options?: never;
@@ -150,10 +150,11 @@ export interface components {
             rol: "editor" | "lector";
             /** Format: date-time */
             expiraEn: string;
+            cuentaExistente: boolean;
         };
         PeticionAceptarInvitacionMiembro: {
-            nombre: string;
-            contrasena: string;
+            nombre?: string;
+            contrasena?: string;
         };
         Problema: {
             type?: string;
@@ -428,7 +429,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Cuenta verificada y membresía creadas */
+            /** @description Cuenta verificada (si no existía) y membresía creadas */
             201: {
                 headers: {
                     [name: string]: unknown;

@@ -18,7 +18,7 @@ let datos = {
 };
 let invitacion = {
   organizacion: 'Envíos Xelajú, S.A.', nombrePropietario: 'Ana Lucía Morales', correo: 'diego.us@enviosxelaju.com',
-  rol: 'editor', expiraEn: '2026-09-15T06:00:00Z',
+  rol: 'editor', expiraEn: '2026-09-15T06:00:00Z', cuentaExistente: false,
 };
 let cuerpoInvitacion: unknown;
 let cuerpoAceptacion: unknown;
@@ -55,7 +55,7 @@ beforeAll(() => servidor.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   servidor.resetHandlers();
   datos = { elementos: [propietario, editor, miembro], total: 3, invitacionesPendientes: 0, organizacion: 'Envíos Xelajú, S.A.', usuarioActualId: 'u-1', plan: { nombre: 'Producto', maxMiembros: 10 } };
-  invitacion = { organizacion: 'Envíos Xelajú, S.A.', nombrePropietario: 'Ana Lucía Morales', correo: 'diego.us@enviosxelaju.com', rol: 'editor', expiraEn: '2026-09-15T06:00:00Z' };
+  invitacion = { organizacion: 'Envíos Xelajú, S.A.', nombrePropietario: 'Ana Lucía Morales', correo: 'diego.us@enviosxelaju.com', rol: 'editor', expiraEn: '2026-09-15T06:00:00Z', cuentaExistente: false };
   cuerpoInvitacion = undefined;
   cuerpoAceptacion = undefined;
   rolActualizado = undefined;
@@ -84,6 +84,7 @@ describe('A4.2 · Miembros y roles (RF-06, RF-43)', () => {
     const user = userEvent.setup();
     renderMiembros();
     expect(await screen.findByText('Todavía no ha invitado a nadie')).toBeDefined();
+    expect(screen.getAllByText('Rol').some(elemento => elemento.tagName === 'LABEL')).toBe(true);
     expect(screen.getByText(/Su plan Producto permite 10 miembros; tiene 1\./)).toBeDefined();
     await user.type(screen.getByLabelText('Correo'), 'nueva@ejemplo.com');
     await user.selectOptions(screen.getByLabelText('Rol'), 'lector');
@@ -126,5 +127,28 @@ describe('A8.2 · Aceptar la invitación (RF-06)', () => {
     renderInvitacion();
     expect(await screen.findByRole('heading', { name: 'El enlace ya no sirve' })).toBeDefined();
     expect(screen.getByText('La invitación venció, ya se usó o no pertenece a este portal.')).toBeDefined();
+  });
+
+  it('rechaza una contraseña igual al correo', async () => {
+    const user = userEvent.setup();
+    renderInvitacion();
+    await screen.findByRole('heading', { name: 'Unirse a Envíos Xelajú, S.A.' });
+    await user.type(screen.getByLabelText('Nombre'), 'Diego Us Pérez');
+    await user.type(screen.getByLabelText('Contraseña'), invitacion.correo);
+    await user.click(screen.getByRole('button', { name: 'Aceptar la invitación' }));
+    expect(await screen.findByText('La contraseña no puede ser igual al correo.')).toBeDefined();
+    expect(cuerpoAceptacion).toBeUndefined();
+  });
+
+  it('reutiliza la cuenta existente sin pedir sus datos de acceso', async () => {
+    invitacion = { ...invitacion, cuentaExistente: true };
+    const user = userEvent.setup();
+    renderInvitacion();
+    expect(await screen.findByText('Esta cuenta ya existe. Al aceptar, se agregará esta organización; podrá entrar con su contraseña actual.')).toBeDefined();
+    expect(screen.queryByLabelText('Nombre')).toBeNull();
+    expect(screen.queryByLabelText('Contraseña')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Aceptar la invitación' }));
+    await waitFor(() => expect(cuerpoAceptacion).toEqual({}));
+    expect(await screen.findByText('Se aceptó la invitación a Envíos Xelajú, S.A.. Entre con su correo y su contraseña actual.')).toBeDefined();
   });
 });

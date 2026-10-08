@@ -87,7 +87,6 @@ public static class MiembrosApi
         [FromServices] IColaCorreo colaCorreo,
         [FromServices] IBitacora bitacora,
         [FromServices] IReloj reloj,
-        [FromServices] IConfiguration configuracion,
         HttpContext http,
         CancellationToken cancelacion)
     {
@@ -153,20 +152,18 @@ public static class MiembrosApi
         var rol = peticion.Rol!;
         var token = Token.InvitacionMiembro(SeguridadTokens.HashearToken(valorToken), organizacionId, correo, rol, ahora);
         var nombreOrganizacion = await db.Set<Organizacion>().IgnoreQueryFilters().Where(o => o.Id == organizacionId).Select(o => o.Nombre).SingleAsync(cancelacion);
-        var dominio = configuracion["SHAPI_DOMINIO_BASE"]?.Trim().TrimEnd('.') ?? "shapi.localhost";
-        var enlace = $"https://{dominio}/invitacion?token={Uri.EscapeDataString(valorToken)}";
         db.Add(token);
+        var nombreActor = await ObtenerNombreActor(db, http.User, cancelacion);
         await colaCorreo.Encolar("invitacion_miembro", correo, new
         {
             nombre = correo,
             nombreOrganizacion,
             token = valorToken,
-            enlace,
         }, cancelacion);
         await bitacora.Registrar(new EntradaBitacora(
             TipoActor.Usuario,
             IdUsuario(http.User),
-            http.User.Identity?.Name ?? "Usuario",
+            nombreActor,
             organizacionId,
             "miembro.invitado",
             $"Invitó a {correo} con el rol de {rol}")
@@ -208,6 +205,8 @@ public static class MiembrosApi
             where membresia.OrganizacionId == organizacionId && membresia.Rol == Rol.Propietario
             select cuenta.Nombre
         ).SingleOrDefaultAsync(cancelacion);
+        var cuentaExistente = await db.Set<Usuario>().IgnoreQueryFilters().AnyAsync(cuenta => cuenta.Correo == invitacion.Correo
+            && !db.Set<Membresia>().IgnoreQueryFilters().Any(membresia => membresia.UsuarioId == cuenta.Id), cancelacion);
         return TypedResults.Ok(new
         {
             organizacion = org,
@@ -215,6 +214,7 @@ public static class MiembrosApi
             correo = invitacion.Correo,
             rol = invitacion.Rol,
             expiraEn = invitacion.ExpiraEn,
+            cuentaExistente,
         });
     }
 
@@ -227,12 +227,6 @@ public static class MiembrosApi
         [FromServices] IReloj reloj,
         CancellationToken cancelacion)
     {
-        var validacion = await validador.ValidateAsync(peticion, cancelacion);
-        if (!validacion.IsValid)
-        {
-            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.", validacion.ToDictionary());
-        }
-
         var ahora = reloj.Ahora;
         var hashToken = SeguridadTokens.HashearToken(token);
         var invitacion = await db.Set<Token>().IgnoreQueryFilters()
@@ -242,9 +236,21 @@ public static class MiembrosApi
             return InvitacionInvalida();
         }
 
-        if (await db.Set<Usuario>().IgnoreQueryFilters().AnyAsync(u => u.Correo == invitacion.Correo, cancelacion))
+        var existente = await db.Set<Usuario>().IgnoreQueryFilters().AsNoTracking()
+            .SingleOrDefaultAsync(cuenta => cuenta.Correo == invitacion.Correo, cancelacion);
+        if (existente is null)
         {
-            return ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, "correo_en_otra_organizacion", "El correo ya pertenece a otra organización.");
+            var validacion = await validador.ValidateAsync(peticion, cancelacion);
+            if (!validacion.IsValid)
+            {
+                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.", validacion.ToDictionary());
+            }
+
+            if (string.Equals(peticion.Contrasena?.Trim(), invitacion.Correo.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos, "Revise los datos del formulario.",
+                    new Dictionary<string, string[]> { ["contrasena"] = ["La contraseña no puede ser igual al correo."] });
+            }
         }
 
         await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
@@ -255,10 +261,31 @@ public static class MiembrosApi
             return InvitacionInvalida();
         }
 
-        var usuario = new Usuario(peticion.Nombre!, invitacion.Correo);
-        usuario.DefinirHashContrasena(hasher.HashPassword(usuario, peticion.Contrasena!));
-        usuario.VerificarCorreo(ahora);
-        db.AddRange(usuario, new Membresia(usuario.Id, organizacionId, invitacion.Rol == "editor" ? Rol.Editor : Rol.Lector));
+        Usuario usuario;
+        if (existente is not null)
+        {
+            var bloqueada = await db.Set<Usuario>().FromSqlInterpolated($"SELECT * FROM usuario WHERE id = {existente.Id} FOR UPDATE")
+                .IgnoreQueryFilters().SingleOrDefaultAsync(cancelacion);
+            if (bloqueada is null)
+            {
+                return InvitacionInvalida();
+            }
+
+            usuario = bloqueada;
+            if (await db.Set<Membresia>().IgnoreQueryFilters().AnyAsync(membresia => membresia.UsuarioId == usuario.Id, cancelacion))
+            {
+                return ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, "correo_en_otra_organizacion", "El correo ya pertenece a otra organización.");
+            }
+
+            db.Add(new Membresia(usuario.Id, organizacionId, invitacion.Rol == "editor" ? Rol.Editor : Rol.Lector));
+        }
+        else
+        {
+            usuario = new Usuario(peticion.Nombre!, invitacion.Correo);
+            usuario.DefinirHashContrasena(hasher.HashPassword(usuario, peticion.Contrasena!));
+            usuario.VerificarCorreo(ahora);
+            db.AddRange(usuario, new Membresia(usuario.Id, organizacionId, invitacion.Rol == "editor" ? Rol.Editor : Rol.Lector));
+        }
         try
         {
             await db.SaveChangesAsync(cancelacion);
@@ -315,7 +342,7 @@ public static class MiembrosApi
         var rolAnterior = membresia.Rol;
         membresia.CambiarRol(rolNuevo);
         await db.SaveChangesAsync(cancelacion);
-        await RegistrarAccion(bitacora, http, organizacionId, "miembro.rol_cambiado", membresia.Id, $"Cambió el rol de {rolAnterior} a {rolNuevo}", new { rolAnterior = RolTexto(rolAnterior), rol = peticion.Rol }, cancelacion);
+        await RegistrarAccion(db, bitacora, http, organizacionId, "miembro.rol_cambiado", membresia.Id, $"Cambió el rol de {rolAnterior} a {rolNuevo}", new { rolAnterior = RolTexto(rolAnterior), rol = peticion.Rol }, cancelacion);
         await transaccion.CommitAsync(cancelacion);
         return TypedResults.Ok();
     }
@@ -349,19 +376,32 @@ public static class MiembrosApi
         var correo = cuenta.Correo;
         db.Remove(membresia);
         await db.SaveChangesAsync(cancelacion);
-        await RegistrarAccion(bitacora, http, organizacionId, "miembro.quitado", membresia.Id, $"Quitó a {correo}", new { correo }, cancelacion);
+        await RegistrarAccion(db, bitacora, http, organizacionId, "miembro.quitado", membresia.Id, $"Quitó a {correo}", new { correo }, cancelacion);
         await transaccion.CommitAsync(cancelacion);
         return TypedResults.NoContent();
     }
 
-    private static Task RegistrarAccion(IBitacora bitacora, HttpContext http, Guid organizacionId, string accion, Guid objetivoId, string descripcion, object detalle, CancellationToken cancelacion) =>
-        bitacora.Registrar(new EntradaBitacora(TipoActor.Usuario, IdUsuario(http.User), http.User.Identity?.Name ?? "Usuario", organizacionId, accion, descripcion)
+    private static async Task RegistrarAccion(ShapiDbContext db, IBitacora bitacora, HttpContext http, Guid organizacionId, string accion, Guid objetivoId, string descripcion, object detalle, CancellationToken cancelacion)
+    {
+        var actorId = IdUsuario(http.User);
+        var nombreActor = await ObtenerNombreActor(db, http.User, cancelacion);
+        await bitacora.Registrar(new EntradaBitacora(TipoActor.Usuario, actorId, nombreActor, organizacionId, accion, descripcion)
         {
             ObjetivoTipo = "membresia",
             ObjetivoId = objetivoId,
             Detalle = detalle,
             Ip = http.Connection.RemoteIpAddress?.ToString(),
         }, cancelacion);
+    }
+
+    private static async Task<string> ObtenerNombreActor(ShapiDbContext db, ClaimsPrincipal usuario, CancellationToken cancelacion)
+    {
+        var actorId = IdUsuario(usuario);
+        var nombre = actorId is { } id
+            ? await db.Set<Usuario>().IgnoreQueryFilters().Where(cuenta => cuenta.Id == id).Select(cuenta => cuenta.Nombre).SingleOrDefaultAsync(cancelacion)
+            : null;
+        return nombre ?? usuario.FindFirstValue(ClaimTypes.Name) ?? "Usuario";
+    }
 
     private static IResult ProblemaConDetalle(int estado, string codigo, string titulo, string? limite = null)
     {

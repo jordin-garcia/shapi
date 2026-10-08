@@ -57,6 +57,6 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ## Resultado
 - Implementé la consulta y administración de miembros, invitaciones con expiración de siete días, aceptación con cuenta verificada y bitácora; añadí los endpoints y el contrato OpenAPI.
 - Implementé A4.2 y A8.2 con sus estados de lista, límite del plan, invitación, confirmación para quitar y aceptación; regeneré los tipos de TypeScript.
-- Añadí pruebas de integración para permisos, aislamiento, límites, invitación y cambios de membresía, además de pruebas Vitest para miembros e invitaciones.
-- Decisiones: el token se almacena con hash y solo se envía en el correo; las invitaciones vigentes cuentan para el límite de miembros.
-- Verificación local: compilación, formato, lint, typecheck, 332 pruebas de frontend y build pasan. Las pruebas API compilan, pero no pudieron ejecutarse porque este entorno no tiene Docker; la CI debe confirmar las pruebas con Testcontainers antes de integrar.
+- Añadí pruebas de integración para permisos, aislamiento, límites, invitaciones, expiración, re-invitación, validación de contraseña, cambios de membresía y el enlace de invitación sin token duplicado en el outbox; añadí pruebas Vitest para miembros e invitaciones.
+- Decisiones: las invitaciones vigentes cuentan para el límite de miembros. Si se vuelve a invitar una cuenta sin organización, se conserva la cuenta y sus credenciales y se agrega solo la membresía; RF-06 y CU-04 quedaron precisados.
+- Verificación local: compilación sin advertencias ni errores, formato, validación del plan, lint, typecheck, 340 pruebas de frontend y build pasan. Las pruebas API compilan, pero no pudieron ejecutarse porque este entorno no tiene Docker (`/var/run/docker.sock`). La revisión independiente quedó en LISTO; falta confirmar la nueva CI antes de integrar.

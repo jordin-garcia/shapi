@@ -86,6 +86,7 @@ Leyenda: ✅ permitido · 👁 solo lectura · — no permitido.
 6. **Se deniega por defecto.** Todo endpoint de la API de control exige una sesión, salvo los que se declaran públicos de forma explícita (`AllowAnonymous`). Solo son públicos los que la especificación declara así:
    - los de `/api/auth` que reciben credenciales o enlaces: `registro`, `verificar-correo`, `reenviar-verificacion`, `entrar`, `recuperar`, `restablecer` (RF-03) y `definir-contrasena` (RF-42);
    - `/api/auth/salir` (10 §1);
+   - `GET /api/invitaciones/{token}` y `POST /api/invitaciones/{token}/aceptar` (RF-06; enlaces con token de un solo uso);
    - los del portal para visitantes sin sesión (§3.3);
    - `/salud` y `/interno/tls/autorizar` (06);
    - `/openapi`, solo en *Development*.
