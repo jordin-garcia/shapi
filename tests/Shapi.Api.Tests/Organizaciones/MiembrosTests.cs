@@ -165,7 +165,7 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         using var segunda = await Enviar(client, HttpMethod.Post, "/api/miembros/invitaciones", organizacion, propietario,
             new { correo = "diego.us@ejemplo.com", rol = "lector" });
         segunda.StatusCode.Should().Be(HttpStatusCode.Accepted);
-        var segundoToken = await Escalar<string>("SELECT datos->>'token' FROM correo_saliente WHERE destinatario = 'diego.us@ejemplo.com' ORDER BY creado_en DESC LIMIT 1");
+        var segundoToken = await Escalar<string>("SELECT datos->>'token' FROM correo_saliente WHERE destinatario = 'diego.us@ejemplo.com' ORDER BY creado_en DESC, id DESC LIMIT 1");
         using var consulta = await client.GetAsync($"/api/invitaciones/{segundoToken}");
         consulta.StatusCode.Should().Be(HttpStatusCode.OK, await consulta.Content.ReadAsStringAsync());
         using var detalle = JsonDocument.Parse(await consulta.Content.ReadAsStringAsync());
