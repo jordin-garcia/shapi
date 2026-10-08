@@ -50,7 +50,7 @@ public static class MiembrosApi
             from membresia in db.Set<Membresia>().AsNoTracking()
             join cuenta in db.Set<Usuario>().AsNoTracking() on membresia.UsuarioId equals cuenta.Id
             where membresia.OrganizacionId == organizacionId
-            orderby membresia.Rol, cuenta.Nombre
+            orderby membresia.Rol == Rol.Propietario ? 0 : membresia.Rol == Rol.Editor ? 1 : 2, cuenta.Nombre
             select new MiembroDto(membresia.Id, cuenta.Id, cuenta.Nombre, cuenta.Correo, RolTexto(membresia.Rol), usuarioActualId != null && cuenta.Id == usuarioActualId)
         ).ToListAsync(cancelacion);
 
@@ -344,9 +344,15 @@ public static class MiembrosApi
         }
 
         var rolAnterior = membresia.Rol;
+        var correoMiembro = await db.Set<Usuario>().IgnoreQueryFilters()
+            .Where(cuenta => cuenta.Id == membresia.UsuarioId)
+            .Select(cuenta => cuenta.Correo)
+            .SingleAsync(cancelacion);
         membresia.CambiarRol(rolNuevo);
         await db.SaveChangesAsync(cancelacion);
-        await RegistrarAccion(db, bitacora, http, organizacionId, "miembro.rol_cambiado", membresia.Id, $"Cambió el rol de {rolAnterior} a {rolNuevo}", new { rolAnterior = RolTexto(rolAnterior), rol = peticion.Rol }, cancelacion);
+        await RegistrarAccion(db, bitacora, http, organizacionId, "miembro.rol_cambiado", membresia.Id,
+            $"Cambió el rol de {correoMiembro} de {RolTexto(rolAnterior)} a {RolTexto(rolNuevo)}",
+            new { correo = correoMiembro, rolAnterior = RolTexto(rolAnterior), rol = peticion.Rol }, cancelacion);
         await transaccion.CommitAsync(cancelacion);
         return TypedResults.Ok();
     }

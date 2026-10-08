@@ -58,7 +58,11 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
     [Fact]
     public async Task RF_06_ListarMiembros_IncluyePropietarioYConteoDeInvitaciones()
     {
-        var (organizacion, propietario) = await PrepararOrganizacion(limite: 3);
+        var (organizacion, propietario) = await PrepararOrganizacion(limite: 5);
+        var editor = await NuevoUsuario();
+        var lector = await NuevoUsuario();
+        await NuevaMembresia(editor, organizacion, "editor");
+        await NuevaMembresia(lector, organizacion, "lector");
         await Ejecutar($"INSERT INTO token (id, tipo, hash_token, organizacion_id, correo, rol, expira_en) VALUES (gen_random_uuid(), 'invitacion_miembro', repeat('a', 64), '{organizacion}', 'pendiente@example.com', 'editor', '{Reloj.Ahora.AddDays(7):O}')");
         using var client = Factory.CreateClient();
 
@@ -67,9 +71,13 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         body.RootElement.GetProperty("plan").GetProperty("nombre").GetString().Should().Be("Producto");
-        body.RootElement.GetProperty("plan").GetProperty("maxMiembros").GetInt32().Should().Be(3);
-        body.RootElement.GetProperty("total").GetInt32().Should().Be(2);
-        body.RootElement.GetProperty("elementos").GetArrayLength().Should().Be(1);
+        body.RootElement.GetProperty("plan").GetProperty("maxMiembros").GetInt32().Should().Be(5);
+        body.RootElement.GetProperty("total").GetInt32().Should().Be(4);
+        var elementos = body.RootElement.GetProperty("elementos");
+        elementos.GetArrayLength().Should().Be(3);
+        elementos[0].GetProperty("rol").GetString().Should().Be("propietario");
+        elementos[1].GetProperty("rol").GetString().Should().Be("editor");
+        elementos[2].GetProperty("rol").GetString().Should().Be("lector");
     }
 
     // RF-06, RF-43: invita, encola el correo, crea una cuenta verificada y consume el token una sola vez.
@@ -255,6 +263,7 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         var miembro = await NuevoUsuario();
         await NuevaMembresia(editor, organizacion, "editor");
         await NuevaMembresia(miembro, organizacion, "lector");
+        var correoMiembro = await Escalar<string>($"SELECT correo FROM usuario WHERE id = '{miembro}'");
         var membresiaPropietario = await Escalar<Guid>($"SELECT id FROM membresia WHERE usuario_id = '{propietario}'");
         using var client = Factory.CreateClient();
         using var anonima = Factory.CreateClient();
@@ -276,12 +285,35 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         quitar.StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion IN ('miembro.rol_cambiado','miembro.quitado')")).Should().Be(2);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion IN ('miembro.rol_cambiado','miembro.quitado') AND actor_nombre = 'Ana'")).Should().Be(2);
+        (await Escalar<string>($"SELECT descripcion FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion = 'miembro.rol_cambiado'")).Should().Be($"Cambió el rol de {correoMiembro} de lector a editor");
 
         var otraOrganizacion = await NuevaOrganizacion();
         var otroUsuario = await NuevoUsuario();
         var otraMembresia = await NuevaMembresia(otroUsuario, otraOrganizacion, "lector");
         using var aislada = await Enviar(client, HttpMethod.Delete, $"/api/miembros/{otraMembresia}", organizacion, propietario, null);
         aislada.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // RF-06: la aceptación de invitación es pública y no requiere sesión.
+    [Fact]
+    public async Task RF_06_AceptarInvitacion_NoRequiereSesion()
+    {
+        var (organizacion, propietario) = await PrepararOrganizacion(limite: 3);
+        using var clientePropietario = Factory.CreateClient();
+        using var invitacion = await Enviar(clientePropietario, HttpMethod.Post, "/api/miembros/invitaciones", organizacion, propietario,
+            new { correo = "sin-sesion@example.com", rol = "lector" });
+        invitacion.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var token = await Escalar<string>("SELECT datos->>'token' FROM correo_saliente WHERE destinatario = 'sin-sesion@example.com'");
+
+        using var clienteAnonimo = Factory.CreateClient();
+        using var solicitud = new HttpRequestMessage(HttpMethod.Post, $"/api/invitaciones/{token}/aceptar")
+        {
+            Content = JsonContent.Create(new { nombre = "Persona Invitada", contrasena = "UnaContrasenaSegura123!" }),
+        };
+        solicitud.Headers.Add("X-Requested-With", "shapi");
+        using var respuesta = await clienteAnonimo.SendAsync(solicitud);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created, await respuesta.Content.ReadAsStringAsync());
     }
 
     private async Task<(Guid Organizacion, Guid Propietario)> PrepararOrganizacion(int limite)
