@@ -103,4 +103,5 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **DC-11:** la pantalla de cuenta deberá consultar la suscripción persistida; A5.4b no guarda ni vuelve a solicitar las claves completas.
   - **DC-10:** `/documentacion` es el destino de salida de la confirmación y conserva el enlace ya implementado.
+  - **EM-08:** si se amplía `Contratacion` para devolver la marca y los últimos cuatro dígitos del medio de pago, A5.4b podrá completar esa fila del mockup; por ahora el contrato no los incluye.
 - Corrección de revisión: el periodo activo ahora muestra el fin inclusivo y los límites coinciden con el mockup; se documentó en `11-interfaz.md` que el contrato vigente no permite mostrar el medio de pago sin inventar datos.

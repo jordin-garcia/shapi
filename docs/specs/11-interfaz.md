@@ -127,7 +127,6 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A5.4b | Plan contratado y claves (única vez) | `Confirmacion.dc.html` | — | RF-20, RF-26 | ✎ (aviso de que no se volverán a mostrar) |
 | A5.5 | El mismo portal con otra marca (inicio y documentación) | `InicioAgro`, `DocumentacionAgro` | `agro.shapi.localhost` | RF-15 | ✎ (URL y peticiones) |
 | A5.6 | Pago en el portal | `Pago.dc.html` | `/contratar/:plan` | RF-20 | ✎ (texto del token) |
-
 | A5.7 | Inicio de sesión del consumidor | `Acceso.dc.html` | `/entrar` | RF-04 | ✎ (enlace para recuperar la contraseña) |
 | A5.8 | Verificación de correo del consumidor | `Verificacion.dc.html` | `/verificar-correo` | RF-02 | ★ |
 | A5.9 | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | ★ |
