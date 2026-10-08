@@ -20,10 +20,11 @@ export async function consultarSesionConsumidor({ signal }: { signal?: AbortSign
   }
 }
 
-export function useSesionConsumidor() {
+export function useSesionConsumidor({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: claveSesionConsumidor,
     queryFn: consultarSesionConsumidor,
+    enabled,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

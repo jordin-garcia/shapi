@@ -78,6 +78,8 @@ function responder(configuracion = configuracionEnvios, rutas: unknown[] = rutas
   server.use(
     http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json(configuracion)),
     http.get('http://localhost/api/portal/documentacion', () => HttpResponse.json({ rutas })),
+    http.get('http://localhost/api/portal/planes', () => HttpResponse.json([])),
+    http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })),
   );
 }
 

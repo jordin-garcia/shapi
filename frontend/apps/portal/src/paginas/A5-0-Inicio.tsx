@@ -1,9 +1,12 @@
 import { EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link } from 'react-router';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import { rutaDocumentacion, textoPeso, useDocumentacionPortal } from './A5-1-Documentacion';
+import { PlanCard, PlanVacio, useElegirPlan, usePlanesPortal, type Contratacion, type PlanApi } from '../modulos/suscripcion/planes';
+import Confirmacion from './A5-4b-Confirmacion';
 
 function Codigo({ valor }: { valor: unknown }) {
   if (valor === null || valor === undefined) return <p className="p-5 text-[14px] text-tinta-suave">Sin ejemplo.</p>;
@@ -13,9 +16,16 @@ function Codigo({ valor }: { valor: unknown }) {
 export default function Inicio() {
   const marca = useMarcaPortal();
   const consulta = useDocumentacionPortal();
+  const planes = usePlanesPortal();
+  const { elegir } = useElegirPlan();
+  const [avisoPlan, setAvisoPlan] = useState<string>();
+  const [resultadoPlan, setResultadoPlan] = useState<{ plan: PlanApi; datos: Contratacion }>();
 
-  if (consulta.isPending) return <EstadoCargando />;
+  if (consulta.isPending || planes.isPending) return <EstadoCargando />;
   if (consulta.isError) return <EstadoError reintentar={() => void consulta.refetch()} />;
+  if (planes.isError) return <EstadoError mensaje="No se pudieron cargar los planes." reintentar={() => void planes.refetch()} />;
+  if (resultadoPlan) return <Confirmacion plan={resultadoPlan.plan} contratacion={resultadoPlan.datos} />;
+  const contratarPlan = (plan: PlanApi) => { setAvisoPlan(undefined); void elegir(plan, (seleccion, datos) => setResultadoPlan({ plan: seleccion, datos }), setAvisoPlan); };
   const primeraConEjemplo = consulta.data.rutas.find(ruta => ruta.ejemploPeticion !== null || ruta.ejemploRespuesta !== null);
 
   return (
@@ -77,7 +87,8 @@ export default function Inicio() {
       <section aria-labelledby="planes-api" className="border-y border-borde bg-[#F4F6FA] px-20 py-16">
         <p className="text-[12px] font-medium uppercase tracking-[.16em] text-tinta-suave">Precios</p>
         <h2 id="planes-api" className="mt-3 font-display text-[44px] font-light tracking-[-.03em] text-tinta">Planes de la API</h2>
-        <div data-pendiente="DC-09" className="mt-10 min-h-20" />
+        {avisoPlan && <div className="mt-6 rounded-base border border-[#EDC3B4] bg-[#FBE9E3] px-4 py-3 text-[14px] text-[#8E3315]" role="alert">{avisoPlan}</div>}
+        {planes.data.length === 0 ? <PlanVacio nombrePortal={marca.nombrePortal} /> : <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">{planes.data.map(plan => <PlanCard key={plan.id} plan={plan} contratar={contratarPlan} />)}</div>}
       </section>
     </>
   );

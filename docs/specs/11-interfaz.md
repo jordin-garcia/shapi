@@ -132,6 +132,8 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 | A5.9 | Recuperación: pedir el enlace | `Recuperacion.dc.html` | `/recuperar` | RF-03 | ★ |
 | A5.10 | Recuperación: contraseña nueva | `NuevaContrasena.dc.html` | `/restablecer?token=` | RF-03 | ★ (correo no visible — ver §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)» y «Comportamiento del portal y de sus pantallas de acceso (DC-03 y DC-08)») |
 
+En A5.4b, la respuesta actual de `POST /api/portal/suscripciones` solo incluye la suscripción y las claves emitidas; no incluye la marca ni los últimos cuatro dígitos del medio de pago. Por ello, mientras el contrato no se amplíe, el portal omite la fila «Medio de pago» del mockup y no inventa ese dato.
+
 ### A6 · Administración y soporte (`a6-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
