@@ -51,6 +51,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: Plan válido (66 tareas); compilación sin errores ni advertencias; formato, lint, typecheck y build del frontend correctos; 230 pruebas de frontend pasan con `pnpm test --maxWorkers=1`. La ejecución paralela local tuvo tiempos de espera; no se cambiaron las aserciones ni sus límites. Las pruebas de integración locales encontraron un fallo de DNS al descargar imágenes de Docker Hub; el backend del commit anterior ya pasó en la CI. Se requiere confirmar también la CI del commit corregido antes de integrar.
 - Pendiente o aviso para otros: Ninguno sobre contratos; esta corrección mantiene los endpoints y sus tipos.
 
+## 2026-10-07 · EM-12 · Miembros e invitaciones (A4.2 y A8.2)
+- Hecho: Se implementaron la consulta, invitación, cambio de rol y eliminación de miembros; aceptación de invitación con cuenta verificada; bitácora; contrato OpenAPI; pantallas A4.2 y A8.2; y pruebas de integración y Vitest.
+- Decisiones: El token se guarda con hash y se envía en el correo de invitación. Las invitaciones vigentes cuentan para el límite del plan.
+- Pendiente o aviso para otros:
+  - **Jordin:** las pruebas API usan Testcontainers, pero Docker no está disponible en este entorno (`/var/run/docker.sock`). La compilación pasa; confirmar en CI que las pruebas de integración pasan antes de integrar el PR.
+
 ## 2026-09-30 · EM-05 · Identidad del consumidor (backend del portal)
 - Hecho: Se implementaron registro por organización, verificación y reenvío de correo, acceso y salida, consulta de sesión, recuperación y aceptación de invitaciones. La cookie `portal_sesion` valida el ámbito consumidor, la organización y el host del portal. Se agregaron pruebas de integración para correos duplicados entre organizaciones, aislamiento de cookie por host, invitación, bloqueo concurrente, recuperación de correo compartido, salida y límite por IP.
 - Decisiones: La marca y los enlaces de verificación/recuperación usan los datos y el host canónico de `IResolutorPortal`. El servicio de recuperación exige token del ámbito esperado. Se limita por IP registro, verificación, reenvío, acceso, recuperación e invitaciones; restablecer mantiene el alcance del flujo personal. `identidad.ts` se regeneró a partir del contrato.

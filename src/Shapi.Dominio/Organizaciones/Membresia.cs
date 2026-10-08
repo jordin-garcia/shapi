@@ -20,4 +20,19 @@ public class Membresia : IPerteneceAOrganizacion
         OrganizacionId = organizacionId;
         Rol = rol;
     }
+
+    public void CambiarRol(Rol rol)
+    {
+        if (Rol == Rol.Propietario)
+        {
+            throw new InvalidOperationException("El rol del propietario no se puede cambiar.");
+        }
+
+        if (rol is not (Rol.Editor or Rol.Lector))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rol));
+        }
+
+        Rol = rol;
+    }
 }

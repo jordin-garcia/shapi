@@ -66,5 +66,25 @@ public class Token
         ExpiraEn = ahora + TimeSpan.FromDays(7),
     };
 
+    /// <summary>Invitación a una membresía del personal, válida por siete días (CU-04).</summary>
+    public static Token InvitacionMiembro(string hashToken, Guid organizacionId, string correo, string rol, DateTimeOffset ahora)
+    {
+        if (rol is not ("editor" or "lector"))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rol));
+        }
+
+        return new Token
+        {
+            Id = Guid.CreateVersion7(),
+            Tipo = TipoToken.InvitacionMiembro,
+            HashToken = hashToken,
+            OrganizacionId = organizacionId,
+            Correo = Usuario.NormalizarCorreo(correo),
+            Rol = rol,
+            ExpiraEn = ahora + TimeSpan.FromDays(7),
+        };
+    }
+
     public bool EsValido(DateTimeOffset ahora) => UsadoEn is null && ExpiraEn > ahora;
 }
