@@ -55,5 +55,6 @@ Verificación manual con el entorno levantado:
 - Se implementaron A5.4, A5.6 y A5.4b con planes activos, estado vacío, validación de acceso, contratación gratuita y pago con tarjeta.
 - Se reutilizó la sección de planes en A5.0 y se consumieron `GET /api/portal/planes` y `POST /api/portal/suscripciones` mediante los tipos generados.
 - La confirmación muestra las dos claves completas una sola vez, permite copiarlas y las retira al salir hacia documentación.
+- La confirmación calcula el último día inclusivo del periodo y presenta las cuotas con los textos del mockup; la ausencia de datos del medio de pago queda documentada en la especificación de interfaz porque el contrato vigente no los devuelve.
 - Pruebas Vitest/MSW cubren planes, sesión, correo sin verificar, pago aprobado/rechazado y plan gratuito.
 - La verificación manual quedó pendiente porque el entorno local levantado no incluye el servicio de API de control; la suite frontend sí pasó completa.

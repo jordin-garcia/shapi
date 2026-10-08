@@ -109,6 +109,9 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
     await userEvent.click(screen.getByRole('button', { name: /pagar q 450\.00/i }));
     expect(await screen.findByRole('heading', { name: 'Plan contratado' })).toBeDefined();
     expect(screen.getByText(contratacion.claves[0].clave)).toBeDefined();
+    expect(screen.getByText('Periodo activo').parentElement?.textContent).toContain('5 nov 2026');
+    expect(screen.getByText('50,000 llamadas')).toBeDefined();
+    expect(screen.getByText('120 peticiones')).toBeDefined();
     expect(screen.getByText('Cópielas ahora.')).toBeDefined();
     await userEvent.click(screen.getByRole('link', { name: 'Ir a la documentación' }));
     expect(screen.queryByText(contratacion.claves[0].clave)).toBeNull();
