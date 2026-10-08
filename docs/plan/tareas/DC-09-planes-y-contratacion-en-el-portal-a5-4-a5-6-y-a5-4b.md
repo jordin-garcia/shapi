@@ -3,7 +3,7 @@ id: DC-09
 titulo: Planes y contratación en el portal (A5.4, A5.6 y A5.4b)
 persona: dominique
 responsable: Dominique Contreras
-avance: final
+avance: 3
 prioridad: P1
 estado: hecha
 programada: 2026-10-07
