@@ -68,3 +68,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-12 y EM-15:** `invitacion_miembro` recibe `nombre`, `nombreOrganizacion` y `enlace`; `invitacion_consumidor` recibe `nombre`, `nombreApi` y `enlace`, además de la marca del portal.
   - **JZ-08, JZ-09 y JZ-10:** `organizacion_suspendida`, `definir_contrasena` y `respuesta_caso` ya están listas; sus marcadores están en 10 §6.
   - **Todos:** todo correo de consumidor debe incluir `nombrePortal`, `hostPortal`, `colorPortal` y, si corresponde, `logoPortal: "true"`; el motor rechaza una marca incompleta o un color distinto de `#RRGGBB`.
+
+## 2026-10-07 · JZ-10 · Casos de soporte (A6.4, A6.4b, A7.1 y A7.2)
+- Hecho: se implementaron los casos paginados de proveedor y administración, apertura, asignación, conversación, cierre, resumen de organización de solo lectura, correos `respuesta_caso`, bitácora y las cuatro pantallas aprobadas.
+- Decisiones: las acciones compuestas son transaccionales; responder y cerrar bloquean la fila del caso para serializar la transición; una respuesta de plataforma se notifica al proveedor que abrió el caso y, si soporte abre el caso, al propietario de la organización.
+- Pendiente o aviso para otros:
+  - **JZ-13:** los endpoints y las pantallas de soporte ya están listos para incorporar un flujo E2E de apertura, respuesta y cierre.

@@ -69,5 +69,6 @@ public static class CodigosError
     public const string ClaveActivaExistente = "clave_activa_existente";
 
     // Soporte
+    public const string CasoNoEncontrado = "caso_no_encontrado";
     public const string CasoCerrado = "caso_cerrado";
 }
