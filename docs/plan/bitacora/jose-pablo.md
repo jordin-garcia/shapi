@@ -74,3 +74,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: las acciones compuestas son transaccionales; responder y cerrar bloquean la fila del caso para serializar la transición; una respuesta de plataforma se notifica al proveedor que abrió el caso y, si soporte abre el caso, al propietario de la organización.
 - Pendiente o aviso para otros:
   - **JZ-13:** los endpoints y las pantallas de soporte ya están listos para incorporar un flujo E2E de apertura, respuesta y cierre.
+
+## 2026-10-09 · JZ-08 · Administración de organizaciones (A6.2 y A6.2b)
+- Hecho: se implementaron la consulta administrativa de organizaciones, la suspensión y reactivación con estado efectivo inmediato en Redis, 403 en la compuerta, correo al propietario, bitácora, contrato OpenAPI y las pantallas poblada, vacía y de confirmación.
+- Decisiones: los casos de uso viven en Aplicación y el acceso a EF queda detrás de un repositorio; la reactivación solo elimina la suspensión administrativa; A6.2b captura el motivo administrativo requerido por RF-38 y la precisión quedó documentada en la especificación de interfaz.
+- Pendiente o aviso para otros:
+  - **EM-10:** la reactivación administrativa conserva el estado efectivo `suspendida` mientras la suscripción de plataforma continúe suspendida por falta de pago.
+  - **JZ-13:** puede agregar al flujo E2E la suspensión desde A6.2b y comprobar el 403 `api_no_disponible` de la compuerta.
