@@ -29,3 +29,6 @@ coverage/
 
 # Borradores de Word abiertos
 ~$*.docx
+
+# Documentos de trabajo locales que no se versionan
+docs/Shapi-Diagrama-de-Gantt.docx
