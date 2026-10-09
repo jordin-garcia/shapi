@@ -46,6 +46,7 @@ const implementadas: Record<string, string> = {
   'B1-4': 'Suscripción de plataforma',
   'A6-4': 'Casos',
   'A6-4b': 'El dominio propio no verifica',
+  'A6-2': 'Organizaciones',
   'A7-1': 'Casos de soporte',
   'A7-2': 'El dominio propio no verifica',
   'A8-1': 'Mi perfil',
@@ -99,6 +100,7 @@ beforeEach(() => {
       proximaRenovacion: '2026-09-30T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4821', graciaHasta: null, diasRestantesCiclo: 5, diasRestantes: 0, cambioProgramado: null,
     })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
+    http.get('http://localhost/api/admin/organizaciones', () => HttpResponse.json([])),
     http.get('http://localhost/api/casos', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/casos/:numero', () => HttpResponse.json({
       numero: 123, asunto: 'El dominio propio no verifica', estado: 'abierto', organizacion: 'EnvÃ­os XelajÃº, S.A.',
@@ -232,7 +234,8 @@ describe('RF-07 / RNF-12 · catálogo y permisos', () => {
   it('el soporte puede consultar organizaciones en solo lectura', async () => {
     rol = 'soporte';
     await abrir('/admin/organizaciones');
-    expect(await screen.findByText(/^A6-2 ·/)).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'Organizaciones' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Suspender|Reactivar/ })).toBeNull();
   });
   it('mantiene la sesión y permite reintentar si salir falla', async () => {
     server.use(http.post('http://localhost/api/auth/salir', () => new HttpResponse(null, { status: 500 })));
