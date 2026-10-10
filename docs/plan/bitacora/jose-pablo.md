@@ -81,3 +81,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **EM-10:** la reactivación administrativa conserva el estado efectivo `suspendida` mientras la suscripción de plataforma continúe suspendida por falta de pago.
   - **JZ-13:** puede agregar al flujo E2E la suspensión desde A6.2b y comprobar el 403 `api_no_disponible` de la compuerta.
+
+## 2026-10-09 · JZ-18 · Levantar el ambiente con la siembra en un solo comando
+- Hecho: se agregó el perfil `demo` con el servicio de una sola ejecución `siembra-demo`, que espera las migraciones y comparte imagen, configuración y llaves con el trabajador. Se actualizaron el verificador, el manual técnico, arquitectura §7 y el paso 1 del guion 2.
+- Decisiones: el arranque sin perfil conserva la garantía de no sembrar. `up -d --build` devuelve el control antes de terminar la siembra; se espera la salida 0 de `siembra-demo`. `--sembrar` prueba ambos modos y la idempotencia del comando; `--demo` verifica un ambiente ya sembrado.
+- Verificación: fase roja confirmada; el verificador pasó en desarrollo, en producción sin siembra, con `--sembrar` (dos arranques sin duplicar datos) y con `--demo`. Las pruebas productivas usaron volúmenes nuevos del proyecto `shapi-jz18-prueba`, conservando los datos locales existentes. Plan válido (75 tareas), sintaxis y diff correctos. Revisión independiente sin hallazgos.
+- Pendiente o aviso para otros:
+  - **JZ-13:** para levantar todo con datos use `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build` y espere la salida 0 de `siembra-demo`; luego puede ejecutar `node infra/verificar.mjs --demo`. El reinicio explícito de datos con `sembrar-demo --reiniciar` sigue disponible.
