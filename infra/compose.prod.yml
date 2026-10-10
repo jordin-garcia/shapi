@@ -78,7 +78,7 @@ services:
       retries: 24
       start_period: 10s
 
-  trabajador:
+  trabajador: &trabajador
     image: ghcr.io/jordin-garcia/shapi-trabajador:latest
     build:
       context: ..
@@ -110,6 +110,22 @@ services:
       SHAPI_DPKEYS_DIR: /var/lib/shapi/dpkeys
     volumes:
       - dpkeys:/var/lib/shapi/dpkeys
+
+  # RNF-14: solo el perfil demo siembra; comparte imagen, red, configuración y llaves con el trabajador.
+  siembra-demo:
+    <<: *trabajador
+    profiles: [demo]
+    restart: "no"
+    command: ["sembrar-demo"]
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      origen-envios:
+        condition: service_healthy
+      origen-agro:
+        condition: service_healthy
 
   borde:
     image: ghcr.io/jordin-garcia/shapi-borde:latest

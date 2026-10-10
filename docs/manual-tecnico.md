@@ -177,13 +177,13 @@ los dos orígenes estén sanos. El trabajador no expone HTTP y permanece en esta
 `running`; JZ-12 agregará su latido `salud:trabajador` en Redis. Solamente los
 puertos 80 y 443 del borde quedan publicados, ambos en `127.0.0.1`.
 
-Con `node infra/verificar.mjs --sembrar`, después de esas comprobaciones, que
-esperan un ambiente sin siembra, el verificador ejecuta `sembrar-demo` dentro del
-contenedor del trabajador y comprueba que `POST https://envios.api.shapi.localhost/cotizaciones`
-responde 200 con la clave de producción de Mercadito Antigua. Así lo ejecuta el
-check `ambiente-productivo` de la CI. Por eso el verificador, con o sin
-`--sembrar`, falla sobre un ambiente que ya está sembrado: hay que ejecutarlo
-recién levantado.
+Con `node infra/verificar.mjs --sembrar`, después de comprobar el ambiente sin
+siembra, el verificador levanta el perfil `demo` con el comando siguiente,
+espera la siembra y comprueba la clave de producción de Mercadito Antigua y la
+configuración del portal de Envíos Xelajú. Repite el comando y verifica que no
+se duplican los datos. Así lo ejecuta el check `ambiente-productivo` de la CI.
+Este modo y la verificación sin opciones requieren un ambiente inicialmente sin
+datos de demostración; para un ambiente ya sembrado use `--demo`.
 
 La API aplica las migraciones al iniciar. La API y el trabajador comparten el
 volumen `dpkeys`, que conserva las llaves con las que se protegen los secretos de
@@ -196,13 +196,22 @@ los haya creado el borde de desarrollo, que corre como root.
 
 ### Sembrar la demostración
 
-Cargue los datos de demostración con:
+Levante todo el ambiente con los datos de los mockups con un solo comando (RNF-14):
 
 ```bash
-docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build
 ```
 
-El comando exige `SHAPI_MODO_DEMO=true`, es idempotente y toma las URL de los
+El servicio `siembra-demo` espera a que la API esté sana (migraciones terminadas),
+comparte la imagen, configuración y volumen `dpkeys` del trabajador, ejecuta
+`sembrar-demo` y termina. `up -d` devuelve el control antes de terminar la siembra:
+compruebe que el servicio termina con código 0 mediante
+`docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo ps -a siembra-demo`.
+Luego ejecute `node infra/verificar.mjs --demo` para comprobar la compuerta y el portal.
+Repetir el comando no duplica datos. Sin el perfil `demo`, no se ejecuta la siembra;
+los datos existentes se conservan en los volúmenes.
+
+La siembra exige `SHAPI_MODO_DEMO=true`, es idempotente y toma las URL de los
 orígenes de `SHAPI_URL_ORIGEN_ENVIOS` y `SHAPI_URL_ORIGEN_AGRO`. Sin esas
 variables usa `localhost:5101` y `localhost:5102` en desarrollo. En el ambiente
 productivo simulado, `infra/compose.prod.yml` las fija en `origen-envios:8080` y
@@ -210,7 +219,9 @@ productivo simulado, `infra/compose.prod.yml` las fija en `origen-envios:8080` y
 ambiente es el de la exposición, así que `SHAPI_MODO_DEMO` vale `true` por defecto
 (06 §7.1); en un despliegue real se cambia a `false`. Para recrear
 únicamente los datos de demostración, conservando los datos base y la bitácora
-append-only, agregue `--reiniciar`. Al terminar resincroniza la configuración de
+append-only, ejecute
+`docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar`.
+Al terminar resincroniza la configuración de
 la compuerta en Redis. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o
 `SHAPI_SECRETO_ORIGEN_AGRO`, la siembra cifra esos mismos secretos para que la
 compuerta pueda autenticarse ante cada origen.

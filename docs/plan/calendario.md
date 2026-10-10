@@ -104,7 +104,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | José Pablo | JZ-04 (bitácora), JZ-05 (siembra de demostración), JZ-06 (imágenes y ambiente productivo), JZ-07 (E2E y capturas), JZ-17 (siembra en el ambiente productivo, creada en JG-08) |
 
 **Guion de demostración 2:**
-1. Ambiente productivo simulado (`compose.prod.yml`) con la siembra de demostración.
+1. Ambiente productivo simulado con la siembra de demostración: `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build`; esperar que `siembra-demo` termine con código 0.
 2. Ana (proveedora) registra una API, sube su especificación OpenAPI, expone rutas, las configura, crea un plan y la publica.
 3. El portal `https://envios.shapi.localhost` muestra el inicio y la documentación con la marca de Envíos Xelajú.
 4. María José (consumidora) se registra en el portal y verifica su correo.

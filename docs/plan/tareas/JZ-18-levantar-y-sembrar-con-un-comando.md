@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-11
 depende_de: [JZ-17]
 requisitos: [RNF-14]
@@ -52,3 +52,23 @@ node scripts/tareas.mjs --validar
 
 ## Fuera de alcance
 - Que la siembra funcione dentro del contenedor (JZ-17)
+
+## Resultado
+
+- Se agregó el perfil `demo` a `infra/compose.prod.yml`. Su servicio `siembra-demo`
+  reutiliza la imagen, configuración y volumen de llaves del trabajador, espera
+  la salud de la API tras las migraciones y ejecuta la siembra una sola vez, sin
+  reinicio automático. Sin el perfil no se ejecuta la siembra.
+- El comando único es `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build`.
+  Por usar `-d`, la demostración está lista cuando `siembra-demo` termina con código 0.
+- `infra/verificar.mjs --sembrar` conserva las comprobaciones sin siembra, levanta
+  el perfil, verifica una cotización 200 con la clave fija y la configuración de
+  Envíos Xelajú, y repite el arranque comprobando que no duplica datos en ocho tablas.
+  `--demo` permite verificar un ambiente ya sembrado. El verificador también
+  comprueba que el manual, la arquitectura y el guion documenten el comando.
+- Se actualizaron `docs/manual-tecnico.md`, arquitectura §7 y el paso 1 del guion 2.
+- Verificación local: fase roja confirmada por ausencia del perfil; `node infra/verificar.mjs`
+  pasó en desarrollo y en producción sin siembra; `node infra/verificar.mjs --sembrar`
+  y `node infra/verificar.mjs --demo` pasaron en el proyecto aislado `shapi-jz18-prueba`,
+  con volúmenes nuevos y sin borrar los datos existentes. Sintaxis de Node, diff y plan válidos.
+- No se modificaron backend, frontend, dependencias ni contratos HTTP.
