@@ -29,8 +29,10 @@ const dockerDesktop = join(
 );
 const ejecutableDocker = process.env.SHAPI_DOCKER_BIN
   ?? (process.platform === "win32" && existsSync(dockerDesktop) ? dockerDesktop : "docker");
-// JZ-17: con --sembrar, al final se siembra la demostración en el ambiente productivo y se llama a la compuerta.
+// --sembrar prueba ambos arranques desde un ambiente limpio; --demo verifica uno ya sembrado.
 const sembrar = process.argv.includes("--sembrar");
+const demo = process.argv.includes("--demo");
+assert.ok(!(sembrar && demo), "Use --sembrar o --demo, no ambos");
 // Mercadito Antigua, producción (docs/manual-tecnico.md §"Sembrar la demostración").
 const claveDemoEnvios = "shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e";
 
@@ -132,7 +134,9 @@ function solicitar(url, opciones = {}) {
         ...opciones,
       },
       (respuesta) => {
-        respuesta.resume();
+        respuesta.cuerpo = "";
+        respuesta.setEncoding("utf8");
+        respuesta.on("data", (parte) => (respuesta.cuerpo += parte));
         respuesta.on("end", () => resolve(respuesta));
       },
     );
@@ -173,20 +177,49 @@ function enviarJson(url, cuerpo, cabeceras = {}) {
   });
 }
 
-// La siembra registra cada consulta SQL: se guarda su salida completa y, si falla, se muestra el final.
-function sembrarDemo() {
+// RNF-14: se prueba el mismo comando único que se documenta para la exposición.
+function levantarDemo() {
   try {
     execFileSync(
       ejecutableDocker,
-      [...argumentosCompose, "exec", "-T", "trabajador", "dotnet", "Shapi.Trabajador.dll", "sembrar-demo"],
+      [...argumentosComposeProduccion, "--profile", "demo", "up", "-d", "--build"],
       { cwd: raiz, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 256 * 1024 * 1024 },
     );
   } catch (error) {
     const final = (texto) => (texto ?? "").slice(-4_000);
     throw new Error(
-      `sembrar-demo falló en el contenedor del trabajador: ${error.message}\n${final(error.stdout)}\n${final(error.stderr)}`,
+      `El arranque demo falló: ${final(error.stdout)}\n${final(error.stderr)}`,
     );
   }
+  const contenedor = ejecutarDocker([
+    ...argumentosComposeProduccion, "--profile", "demo", "ps", "-a", "-q", "siembra-demo",
+  ]).trim();
+  assert.ok(contenedor, "El comando debe crear el servicio siembra-demo");
+  const salida = execFileSync(ejecutableDocker, ["wait", contenedor], {
+    encoding: "utf8", timeout: 120_000, stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+  assert.equal(salida, "0", "siembra-demo debe terminar correctamente; consulte sus logs si falla");
+}
+
+function contarDatosDemo() {
+  // No se cuentan métricas/correos: los trabajos normales pueden modificarlos entre arranques.
+  const tablas = ["organizacion", "usuario", "consumidor", "api", "ruta", "plan_api", "clave", "caso"];
+  const sql = tablas.map((tabla) => `SELECT '${tabla}', count(*) FROM ${tabla}`).join(" UNION ALL ") + " ORDER BY 1";
+  return ejecutarDocker([
+    ...argumentosComposeProduccion, "exec", "-T", "postgres", "sh", "-c",
+    'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "$1"', "sh", sql,
+  ]).trim();
+}
+
+async function verificarDemo() {
+  const cotizacion = await cotizarConClaveDemo();
+  assert.equal(cotizacion.statusCode, 200,
+    `La compuerta con la clave de la siembra respondió ${cotizacion.statusCode}: ${cotizacion.cuerpo}`);
+  const portal = await solicitar("https://envios.shapi.localhost/");
+  assert.equal(portal.statusCode, 200);
+  const configuracion = await solicitar("https://envios.shapi.localhost/api/portal/configuracion");
+  assert.equal(configuracion.statusCode, 200, "El portal debe resolver la API sembrada");
+  assert.equal(JSON.parse(configuracion.cuerpo).nombrePortal, "Envíos Xelajú");
 }
 
 async function cotizarConClaveDemo() {
@@ -290,6 +323,12 @@ const entorno = leer(rutaEntorno);
 const manual = leer(rutaManual);
 const instalacion = leer(rutaInstalacion);
 const publicacion = leer(rutaPublicacion);
+
+// RNF-14 (JZ-18): las instrucciones de despliegue y el guion usan el mismo comando probado.
+const comandoDemo = "docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build";
+for (const ruta of [rutaManual, join(raiz, "docs/specs/06-arquitectura.md"), join(raiz, "docs/plan/calendario.md")]) {
+  exigirTexto(leer(ruta), [comandoDemo], ruta);
+}
 
 exigirTexto(
   compose,
@@ -524,6 +563,20 @@ try {
   );
 
   const entornoTrabajador = configuracionProduccion.services.trabajador.environment;
+  // RNF-14 (JZ-18): el arranque real excluye la siembra; solo el perfil demo la habilita.
+  assert.ok(!configuracionProduccion.services["siembra-demo"], "Sin perfil demo no debe ejecutarse la siembra");
+  const configuracionDemo = JSON.parse(ejecutarDocker([
+    "compose", "--env-file", entornoPrueba, "-f", rutaCompose, "-f", rutaComposeProduccion,
+    "--profile", "demo", "config", "--format", "json",
+  ], entornoSinPuerto));
+  const siembra = configuracionDemo.services["siembra-demo"];
+  assert.ok(siembra, "El perfil demo debe incluir siembra-demo (RNF-14)");
+  assert.deepEqual(siembra.command, ["sembrar-demo"]);
+  assert.equal(siembra.depends_on.api.condition, "service_healthy", "La siembra debe esperar las migraciones de la API");
+  assert.deepEqual(siembra.environment, entornoTrabajador);
+  assert.deepEqual(siembra.volumes, configuracionProduccion.services.trabajador.volumes);
+  assert.equal(siembra.restart, "no", "La siembra es de una sola ejecución");
+  assert.ok(!siembra.ports?.length, "La siembra no publica puertos");
   assert.equal(
     entornoTrabajador.SHAPI_URL_ORIGEN_ENVIOS,
     "http://origen-envios:8080",
@@ -572,8 +625,8 @@ argumentosCompose = produccionActiva
   ? argumentosComposeProduccion
   : argumentosComposeDesarrollo;
 assert.ok(
-  !sembrar || produccionActiva,
-  "--sembrar necesita el ambiente productivo simulado (infra/compose.prod.yml) levantado",
+  !(sembrar || demo) || produccionActiva,
+  "--sembrar y --demo necesitan el ambiente productivo simulado (infra/compose.prod.yml) levantado",
 );
 
 ejecutarDocker([
@@ -639,8 +692,12 @@ if (produccionActiva) {
     "Caddy no debe reemplazar la CSP propia de las respuestas de la API",
   );
 
-  const apiSinSiembra = await solicitar("https://envios.api.shapi.localhost/");
-  assert.equal(apiSinSiembra.statusCode, 404, "Una API sin siembra debe responder 404");
+  if (!demo) {
+    const apiSinSiembra = await solicitar("https://envios.api.shapi.localhost/");
+    assert.equal(apiSinSiembra.statusCode, 404, "Una API sin siembra debe responder 404");
+    const portalSinSiembra = await solicitar("https://envios.shapi.localhost/api/portal/configuracion");
+    assert.equal(portalSinSiembra.statusCode, 404, "Sin perfil demo no debe existir el portal de demostración");
+  }
 
   await assert.rejects(
     solicitar("http://127.0.0.1:5080/salud"),
@@ -743,14 +800,13 @@ for (const host of [
 
 // RNF-14 (JZ-17): todo lo anterior comprueba el ambiente sin siembra; recién aquí se siembra.
 if (sembrar) {
-  sembrarDemo();
-  const cotizacion = await cotizarConClaveDemo();
-  assert.equal(
-    cotizacion.statusCode,
-    200,
-    `POST https://envios.api.shapi.localhost/cotizaciones con la clave de la siembra respondió ${cotizacion.statusCode}: ${cotizacion.cuerpo}`,
-  );
+  levantarDemo();
+  await verificarDemo();
+  const cantidades = contarDatosDemo();
+  levantarDemo();
+  assert.equal(contarDatosDemo(), cantidades, "Repetir el comando demo no debe duplicar datos (RNF-14)");
 }
+if (demo) await verificarDemo();
 
 console.log("✓ Configuración declarativa de desarrollo y producción completa");
 if (produccionActiva) {
@@ -763,6 +819,7 @@ if (produccionActiva) {
 }
 console.log("✓ Caddy usa HTTPS, agrega cabeceras y no publica /interno/*");
 console.log("✓ https://correo.shapi.localhost responde correctamente");
-if (sembrar) {
-  console.log("✓ sembrar-demo funciona en el contenedor del trabajador y la compuerta responde 200 con una clave de la siembra");
+if (sembrar || demo) {
+  console.log("✓ El perfil demo siembra, la compuerta responde 200 con una clave fija y el portal muestra Envíos Xelajú");
 }
+if (sembrar) console.log("✓ Repetir el comando demo no duplica los datos");
