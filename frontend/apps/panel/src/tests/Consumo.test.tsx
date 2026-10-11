@@ -103,6 +103,13 @@ describe('RF-35 · B1.1 Consumo, latencia y errores', () => {
     expect(solicitudes).toBe(1);
   });
 
+  it('redondea solo la presentación del p95 al milisegundo más cercano', async () => {
+    server.use(http.get(API_URL, () => HttpResponse.json({ ...datos, latenciaCompuertaP95: p95(10.6) })));
+    mostrar();
+    const etiqueta = await screen.findByText('Latencia de la compuerta · percentil 95');
+    expect(within(etiqueta.parentElement!).getByText('11 ms')).toBeDefined();
+  });
+
   it('permite reintentar un error sin confundirlo con el periodo vacío', async () => {
     let falla = true;
     server.use(http.get(API_URL, () => falla ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(datos)));
