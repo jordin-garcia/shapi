@@ -195,6 +195,8 @@ Si una API fue eliminada (por ejemplo al reiniciar la siembra de demostración),
 
 La tabla de errores distingue los rechazos 401/403/429 de la compuerta y los 4xx, 5xx y fallas de conexión o tiempo de espera del origen. Por incluir las fallas que no llegaron al servidor, el encabezado del segundo grupo dice «Errores de su servidor de origen», sin afirmar que todas las peticiones llegaron. Los bytes se presentan en GB decimales (1 GB = 1,000,000,000 bytes). El personal propietario, editor o lector de la organización dueña puede consultar; una API inexistente o de otra organización responde 404 `api_no_encontrada`.
 
+B1.1 conserva las cuatro tarjetas del mockup y muestra también las llamadas descontadas como detalle de «Peticiones a la API», conforme a RF-35, aunque el mockup no las muestra.
+
 ## 8. Rendimiento
 
 - Por cada petición se hacen tres viajes a Redis antes de reenviar, más uno en segundo plano para la medición:

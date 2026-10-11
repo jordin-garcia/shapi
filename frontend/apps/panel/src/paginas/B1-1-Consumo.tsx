@@ -84,7 +84,7 @@ function Indicadores({ datos }: { datos: Datos }) {
       {tarjetas.map(([etiqueta, cifra, detalle]) => <Tarjeta key={etiqueta} className="flex flex-col gap-[10px]">
         <p className="text-[13px] font-semibold leading-[1.4] text-tinta-suave">{etiqueta}</p>
         <span className="font-display text-[32px] leading-none tracking-[-0.02em] tabular-nums">{cifra}</span>
-        <p className="text-[14px] leading-[1.5] text-tinta-suave">{detalle}</p>
+        <p className="text-[14px] leading-[1.5] text-tinta-suave"><span>{detalle}</span>{etiqueta === 'Peticiones a la API' && <span className="block">{numero(datos.llamadas)} llamadas descontadas</span>}</p>
       </Tarjeta>)}
     </div>
     <Tarjeta className="mt-5">

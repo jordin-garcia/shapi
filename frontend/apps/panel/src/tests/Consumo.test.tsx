@@ -47,6 +47,7 @@ describe('RF-35 · B1.1 Consumo, latencia y errores', () => {
     expect(screen.getByText('API de Cotización de Envíos')).toBeDefined();
     expect(screen.getByText('Datos consolidados por suscripción, ruta y día.')).toBeDefined();
     for (const texto of ['105,456', '236 ms', '11 ms', '1.84 GB', '0.31 GB de entrada · 1.53 GB de salida', 'En los 10 días del periodo']) expect(screen.getAllByText(texto).length).toBeGreaterThan(0);
+    expect(screen.getByText('200,000 llamadas descontadas')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Del 1 al 10 de septiembre de 2026' })).toBeDefined();
     expect(screen.getAllByRole('img', { name: /sep: .* peticiones/ })).toHaveLength(10);
     const tablas = screen.getAllByRole('table');
