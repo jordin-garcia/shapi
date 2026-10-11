@@ -90,6 +90,18 @@ describe('RF-35 · B1.1 Consumo, latencia y errores', () => {
     expect(screen.getByText('—')).toBeDefined();
   });
 
+  it('rechaza periodos de más de 366 días sin pedirlos a la API', async () => {
+    let solicitudes = 0;
+    server.use(http.get(API_URL, () => { solicitudes++; return HttpResponse.json(datos); }));
+    mostrar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Del 1 al 10 de septiembre de 2026' }));
+    const desde = screen.getByLabelText('Desde');
+    await userEvent.clear(desde); await userEvent.type(desde, '2020-01-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Aplicar periodo' }));
+    expect(screen.getByText('Seleccione un periodo de hasta 366 días.')).toBeDefined();
+    expect(solicitudes).toBe(1);
+  });
+
   it('permite reintentar un error sin confundirlo con el periodo vacío', async () => {
     let falla = true;
     server.use(http.get(API_URL, () => falla ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(datos)));
