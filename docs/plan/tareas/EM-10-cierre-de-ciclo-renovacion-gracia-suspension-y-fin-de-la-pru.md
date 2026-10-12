@@ -63,6 +63,8 @@ dotnet format Shapi.slnx --verify-no-changes
 
 - Se implementó el cierre periódico de suscripciones de plataforma y API con bloqueo `FOR UPDATE SKIP LOCKED`, aplicación de planes programados, cobros de renovación, gracia, suspensión, bitácora y publicación de Redis después de cada transacción confirmada. Se agregaron los correos de renovación/gracia/suspensión y aviso único de fin de Prueba, con marca y logotipo del portal para consumidores.
 - Se agregó el reloj desplazable del modo demo, que comparte el desplazamiento por Redis con el trabajador y dispara un cierre al adelantar el tiempo. También se implementó `POST /api/portal/suscripcion/pagar` para reactivar suscripciones API con ciclo nuevo desde hoy.
+- Se actualizó el contrato OpenAPI y se regeneraron los tipos de suscripción de TypeScript.
 - La cobertura incluye transiciones unitarias, renovaciones autorizadas/rechazadas y gratuitas, suspensión en ambos niveles, aviso idempotente de Prueba, reactivación API, reloj demo y escenario 0341 → gracia → suspensión → pago con 4242.
 - Verificación local: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` correctos; pasan 59 pruebas de dominio y 4 pruebas unitarias del reloj demo. `dotnet test Shapi.slnx` intentó ejecutar las 831 pruebas: 362 pasaron y 469 fallaron al inicializar Testcontainers porque este entorno no tiene Docker (`/var/run/docker.sock`). La integración depende de que el check `backend` de CI ejecute y pase la suite completa antes del merge.
+- En `frontend/` pasan `pnpm generar:api`, `pnpm lint` (11 advertencias preexistentes), `pnpm typecheck`, `pnpm test` (340 pruebas) y `pnpm build` (con la advertencia preexistente del chunk del portal).
 - Revisión independiente final: LISTO, sin hallazgos pendientes.
