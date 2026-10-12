@@ -15,6 +15,54 @@ public abstract class Suscripcion
 
     protected Suscripcion() { }
 
+    /// <summary>Aplica el plan programado al cerrar el ciclo (09 §5).</summary>
+    public void AplicarPlanProgramado(Guid planId, DateTimeOffset ahora)
+    {
+        if (PlanSiguienteId != planId)
+        {
+            throw new InvalidOperationException("El plan no coincide con el cambio programado.");
+        }
+
+        PlanId = planId;
+        PlanSiguienteId = null;
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>Abre un ciclo autorizado desde el fin del ciclo anterior (09 §4).</summary>
+    public void Renovar(int vigenciaDias, DateTimeOffset ahora)
+    {
+        if (vigenciaDias <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(vigenciaDias));
+        }
+
+        Inicio = Fin;
+        Fin = Inicio.AddDays(vigenciaDias);
+        GraciaHasta = null;
+        Estado = EstadoSuscripcion.Activa;
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>Abre siete días de gracia desde el fin del ciclo que venció (09 §3).</summary>
+    public void EntrarEnGracia(TimeSpan duracion, DateTimeOffset ahora)
+    {
+        if (duracion <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(duracion));
+        }
+
+        Estado = EstadoSuscripcion.EnGracia;
+        GraciaHasta = Fin + duracion;
+        ActualizadoEn = ahora;
+    }
+
+    /// <summary>Suspende al terminar el periodo de gracia (09 §3).</summary>
+    public void Suspender(DateTimeOffset ahora)
+    {
+        Estado = EstadoSuscripcion.Suspendida;
+        ActualizadoEn = ahora;
+    }
+
     /// <summary>
     /// Inicio de un ciclo (09 §4): el momento de la contratación redondeado al inicio del día en America/Guatemala.
     /// El fin es <c>inicio + vigencia_dias</c>.

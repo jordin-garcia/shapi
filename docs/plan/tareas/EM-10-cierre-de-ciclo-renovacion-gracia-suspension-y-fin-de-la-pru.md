@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-10
 depende_de: [EM-09, EM-08]
 requisitos: [RF-22, RF-23, RF-44]
@@ -58,3 +58,11 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Pantallas de gracia (B1.4 en EM-09, B2.3 en DC-11)
+
+## Resultado
+
+- Se implementó el cierre periódico de suscripciones de plataforma y API con bloqueo `FOR UPDATE SKIP LOCKED`, aplicación de planes programados, cobros de renovación, gracia, suspensión, bitácora y publicación de Redis después de cada transacción confirmada. Se agregaron los correos de renovación/gracia/suspensión y aviso único de fin de Prueba, con marca y logotipo del portal para consumidores.
+- Se agregó el reloj desplazable del modo demo, que comparte el desplazamiento por Redis con el trabajador y dispara un cierre al adelantar el tiempo. También se implementó `POST /api/portal/suscripcion/pagar` para reactivar suscripciones API con ciclo nuevo desde hoy.
+- La cobertura incluye transiciones unitarias, renovaciones autorizadas/rechazadas y gratuitas, suspensión en ambos niveles, aviso idempotente de Prueba, reactivación API, reloj demo y escenario 0341 → gracia → suspensión → pago con 4242.
+- Verificación local: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` correctos; pasan 59 pruebas de dominio y 4 pruebas unitarias del reloj demo. `dotnet test Shapi.slnx` intentó ejecutar las 831 pruebas: 362 pasaron y 469 fallaron al inicializar Testcontainers porque este entorno no tiene Docker (`/var/run/docker.sock`). La integración depende de que el check `backend` de CI ejecute y pase la suite completa antes del merge.
+- Revisión independiente final: LISTO, sin hallazgos pendientes.

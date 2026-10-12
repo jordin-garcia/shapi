@@ -321,6 +321,37 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         json.GetProperty("limiteMinuto").GetInt32().Should().Be(60);
     }
 
+    // RF-22: pagar reactiva suscripciones API en gracia o suspendidas con un ciclo nuevo desde hoy y publica Redis.
+    [Theory]
+    [InlineData("en_gracia")]
+    [InlineData("suspendida")]
+    public async Task PagarSuscripcionApi_EnGraciaOSuspendida_ReiniciaCicloYPublica(string estado)
+    {
+        var e = await CrearEscenario(verificado: true);
+        var medio = await Escalar<Guid>($"""
+            INSERT INTO medio_pago (id, consumidor_id, token_pasarela, marca, ultimos4, titular, mes_vencimiento, anio_vencimiento)
+            VALUES (gen_random_uuid(), '{e.ConsumidorId}', 'tok_sim_antiguo', 'Visa', '4242', 'María Quiñónez', 12, 2030) RETURNING id
+            """);
+        var suscripcion = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, medio_pago_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{e.ConsumidorId}', '{e.ApiId}', '{e.PlanId}', '{medio}', '{estado}',
+                    '{Reloj.Ahora.AddDays(-37):O}', '{Reloj.Ahora.AddDays(-7):O}', '{Reloj.Ahora:O}') RETURNING id
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/pagar", e, new { tarjeta = Tarjeta });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var inicioEsperado = SuscripcionApi.InicioDeCiclo(Reloj.Ahora);
+        (await Fila($"SELECT estado, (inicio = '{inicioEsperado:O}'::timestamptz)::text, (fin = '{inicioEsperado.AddDays(30):O}'::timestamptz)::text, (gracia_hasta IS NULL)::text FROM suscripcion_api WHERE id = '{suscripcion}'"))
+            .Should().Equal("activa", "true", "true", "true");
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'reactivacion' AND estado = 'autorizado'"))
+            .Should().Be(1);
+        var publicada = ContextoSuscripcion.DesdeCampos(suscripcion, await Hash(LlavesRedis.Suscripcion(suscripcion)));
+        publicada.Should().NotBeNull();
+        publicada!.Estado.Should().Be("activa");
+        publicada.Inicio.Should().Be(inicioEsperado.ToUnixTimeSeconds());
+    }
+
     // RNF-08: la sesión de otra organización no revela ni modifica datos del portal.
     [Fact]
     public async Task Contratar_SesionDeOtraOrganizacionEnElHost_Responde404()

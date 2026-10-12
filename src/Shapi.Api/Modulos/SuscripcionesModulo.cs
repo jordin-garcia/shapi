@@ -9,6 +9,7 @@ public static class SuscripcionesModulo
     {
         services.AddScoped<ContratacionApi>();
         services.AddScoped<PlataformaSuscripcionesApi>();
+        services.AddScoped<RelojDemoApi>();
         return services;
     }
 
