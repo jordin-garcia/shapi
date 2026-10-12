@@ -1,6 +1,6 @@
 {
   "artboards": [
-    {"file": "Main.dc.html", "title": "B1.1 · Consumo, latencia, errores y datos por API · RF-35", "x": 0, "y": 0, "w": 1440, "h": 1460},
+    {"file": "Main.dc.html", "title": "B1.1 · Consumo, latencia, errores y datos por API · RF-35", "x": 0, "y": 0, "w": 1440, "h": 1560},
     {"file": "ConsumoVacia.dc.html", "title": "B1.1 · Consumo · variante vacía · RF-35", "x": 1560, "y": 0, "w": 1440, "h": 900},
     {"file": "Consumidores.dc.html", "title": "B1.2 · Consumo y facturación por consumidor · RF-36", "x": 3120, "y": 0, "w": 1440, "h": 900},
     {"file": "ConsumidoresVacia.dc.html", "title": "B1.2 · Consumo y facturación por consumidor · variante vacía · RF-36", "x": 0, "y": 1620, "w": 1440, "h": 900},
