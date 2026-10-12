@@ -12,8 +12,8 @@ const API_URL = 'http://localhost/api/apis/:id/consumo';
 const p95 = (milisegundos: number | null, supera2500 = false) => ({ milisegundos, supera2500 });
 const datos: components['schemas']['ConsumoApi'] = {
   apiId: 'api-1', apiNombre: 'API de Cotización de Envíos', desde: '2026-09-01', hasta: '2026-09-10',
-  peticiones: 105456, llamadas: 200000, bytesEntrada: 310000000, bytesSalida: 1530000000,
-  latenciaTotalP95: p95(236), latenciaCompuertaP95: p95(11),
+  peticiones: 105456, llamadas: 93147, bytesEntrada: 310000000, bytesSalida: 1530000000,
+  latenciaTotalP95: p95(236), latenciaCompuertaP95: p95(10),
   dias: [3180, 3640, 3910, 3036, 13720, 11460, 16280, 18700, 15140, 16390].map((peticiones, i) => ({ fecha: `2026-09-${String(i + 1).padStart(2, '0')}`, peticiones })),
   rutas: [
     { rutaId: 'ruta-1', metodo: 'POST', patron: '/cotizaciones', peticiones: 50620, porcentaje: 48, latenciaTotalP95: p95(214), latenciaCompuertaP95: p95(12) },
@@ -27,9 +27,9 @@ const datos: components['schemas']['ConsumoApi'] = {
     { codigo: '429', motivo: 'Cuota agotada o límite por minuto excedido', peticiones: 1476, porcentaje: 1.4 },
   ],
   erroresOrigen: [
-    { codigo: '4xx', motivo: 'Respuestas 4xx de su servidor', peticiones: 200, porcentaje: .19 },
-    { codigo: '5xx', motivo: 'Respuestas 5xx de su servidor', peticiones: 100, porcentaje: .09 },
-    { codigo: 'fallas', motivo: 'Fallas de conexión o tiempo de espera del origen', peticiones: 16, porcentaje: .02 },
+    { codigo: '4xx', motivo: 'Respuestas 4xx de su servidor', peticiones: 250, porcentaje: .24 },
+    { codigo: '5xx', motivo: 'Respuestas 5xx de su servidor', peticiones: 66, porcentaje: .06 },
+    { codigo: 'fallas', motivo: 'Fallas de conexión o tiempo de espera del origen', peticiones: 0, porcentaje: 0 },
   ],
 };
 let cache: QueryClient;
@@ -46,8 +46,8 @@ describe('RF-35 · B1.1 Consumo, latencia y errores', () => {
     expect(await screen.findByRole('heading', { name: 'Consumo, latencia y errores' })).toBeDefined();
     expect(screen.getByText('API de Cotización de Envíos')).toBeDefined();
     expect(screen.getByText('Datos consolidados por suscripción, ruta y día.')).toBeDefined();
-    for (const texto of ['105,456', '236 ms', '11 ms', '1.84 GB', '0.31 GB de entrada · 1.53 GB de salida', 'En los 10 días del periodo']) expect(screen.getAllByText(texto).length).toBeGreaterThan(0);
-    expect(screen.getByText('200,000 llamadas descontadas')).toBeDefined();
+    for (const texto of ['105,456', '236 ms', '10 ms', '1.84 GB', '0.31 GB de entrada · 1.53 GB de salida', 'En los 10 días del periodo']) expect(screen.getAllByText(texto).length).toBeGreaterThan(0);
+    expect(screen.getByText('93,147 llamadas descontadas')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Del 1 al 10 de septiembre de 2026' })).toBeDefined();
     expect(screen.getAllByRole('img', { name: /sep: .* peticiones/ })).toHaveLength(10);
     const tablas = screen.getAllByRole('table');

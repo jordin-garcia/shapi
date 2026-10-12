@@ -195,7 +195,9 @@ Si una API fue eliminada (por ejemplo al reiniciar la siembra de demostración),
 
 La tabla de errores distingue los rechazos 401/403/429 de la compuerta y los 4xx, 5xx y fallas de conexión o tiempo de espera del origen. Por incluir las fallas que no llegaron al servidor, el encabezado del segundo grupo dice «Errores de su servidor de origen», sin afirmar que todas las peticiones llegaron. Los bytes se presentan en GB decimales (1 GB = 1,000,000,000 bytes). El personal propietario, editor o lector de la organización dueña puede consultar; una API inexistente o de otra organización responde 404 `api_no_encontrada`.
 
-B1.1 conserva las cuatro tarjetas del mockup y muestra también las llamadas descontadas como detalle de «Peticiones a la API», conforme a RF-35, aunque el mockup no las muestra. La respuesta conserva la precisión decimal del p95; la pantalla lo presenta redondeado al milisegundo entero más cercano.
+B1.1 conserva las cuatro tarjetas del mockup y muestra también las llamadas descontadas como detalle de «Peticiones a la API», conforme a RF-35; este dato se omitía en el ejemplo anterior. La respuesta conserva la precisión decimal del p95; la pantalla lo presenta redondeado al milisegundo entero más cercano.
+
+El ejemplo de B1.1 y su paquete se sincronizaron con la siembra al implementar JG-11: 93,147 llamadas descontadas, p95 agregado de la compuerta de 10 ms (suma de histogramas, en lugar de los 11 ms del ejemplo anterior) y errores del origen separados en 250 respuestas 4xx, 66 respuestas 5xx y cero fallas. Prevalecen RF-35 y el cálculo de este apartado, conforme al protocolo §C; las fechas del ejemplo siguen siendo relativas en la siembra (07 §6).
 
 ## 8. Rendimiento
 
