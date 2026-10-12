@@ -896,3 +896,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Dominique:** JG-20 depende de DC-17 y después cambiará `packages/ui` (cursor y campo de contraseña), los layouts del panel y del portal, A5.1 y las pantallas de contraseña y de pago del portal. Conviene que DC-17 se integre en su fecha (mar 13 oct).
   - **Emilio:** JG-20 cambiará los formularios de tarjeta (A2.2, A2.5 y B1.4) y los campos de contraseña de A1.1, A1.3, A1.4b, A8.1 y A8.2.
   - **José Pablo:** JG-20 agregará una prueba de Playwright en `tests/e2e/` para la barra lateral.
+
+## 2026-10-11 · JG-11 · Consumo, latencia y errores por API (B1.1)
+- Hecho: se implementaron el endpoint de consumo por API y periodo, su contrato y tipos, los indicadores de B1.1, las llamadas descontadas, barras por día, tablas por ruta y por error, selector y variante vacía. El endpoint aplica permisos y aislamiento y usa los histogramas de JG-09.
+- Decisiones: periodo inclusivo de diez días en Guatemala por defecto, máximo de 366 días; porcentajes sobre todas las peticiones, días vacíos con cero y consumo sin ruta conservado; GB decimales y p95 presentado al milisegundo más cercano. Por RF-35 y protocolo §C se corrigió el ejemplo B1.1 (10 ms de compuerta, 93,147 llamadas y origen 250/66/0) y se regeneró su paquete. Las precisiones quedaron en 08 §7.
+- Verificación: compilación y formato completos, 48 pruebas de Consumo, 352 pruebas del frontend y 7 dirigidas de B1.1, lint sin errores (11 advertencias previas del portal), tipos, build y plan correctos. Capturas con la siembra y del periodo vacío comparadas con ambos mockups; la revisión independiente corrigió la omisión de llamadas y confirmó el código sin hallazgos.
+- Pendiente o aviso para otros:
+  - **Dominique:** cambié `frontend/apps/panel/src/tests/rutas.test.tsx`, agregué los tipos generados en `frontend/packages/api/src/generado/consumo.ts` y sincronicé `mockups/B1/Main.dc.html` y `mockups/b1-salidas-proveedor.html` con RF-35 y la siembra. Actualiza tu rama desde `main` cuando se integre.
+  - **JG-12 y JG-13:** la respuesta de consumo usa `Percentil95` con `milisegundos` nulo sin muestras y `supera2500` para el rango abierto; la presentación redondea al milisegundo más cercano. El cálculo conserva los decimales y suma histogramas, no percentiles.
