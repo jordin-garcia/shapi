@@ -1,3 +1,5 @@
+using Shapi.Api.Consumo;
+using Shapi.Aplicacion.Consumo;
 using Shapi.Infraestructura.Consumo;
 
 namespace Shapi.Api.Modulos;
@@ -7,11 +9,13 @@ public static class ConsumoModulo
 {
     public static IServiceCollection AgregarModuloConsumo(this IServiceCollection services)
     {
+        services.AddScoped<ConsultarConsumoApi>();
         return services.AgregarConsumo();
     }
 
     public static WebApplication MapearModuloConsumo(this WebApplication app)
     {
+        app.MapearEndpointsConsumo();
         return app;
     }
 }
