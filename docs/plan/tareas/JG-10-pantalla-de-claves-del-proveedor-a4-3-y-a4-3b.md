@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-12
 depende_de: [JG-07, DC-02]
 requisitos: [RF-28]
@@ -50,3 +50,13 @@ Verificación manual con el entorno levantado:
 
 ## Fuera de alcance
 - Backend de claves (JG-07)
+
+## Resultado
+
+- A4.3 consulta el contrato de claves, agrupa las filas por consumidor y muestra el plan, tipo, clave enmascarada, estado y fechas en Guatemala. Conserva el orden del servidor y pagina por consumidor (20 por página).
+- A4.3b confirma la revocación sin cambiar de ruta. Propietario y editor pueden revocar claves activas y rotadas; el lector no ve acciones y las revocadas no tienen botón. Cancelar no envía nada; se evitan envíos duplicados y los errores permiten reintentar.
+- Al confirmar se envía la cabecera CSRF, se invalida la consulta de la API y se muestra «Clave revocada.» durante 4 segundos. Cambiar de API descarta la selección y la página anterior.
+- Se cubrieron los cuatro criterios con 12 pruebas RF-28 usando Vitest, Testing Library y MSW. La prueba del catálogo ahora espera la pantalla implementada.
+- Verificación: 364 pruebas del frontend en 26 archivos, typecheck y build correctos; lint sin errores, con 11 advertencias previas del portal. Los tipos se regeneraron desde OpenAPI sin diferencias; el contrato existente no necesitó cambios.
+- Comparación visual: lista y confirmación con la siembra real; lista con las nueve claves de referencia, variante vacía y confirmación comparadas con los tres mockups, a 1440 × 900. Capturas locales en `.playwright-mcp/JG-10-*.png`. La siembra local conserva sus fechas y la rotada ya vencida no se lista, como exige el contrato; los datos de referencia permiten comprobar los tres estados simultáneamente.
+- Archivos principales: `paginas/A4-3-Claves.tsx`, `paginas/A4-3b-RevocarClave.tsx`, `modulos/claves/claves.ts`, `tests/Claves.test.tsx`, `tests/rutas.test.tsx` y `docs/specs/11-interfaz.md`.

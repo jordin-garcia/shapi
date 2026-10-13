@@ -54,6 +54,7 @@ const implementadas: Record<string, string> = {
   'A8-2': 'El enlace ya no sirve',
   'B3-2': 'Bitácora de acciones sensibles',
   'B1-1': 'Consumo, latencia y errores',
+  'A4-3': 'Claves de sus consumidores',
 };
 async function esperarPantalla(id: string) {
   if (implementadas[id]) expect(await screen.findByRole('heading', { name: implementadas[id] })).toBeDefined();
@@ -87,6 +88,7 @@ beforeEach(() => {
       totalOcultas: 0,
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
+    http.get('http://localhost/api/apis/:id/claves', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/apis/:id/consumo', ({ params }) => HttpResponse.json({
       apiId: params.id, apiNombre: 'Envíos Xelajú', desde: '2026-10-02', hasta: '2026-10-11',
       peticiones: 0, llamadas: 0, bytesEntrada: 0, bytesSalida: 0,
