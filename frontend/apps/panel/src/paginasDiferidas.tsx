@@ -8,6 +8,7 @@ export const A1Verificacion = lazy(() => import('./paginas/A1-2-Verificacion'));
 export const A1Sesion = lazy(() => import('./paginas/A1-3-Sesion'));
 export const A1Recuperacion = lazy(() => import('./paginas/A1-4a-Recuperacion'));
 export const A1NuevaContrasena = lazy(() => import('./paginas/A1-4b-NuevaContrasena'));
+export const A6DefinirContrasena = lazy(() => import('./paginas/A6-5b-DefinirContrasena'));
 // A2
 export const A2PlanesPlataforma = lazy(() => import('./paginas/A2-1-PlanesPlataforma'));
 export const A2Contratacion = lazy(() => import('./paginas/A2-2-Contratacion'));

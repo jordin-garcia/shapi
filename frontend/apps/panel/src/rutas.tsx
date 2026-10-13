@@ -9,6 +9,7 @@ import { ErrorRuta } from './paginas/Error-Ruta';
 import { IrAlDestino } from './modulos/sesion/IrAlDestino';
 
 import { A0Lamina } from './laminaDiferida';
+import { A6DefinirContrasena } from './paginasDiferidas';
 import { CargaDiferida, A0Inicio, A1Registro, A1Verificacion, A1Sesion, A1Recuperacion, A1NuevaContrasena, A2PlanesPlataforma, A2Contratacion, A2CambioPlan, A3Apis, A3Registro, A3Especificacion, A3Rutas, A3ConfigRutas, A3Dominio, A3Portal, A4PlanesApi, A4Miembros, A4Claves, A6PlanesPlataforma, A6Organizaciones, A6Pagos, A6Casos, A6Caso, A6Cuentas, A7Casos, A7Caso, A8Perfil, A8Invitacion, B1Consumo, B1Consumidores, B1Pagos, B1Suscripcion, B1InvitarConsumidores, B3Estado, B3Bitacora } from './paginasDiferidas';
 
 /** Rutas del panel, la administración y el sitio público (11 §3). `/_ui` (A0.2) solo existe en desarrollo (H-101). */
@@ -26,6 +27,7 @@ export function crearRutas({ desarrollo }: { desarrollo: boolean }): RouteObject
         { path: 'entrar', element: <CargaDiferida><A1Sesion /></CargaDiferida> },
         { path: 'recuperar', element: <CargaDiferida><A1Recuperacion /></CargaDiferida> },
         { path: 'restablecer', element: <CargaDiferida><A1NuevaContrasena /></CargaDiferida> },
+        { path: 'definir-contrasena', element: <CargaDiferida><A6DefinirContrasena /></CargaDiferida> },
         { path: 'invitacion', element: <CargaDiferida><A8Invitacion /></CargaDiferida> }
       ]
     },

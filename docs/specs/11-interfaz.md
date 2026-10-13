@@ -205,6 +205,13 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **Sin permiso:** el menú oculta la opción. Si se entra directo por la URL, se muestra "No tiene permiso para ver esta página".
 - **Acción confirmada:** un aviso breve (4 s) en la esquina superior derecha.
 
+### Cuentas de plataforma (JZ-09)
+
+- A6.5 permite crear cuentas de administración y soporte, desactivarlas y activarlas. Los selectores de las cuentas existentes muestran el rol en solo lectura: RF-42 no incluye cambiar roles. La cuenta propia se identifica con «(usted)» y no ofrece desactivación.
+- La variante vacía conserva la cuenta inicial y se muestra cuando no hay otras cuentas.
+- `/definir-contrasena?token=` es pública y usa el diseño de A1.4b. Su rótulo es «Cuenta de plataforma», el enlace dura **7 días**, es de un solo uso e inicia sesión al guardar. Si falta, venció o ya se usó, muestra «El enlace ya no sirve» y «El enlace venció o ya se usó. Comuníquese con el administrador de Shapi.».
+- Después de definir la contraseña se consulta la sesión y se navega al destino del rol (10 §1). Si solo falla esa consulta, «Reintentar» no vuelve a consumir el enlace.
+
 ### Comportamiento de la estructura de navegación (DC-02)
 
 - La API seleccionada se representa en `/panel/apis/:id/...`. Al elegir desde una página sin ID, se abre su especificación; al cambiar de API desde una sección, se conserva esa sección. Sin selección, se indica que debe elegir una API y no se crean enlaces a un ID ficticio.

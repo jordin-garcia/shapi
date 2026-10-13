@@ -3,6 +3,93 @@ info:
   title: Administracion de Shapi
   version: 1.0.0
 paths:
+  /api/admin/cuentas:
+    get:
+      operationId: listarCuentasPlataforma
+      responses:
+        '200':
+          description: Cuentas de la organizacion de plataforma.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CuentaPlataforma'
+    post:
+      operationId: crearCuentaPlataforma
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevaCuentaPlataforma'
+      responses:
+        '201':
+          description: Cuenta creada y correo encolado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaPlataforma'
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '409':
+          $ref: '#/components/responses/ErrorCuenta'
+  /api/admin/cuentas/{id}/desactivar:
+    parameters:
+      - $ref: '#/components/parameters/OrganizacionId'
+    post:
+      operationId: desactivarCuentaPlataforma
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '204':
+          description: Cuenta desactivada y sesiones revocadas.
+        '404':
+          $ref: '#/components/responses/ErrorCuenta'
+        '422':
+          $ref: '#/components/responses/ErrorCuenta'
+  /api/admin/cuentas/{id}/activar:
+    parameters:
+      - $ref: '#/components/parameters/OrganizacionId'
+    post:
+      operationId: activarCuentaPlataforma
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '204':
+          description: Cuenta activada.
+        '404':
+          $ref: '#/components/responses/ErrorCuenta'
+  /api/auth/definir-contrasena:
+    post:
+      operationId: definirContrasenaPlataforma
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, contrasena]
+              properties:
+                token:
+                  type: string
+                contrasena:
+                  type: string
+                  minLength: 10
+                  maxLength: 128
+      responses:
+        '200':
+          description: Contrasena definida, correo verificado y sesion iniciada mediante cookie shapi_sesion.
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '422':
+          $ref: '#/components/responses/ErrorCuenta'
+        '429':
+          description: Demasiadas peticiones. Retry-After indica la espera.
   /api/admin/organizaciones:
     get:
       operationId: listarOrganizacionesAdministracion
@@ -65,6 +152,12 @@ components:
         type: string
         enum: [shapi]
   responses:
+    ErrorCuenta:
+      description: Correo duplicado, cuenta inexistente, intento de desactivar la cuenta propia o token invalido.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
     DatosInvalidos:
       description: El motivo de suspension no es valido.
       content:
@@ -78,6 +171,38 @@ components:
           schema:
             $ref: '#/components/schemas/Problema'
   schemas:
+    NuevaCuentaPlataforma:
+      type: object
+      required: [nombre, correo, rol]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 150
+        correo:
+          type: string
+          format: email
+          maxLength: 254
+        rol:
+          type: string
+          enum: [administrador, soporte]
+    CuentaPlataforma:
+      type: object
+      required: [id, nombre, correo, rol, estado]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        correo:
+          type: string
+        rol:
+          type: string
+          enum: [administrador, soporte]
+        estado:
+          type: string
+          enum: [activa, desactivada]
     OrganizacionAdministracion:
       type: object
       required:

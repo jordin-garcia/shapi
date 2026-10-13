@@ -20,6 +20,8 @@ Los enlaces enviados por correo llevan a la pantalla del ámbito de la cuenta. P
 
 ### Enrutamiento después de iniciar sesión
 
+El endpoint público `POST /api/auth/definir-contrasena` también aplica el límite de 10 peticiones por minuto por IP. El enlace inicial de una cuenta de plataforma apunta a `https://{dominio_base}/definir-contrasena?token={token}`. Solo acepta el token de tipo `definir_contrasena`, vigente y sin usar, para una cuenta activa de la organización de plataforma sin contraseña definida. Guardar la contraseña verifica el correo e inicia una sesión del personal. La desactivación revoca sus sesiones vigentes; la reactivación no las restaura.
+
 | Rol | Destino |
 |---|---|
 | administrador | `/admin/organizaciones` |
@@ -92,7 +94,7 @@ Cada plantilla recibe estos datos para su contenido, además de los datos de mar
 | `recuperacion` | `nombre`, `token` |
 | `invitacion_miembro` | `nombre`, `nombreOrganizacion`, `token` |
 | `invitacion_consumidor` | `nombre`, `nombreApi`, `enlace` |
-| `definir_contrasena` | `nombre`, `enlace` |
+| `definir_contrasena` | `nombre`, `token` (el enlace se construye al renderizar y el token se elimina de la cola después del envío o fallo definitivo) |
 | `pago_rechazado` | `nombre`, `nombrePlan`, `motivo`, `enlace` |
 | `suscripcion_en_gracia` | `nombre`, `nombrePlan`, `fechaSuspension`, `enlace` |
 | `suscripcion_suspendida` | `nombre`, `nombrePlan`, `enlace` |
