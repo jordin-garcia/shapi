@@ -16,6 +16,7 @@ export type SuscripcionActual = componentesSuscripciones['schemas']['Suscripcion
   apiDisponible?: boolean;
   graciaHasta?: string | null;
   ultimoRechazoEn?: string | null;
+  diasRestantes?: number;
 };
 export type Tarjeta = componentesSuscripciones['schemas']['Tarjeta'];
 

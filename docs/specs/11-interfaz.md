@@ -178,6 +178,8 @@ En A5.4b, la respuesta actual de `POST /api/portal/suscripciones` solo incluye l
 | B2.6 | Revocar una clave propia | `RevocarClave.dc.html` | — | RF-28 | ★ |
 | B2.7 | Cambio de plan del consumidor | `CambioPlan.dc.html` | `/cuenta/cambiar-plan/:plan` | RF-25 | ★ |
 
+**Precisión de B2.3:** en `SuscripcionGracia.dc.html` el rango visual termina el 8 de octubre, igual que la fecha de suspensión. La implementación sigue la convención temporal de [12 §ADR-30](12-decisiones.md#adr-30--ciclos-exactos-de-30-días-y-cómo-se-muestran-las-fechas): muestra como periodo de gracia los días con servicio (1–7 oct) y la suspensión aparte (8 oct). Los días restantes los calcula el servidor con `IReloj`, no el navegador, para respetar el reloj de demostración.
+
 ### B3 · Salidas del administrador y del soporte (`b3-salidas-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|

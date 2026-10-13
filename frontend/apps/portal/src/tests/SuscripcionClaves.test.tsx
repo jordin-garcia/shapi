@@ -84,12 +84,13 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
   });
 
   it('RF-23 y RF-26 · B2.3 muestra la gracia con los días restantes y conserva activas las claves', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-03T12:00:00Z').getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2025-01-01T12:00:00Z').getTime());
     server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json({
       ...suscripcion,
       estado: 'en_gracia',
       ultimoRechazoEn: '2026-10-01T06:00:00Z',
       graciaHasta: '2026-10-08T06:00:00Z',
+      diasRestantes: 5,
     })));
 
     montar();
