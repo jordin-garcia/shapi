@@ -73,6 +73,12 @@ public sealed class MedicionMiddleware(
                 _ = lote.HashIncrementAsync(llave, campo, incremento, CommandFlags.FireAndForget);
             }
             _ = lote.SetAddAsync(LlavesRedis.MetricasPendientes, llave, CommandFlags.FireAndForget);
+            // RF-39: la ventana de salud usa tiempo real, independiente del reloj de demostración.
+            var segundo = reloj.GetUtcNow().ToUnixTimeSeconds();
+            var latencia = LlavesRedis.LatenciaCompuerta(segundo / 60);
+            var campoLatencia = FormattableString.Invariant($"{segundo}:{HistogramaMetricas.Rango(compuerta)}");
+            _ = lote.HashIncrementAsync(latencia, campoLatencia, 1, CommandFlags.FireAndForget);
+            _ = lote.KeyExpireAsync(latencia, TimeSpan.FromMinutes(65), CommandFlags.FireAndForget);
             _ = lote.ExecuteAsync(CommandFlags.FireAndForget);
         }
         catch (RedisException excepcion)

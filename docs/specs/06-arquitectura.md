@@ -411,6 +411,14 @@ Los orígenes de demostración (`origen-envios` y `origen-agro`) son dos APIs m�
 | Pasarela de pagos simulada | Siempre | — | Si `SHAPI_PASARELA_FALLA=true` (para demostraciones) |
 | Envío de correo | No hay correos pendientes con más de 2 minutos | Hay correos pendientes con más de 2 minutos o fallos recientes | El servidor SMTP no responde |
 
+**Precisiones de B3.1 (RF-39):** `GET /api/admin/estado` admite administrador y soporte. La comprobación se comparte durante 30 segundos por proceso de API, en memoria para seguir funcionando si Redis cae. Las sondas tienen plazos acotados y fallan independientemente. La API consulta su `/salud` por HTTP local, sin tomar la dirección de la cabecera Host. El correo comprueba la conexión SMTP y `NOOP`, sin enviar mensajes; «fallos recientes» son correos no enviados con error y `actualizado_en` en los últimos dos minutos. La fecha del aviso de correo es la creación del correo pendiente más antiguo o, si solo hay fallos recientes, la actualización más antigua de esos fallos.
+
+Los latidos se comprueban por existencia con TTL positivo, sin comparar sus marcas de tiempo: el trabajador usa `IReloj`, que puede estar adelantado en demostración. Sin métricas pendientes de APIs identificadas ni lotes separados pendientes, la ausencia de un lote reciente no degrada al trabajador. Con trabajo pendiente, se compara `lote_consolidado.procesado_en` con `IReloj`; si todavía no existe un lote, la consolidación se considera degradada hasta poder comprobarla.
+
+El p95 global de la última hora usa las muestras de todas las instancias y peticiones, incluidos rechazos, en una ventana móvil de 3600 segundos del reloj real. Se registra al completar la petición y se interpola en los mismos diez rangos de 08 §7; sin muestras es nulo, y el rango abierto se presenta como `> 2500 ms`. La fecha de comprobación y los datos de negocio usan `IReloj`. B3.1 actualiza automáticamente cada 30 segundos; solo afirma que la compuerta no está afectada cuando su estado comprobado es `en_servicio`.
+
+Si PostgreSQL no responde, no se puede comprobar la cola: el correo se muestra degradado mientras SMTP responda, o fuera de servicio si SMTP tampoco responde. Los avisos de otros componentes muestran su nombre y «está degradado» o «está fuera de servicio», con el texto «El componente requiere atención. El estado se volverá a comprobar automáticamente.»; estos estados no tienen un mockup propio.
+
 ## 9. Estructura del repositorio
 
 ```

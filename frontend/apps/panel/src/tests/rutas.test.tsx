@@ -53,6 +53,7 @@ const implementadas: Record<string, string> = {
   'A8-1': 'Mi perfil',
   'A8-2': 'El enlace ya no sirve',
   'B3-2': 'Bitácora de acciones sensibles',
+  'B3-1': 'Estado de los componentes',
   'B1-1': 'Consumo, latencia y errores',
   'A4-3': 'Claves de sus consumidores',
 };
@@ -110,6 +111,11 @@ beforeEach(() => {
       proximaRenovacion: '2026-09-30T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4821', graciaHasta: null, diasRestantesCiclo: 5, diasRestantes: 0, cambioProgramado: null,
     })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
+    http.get('http://localhost/api/admin/estado', () => HttpResponse.json({
+      comprobadoEn: '2026-10-12T16:40:00Z', latenciaP95Ms: null, latenciaSupera2500: false,
+      componentes: ['compuerta', 'api_control', 'trabajador', 'redis', 'postgres', 'pasarela', 'correo']
+        .map(id => ({ id, estado: 'en_servicio', incidenciaDesde: null })),
+    })),
     http.get('http://localhost/api/admin/organizaciones', () => HttpResponse.json([])),
     http.get('http://localhost/api/admin/cuentas', () => HttpResponse.json([])),
     http.get('http://localhost/api/casos', () => HttpResponse.json({ elementos: [], total: 0 })),

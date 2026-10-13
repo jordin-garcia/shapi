@@ -201,6 +201,8 @@ El ejemplo de B1.1 y su paquete se sincronizaron con la siembra al implementar J
 
 ## 8. Rendimiento
 
+Para RF-39, el mismo pipeline de medición incrementa también `salud:latencia-compuerta:{minuto_unix}` (07 §4), con campos `segundo_unix:rango` y TTL de 65 minutos. Esta medición global usa el reloj real y no participa en `met:pendientes` ni en la consolidación diaria; permite consultar la última hora aunque el trabajador esté caído, sin añadir viajes síncronos a Redis.
+
 - Por cada petición se hacen tres viajes a Redis antes de reenviar, más uno en segundo plano para la medición:
   1. un *pipeline* con `api:host:{host}` y `clave:{hash}`;
   2. un *pipeline* con lo que depende de esos valores: `api:{id}`, sus rutas, `org:{id}` y `susc:{id}`;
