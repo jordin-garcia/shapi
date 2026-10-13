@@ -48,6 +48,23 @@ describe('B1.3 · Historial de pagos (RF-21)', () => {
     expect(screen.getByText('Pagado')).toBeDefined();
   });
 
+  it('RF-21 · muestra el último día incluido del periodo de contratación', async () => {
+    server.use(http.get(API + '/pagos', () => HttpResponse.json({
+      elementos: [{
+        ...pago,
+        concepto: 'contratacion',
+        descripcion: 'Contratación del plan Lanzamiento',
+        periodoInicio: '2026-08-24T06:00:00Z',
+        periodoFin: '2026-09-23T06:00:00Z',
+      }],
+      total: 1,
+    })));
+
+    renderizar();
+
+    expect(await screen.findByText('Lanzamiento · 24 ago 2026 – 22 sep 2026')).toBeDefined();
+  });
+
   it('RF-21 · presenta el estado vacío del mockup cuando la organización está en Prueba', async () => {
     server.use(http.get(API + '/pagos', () => HttpResponse.json({ elementos: [], total: 0 })));
 

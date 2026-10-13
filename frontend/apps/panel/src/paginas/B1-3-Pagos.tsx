@@ -17,6 +17,10 @@ function fecha(valor: string) {
   return `${parte('day')} ${meses[parte('month') - 1]} ${parte('year')}`;
 }
 
+function fechaFinDePeriodo(valor: string) {
+  return fecha(new Date(new Date(valor).getTime() - 24 * 60 * 60 * 1000).toISOString());
+}
+
 function dinero(monto: number) {
   return `Q ${monto.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -31,7 +35,7 @@ function descripcion(pago: Pago) {
     .replace(/^Contratación del plan /i, '')
     .replace(/^Renovación · /i, '')
     .replace(/^Reactivación · /i, '');
-  return `${nombrePlan} · ${fecha(pago.periodoInicio)} – ${fecha(pago.periodoFin)}`;
+  return `${nombrePlan} · ${fecha(pago.periodoInicio)} – ${fechaFinDePeriodo(pago.periodoFin)}`;
 }
 
 function medioPago(pago: Pago) {
