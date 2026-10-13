@@ -8,6 +8,24 @@ servers:
     description: Panel de administración detrás del borde
 
 paths:
+  /api/admin/estado:
+    get:
+      summary: Consulta el estado de los siete componentes
+      description: Comprobación compartida durante 30 segundos. La latencia corresponde a la última hora; sin tráfico es nula.
+      operationId: consultarEstado
+      security:
+        - cookieSesion: []
+      responses:
+        '200':
+          description: Estado comprobado de la plataforma.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoPlataforma'
+        '401':
+          description: No hay una sesión vigente.
+        '403':
+          description: Se requiere administrador o soporte.
   /api/admin/bitacora:
     get:
       summary: Consulta la bitácora de acciones sensibles
@@ -70,6 +88,39 @@ components:
       name: shapi_sesion
 
   schemas:
+    EstadoPlataforma:
+      type: object
+      required: [comprobadoEn, latenciaP95Ms, latenciaSupera2500, componentes]
+      properties:
+        comprobadoEn:
+          type: string
+          format: date-time
+        latenciaP95Ms:
+          type: [number, 'null']
+          minimum: 0
+        latenciaSupera2500:
+          type: boolean
+        componentes:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items:
+            $ref: '#/components/schemas/EstadoComponente'
+
+    EstadoComponente:
+      type: object
+      required: [id, estado, incidenciaDesde]
+      properties:
+        id:
+          type: string
+          enum: [compuerta, api_control, trabajador, redis, postgres, pasarela, correo]
+        estado:
+          type: string
+          enum: [en_servicio, degradado, fuera_de_servicio]
+        incidenciaDesde:
+          type: [string, 'null']
+          format: date-time
+
     PaginaBitacora:
       type: object
       required: [elementos, total]

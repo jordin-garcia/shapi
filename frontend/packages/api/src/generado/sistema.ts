@@ -1,4 +1,24 @@
 export interface paths {
+    "/api/admin/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consulta el estado de los siete componentes
+         * @description Comprobación compartida durante 30 segundos. La latencia corresponde a la última hora; sin tráfico es nula.
+         */
+        get: operations["consultarEstado"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/bitacora": {
         parameters: {
             query?: never;
@@ -25,6 +45,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        EstadoPlataforma: {
+            /** Format: date-time */
+            comprobadoEn: string;
+            latenciaP95Ms: number | null;
+            latenciaSupera2500: boolean;
+            componentes: components["schemas"]["EstadoComponente"][];
+        };
+        EstadoComponente: {
+            /** @enum {string} */
+            id: "compuerta" | "api_control" | "trabajador" | "redis" | "postgres" | "pasarela" | "correo";
+            /** @enum {string} */
+            estado: "en_servicio" | "degradado" | "fuera_de_servicio";
+            /** Format: date-time */
+            incidenciaDesde: string | null;
+        };
         PaginaBitacora: {
             elementos: components["schemas"]["EntradaBitacora"][];
             total: number;
@@ -71,6 +106,40 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    consultarEstado: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Estado comprobado de la plataforma. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoPlataforma"];
+                };
+            };
+            /** @description No hay una sesión vigente. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Se requiere administrador o soporte. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     consultarBitacora: {
         parameters: {
             query?: {

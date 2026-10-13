@@ -81,5 +81,9 @@ public static class LlavesRedis
 
     public static string SaludCompuerta(string instancia) => $"salud:compuerta:{instancia}";
 
+    /// <summary>RF-39: histograma global por minuto real; campos segundo Unix:rango y TTL de 65 minutos.</summary>
+    public static string LatenciaCompuerta(long minutoUnix) =>
+        $"salud:latencia-compuerta:{minutoUnix.ToString(CultureInfo.InvariantCulture)}";
+
     private static string Aaaammdd(DateOnly fecha) => fecha.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 }

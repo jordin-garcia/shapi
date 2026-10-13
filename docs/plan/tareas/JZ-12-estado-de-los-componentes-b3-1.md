@@ -21,11 +21,17 @@ Mostrarle al administrador y al soporte el estado de cada componente y la latenc
 
 ## Contexto que debes leer
 - `docs/specs/06-arquitectura.md` §8 (tabla de estados)
+- `docs/specs/07-modelo-de-datos.md` §4 (latidos y medición de la última hora)
+- `docs/specs/08-compuerta.md` §7 (histogramas y p95)
 - Mockups: `mockups/B3/Main.dc.html`, `Degradado.dc.html`, `Soporte.dc.html`
 
 ## Archivos que creas o modificas
 - `src/Shapi.Trabajador/Estado/**` (crear: latido `salud:trabajador`)
 - `src/Shapi.{Aplicacion,Api}/Estado/**` (crear)
+- `src/Shapi.Api/Modulos/EstadoModulo.cs` (registrar el módulo)
+- `src/Shapi.Infraestructura/Estado/**` (crear: sondas de salud)
+- `src/Shapi.Compuerta/Medicion/MedicionMiddleware.cs` y `src/Shapi.Contratos/Redis/LlavesRedis.cs` (medición global de la última hora)
+- `infra/compose.prod.yml` (configuración SMTP de la API)
 - `contratos/openapi/sistema.yaml` (modificar)
 - `frontend/apps/panel/src/paginas/B3-1-Estado.tsx`
 - `tests/**`
@@ -50,3 +56,7 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Alertas por correo
+
+## Notas
+- El 12 de octubre, José Pablo autorizó ampliar el alcance a los archivos del módulo e infraestructura, agregar la medición de la última hora en los archivos de Jordin y configurar SMTP en la API productiva. La medición se completa en esta tarea, sin crear una dependencia para Jordin.
+- El latido del trabajador ya lo implementó JG-09, en `Consolidacion/TrabajoConsolidacion.cs`; se reutiliza sin duplicar el servicio.

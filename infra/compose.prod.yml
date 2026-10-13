@@ -46,6 +46,9 @@ services:
       SHAPI_ADMIN_NOMBRE: ${SHAPI_ADMIN_NOMBRE:-}
       SHAPI_ADMIN_CONTRASENA: ${SHAPI_ADMIN_CONTRASENA:-}
       SHAPI_PASARELA_FALLA: ${SHAPI_PASARELA_FALLA:-false}
+      SHAPI_SMTP_HOST: mailpit
+      SHAPI_SMTP_PUERTO: 1025
+      SHAPI_SMTP_TLS: "false"
     volumes:
       - dpkeys:/var/lib/shapi/dpkeys
     healthcheck:
