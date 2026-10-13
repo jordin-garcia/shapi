@@ -1,5 +1,6 @@
 using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Siembra.Demo;
+using Shapi.Trabajador.CierreCiclo;
 using Shapi.Trabajador.Consolidacion;
 using Shapi.Trabajador.Correo;
 using Shapi.Trabajador.Resincronizacion;
@@ -12,6 +13,7 @@ builder.Services.AgregarServiciosComunes(builder.Configuration);
 builder.Services.AgregarProcesamientoCorreo();
 builder.Services.AgregarResincronizacion();
 builder.Services.AgregarConsolidacion();
+builder.Services.AgregarCierreCiclo(builder.Configuration);
 builder.Services.AddScoped<SiembraDemo>();
 
 var host = builder.Build();

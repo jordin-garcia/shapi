@@ -26,4 +26,26 @@ public class SuscripcionApi : Suscripcion
             MedioPagoId = medioPagoId,
         };
     }
+
+    /// <summary>Reactiva una suscripción API con un ciclo nuevo desde hoy (EM-10).</summary>
+    public void Reactivar(int vigenciaDias, Guid medioPagoId, DateTimeOffset ahora)
+    {
+        if (Estado is not (EstadoSuscripcion.EnGracia or EstadoSuscripcion.Suspendida))
+        {
+            throw new InvalidOperationException("Solo se puede reactivar una suscripción en gracia o suspendida.");
+        }
+
+        if (vigenciaDias <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(vigenciaDias));
+        }
+
+        var inicio = InicioDeCiclo(ahora);
+        Inicio = inicio;
+        Fin = inicio.AddDays(vigenciaDias);
+        GraciaHasta = null;
+        MedioPagoId = medioPagoId;
+        Estado = EstadoSuscripcion.Activa;
+        ActualizadoEn = ahora;
+    }
 }
