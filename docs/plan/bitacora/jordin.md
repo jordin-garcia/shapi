@@ -904,3 +904,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Dominique:** cambié `frontend/apps/panel/src/tests/rutas.test.tsx`, agregué los tipos generados en `frontend/packages/api/src/generado/consumo.ts` y sincronicé `mockups/B1/Main.dc.html`, `mockups/B1/canvas.json` y `mockups/b1-salidas-proveedor.html` con RF-35 y la siembra. Actualiza tu rama desde `main` cuando se integre.
   - **JG-12 y JG-13:** la respuesta de consumo usa `Percentil95` con `milisegundos` nulo sin muestras y `supera2500` para el rango abierto; la presentación redondea al milisegundo más cercano. El cálculo conserva los decimales y suma histogramas, no percentiles.
+
+## 2026-10-12 · JG-10 · Pantalla de claves del proveedor
+- Hecho: lista de claves por consumidor, estados y fechas en Guatemala, variante vacía y confirmación de revocación. Propietario y editor revocan; el lector consulta sin acciones. El listado se actualiza y confirma con un aviso de 4 segundos; errores y paginación tienen reintento y controles.
+- Decisiones: A4.3b se muestra dentro de la ruta de claves; páginas de 20 consumidores y orden del contrato. Cambiar de API descarta la confirmación. Se precisó en 11 §4. El contrato de JG-07 ya cubre el comportamiento y sus tipos se regeneraron sin diferencias.
+- Verificación: 364 pruebas del frontend en 26 archivos, incluidos 12 casos RF-28; tipos y build correctos, lint sin errores y 11 advertencias previas del portal. Capturas de lista y confirmación con la siembra, y de los tres estados con los datos de referencia, comparadas con sus mockups.
+- Pendiente o aviso para otros:
+  - **Dominique:** actualicé `frontend/apps/panel/src/tests/rutas.test.tsx` para reconocer A4.3 implementada y simular su listado. Actualiza tu rama desde `main` cuando se integre. No cambió `rutas.tsx`.

@@ -255,6 +255,13 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **A3.3, especificación inválida:** el aviso muestra el título, la ubicación y el motivo en español. Si el error lo dio la biblioteca que lee el documento, se agrega «Detalle técnico: {mensaje original}», que está en inglés.
 - **A3.4 y A3.3 para el lector:** el lector puede ver las rutas (04 §3.1), pero guardar cambios responde 403.
 
+### Comportamiento de las claves del proveedor (JG-10)
+
+- **A4.3:** conserva el orden del contrato de claves: consumidores por fecha de contratación y, dentro de cada consumidor, producción antes de pruebas, con los estados activa, rotada y revocada. Se pagina por consumidor, en páginas de 20; «Anterior» y «Siguiente» aparecen cuando hay más de una página.
+- Las fechas de «Vigente hasta» y «El» se muestran en Guatemala, con el formato del mockup (`11 sep 2026, 09:15`). El lector no ve la columna «Acciones». Las claves revocadas no tienen acción.
+- **A4.3b:** es una confirmación dentro de la ruta de A4.3. «Cancelar» vuelve a la lista sin enviar la revocación. Mientras se revoca, no se puede confirmar otra vez ni cancelar; los errores conservan la confirmación y permiten reintentar.
+- Al revocar, se actualiza la lista y aparece «Clave revocada.» durante 4 segundos. Cambiar de API cierra la confirmación, vuelve a la primera página y consulta las claves de la nueva API.
+
 ### Comportamiento del portal y de sus pantallas de acceso (DC-03 y DC-08)
 
 - **Marca:** la raíz del portal redefine `--principal`, `--principal-hover` y `--anillo-foco` con `--marca-principal`, así que los botones, los campos y el anillo de foco de todas las pantallas usan la marca y nunca el azul de Shapi (§1).
