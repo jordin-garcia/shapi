@@ -13,7 +13,7 @@ public class MotorPlantillasCorreoTests
         { "recuperacion", """{"nombre":"Ana","token":"token-1"}""" },
         { "invitacion_miembro", """{"nombre":"Ana","nombreOrganizacion":"Acme","token":"token-1"}""" },
         { "invitacion_consumidor", """{"nombre":"Ana","nombreApi":"API de envíos","enlace":"https://envios.shapi.localhost/invitacion?token=token-1"}""" },
-        { "definir_contrasena", """{"nombre":"Ana","enlace":"https://shapi.localhost/definir-contrasena?token=token-1"}""" },
+        { "definir_contrasena", """{"nombre":"Ana","token":"token-1"}""" },
         { "pago_rechazado", """{"nombre":"Ana","nombrePlan":"Profesional","motivo":"Fondos insuficientes","enlace":"https://shapi.localhost/pagos"}""" },
         { "suscripcion_en_gracia", """{"nombre":"Ana","nombrePlan":"Profesional","fechaSuspension":"12 de octubre de 2026","enlace":"https://shapi.localhost/suscripcion"}""" },
         { "suscripcion_suspendida", """{"nombre":"Ana","nombrePlan":"Profesional","enlace":"https://shapi.localhost/suscripcion"}""" },

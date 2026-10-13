@@ -95,7 +95,7 @@ public sealed partial class MotorPlantillasCorreo
 
     private void AgregarEnlace(string plantilla, IDictionary<string, string> datos)
     {
-        if (plantilla is not ("verificacion_correo" or "recuperacion" or "invitacion_miembro"))
+        if (plantilla is not ("verificacion_correo" or "recuperacion" or "invitacion_miembro" or "definir_contrasena"))
         {
             return;
         }
@@ -105,11 +105,12 @@ public sealed partial class MotorPlantillasCorreo
             throw new InvalidOperationException($"Falta el dato 'token' para la plantilla '{plantilla}'.");
         }
 
-        var host = plantilla == "invitacion_miembro" ? _dominioBase : HostDelEnlace(datos);
+        var host = plantilla is "invitacion_miembro" or "definir_contrasena" ? _dominioBase : HostDelEnlace(datos);
         var ruta = plantilla switch
         {
             "verificacion_correo" => "verificar-correo",
             "recuperacion" => "restablecer",
+            "definir_contrasena" => "definir-contrasena",
             _ => "invitacion",
         };
         datos["enlace"] = $"https://{host}/{ruta}?token={Uri.EscapeDataString(token)}";

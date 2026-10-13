@@ -34,6 +34,10 @@ public class Usuario
 
     public void DefinirHashContrasena(string hash) => HashContrasena = hash;
 
+    public void Desactivar() => Estado = EstadoCuenta.Desactivado;
+
+    public void Activar() => Estado = EstadoCuenta.Activo;
+
     public void VerificarCorreo(DateTimeOffset ahora) => CorreoVerificadoEn ??= ahora;
 
     public bool EstaBloqueado(DateTimeOffset ahora) => BloqueadoHasta > ahora;

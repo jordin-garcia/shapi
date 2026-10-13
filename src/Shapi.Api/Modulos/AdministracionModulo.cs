@@ -11,12 +11,18 @@ public static class AdministracionModulo
         services.AddScoped<GestionarOrganizaciones>();
         services.AddScoped<IRepositorioOrganizacionesAdministracion, RepositorioOrganizacionesAdministracion>();
         services.AddSingleton<IEnlacesAdministracion, EnlacesAdministracion>();
+        services.AddScoped<IRepositorioCuentasPlataforma, RepositorioCuentasPlataforma>();
+        services.AddScoped<CrearCuentaPlataforma>();
+        services.AddScoped<CambiarEstadoCuentaPlataforma>();
+        services.AddScoped<DefinirContrasenaPlataforma>();
+        services.AddScoped<FluentValidation.IValidator<NuevaCuentaPlataforma>, ValidadorCuentaPlataforma>();
         return services;
     }
 
     public static WebApplication MapearModuloAdministracion(this WebApplication app)
     {
         app.MapearEndpointsAdministracion();
+        app.MapearCuentasPlataforma();
         return app;
     }
 }

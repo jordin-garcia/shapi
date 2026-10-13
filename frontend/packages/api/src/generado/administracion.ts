@@ -1,4 +1,72 @@
 export interface paths {
+    "/api/admin/cuentas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listarCuentasPlataforma"];
+        put?: never;
+        post: operations["crearCuentaPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/cuentas/{id}/desactivar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["OrganizacionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["desactivarCuentaPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/cuentas/{id}/activar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["OrganizacionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activarCuentaPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/definir-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["definirContrasenaPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/organizaciones": {
         parameters: {
             query?: never;
@@ -55,6 +123,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        NuevaCuentaPlataforma: {
+            nombre: string;
+            /** Format: email */
+            correo: string;
+            /** @enum {string} */
+            rol: "administrador" | "soporte";
+        };
+        CuentaPlataforma: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            correo: string;
+            /** @enum {string} */
+            rol: "administrador" | "soporte";
+            /** @enum {string} */
+            estado: "activa" | "desactivada";
+        };
         OrganizacionAdministracion: {
             /** Format: uuid */
             id: string;
@@ -88,6 +173,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description Correo duplicado, cuenta inexistente, intento de desactivar la cuenta propia o token invalido. */
+        ErrorCuenta: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
         /** @description El motivo de suspension no es valido. */
         DatosInvalidos: {
             headers: {
@@ -118,6 +212,141 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listarCuentasPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cuentas de la organizacion de plataforma. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CuentaPlataforma"][];
+                };
+            };
+        };
+    };
+    crearCuentaPlataforma: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Proteccion CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NuevaCuentaPlataforma"];
+            };
+        };
+        responses: {
+            /** @description Cuenta creada y correo encolado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CuentaPlataforma"];
+                };
+            };
+            400: components["responses"]["DatosInvalidos"];
+            409: components["responses"]["ErrorCuenta"];
+        };
+    };
+    desactivarCuentaPlataforma: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Proteccion CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["OrganizacionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cuenta desactivada y sesiones revocadas. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["ErrorCuenta"];
+            422: components["responses"]["ErrorCuenta"];
+        };
+    };
+    activarCuentaPlataforma: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Proteccion CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["OrganizacionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cuenta activada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["ErrorCuenta"];
+        };
+    };
+    definirContrasenaPlataforma: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Proteccion CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                    contrasena: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Contrasena definida, correo verificado y sesion iniciada mediante cookie shapi_sesion. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["DatosInvalidos"];
+            422: components["responses"]["ErrorCuenta"];
+            /** @description Demasiadas peticiones. Retry-After indica la espera. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listarOrganizacionesAdministracion: {
         parameters: {
             query?: never;

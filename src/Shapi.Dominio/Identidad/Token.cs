@@ -87,4 +87,15 @@ public class Token
     }
 
     public bool EsValido(DateTimeOffset ahora) => UsadoEn is null && ExpiraEn > ahora;
+
+    /// <summary>RF-42: enlace inicial de una cuenta de plataforma, válido por siete días.</summary>
+    public static Token DefinirContrasena(string hashToken, Usuario usuario, DateTimeOffset ahora) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Tipo = TipoToken.DefinirContrasena,
+        HashToken = hashToken,
+        UsuarioId = usuario.Id,
+        Correo = usuario.Correo,
+        ExpiraEn = ahora + TimeSpan.FromDays(7),
+    };
 }

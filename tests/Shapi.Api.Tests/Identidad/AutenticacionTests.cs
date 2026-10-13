@@ -453,6 +453,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     [InlineData("/api/auth/entrar")]
     [InlineData("/api/auth/recuperar")]
     [InlineData("/api/auth/restablecer")]
+    [InlineData("/api/auth/definir-contrasena")]
     public async Task RF_04_Limite_CadaEndpointDeAutenticacion_LaPeticion11Responde429(string ruta)
     {
         var cuerpo = new { correo = "nadie@enviosxelaju.com", contrasena = "Incorrecta123", token = "inexistente" };
@@ -514,7 +515,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
 
         Assert.Equal(
             // /openapi solo se mapea en Development, que es el entorno de las pruebas.
-            ["/api/auth/entrar", "/api/auth/recuperar", "/api/auth/reenviar-verificacion", "/api/auth/registro", "/api/auth/restablecer", "/api/auth/salir", "/api/auth/verificar-correo", "/api/invitaciones/{token}", "/api/invitaciones/{token}/aceptar", "/api/planes-plataforma",
+            ["/api/auth/definir-contrasena", "/api/auth/entrar", "/api/auth/recuperar", "/api/auth/reenviar-verificacion", "/api/auth/registro", "/api/auth/restablecer", "/api/auth/salir", "/api/auth/verificar-correo", "/api/invitaciones/{token}", "/api/invitaciones/{token}/aceptar", "/api/planes-plataforma",
              "/api/portal/auth/entrar", "/api/portal/auth/invitacion/{token}", "/api/portal/auth/invitacion/{token}/aceptar", "/api/portal/auth/recuperar", "/api/portal/auth/reenviar-verificacion", "/api/portal/auth/registro", "/api/portal/auth/restablecer", "/api/portal/auth/salir", "/api/portal/auth/verificar-correo",
              "/api/portal/configuracion", "/api/portal/documentacion", "/api/portal/logo", "/api/portal/planes",
              "/openapi/{documentName}.json", "/salud"],

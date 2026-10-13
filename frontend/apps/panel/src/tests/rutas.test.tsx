@@ -47,6 +47,7 @@ const implementadas: Record<string, string> = {
   'A6-4': 'Casos',
   'A6-4b': 'El dominio propio no verifica',
   'A6-2': 'Organizaciones',
+  'A6-5': 'Cuentas de administración y soporte',
   'A7-1': 'Casos de soporte',
   'A7-2': 'El dominio propio no verifica',
   'A8-1': 'Mi perfil',
@@ -108,6 +109,7 @@ beforeEach(() => {
     })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/admin/organizaciones', () => HttpResponse.json([])),
+    http.get('http://localhost/api/admin/cuentas', () => HttpResponse.json([])),
     http.get('http://localhost/api/casos', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/casos/:numero', () => HttpResponse.json({
       numero: 123, asunto: 'El dominio propio no verifica', estado: 'abierto', organizacion: 'EnvÃ­os XelajÃº, S.A.',
