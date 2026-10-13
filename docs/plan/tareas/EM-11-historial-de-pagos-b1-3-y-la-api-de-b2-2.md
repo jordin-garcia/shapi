@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-12
 depende_de: [EM-09, EM-08]
 requisitos: [RF-21]
@@ -50,3 +50,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Pantalla B2.2 (DC-13)
+
+## Resultado
+- Se implementaron `GET /api/pagos` para propietario y lector, y `GET /api/portal/pagos` para la sesión del consumidor y la API del host. Ambos aceptan paginación de hasta 100 filas y devuelven concepto, descripción, periodo, fecha, monto en GTQ, marca, últimos cuatro dígitos y estado. La consulta incluye intentos rechazados que no alcanzaron a crear una suscripción.
+- Las consultas viven en Aplicación e Infraestructura, con filtrado explícito por organización para plataforma, y por consumidor y API del portal; también se aplican los filtros globales de persistencia.
+- Se creó `contratos/openapi/pagos.yaml` y se generaron los tipos de TypeScript. B1.3 presenta las cinco columnas del mockup, los cobros y la variante vacía. B2.2 permanece fuera de alcance.
+- Se agregaron pruebas de integración para paginación, permisos y aislamiento, y pruebas Vitest para los estados de B1.3.
