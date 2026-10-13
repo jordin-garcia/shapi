@@ -3,6 +3,25 @@ info:
   title: API de Suscripciones de Shapi
   version: 1.0.0
 paths:
+  /api/admin/demo/reloj:
+    post:
+      summary: Adelanta el reloj de demostración y dispara el cierre de ciclo
+      operationId: adelantarRelojDemo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PeticionRelojDemo" }
+      responses:
+        "204":
+          description: Reloj adelantado y cierre de ciclo solicitado
+        "400":
+          description: Los días deben ser mayores que cero (`datos_invalidos`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404":
+          description: Solo está disponible con `SHAPI_MODO_DEMO=true`
   /api/suscripcion:
     get:
       summary: Consulta la suscripción de plataforma de la organización
@@ -238,8 +257,57 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problema"
+  /api/portal/suscripcion/pagar:
+    post:
+      summary: Reactiva la suscripción API del consumidor en gracia o suspendida
+      operationId: reactivarSuscripcionApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tarjeta]
+              properties:
+                tarjeta: { $ref: "#/components/schemas/Tarjeta" }
+      responses:
+        "200":
+          description: Suscripción reactivada con un ciclo nuevo desde hoy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultadoReactivacionSuscripcionApi" }
+        "400":
+          description: Falta la tarjeta o sus datos no son válidos
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "402":
+          description: La pasarela rechazó el pago
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404":
+          description: Portal, consumidor o suscripción por reactivar no encontrado
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "422":
+          description: La tarjeta no es válida o la suscripción no es de pago
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "503":
+          description: La pasarela no está disponible
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
 components:
   schemas:
+    PeticionRelojDemo:
+      type: object
+      required: [adelantarDias]
+      properties:
+        adelantarDias: { type: integer, minimum: 1 }
     ResultadoContratacionPlataforma:
       type: object
       required: [id, plan, estado, periodo, proximaRenovacion, tarjetaEnmascarada]
@@ -286,6 +354,13 @@ components:
       properties:
         estado: { type: string, const: sin_cambios }
     ResultadoPagoSuscripcionPlataforma:
+      type: object
+      required: [estado, inicio, fin]
+      properties:
+        estado: { type: string, const: activa }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+    ResultadoReactivacionSuscripcionApi:
       type: object
       required: [estado, inicio, fin]
       properties:

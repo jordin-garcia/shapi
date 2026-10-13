@@ -1,4 +1,21 @@
 export interface paths {
+    "/api/admin/demo/reloj": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adelanta el reloj de demostración y dispara el cierre de ciclo */
+        post: operations["adelantarRelojDemo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/suscripcion": {
         parameters: {
             query?: never;
@@ -118,10 +135,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/suscripcion/pagar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactiva la suscripción API del consumidor en gracia o suspendida */
+        post: operations["reactivarSuscripcionApi"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PeticionRelojDemo: {
+            adelantarDias: number;
+        };
         ResultadoContratacionPlataforma: {
             /** Format: uuid */
             id: string;
@@ -170,6 +207,14 @@ export interface components {
             estado: "sin_cambios";
         };
         ResultadoPagoSuscripcionPlataforma: {
+            /** @constant */
+            estado: "activa";
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+        };
+        ResultadoReactivacionSuscripcionApi: {
             /** @constant */
             estado: "activa";
             /** Format: date-time */
@@ -319,6 +364,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    adelantarRelojDemo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionRelojDemo"];
+            };
+        };
+        responses: {
+            /** @description Reloj adelantado y cierre de ciclo solicitado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Los días deben ser mayores que cero (`datos_invalidos`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Solo está disponible con `SHAPI_MODO_DEMO=true` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     obtenerSuscripcionPlataforma: {
         parameters: {
             query?: never;
@@ -690,6 +773,77 @@ export interface operations {
             };
             /** @description No existe una suscripción vigente */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    reactivarSuscripcionApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    tarjeta: components["schemas"]["Tarjeta"];
+                };
+            };
+        };
+        responses: {
+            /** @description Suscripción reactivada con un ciclo nuevo desde hoy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoReactivacionSuscripcionApi"];
+                };
+            };
+            /** @description Falta la tarjeta o sus datos no son válidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela rechazó el pago */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Portal, consumidor o suscripción por reactivar no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La tarjeta no es válida o la suscripción no es de pago */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela no está disponible */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

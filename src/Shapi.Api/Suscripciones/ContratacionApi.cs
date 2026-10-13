@@ -17,6 +17,7 @@ using Shapi.Infraestructura.Persistencia;
 namespace Shapi.Api.Suscripciones;
 
 public sealed record PeticionContratarPlan(Guid PlanId, TarjetaContratacion? Tarjeta);
+public sealed record PeticionPagarSuscripcionApi(TarjetaContratacion? Tarjeta);
 public sealed record TarjetaContratacion(string Numero, string MesVencimiento, string AnioVencimiento, string Cvv, string Titular);
 
 public sealed class ContratacionApi(
@@ -241,6 +242,123 @@ public sealed class ContratacionApi(
             cuotaLlamadas = fila.Plan.CuotaLlamadas,
             limiteMinuto = fila.Plan.LimiteMinuto,
         });
+    }
+
+    public async Task<IResult> Pagar(HttpContext http, [FromBody] PeticionPagarSuscripcionApi peticion, CancellationToken ct)
+    {
+        var portal = await resolutor.Resolver(http.Request.Host.Host, ct);
+        if (portal is null
+            || !Guid.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var consumidorId)
+            || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
+            || organizacionId != portal.OrganizacionId)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var consumidor = await db.Set<Consumidor>().SingleOrDefaultAsync(x => x.Id == consumidorId, ct);
+        if (consumidor is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        if (!await BloquearConsumidor(consumidorId, ct))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var suscripcion = await db.Set<SuscripcionApi>().SingleOrDefaultAsync(x => x.ConsumidorId == consumidorId
+            && x.ApiId == portal.ApiId && (x.Estado == EstadoSuscripcion.EnGracia || x.Estado == EstadoSuscripcion.Suspendida), ct);
+        if (suscripcion is null)
+        {
+            return Problemas.Crear(StatusCodes.Status404NotFound, "suscripcion_no_encontrada", "No hay una suscripción que requiera pago.");
+        }
+
+        var plan = await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
+        if (plan.EsGratuito || plan.Precio <= 0)
+        {
+            return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.RequierePlanDePago,
+                "Solo una suscripción de pago se puede reactivar con tarjeta.");
+        }
+
+        var tarjeta = peticion.Tarjeta;
+        if (tarjeta is null)
+        {
+            await tx.RollbackAsync(ct);
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
+                "Escriba los datos de la tarjeta.", new Dictionary<string, string[]> { ["tarjeta"] = ["Escriba los datos de la tarjeta."] });
+        }
+
+        var tokenizada = await pasarela.TokenizarAsync(new DatosTarjeta
+        {
+            Numero = tarjeta.Numero,
+            MesVencimiento = tarjeta.MesVencimiento,
+            AnioVencimiento = tarjeta.AnioVencimiento,
+            Cvv = tarjeta.Cvv,
+            Titular = tarjeta.Titular,
+        });
+        if (!tokenizada.Exitoso)
+        {
+            await tx.RollbackAsync(ct);
+            return RespuestaErrorTarjeta(tokenizada.Error!);
+        }
+
+        var titular = tokenizada.Titular ?? tarjeta.Titular;
+        if (string.IsNullOrWhiteSpace(titular) || !int.TryParse(tarjeta.MesVencimiento, out var mes) || mes is < 1 or > 12
+            || !int.TryParse(tarjeta.AnioVencimiento, out var anio) || anio is < 0 or > 9999)
+        {
+            await tx.RollbackAsync(ct);
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
+                "Los datos de vencimiento o titular de la tarjeta no son válidos.",
+                new Dictionary<string, string[]> { [string.IsNullOrWhiteSpace(titular) ? "tarjeta.titular" : "tarjeta.vencimiento"] = ["Revise los datos de la tarjeta."] });
+        }
+
+        if (anio < 100)
+        {
+            anio += 2000;
+        }
+
+        var medio = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!, titular, mes, anio);
+        var cobro = await pasarela.CobrarAsync(tokenizada.Token!, plan.Precio, $"reactivacion:{suscripcion.Id}:{Guid.NewGuid():N}", esRenovacion: false);
+        if (!cobro.Exitoso)
+        {
+            if (cobro.Error == CodigosError.PasarelaNoDisponible)
+            {
+                await tx.RollbackAsync(ct);
+                return RespuestaErrorTarjeta(cobro.Error);
+            }
+
+            db.Add(Pago.ApiRechazado(suscripcion.Id, ConceptoPago.Reactivacion, plan.Precio,
+                $"Reactivación del plan {plan.Nombre}", cobro.Error ?? CodigosError.PagoRechazado));
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return TypedResults.Problem(statusCode: StatusCodes.Status402PaymentRequired, title: "La tarjeta fue rechazada.",
+                type: "about:blank", extensions: new Dictionary<string, object?>
+                {
+                    ["codigo"] = CodigosError.PagoRechazado,
+                    ["detalle"] = new { motivo = cobro.Error ?? CodigosError.PagoRechazado }
+                });
+        }
+
+        var ahora = reloj.Ahora;
+        try
+        {
+            db.Add(medio);
+            suscripcion.Reactivar(plan.VigenciaDias, medio.Id, ahora);
+            db.Add(Pago.ApiAutorizado(suscripcion.Id, medio.Id, ConceptoPago.Reactivacion, plan.Precio,
+                $"Reactivación del plan {plan.Nombre}", cobro.Referencia!, suscripcion.Inicio, suscripcion.Fin));
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            try { await pasarela.ReembolsarAsync(cobro.Referencia!); }
+            catch (Exception error) { registro.LogError(new AggregateException(ex, error), "No se pudo reembolsar la reactivación API {SuscripcionId}", suscripcion.Id); }
+            throw;
+        }
+
+        await publicador.PublicarSuscripcion(suscripcion.Id, ct);
+        return TypedResults.Ok(new { estado = "activa", inicio = suscripcion.Inicio, fin = suscripcion.Fin });
     }
 
     private static object Vista(SuscripcionApi suscripcion, PlanApi plan) => new

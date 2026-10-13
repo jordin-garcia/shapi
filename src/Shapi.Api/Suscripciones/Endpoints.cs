@@ -8,12 +8,16 @@ public static class Endpoints
 {
     public static IEndpointRouteBuilder MapearEndpointsSuscripciones(this IEndpointRouteBuilder app)
     {
+        app.MapPost("/api/admin/demo/reloj", (RelojDemoApi caso, PeticionRelojDemo peticion, CancellationToken ct) => caso.Adelantar(peticion, ct))
+            .RequireAuthorization(Permisos.GestionarPlanesPlataforma);
         var portal = app.MapGroup("/api/portal");
         portal.MapPost("/suscripciones", (ContratacionApi caso, HttpContext http, PeticionContratarPlan cuerpo, CancellationToken ct) =>
                 caso.Contratar(http, cuerpo, ct))
             .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapGet("/suscripcion", (ContratacionApi caso, HttpContext http, CancellationToken ct) => caso.Consultar(http, ct))
             .RequireAuthorization(Permisos.ConsumidorVerCuenta);
+        portal.MapPost("/suscripcion/pagar", (ContratacionApi caso, HttpContext http, PeticionPagarSuscripcionApi cuerpo, CancellationToken ct) => caso.Pagar(http, cuerpo, ct))
+            .RequireAuthorization(Permisos.ConsumidorContratarPlan);
 
         app.MapGet("/api/planes-plataforma", (PlataformaSuscripcionesApi caso, CancellationToken ct) => caso.ListarPlanes(ct))
             .AllowAnonymous();

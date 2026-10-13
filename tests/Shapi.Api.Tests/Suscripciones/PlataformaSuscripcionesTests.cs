@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,9 @@ using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
 using Shapi.Dominio.Identidad;
+using Shapi.Infraestructura.Pagos;
 using Shapi.Infraestructura.Persistencia;
+using Shapi.Trabajador.CierreCiclo;
 
 namespace Shapi.Api.Tests.Suscripciones;
 
@@ -471,6 +474,51 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be("activa");
         (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(Shapi.Dominio.Suscripciones.Suscripcion.InicioDeCiclo(Reloj.Ahora).UtcDateTime);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
+    }
+
+    // RF-22, RF-23: la tarjeta 0341 autoriza la contratación, rechaza la renovación y permite el escenario de gracia y suspensión.
+    [Fact]
+    public async Task RF_22_RF_23_EscenarioDemo_RechazoGraciaSuspensionYReactivacion()
+    {
+        using var client = Factory.CreateClient();
+        await client.GetAsync("/salud");
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await Escalar<Guid>("SELECT id FROM plan_plataforma WHERE nombre = 'Lanzamiento'");
+
+        using var contratacion = await Enviar(client, HttpMethod.Post, "/api/suscripcion/contratar", org, user,
+            new { planId = plan, tarjeta = Tarjeta("4000000000000341") });
+        contratacion.StatusCode.Should().Be(HttpStatusCode.Created, await contratacion.Content.ReadAsStringAsync());
+        var suscripcion = await Escalar<Guid>($"SELECT id FROM suscripcion_plataforma WHERE organizacion_id = '{org}' AND estado <> 'finalizada'");
+
+        Reloj.Ahora = Reloj.Ahora.AddDays(30);
+        await EjecutarCierreAsync();
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be("en_gracia");
+
+        Reloj.Ahora = Reloj.Ahora.AddDays(7);
+        await EjecutarCierreAsync();
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be("suspendida");
+
+        using var reactivacion = await Enviar(client, HttpMethod.Post, "/api/suscripcion/pagar", org, user,
+            new { tarjeta = Tarjeta("4242424242424242") });
+        reactivacion.StatusCode.Should().Be(HttpStatusCode.OK, await reactivacion.Content.ReadAsStringAsync());
+        (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be("activa");
+    }
+
+    private async Task EjecutarCierreAsync()
+    {
+        using var alcance = Factory.Services.CreateScope();
+        var configuracion = alcance.ServiceProvider.GetRequiredService<IConfiguration>();
+        var trabajo = new CerrarCiclo(
+            alcance.ServiceProvider.GetRequiredService<ShapiDbContext>(),
+            Reloj,
+            new PasarelaSimulada(configuracion, Reloj),
+            alcance.ServiceProvider.GetRequiredService<IPublicadorCache>(),
+            alcance.ServiceProvider.GetRequiredService<IColaCorreo>(),
+            alcance.ServiceProvider.GetRequiredService<IBitacora>(),
+            new OpcionesCierreCiclo());
+        await trabajo.EjecutarAsync();
     }
 
     // RF-20: dos contrataciones simultáneas desde Prueba generan un cobro y una suscripción de pago.
