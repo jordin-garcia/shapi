@@ -4,6 +4,7 @@ using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Bitacora;
+using Shapi.Infraestructura.Correo;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.CierreCiclo;
 
@@ -66,7 +67,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
 
         await using (var db = CrearDb())
         {
-            await new CerrarCiclo(db, Reloj, pasarela, Substitute.For<IPublicadorCache>(), Substitute.For<IColaCorreo>(),
+            await new CerrarCiclo(db, Reloj, pasarela, Substitute.For<IPublicadorCache>(), new ColaCorreoBaseDatos(db, Reloj),
                 Substitute.For<IBitacora>(), new OpcionesCierreCiclo()).EjecutarAsync();
         }
 
@@ -116,7 +117,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
 
         await using (var db = CrearDb())
         {
-            await new CerrarCiclo(db, Reloj, pasarela, Substitute.For<IPublicadorCache>(), Substitute.For<IColaCorreo>(),
+            await new CerrarCiclo(db, Reloj, pasarela, Substitute.For<IPublicadorCache>(), new ColaCorreoBaseDatos(db, Reloj),
                 Substitute.For<IBitacora>(), new OpcionesCierreCiclo()).EjecutarAsync();
         }
 
