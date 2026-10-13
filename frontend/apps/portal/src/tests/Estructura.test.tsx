@@ -56,6 +56,7 @@ beforeEach(() => {
       consumidor: { nombre: 'María José Quiñónez', nombreEmpresa: 'Mercadito Antigua' },
       correoVerificado: true,
     })),
+    http.get('http://localhost/api/portal/suscripcion', () => new HttpResponse(null, { status: 404 })),
     http.post('http://localhost/api/portal/auth/salir', () => {
       sesionCerrada = true;
       return new HttpResponse(null, { status: 200 });
@@ -231,12 +232,12 @@ describe('RF-16 · cuenta del consumidor', () => {
   it.each([
     ['/cuenta/consumo', 'B2.1'],
     ['/cuenta/pagos', 'B2.2'],
-    ['/cuenta/suscripcion', 'B2.3'],
+    ['/cuenta/suscripcion', 'Suscripción y claves'],
     ['/cuenta/cambiar-plan/comercio', 'B2.7'],
-  ])('%s exige sesión y muestra la página de relleno %s', async (ruta, id) => {
+  ])('%s exige sesión y muestra %s', async (ruta, titulo) => {
     montar(ruta);
 
-    expect(await screen.findByRole('heading', { name: new RegExp(`^${id.replace('.', '\\.')}`) })).toBeDefined();
+    expect(await screen.findByRole('heading', { name: new RegExp(`^${titulo.replace('.', '\\.')}`) })).toBeDefined();
     expect(screen.getByText('María José Quiñónez')).toBeDefined();
     expect(screen.getByText('Mercadito Antigua')).toBeDefined();
   });
@@ -256,7 +257,7 @@ describe('RF-16 · cuenta del consumidor', () => {
     const { enrutador } = montar('/cuenta');
 
     await waitFor(() => expect(enrutador.state.location.pathname).toBe('/cuenta/suscripcion'));
-    expect(await screen.findByRole('heading', { name: /^B2\.3/ })).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'Suscripción y claves' })).toBeDefined();
   });
 
   // H-75: el enlace activo usa el fondo teñido con la marca del mockup B2.

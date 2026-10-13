@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Aviso, Boton, EstadoCargando, EstadoError, Etiqueta } from '@shapi/ui';
+import { useState, type FormEvent } from 'react';
+import { Aviso, Boton, Campo, EstadoCargando, EstadoError, Etiqueta } from '@shapi/ui';
 import { Link } from 'react-router';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import {
@@ -7,11 +7,13 @@ import {
   mensajeError,
   useClavesConsumidor,
   useEmitirClave,
+  usePagarSuscripcion,
   useRevocarClave,
   useRotarClave,
   useSuscripcionConsumidor,
   type Clave,
   type ClaveEmitida,
+  type Tarjeta,
 } from '../modulos/claves/claves';
 import RotarClave from './B2-4-RotarClave';
 import ClaveNueva from './B2-5-ClaveNueva';
@@ -42,9 +44,11 @@ export default function Suscripcion() {
   const rotar = useRotarClave();
   const revocar = useRevocarClave();
   const emitir = useEmitirClave();
+  const pagar = usePagarSuscripcion();
   const [paso, setPaso] = useState<Paso>();
   const [nueva, setNueva] = useState<{ clave: ClaveEmitida; anterior?: Clave }>();
   const [error, setError] = useState<string>();
+  const [mostrarPago, setMostrarPago] = useState(false);
   const [ahora] = useState(() => Date.now());
 
   if (consulta.isPending) return <EstadoCargando />;
@@ -79,11 +83,14 @@ export default function Suscripcion() {
   />;
 
   const enGracia = suscripcion.estado === 'en_gracia';
+  const suspendida = suscripcion.estado === 'suspendida';
+  const requierePago = enGracia || suspendida;
+  const apiNoDisponible = suscripcion.apiDisponible === false;
   const inicioGracia = new Date(suscripcion.proximaRenovacion);
-  const finGracia = new Date(inicioGracia.getTime() + 7 * DIA);
-  const diasRestantes = Math.max(0, Math.ceil((finGracia.getTime() - ahora) / DIA));
-  const finPeriodo = new Date(new Date(suscripcion.periodo.fin).getTime() - DIA);
-  const vigencia = Math.max(1, Math.round((new Date(suscripcion.periodo.fin).getTime() - new Date(suscripcion.periodo.inicio).getTime()) / DIA));
+  const suspension = new Date(inicioGracia.getTime() + 7 * DIA);
+  const finGracia = new Date(suspension.getTime() - DIA);
+  const diasRestantes = Math.max(0, Math.ceil((suspension.getTime() - ahora) / DIA));
+  const vigencia = Math.max(1, Math.round((new Date(suscripcion.periodo.fin).getTime() - new Date(suscripcion.periodo.inicio).getTime()) / DIA) + 1);
 
   async function emitirNueva(clave: Clave) {
     setError(undefined);
@@ -98,33 +105,50 @@ export default function Suscripcion() {
         <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Suscripción y claves</h1>
         <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de {marca.nombreApi}, su vigencia y sus claves.</p>
       </div>
-      {enGracia
-        ? <Boton type="button" onClick={() => setError('El pago estará disponible cuando se integre el endpoint de reactivación de EM-10.')}>Pagar con otra tarjeta</Boton>
-        : <Link className="inline-flex h-[46px] items-center rounded-base border border-borde-campo bg-panel px-6 text-[15px] font-medium text-tinta" to={`/cuenta/cambiar-plan/${suscripcion.plan.id}`}>Cambiar de plan</Link>}
+      {!apiNoDisponible && (requierePago
+        ? <Boton type="button" onClick={() => { setError(undefined); setMostrarPago(true); }}>Pagar con otra tarjeta</Boton>
+        : <Link className="inline-flex h-[46px] items-center rounded-base border border-borde-campo bg-panel px-6 text-[15px] font-medium text-tinta" to={`/cuenta/cambiar-plan/${suscripcion.plan.id}`}>Cambiar de plan</Link>)}
     </header>
 
-    {enGracia && <section className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5">
+    {apiNoDisponible && <AvisoApiNoDisponible nombreApi={marca.nombreApi} />}
+    {!apiNoDisponible && enGracia && <section className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5">
       <h2 className="font-display text-[21px] leading-[1.3] text-alerta">Quedan {diasRestantes} días antes de que sus claves dejen de responder</h2>
-      <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">El cobro de la renovación fue rechazado el {fechaLarga(inicioGracia)}. Si el {fechaLarga(finGracia)} no hay un cobro autorizado, su suscripción se suspende y la compuerta empieza a rechazar sus peticiones con el código 403.</p>
+      <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">El cobro de la renovación fue rechazado el {fechaLarga(inicioGracia)}. Si el {fechaLarga(suspension)} no hay un cobro autorizado, su suscripción se suspende y la compuerta empieza a rechazar sus peticiones con el código 403.</p>
       <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Mientras dure el periodo de gracia sus claves siguen funcionando con normalidad.</p>
     </section>}
+    {!apiNoDisponible && suspendida && <section className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5">
+      <h2 className="font-display text-[21px] leading-[1.3] text-alerta">Su suscripción está suspendida</h2>
+      <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Sus claves se conservan, pero la compuerta rechaza sus peticiones con el código 403 hasta que autorice el cobro con otra tarjeta.</p>
+    </section>}
+    {mostrarPago && requierePago && !apiNoDisponible && <FormularioPago
+      precio={suscripcion.plan.precio}
+      procesando={pagar.isPending}
+      cancelar={() => { setMostrarPago(false); setError(undefined); }}
+      confirmar={async tarjeta => {
+        setError(undefined);
+        try { await pagar.mutateAsync(tarjeta); setMostrarPago(false); }
+        catch (causa) { setError(mensajeError(causa, 'No se pudo reactivar la suscripción. Intente de nuevo.')); }
+      }}
+    />}
     {error && <div className="mt-5"><Aviso estado="error">{error}</Aviso></div>}
 
-    <div className={`grid grid-cols-1 gap-6 ${enGracia ? 'mt-5' : 'mt-8'} lg:grid-cols-2 lg:items-start`}>
+    <div className={`grid grid-cols-1 gap-6 ${requierePago || apiNoDisponible ? 'mt-5' : 'mt-8'} lg:grid-cols-2 lg:items-start`}>
       <section className="rounded-base border border-borde bg-panel p-5">
         <h2 className="font-display text-[21px] leading-[1.3]">Su suscripción</h2>
         <div className="mt-5 flex items-end justify-between gap-6 border-t border-borde pt-5">
-          <div><p className="text-[12px] font-medium uppercase tracking-[.14em] text-tinta-suave">Plan de la API</p><div className="mt-2 flex items-center gap-3"><h3 className="font-display text-[22px]">{suscripcion.plan.nombre}</h3><Etiqueta estado={enGracia ? 'alerta' : 'correcto'}>{enGracia ? 'En gracia' : 'Activa'}</Etiqueta></div></div>
+          <div><p className="text-[12px] font-medium uppercase tracking-[.14em] text-tinta-suave">Plan de la API</p><div className="mt-2 flex items-center gap-3"><h3 className="font-display text-[22px]">{suscripcion.plan.nombre}</h3><Etiqueta estado={requierePago ? 'alerta' : 'correcto'}>{suspendida ? 'Suspendida' : enGracia ? 'En gracia' : 'Activa'}</Etiqueta></div></div>
           <div className="text-right"><p className="font-display text-[24px]">{dinero(suscripcion.plan.precio)}</p><p className="mt-1 text-[14px] text-tinta-suave">Vigencia de {vigencia} días</p></div>
         </div>
         <dl className="mt-5 flex flex-col gap-3.5 border-t border-borde pt-5 text-[14px]">
-          <Fila nombre={enGracia ? 'Periodo vencido' : 'Periodo activo'} valor={`${fecha(suscripcion.periodo.inicio)} – ${fecha(finPeriodo)}`} />
+          <Fila nombre={requierePago ? 'Periodo vencido' : 'Periodo activo'} valor={`${fecha(suscripcion.periodo.inicio)} – ${fecha(suscripcion.periodo.fin)}`} />
           {enGracia
-            ? <><Fila nombre="Cobro rechazado" valor={fechaLarga(inicioGracia)} /><Fila nombre="Periodo de gracia" valor={`${fecha(inicioGracia)} – ${fecha(finGracia)}`} /><Fila nombre="Suspensión" valor={fechaLarga(finGracia)} /></>
-            : <Fila nombre="Renovación automática" valor={fechaLarga(suscripcion.proximaRenovacion)} />}
+            ? <><Fila nombre="Cobro rechazado" valor={fechaLarga(inicioGracia)} /><Fila nombre="Periodo de gracia" valor={`${fecha(inicioGracia)} – ${fecha(finGracia)}`} /><Fila nombre="Suspensión" valor={fechaLarga(suspension)} /></>
+            : suspendida
+              ? <Fila nombre="Estado del servicio" valor="Tráfico detenido" />
+              : <Fila nombre="Renovación automática" valor={fechaLarga(suscripcion.proximaRenovacion)} />}
           <Fila nombre="Tarjeta registrada" valor={suscripcion.tarjetaEnmascarada ?? 'Sin tarjeta registrada'} />
         </dl>
-        <p className="mt-5 border-t border-borde pt-5 text-[14px] leading-[1.5] text-tinta-suave">{enGracia ? 'Al autorizar el cobro con otra tarjeta su ciclo se renueva y el periodo de gracia termina.' : 'La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus claves responden con normalidad.'}</p>
+        <p className="mt-5 border-t border-borde pt-5 text-[14px] leading-[1.5] text-tinta-suave">{apiNoDisponible ? 'Su ciclo sigue su curso y la renovación se cobrará a esta misma tarjeta.' : requierePago ? 'Al autorizar el cobro con otra tarjeta su ciclo se renueva y la suscripción vuelve a estar activa.' : 'La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus claves responden con normalidad.'}</p>
       </section>
 
       <section className="rounded-base border border-borde bg-panel p-5">
@@ -136,10 +160,50 @@ export default function Suscripcion() {
             revocar={() => { setError(undefined); setPaso({ accion: 'revocar', clave }); }}
             emitir={() => void emitirNueva(clave)} procesando={emitir.isPending} />)}
         </div>
-        <p className="mt-5 border-t border-borde pt-5 text-[14px] leading-[1.5] text-tinta-suave">Una clave revocada, por usted o por su proveedor, se rechaza con el código 401. Si revoca una, podrá emitir otra.</p>
+        <p className="mt-5 border-t border-borde pt-5 text-[14px] leading-[1.5] text-tinta-suave">{apiNoDisponible ? 'Sus claves no fueron revocadas: siguen emitidas y vuelven a responder en cuanto se restablezca el servicio.' : 'Una clave revocada, por usted o por su proveedor, se rechaza con el código 401. Si revoca una, podrá emitir otra.'}</p>
       </section>
     </div>
   </section>;
+}
+
+function FormularioPago({ precio, procesando, confirmar, cancelar }: {
+  precio: number;
+  procesando: boolean;
+  confirmar: (tarjeta: Tarjeta) => Promise<void>;
+  cancelar: () => void;
+}) {
+  const [numero, setNumero] = useState('');
+  const [titular, setTitular] = useState('');
+  const [vencimiento, setVencimiento] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [errorValidacion, setErrorValidacion] = useState<string>();
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    const [mes, anio] = vencimiento.split('/').map(valor => valor.trim());
+    if (!numero.replace(/\D/g, '') || !titular.trim() || !mes || !anio || !cvv.trim()) {
+      setErrorValidacion('Complete todos los datos de la tarjeta.');
+      return;
+    }
+    setErrorValidacion(undefined);
+    await confirmar({ numero, titular: titular.trim(), mesVencimiento: mes, anioVencimiento: anio, cvv });
+  }
+
+  return <form onSubmit={evento => void enviar(evento)} className="mt-5 rounded-base border border-borde bg-panel p-5">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div><h2 className="font-display text-[21px]">Pagar con otra tarjeta</h2><p className="mt-1.5 text-[14px] text-tinta-suave">El cobro reactiva la suscripción y empieza un ciclo nuevo desde hoy.</p></div>
+      <button type="button" className="text-[14px] text-[var(--marca-principal)]" onClick={cancelar}>Cancelar</button>
+    </div>
+    {errorValidacion && <div className="mt-5"><Aviso estado="error">{errorValidacion}</Aviso></div>}
+    <div className="mt-5 grid grid-cols-1 gap-5 border-t border-borde pt-5 md:grid-cols-2">
+      <Campo etiqueta="Número de tarjeta" autoComplete="cc-number" inputMode="numeric" value={numero} onChange={evento => setNumero(evento.target.value)} />
+      <Campo etiqueta="Nombre del titular" autoComplete="cc-name" value={titular} onChange={evento => setTitular(evento.target.value)} />
+      <Campo etiqueta="Vencimiento" placeholder="MM / AA" autoComplete="cc-exp" value={vencimiento} onChange={evento => setVencimiento(evento.target.value)} />
+      <Campo etiqueta="Código de seguridad" autoComplete="cc-csc" inputMode="numeric" value={cvv} onChange={evento => setCvv(evento.target.value)} />
+    </div>
+    <p className="mt-5 text-[14px] leading-[1.5] text-tinta-suave">Shapi no guarda el número completo ni el código de seguridad. Solo verá la marca y los últimos cuatro dígitos.</p>
+    <div className="mt-5 border-t border-borde pt-5"><Boton type="submit" deshabilitado={procesando}>{procesando ? 'Procesando…' : `Pagar ${dinero(precio)} y reactivar`}</Boton></div>
+  </form>;
 }
 
 function ClaveEnmascarada({ clave, rotar, revocar, emitir, procesando }: {
@@ -179,6 +243,10 @@ function NoDisponible({ nombreApi }: { nombreApi: string }) {
     <p className="text-etiqueta uppercase tracking-[.14em] text-[var(--marca-principal)]">Mi cuenta</p>
     <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Suscripción y claves</h1>
     <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de {nombreApi}, su vigencia y sus claves.</p>
-    <div className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5"><h2 className="font-display text-[21px] text-alerta">La API no está disponible temporalmente</h2><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Las peticiones a {nombreApi} se están rechazando con el código 403. No es un problema de sus claves ni de su suscripción.</p><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su suscripción sigue vigente, sus claves se conservan y su historial de pagos queda intacto. El servicio se restablece sin que usted tenga que hacer nada.</p></div>
+    <AvisoApiNoDisponible nombreApi={nombreApi} />
   </section>;
+}
+
+function AvisoApiNoDisponible({ nombreApi }: { nombreApi: string }) {
+  return <div className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5"><h2 className="font-display text-[21px] text-alerta">La API no está disponible temporalmente</h2><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Las peticiones a {nombreApi} se están rechazando con el código 403. No es un problema de sus claves ni de su suscripción.</p><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su suscripción sigue vigente, sus claves se conservan y su historial de pagos queda intacto. El servicio se restablece sin que usted tenga que hacer nada.</p></div>;
 }

@@ -10,7 +10,10 @@ export type Clave = componentesClaves['schemas']['Clave'];
 export type ClaveEmitida = componentesClaves['schemas']['ClaveEmitida'];
 export type ClaveRotada = componentesClaves['schemas']['ClaveRotada'];
 export type TipoClave = componentesClaves['schemas']['TipoClave'];
-export type SuscripcionActual = componentesSuscripciones['schemas']['SuscripcionActual'];
+// EM-21 formalizará `apiDisponible` en el contrato. Es opcional para conservar compatibilidad
+// con el backend actual mientras la cuenta aprende a representar la suspensión del proveedor.
+export type SuscripcionActual = componentesSuscripciones['schemas']['SuscripcionActual'] & { apiDisponible?: boolean };
+export type Tarjeta = componentesSuscripciones['schemas']['Tarjeta'];
 
 export const claveSuscripcionConsumidor = ['portal', 'suscripcion'] as const;
 export const claveClavesConsumidor = ['portal', 'claves'] as const;
@@ -46,6 +49,20 @@ export function useClavesConsumidor(habilitada: boolean) {
     },
     enabled: habilitada,
     retry: false,
+  });
+}
+
+export function usePagarSuscripcion() {
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: async (tarjeta: Tarjeta) => {
+      const { data, response } = await clienteSuscripciones.POST('/api/portal/suscripcion/pagar', {
+        body: { tarjeta },
+      });
+      if (!response.ok || !data) throw new Error('No se pudo reactivar la suscripción.');
+      return data;
+    },
+    onSuccess: async () => cache.invalidateQueries({ queryKey: claveSuscripcionConsumidor }),
   });
 }
 

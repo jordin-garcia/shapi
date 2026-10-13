@@ -23,7 +23,7 @@ const sesion = {
 const suscripcion = {
   plan: { id: 'plan-comercio', nombre: 'Comercio', precio: 450, moneda: 'GTQ' },
   estado: 'activa',
-  periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-10-01T06:00:00Z' },
+  periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-30T06:00:00Z' },
   proximaRenovacion: '2026-10-01T06:00:00Z', tarjetaEnmascarada: 'Mastercard •••• 3057',
   cuotaLlamadas: 50_000, limiteMinuto: 120,
 };
@@ -68,7 +68,7 @@ afterEach(() => {
 });
 
 describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
-  it('B2.3 muestra la suscripción vigente, la tarjeta y solamente las claves enmascaradas', async () => {
+  it('RF-22 y RF-26 · B2.3 muestra la suscripción vigente, la tarjeta y solamente las claves enmascaradas', async () => {
     montar();
 
     expect(await screen.findByRole('heading', { name: 'Suscripción y claves' })).toBeDefined();
@@ -82,7 +82,7 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
     expect(screen.getByRole('link', { name: 'Cambiar de plan' }).getAttribute('href')).toBe('/cuenta/cambiar-plan/plan-comercio');
   });
 
-  it('B2.3 muestra la gracia con los días restantes y conserva activas las claves', async () => {
+  it('RF-23 y RF-26 · B2.3 muestra la gracia con los días restantes y conserva activas las claves', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-03T12:00:00Z').getTime());
     server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, estado: 'en_gracia' })));
 
@@ -90,23 +90,90 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
 
     expect(await screen.findByRole('heading', { name: 'Quedan 5 días antes de que sus claves dejen de responder' })).toBeDefined();
     expect(screen.getByText(/cobro de la renovación fue rechazado el 1 de octubre de 2026/i)).toBeDefined();
+    expect(screen.getByText('1 oct 2026 – 7 oct 2026')).toBeDefined();
+    expect(screen.getByText('8 de octubre de 2026')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Pagar con otra tarjeta' })).toBeDefined();
     expect(screen.getAllByText('Activa')).toHaveLength(2);
   });
 
-  it('B2.3 muestra que la API no está disponible ante api_no_disponible', async () => {
-    server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json(
-      { title: 'API no disponible', status: 403, codigo: 'api_no_disponible' },
-      { status: 403, headers: { 'Content-Type': 'application/problem+json' } },
-    )));
+  it('RF-23 paga con otra tarjeta y reactiva una suscripción en gracia', async () => {
+    let estado = 'en_gracia';
+    server.use(
+      http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, estado })),
+      http.post(`${API}/suscripcion/pagar`, async ({ request }) => {
+        expect(await request.json()).toEqual({
+          tarjeta: {
+            numero: '4242 4242 4242 4242',
+            titular: 'Ana Pérez',
+            mesVencimiento: '12',
+            anioVencimiento: '30',
+            cvv: '123',
+          },
+        });
+        estado = 'activa';
+        return HttpResponse.json({
+          estado: 'activa', inicio: '2026-10-12T06:00:00Z', fin: '2026-11-11T06:00:00Z',
+        });
+      }),
+    );
+    montar();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar con otra tarjeta' }));
+    await userEvent.type(screen.getByLabelText('Número de tarjeta'), '4242 4242 4242 4242');
+    await userEvent.type(screen.getByLabelText('Nombre del titular'), 'Ana Pérez');
+    await userEvent.type(screen.getByLabelText('Vencimiento'), '12 / 30');
+    await userEvent.type(screen.getByLabelText('Código de seguridad'), '123');
+    await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 450.00 y reactivar' }));
+
+    expect(await screen.findByRole('link', { name: 'Cambiar de plan' })).toBeDefined();
+    expect(screen.queryByText(/Quedan .* días antes/i)).toBeNull();
+  });
+
+  it('RF-23 conserva el formulario y explica cuando el pago es rechazado', async () => {
+    server.use(
+      http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, estado: 'en_gracia' })),
+      http.post(`${API}/suscripcion/pagar`, () => HttpResponse.json(
+        { title: 'La tarjeta fue rechazada.', status: 402, codigo: 'pago_rechazado' },
+        { status: 402, headers: { 'Content-Type': 'application/problem+json' } },
+      )),
+    );
+    montar();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar con otra tarjeta' }));
+    await userEvent.type(screen.getByLabelText('Número de tarjeta'), '4000 0000 0000 0002');
+    await userEvent.type(screen.getByLabelText('Nombre del titular'), 'Ana Pérez');
+    await userEvent.type(screen.getByLabelText('Vencimiento'), '12 / 30');
+    await userEvent.type(screen.getByLabelText('Código de seguridad'), '123');
+    await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 450.00 y reactivar' }));
+
+    expect(await screen.findByText('La tarjeta fue rechazada.')).toBeDefined();
+    expect(screen.getByLabelText('Número de tarjeta')).toBeDefined();
+  });
+
+  it('RF-23 permite pagar y reactivar una suscripción suspendida', async () => {
+    server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, estado: 'suspendida' })));
+
+    montar();
+
+    expect(await screen.findByRole('heading', { name: 'Su suscripción está suspendida' })).toBeDefined();
+    expect(screen.getByText('Suspendida')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Pagar con otra tarjeta' })).toBeDefined();
+  });
+
+  it('RF-23 · B2.3 muestra que la API no está disponible si la organización proveedora está suspendida', async () => {
+    server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json({
+      ...suscripcion, apiDisponible: false,
+    })));
 
     montar();
 
     expect(await screen.findByRole('heading', { name: 'La API no está disponible temporalmente' })).toBeDefined();
     expect(screen.getByText(/no es un problema de sus claves ni de su suscripción/i)).toBeDefined();
+    expect(screen.getByText('Comercio')).toBeDefined();
+    expect(screen.getByText('shp_prod_••••7c2e')).toBeDefined();
   });
 
-  it('B2.3 muestra el estado vacío cuando no hay suscripción', async () => {
+  it('RF-26 · B2.3 muestra el estado vacío cuando no hay suscripción', async () => {
     server.use(http.get(`${API}/suscripcion`, () => new HttpResponse(null, { status: 404 })));
 
     montar();

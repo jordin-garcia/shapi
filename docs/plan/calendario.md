@@ -56,6 +56,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Vie 16 oct | **JG-13** Consumo y facturación por consumidor (B1.2) | **EM-14** Administración: planes de plataforma y pagos (A6.1 y A6.3) | **DC-13** Pagos y cambio de plan del consumidor (B2.2 y B2.7) | — |
 | Sáb 17 oct | — | **EM-20** Medio de pago en la confirmación de la contratación (A5.4b) | — | **JZ-14** Pruebas de carga (RNF-01 y RNF-03) |
 | Dom 18 oct | **JG-19** Prueba de la compuerta sin PostgreSQL, API de control ni trabajador (RNF-02 y RNF-04) | **EM-15** Invitar consumidores (B1.5) | **DC-15** Sitio público: inicio de Shapi (A0.1) | — |
+| Lun 19 oct | — | **EM-21** Disponibilidad del proveedor en la cuenta del consumidor | — | — |
 | Mar 20 oct | — | — | **DC-12** Personalización del portal (A3.7) | — |
 | Jue 22 oct | **JG-14** Convergencia del Avance 3 | — | — | — |
 | Sáb 24 oct | **JG-16** Generador de PDF y documentos de requisitos y de diseño | **EM-16** Pruebas de aislamiento entre organizaciones y de permisos | **DC-16** Revisión visual contra los mockups | **JZ-13** Pruebas E2E de los flujos principales |
