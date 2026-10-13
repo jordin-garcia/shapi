@@ -176,7 +176,7 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
     montar();
 
     expect(await screen.findByRole('heading', { name: 'La API no está disponible temporalmente' })).toBeDefined();
-    expect(screen.getByText(/no es un problema de sus claves ni de su suscripción/i)).toBeDefined();
+    expect(screen.getByText('Las peticiones a la API de Cotización de Envíos se están rechazando con el código 403. No es un problema de sus claves ni de su suscripción.')).toBeDefined();
     expect(screen.getByText('Comercio')).toBeDefined();
     expect(screen.getByText('shp_prod_••••7c2e')).toBeDefined();
   });

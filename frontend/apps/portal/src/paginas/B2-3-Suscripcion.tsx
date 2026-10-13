@@ -250,5 +250,5 @@ function NoDisponible({ nombreApi }: { nombreApi: string }) {
 }
 
 function AvisoApiNoDisponible({ nombreApi }: { nombreApi: string }) {
-  return <div className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5"><h2 className="font-display text-[21px] text-alerta">La API no está disponible temporalmente</h2><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Las peticiones a {nombreApi} se están rechazando con el código 403. No es un problema de sus claves ni de su suscripción.</p><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su suscripción sigue vigente, sus claves se conservan y su historial de pagos queda intacto. El servicio se restablece sin que usted tenga que hacer nada.</p></div>;
+  return <div className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5"><h2 className="font-display text-[21px] text-alerta">La API no está disponible temporalmente</h2><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Las peticiones a la {nombreApi} se están rechazando con el código 403. No es un problema de sus claves ni de su suscripción.</p><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su suscripción sigue vigente, sus claves se conservan y su historial de pagos queda intacto. El servicio se restablece sin que usted tenga que hacer nada.</p></div>;
 }
