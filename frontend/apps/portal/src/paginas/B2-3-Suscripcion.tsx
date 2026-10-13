@@ -86,8 +86,10 @@ export default function Suscripcion() {
   const suspendida = suscripcion.estado === 'suspendida';
   const requierePago = enGracia || suspendida;
   const apiNoDisponible = suscripcion.apiDisponible === false;
-  const inicioGracia = new Date(suscripcion.proximaRenovacion);
-  const suspension = new Date(inicioGracia.getTime() + 7 * DIA);
+  const inicioGracia = new Date(suscripcion.ultimoRechazoEn ?? suscripcion.proximaRenovacion);
+  const suspension = suscripcion.graciaHasta
+    ? new Date(suscripcion.graciaHasta)
+    : new Date(new Date(suscripcion.proximaRenovacion).getTime() + 7 * DIA);
   const finGracia = new Date(suspension.getTime() - DIA);
   const diasRestantes = Math.max(0, Math.ceil((suspension.getTime() - ahora) / DIA));
   const vigencia = Math.max(1, Math.round((new Date(suscripcion.periodo.fin).getTime() - new Date(suscripcion.periodo.inicio).getTime()) / DIA) + 1);
@@ -103,7 +105,7 @@ export default function Suscripcion() {
       <div>
         <p className="text-etiqueta uppercase tracking-[.14em] text-[var(--marca-principal)]">Mi cuenta</p>
         <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Suscripción y claves</h1>
-        <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de {marca.nombreApi}, su vigencia y sus claves.</p>
+        <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de la {marca.nombreApi}, su vigencia y sus claves.</p>
       </div>
       {!apiNoDisponible && (requierePago
         ? <Boton type="button" onClick={() => { setError(undefined); setMostrarPago(true); }}>Pagar con otra tarjeta</Boton>
@@ -148,7 +150,7 @@ export default function Suscripcion() {
               : <Fila nombre="Renovación automática" valor={fechaLarga(suscripcion.proximaRenovacion)} />}
           <Fila nombre="Tarjeta registrada" valor={suscripcion.tarjetaEnmascarada ?? 'Sin tarjeta registrada'} />
         </dl>
-        <p className="mt-5 border-t border-borde pt-5 text-[14px] leading-[1.5] text-tinta-suave">{apiNoDisponible ? 'Su ciclo sigue su curso y la renovación se cobrará a esta misma tarjeta.' : requierePago ? 'Al autorizar el cobro con otra tarjeta su ciclo se renueva y la suscripción vuelve a estar activa.' : 'La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus claves responden con normalidad.'}</p>
+        <p className="mt-5 border-t border-borde pt-5 text-[14px] leading-[1.5] text-tinta-suave">{apiNoDisponible ? 'Su ciclo sigue su curso y la renovación se cobrará a esta misma tarjeta.' : enGracia ? 'Al autorizar el cobro con otra tarjeta su ciclo se renueva y el periodo de gracia termina.' : suspendida ? 'Al autorizar el cobro con otra tarjeta su ciclo se renueva y la suscripción vuelve a estar activa.' : 'La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus claves responden con normalidad.'}</p>
       </section>
 
       <section className="rounded-base border border-borde bg-panel p-5">
@@ -233,7 +235,7 @@ function Vacia({ nombreApi }: { nombreApi: string }) {
   return <section>
     <p className="text-etiqueta uppercase tracking-[.14em] text-[var(--marca-principal)]">Mi cuenta</p>
     <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Suscripción y claves</h1>
-    <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de {nombreApi}, su vigencia y sus claves.</p>
+    <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de la {nombreApi}, su vigencia y sus claves.</p>
     <div className="mt-8 rounded-base border border-borde bg-panel p-5"><div className="flex flex-col items-center gap-6 py-20 text-center"><div aria-hidden="true" className="flex size-10 items-center justify-center rounded-base border border-dashed border-borde-campo text-[var(--marca-principal)]">⌕</div><div className="max-w-[560px]"><h2 className="font-display text-[22px]">Todavía no tiene una suscripción</h2><p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Al contratar un plan de esta API recibirá su clave de producción y su clave de pruebas, y aquí verá su vigencia y la fecha de su renovación automática.</p></div><Link className="inline-flex h-[46px] items-center rounded-base bg-principal px-6 text-[15px] font-medium text-white" to="/planes">Ver los planes</Link></div></div>
   </section>;
 }
@@ -242,7 +244,7 @@ function NoDisponible({ nombreApi }: { nombreApi: string }) {
   return <section>
     <p className="text-etiqueta uppercase tracking-[.14em] text-[var(--marca-principal)]">Mi cuenta</p>
     <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Suscripción y claves</h1>
-    <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de {nombreApi}, su vigencia y sus claves.</p>
+    <p className="mt-2 text-[15px] leading-[1.55] text-tinta-suave">Su plan de la {nombreApi}, su vigencia y sus claves.</p>
     <AvisoApiNoDisponible nombreApi={nombreApi} />
   </section>;
 }

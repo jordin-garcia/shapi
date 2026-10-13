@@ -10,9 +10,13 @@ export type Clave = componentesClaves['schemas']['Clave'];
 export type ClaveEmitida = componentesClaves['schemas']['ClaveEmitida'];
 export type ClaveRotada = componentesClaves['schemas']['ClaveRotada'];
 export type TipoClave = componentesClaves['schemas']['TipoClave'];
-// EM-21 formalizará `apiDisponible` en el contrato. Es opcional para conservar compatibilidad
-// con el backend actual mientras la cuenta aprende a representar la suspensión del proveedor.
-export type SuscripcionActual = componentesSuscripciones['schemas']['SuscripcionActual'] & { apiDisponible?: boolean };
+// EM-21 formalizará estas propiedades en el contrato. Son opcionales para conservar compatibilidad
+// con el backend actual mientras la cuenta aprende a representar la suspensión y la gracia exactas.
+export type SuscripcionActual = componentesSuscripciones['schemas']['SuscripcionActual'] & {
+  apiDisponible?: boolean;
+  graciaHasta?: string | null;
+  ultimoRechazoEn?: string | null;
+};
 export type Tarjeta = componentesSuscripciones['schemas']['Tarjeta'];
 
 export const claveSuscripcionConsumidor = ['portal', 'suscripcion'] as const;

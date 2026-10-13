@@ -72,6 +72,7 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
     montar();
 
     expect(await screen.findByRole('heading', { name: 'Suscripción y claves' })).toBeDefined();
+    expect(screen.getByText('Su plan de la API de Cotización de Envíos, su vigencia y sus claves.')).toBeDefined();
     expect(screen.getByText('Comercio')).toBeDefined();
     expect(screen.getAllByText('Activa').length).toBeGreaterThan(0);
     expect(screen.getByText('1 sep 2026 – 30 sep 2026')).toBeDefined();
@@ -84,7 +85,12 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
 
   it('RF-23 y RF-26 · B2.3 muestra la gracia con los días restantes y conserva activas las claves', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-03T12:00:00Z').getTime());
-    server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, estado: 'en_gracia' })));
+    server.use(http.get(`${API}/suscripcion`, () => HttpResponse.json({
+      ...suscripcion,
+      estado: 'en_gracia',
+      ultimoRechazoEn: '2026-10-01T06:00:00Z',
+      graciaHasta: '2026-10-08T06:00:00Z',
+    })));
 
     montar();
 
@@ -94,6 +100,7 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
     expect(screen.getByText('8 de octubre de 2026')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Pagar con otra tarjeta' })).toBeDefined();
     expect(screen.getAllByText('Activa')).toHaveLength(2);
+    expect(screen.getByText('Al autorizar el cobro con otra tarjeta su ciclo se renueva y el periodo de gracia termina.')).toBeDefined();
   });
 
   it('RF-23 paga con otra tarjeta y reactiva una suscripción en gracia', async () => {
@@ -184,10 +191,11 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
   });
 
   it('RF-27 rota una clave y muestra la nueva completa solamente hasta que se confirma que fue guardada', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-12T16:42:00Z').getTime());
     server.use(http.post(`${API}/claves/prod-1/rotar`, () => HttpResponse.json({
       id: 'prod-2', tipo: 'produccion', clave: 'shp_prod_9Hk2wQ7rTz4Lb8Nc1Vx6Pm3Ds0',
       claveEnmascarada: 'shp_prod_••••Ds0', estado: 'activa',
-      anterior: { ...claves[0], estado: 'rotada', expiraEn: '2026-10-12T16:42:00Z' },
+      anterior: { ...claves[0], estado: 'rotada', expiraEn: '2026-10-13T16:42:00Z' },
     })));
     montar();
     const produccion = await screen.findByTestId('clave-produccion-activa');
@@ -195,10 +203,12 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
     await userEvent.click(within(produccion).getByRole('button', { name: 'Rotar' }));
     expect(screen.getByRole('heading', { name: 'Rotar clave' })).toBeDefined();
     expect(screen.getByText(/sigue funcionando 24 horas/i)).toBeDefined();
+    expect(screen.getByText('13 oct 2026, 10:42')).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: 'Rotar clave' }));
 
     expect(await screen.findByRole('heading', { name: 'Su clave nueva de producción' })).toBeDefined();
     expect(screen.getByText('shp_prod_9Hk2wQ7rTz4Lb8Nc1Vx6Pm3Ds0')).toBeDefined();
+    expect(screen.getByText(/sigue funcionando hasta el 13 oct 2026 a las 10:42/i)).toBeDefined();
     expect(screen.getByText(/no se volverá a mostrar/i)).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: 'Ya la guardé' }));
     await waitFor(() => expect(screen.queryByText('shp_prod_9Hk2wQ7rTz4Lb8Nc1Vx6Pm3Ds0')).toBeNull());

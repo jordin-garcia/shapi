@@ -2,10 +2,15 @@ import { useState } from 'react';
 import { Boton, Etiqueta } from '@shapi/ui';
 import type { Clave, ClaveEmitida } from '../modulos/claves/claves';
 
-const fechaHora = (valor: string) => new Intl.DateTimeFormat('es-GT', {
-  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  hourCycle: 'h23', timeZone: 'America/Guatemala',
-}).format(new Date(valor));
+const mesesCortos = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+function fechaHora(valor: string) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    hourCycle: 'h23', timeZone: 'America/Guatemala',
+  }).formatToParts(new Date(valor));
+  const numero = (tipo: Intl.DateTimeFormatPartTypes) => Number(partes.find(parte => parte.type === tipo)!.value);
+  return `${numero('day')} ${mesesCortos[numero('month') - 1]} ${numero('year')} a las ${String(numero('hour')).padStart(2, '0')}:${String(numero('minute')).padStart(2, '0')}`;
+}
 const tipoTitulo = (tipo: ClaveEmitida['tipo']) => tipo === 'produccion' ? 'producción' : 'pruebas';
 
 export default function ClaveNueva({ clave, anterior, terminar }: {
