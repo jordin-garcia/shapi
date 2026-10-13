@@ -3,6 +3,7 @@ using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
 using Shapi.Dominio.Suscripciones;
+using Shapi.Infraestructura.Bitacora;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.CierreCiclo;
 
@@ -40,7 +41,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be("activa");
         (await Escalar<Guid>($"SELECT plan_id FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(siguientePlan);
-        (await Escalar<DateTimeOffset>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(Reloj.Ahora.AddDays(-1));
+        (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(Reloj.Ahora.AddDays(-1).UtcDateTime);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{suscripcion}' AND concepto = 'renovacion' AND estado = 'autorizado'")).Should().Be(1);
         await pasarela.Received(1).CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true);
         await publicador.Received(1).PublicarSuscripcion(suscripcion, Arg.Any<CancellationToken>());
@@ -70,7 +71,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         }
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be("en_gracia");
-        (await Escalar<DateTimeOffset>($"SELECT gracia_hasta FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(finAnterior.AddDays(7));
+        (await Escalar<DateTime>($"SELECT gracia_hasta FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(finAnterior.AddDays(7).UtcDateTime);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{suscripcion}' AND concepto = 'renovacion' AND estado = 'rechazado'")).Should().Be(1);
         (await Escalar<long>($"SELECT count(*) FROM correo_saliente WHERE destinatario = (SELECT correo FROM usuario WHERE id = '{usuario}') AND plantilla IN ('pago_rechazado','suscripcion_en_gracia')")).Should().Be(2);
     }
@@ -87,11 +88,10 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         await Ejecutar($"UPDATE suscripcion_plataforma SET inicio = '{Reloj.Ahora.AddDays(-37):O}', fin = '{Reloj.Ahora.AddDays(-7):O}', gracia_hasta = '{Reloj.Ahora:O}' WHERE id = '{suscripcion}'");
         var publicador = Substitute.For<IPublicadorCache>();
         var correo = Substitute.For<IColaCorreo>();
-        var bitacora = Substitute.For<IBitacora>();
 
         await using (var db = CrearDb())
         {
-            await new CerrarCiclo(db, Reloj, Substitute.For<IPasarelaPagos>(), publicador, correo, bitacora,
+            await new CerrarCiclo(db, Reloj, Substitute.For<IPasarelaPagos>(), publicador, correo, new BitacoraBaseDatos(db, Reloj),
                 new OpcionesCierreCiclo()).EjecutarAsync();
         }
 
@@ -99,7 +99,6 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'suscripcion.suspendida' AND actor_tipo = 'sistema' AND organizacion_id = '{organizacion}'")).Should().Be(1);
         await publicador.Received(1).PublicarSuscripcion(suscripcion, Arg.Any<CancellationToken>());
         await correo.Received(1).Encolar("suscripcion_suspendida", Arg.Any<string>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
-        await bitacora.Received(1).Registrar(Arg.Is<EntradaBitacora>(x => x.ActorTipo == TipoActor.Sistema), Arg.Any<CancellationToken>());
     }
 
     // RF-22: la Prueba termina en gracia y no intenta cobrar.
@@ -122,7 +121,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         }
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be("en_gracia");
-        (await Escalar<DateTimeOffset>($"SELECT gracia_hasta FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(finAnterior.AddDays(7));
+        (await Escalar<DateTime>($"SELECT gracia_hasta FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(finAnterior.AddDays(7).UtcDateTime);
         await pasarela.DidNotReceive().CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<bool>());
         (await Escalar<long>($"SELECT count(*) FROM correo_saliente WHERE destinatario = (SELECT correo FROM usuario WHERE id = '{usuario}') AND plantilla = 'suscripcion_en_gracia'")).Should().Be(1);
     }
@@ -172,7 +171,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         }
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be("activa");
-        (await Escalar<DateTimeOffset>($"SELECT inicio FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(finAnterior);
+        (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(finAnterior.UtcDateTime);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}'")).Should().Be(0);
         await pasarela.DidNotReceive().CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<bool>());
     }
@@ -203,7 +202,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be("activa");
         (await Escalar<Guid>($"SELECT plan_id FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(siguientePlan);
-        (await Escalar<DateTimeOffset>($"SELECT inicio FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(finAnterior);
+        (await Escalar<DateTime>($"SELECT inicio FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(finAnterior.UtcDateTime);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'renovacion' AND estado = 'autorizado'")).Should().Be(1);
         await publicador.Received(1).PublicarSuscripcion(suscripcion, Arg.Any<CancellationToken>());
     }
@@ -233,7 +232,7 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         }
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be("en_gracia");
-        (await Escalar<DateTimeOffset>($"SELECT gracia_hasta FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(finAnterior.AddDays(7));
+        (await Escalar<DateTime>($"SELECT gracia_hasta FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be(finAnterior.AddDays(7).UtcDateTime);
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'renovacion' AND estado = 'rechazado'")).Should().Be(1);
         (await Escalar<long>($"SELECT count(*) FROM correo_saliente WHERE destinatario = (SELECT correo FROM consumidor WHERE id = '{consumidor}') AND plantilla IN ('pago_rechazado','suscripcion_en_gracia') AND datos->>'logoPortal' = 'true'")).Should().Be(2);
     }
@@ -249,12 +248,11 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         var suscripcion = await NuevaSuscripcionApi(consumidor, api, plan, "en_gracia");
         await Ejecutar($"UPDATE suscripcion_api SET inicio = '{Reloj.Ahora.AddDays(-37):O}', fin = '{Reloj.Ahora.AddDays(-7):O}', gracia_hasta = '{Reloj.Ahora:O}' WHERE id = '{suscripcion}'");
         var publicador = Substitute.For<IPublicadorCache>();
-        var bitacora = Substitute.For<IBitacora>();
 
         await using (var db = CrearDb())
         {
             await new CerrarCiclo(db, Reloj, Substitute.For<IPasarelaPagos>(), publicador, Substitute.For<IColaCorreo>(),
-                bitacora, new OpcionesCierreCiclo()).EjecutarAsync();
+                new BitacoraBaseDatos(db, Reloj), new OpcionesCierreCiclo()).EjecutarAsync();
         }
 
         (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Be("suspendida");

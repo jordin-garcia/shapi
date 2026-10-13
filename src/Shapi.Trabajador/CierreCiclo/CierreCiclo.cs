@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
@@ -334,6 +333,10 @@ public sealed class CerrarCiclo(
          where m.OrganizacionId == organizacionId && m.Rol == Rol.Propietario
          select u).SingleOrDefaultAsync(ct);
 
-    private static string Fecha(DateTimeOffset fecha) => fecha.ToOffset(TimeSpan.FromHours(-6))
-        .ToString("d 'de' MMMM 'de' yyyy", CultureInfo.GetCultureInfo("es-GT"));
+    private static string Fecha(DateTimeOffset fecha)
+    {
+        var fechaGuatemala = fecha.ToOffset(TimeSpan.FromHours(-6));
+        var meses = new[] { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
+        return $"{fechaGuatemala.Day} de {meses[fechaGuatemala.Month - 1]} de {fechaGuatemala.Year}";
+    }
 }
