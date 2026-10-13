@@ -271,7 +271,16 @@ paths:
               properties:
                 tarjeta: { $ref: "#/components/schemas/Tarjeta" }
       responses:
-        "200": { description: Suscripción reactivada con un ciclo nuevo desde hoy }
+        "200":
+          description: Suscripción reactivada con un ciclo nuevo desde hoy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultadoReactivacionSuscripcionApi" }
+        "400":
+          description: Falta la tarjeta o sus datos no son válidos
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
         "402":
           description: La pasarela rechazó el pago
           content:
@@ -345,6 +354,13 @@ components:
       properties:
         estado: { type: string, const: sin_cambios }
     ResultadoPagoSuscripcionPlataforma:
+      type: object
+      required: [estado, inicio, fin]
+      properties:
+        estado: { type: string, const: activa }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+    ResultadoReactivacionSuscripcionApi:
       type: object
       required: [estado, inicio, fin]
       properties:

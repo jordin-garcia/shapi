@@ -214,6 +214,14 @@ export interface components {
             /** Format: date-time */
             fin: string;
         };
+        ResultadoReactivacionSuscripcionApi: {
+            /** @constant */
+            estado: "activa";
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+        };
         PeticionSuscripcionPlataforma: {
             /** Format: uuid */
             planId: string;
@@ -794,7 +802,18 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ResultadoReactivacionSuscripcionApi"];
+                };
+            };
+            /** @description Falta la tarjeta o sus datos no son válidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
             /** @description La pasarela rechazó el pago */
             402: {

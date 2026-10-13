@@ -17,7 +17,7 @@ using Shapi.Infraestructura.Persistencia;
 namespace Shapi.Api.Suscripciones;
 
 public sealed record PeticionContratarPlan(Guid PlanId, TarjetaContratacion? Tarjeta);
-public sealed record PeticionPagarSuscripcionApi(TarjetaContratacion Tarjeta);
+public sealed record PeticionPagarSuscripcionApi(TarjetaContratacion? Tarjeta);
 public sealed record TarjetaContratacion(string Numero, string MesVencimiento, string AnioVencimiento, string Cvv, string Titular);
 
 public sealed class ContratacionApi(
@@ -282,6 +282,13 @@ public sealed class ContratacionApi(
         }
 
         var tarjeta = peticion.Tarjeta;
+        if (tarjeta is null)
+        {
+            await tx.RollbackAsync(ct);
+            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
+                "Escriba los datos de la tarjeta.", new Dictionary<string, string[]> { ["tarjeta"] = ["Escriba los datos de la tarjeta."] });
+        }
+
         var tokenizada = await pasarela.TokenizarAsync(new DatosTarjeta
         {
             Numero = tarjeta.Numero,

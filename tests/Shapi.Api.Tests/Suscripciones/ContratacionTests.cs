@@ -352,6 +352,28 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         publicada.Inicio.Should().Be(inicioEsperado.ToUnixTimeSeconds());
     }
 
+    // RF-22: la reactivación rechaza con 400 la tarjeta ausente o nula, sin lanzar 500.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PagarSuscripcionApi_TarjetaAusenteOpuestaNula_RespondeDatosInvalidos(bool tarjetaNula)
+    {
+        var e = await CrearEscenario(verificado: true);
+        await Ejecutar($"""
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{e.ConsumidorId}', '{e.ApiId}', '{e.PlanId}', 'suspendida',
+                    '{Reloj.Ahora.AddDays(-37):O}', '{Reloj.Ahora.AddDays(-7):O}', '{Reloj.Ahora:O}')
+            """);
+        object peticion = tarjetaNula ? new { tarjeta = (DatosTarjetaPrueba?)null } : new { };
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/pagar", e, peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.BadRequest, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        problema.GetProperty("codigo").GetString().Should().Be("datos_invalidos");
+        problema.GetProperty("errores").GetProperty("tarjeta").GetArrayLength().Should().BeGreaterThan(0);
+    }
+
     // RNF-08: la sesión de otra organización no revela ni modifica datos del portal.
     [Fact]
     public async Task Contratar_SesionDeOtraOrganizacionEnElHost_Responde404()
