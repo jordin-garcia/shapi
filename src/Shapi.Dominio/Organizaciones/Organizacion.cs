@@ -21,4 +21,17 @@ public class Organizacion
         Tipo = tipo;
         EstadoAdmin = EstadoAdmin.Activa;
     }
+
+    public void Suspender(string motivo)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(motivo);
+        EstadoAdmin = EstadoAdmin.Suspendida;
+        MotivoSuspension = motivo.Trim();
+    }
+
+    public void Reactivar()
+    {
+        EstadoAdmin = EstadoAdmin.Activa;
+        MotivoSuspension = null;
+    }
 }

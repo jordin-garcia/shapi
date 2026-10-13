@@ -45,7 +45,7 @@
   </style>
 </helmet>
 
-<div style="width:1440px; height:1460px; background:#F4F6FA; display:flex; flex-direction:column; overflow:hidden;">
+<div style="width:1440px; height:1560px; background:#F4F6FA; display:flex; flex-direction:column; overflow:hidden;">
 
   <div style="height:76px; background:#060910; border-bottom:1px solid #131B2B; display:flex; align-items:center; justify-content:space-between; padding:0 44px 0 28px; flex-shrink:0; box-sizing:border-box;">
     <div style="display:flex; align-items:center; gap:11px;">
@@ -136,7 +136,7 @@
         <div class="tarj" style="padding:20px; display:flex; flex-direction:column; gap:10px;">
           <p class="dato-k">Peticiones a la API</p>
           <span class="cifra">105,456</span>
-          <p style="font-size:14px; line-height:1.5; color:#5A6884;">En los 10 días del periodo</p>
+          <p style="font-size:14px; line-height:1.5; color:#5A6884;">En los 10 días del periodo<br>93,147 llamadas descontadas</p>
         </div>
         <div class="tarj" style="padding:20px; display:flex; flex-direction:column; gap:10px;">
           <p class="dato-k">Latencia total · percentil 95</p>
@@ -145,7 +145,7 @@
         </div>
         <div class="tarj" style="padding:20px; display:flex; flex-direction:column; gap:10px;">
           <p class="dato-k">Latencia de la compuerta · percentil 95</p>
-          <span class="cifra">11 ms</span>
+          <span class="cifra">10 ms</span>
           <p style="font-size:14px; line-height:1.5; color:#5A6884;">Lo que añade Shapi a esa latencia</p>
         </div>
         <div class="tarj" style="padding:20px; display:flex; flex-direction:column; gap:10px;">
@@ -290,13 +290,25 @@
               <td class="tdc" style="padding-right:0;">1.40 %</td>
             </tr>
             <tr>
-              <td class="grp" colspan="4">Errores de su servidor de origen · la petición sí llegó a su servidor</td>
+              <td class="grp" colspan="4">Errores de su servidor de origen</td>
             </tr>
             <tr>
-              <td class="tdc" style="border-bottom:0; color:#5A6884;">—</td>
-              <td class="tdc" style="border-bottom:0;">Respuestas con error devueltas por su servidor</td>
-              <td class="tdc" style="border-bottom:0;">316</td>
-              <td class="tdc" style="border-bottom:0; padding-right:0;">0.30 %</td>
+              <td class="tdc" style="font-weight:500; color:#0B1220;">4xx</td>
+              <td class="tdc">Respuestas 4xx de su servidor</td>
+              <td class="tdc">250</td>
+              <td class="tdc" style="padding-right:0;">0.24 %</td>
+            </tr>
+            <tr>
+              <td class="tdc" style="font-weight:500; color:#0B1220;">5xx</td>
+              <td class="tdc">Respuestas 5xx de su servidor</td>
+              <td class="tdc">66</td>
+              <td class="tdc" style="padding-right:0;">0.06 %</td>
+            </tr>
+            <tr>
+              <td class="tdc" style="border-bottom:0; font-weight:500; color:#0B1220;">fallas</td>
+              <td class="tdc" style="border-bottom:0;">Fallas de conexión o tiempo de espera del origen</td>
+              <td class="tdc" style="border-bottom:0;">0</td>
+              <td class="tdc" style="border-bottom:0; padding-right:0;">0.00 %</td>
             </tr>
           </tbody>
         </table>

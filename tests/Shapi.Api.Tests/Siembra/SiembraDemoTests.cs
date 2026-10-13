@@ -46,6 +46,15 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
     }
 
     [Fact]
+    public void RNF_14_LasPruebasCorrenSinCulturasDePais_ComoLasImagenesAlpine()
+    {
+        // JZ-17: sembrar-demo se caía en el contenedor con CultureNotFoundException (es-GT) y aquí pasaba.
+        var accion = () => System.Globalization.CultureInfo.GetCultureInfo("es-GT");
+
+        accion.Should().Throw<System.Globalization.CultureNotFoundException>();
+    }
+
+    [Fact]
     public async Task RNF_14_SinModoDemo_RechazaLaSiembra()
     {
         await using var db = CrearDb();
@@ -468,7 +477,7 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         mensajesPorCaso[caso104.Id].Should().HaveCount(3);
         mensajesPorCaso[caso104.Id]
             .Select(m => m.Cuerpo).Should().Equal(
-                $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {Reloj.Ahora.AddDays(-3).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.",
+                "El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el 24 de septiembre. Ya creé el registro CNAME que me indicó la pantalla de dominios.",
                 "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.",
                 "El registro apunta a envios.shapi.localhost, que es la dirección del portal. Cámbielo a envios.api.shapi.localhost y pulse «Verificar registro DNS» en Dominios.");
 

@@ -139,7 +139,7 @@ En A5.4b, la respuesta actual de `POST /api/portal/suscripciones` solo incluye l
 |---|---|---|---|---|---|
 | A6.1 | Planes de plataforma (nuevo y editar) | `Main`, `NuevoPlan`, `EditarPlan` | `/admin/planes` | RF-17 | ✎ (peticiones, miembros, Escala anual) |
 | A6.2 | Organizaciones (vacía) | `Organizaciones`, `OrganizacionesVacia` | `/admin/organizaciones` | RF-38 | ✎ (propietario en vez de subdominio; fechas) |
-| A6.2b | Suspender una organización | `Suspender.dc.html` | — | RF-38 | ✎ (sin subdominio) |
+| A6.2b | Suspender una organización | `Suspender.dc.html` | — | RF-38 | ✎ (sin subdominio; antes de confirmar se captura el motivo administrativo requerido por RF-38) |
 | A6.3 | Pagos de plataforma (vacía) | `Pagos`, `PagosVacia` | `/admin/pagos` | RF-24 | = |
 | A6.3b | Revertir un pago | `RevertirPago.dc.html` | — | RF-24 | = |
 | A6.4 | Casos de soporte (vacía) | `Casos`, `CasosVacia` | `/admin/casos` | RF-40 | ✎ (casos abiertos por el proveedor) |

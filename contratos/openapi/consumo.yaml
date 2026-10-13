@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: API de Control - Consumo
+  version: 1.0.0
+  description: Consumo consolidado por API y periodo inclusivo (RF-35, B1.1). Incluye producción y pruebas; no consulta Redis. Los porcentajes usan todas las peticiones del periodo. Los histogramas se suman antes de calcular el p95.
+servers:
+  - url: https://shapi.localhost
+paths:
+  /api/apis/{apiId}/consumo:
+    get:
+      operationId: consultarConsumoApi
+      summary: Consumo, latencia y errores de una API
+      description: Propietario, editor o lector de la organización dueña. Por defecto los últimos diez días, incluido hoy en Guatemala. Se permite un periodo de hasta 366 días. Se incluyen días sin peticiones y consumo sin ruta identificada o de rutas retiradas.
+      security:
+        - cookieSesionPersonal: []
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          schema: { type: string, format: date }
+          description: Inicio inclusivo; por defecto nueve días antes de hasta.
+        - name: hasta
+          in: query
+          schema: { type: string, format: date }
+          description: Fin inclusivo; por defecto hoy en Guatemala.
+      responses:
+        '200':
+          description: Indicadores del periodo; p95 nulo cuando no hay muestras.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsumoApi' }
+        '400':
+          description: Fechas inválidas, invertidas o periodo mayor que 366 días.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '401':
+          description: Sin sesión del personal.
+        '403':
+          description: El rol no puede consultar el consumo.
+        '404':
+          description: La API no existe o pertenece a otra organización.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+components:
+  securitySchemes:
+    cookieSesionPersonal:
+      type: apiKey
+      in: cookie
+      name: shapi_sesion
+  schemas:
+    Percentil95:
+      type: object
+      required: [milisegundos, supera2500]
+      properties:
+        milisegundos: { type: [number, 'null'] }
+        supera2500:
+          type: boolean
+          description: El rango abierto se presenta como «> 2500 ms», con milisegundos nulo.
+    ConsumoDia:
+      type: object
+      required: [fecha, peticiones]
+      properties:
+        fecha: { type: string, format: date }
+        peticiones: { type: integer, format: int64 }
+    ConsumoRuta:
+      type: object
+      required: [rutaId, metodo, patron, peticiones, porcentaje, latenciaTotalP95, latenciaCompuertaP95]
+      properties:
+        rutaId: { type: [string, 'null'], format: uuid }
+        metodo: { type: [string, 'null'] }
+        patron: { type: string }
+        peticiones: { type: integer, format: int64 }
+        porcentaje: { type: number }
+        latenciaTotalP95: { $ref: '#/components/schemas/Percentil95' }
+        latenciaCompuertaP95: { $ref: '#/components/schemas/Percentil95' }
+    ConsumoError:
+      type: object
+      required: [codigo, motivo, peticiones, porcentaje]
+      properties:
+        codigo: { type: string }
+        motivo: { type: string }
+        peticiones: { type: integer, format: int64 }
+        porcentaje: { type: number }
+    ConsumoApi:
+      type: object
+      required: [apiId, apiNombre, desde, hasta, peticiones, llamadas, bytesEntrada, bytesSalida, latenciaTotalP95, latenciaCompuertaP95, dias, rutas, rechazosCompuerta, erroresOrigen]
+      properties:
+        apiId: { type: string, format: uuid }
+        apiNombre: { type: string }
+        desde: { type: string, format: date }
+        hasta: { type: string, format: date }
+        peticiones: { type: integer, format: int64 }
+        llamadas: { type: integer, format: int64 }
+        bytesEntrada: { type: integer, format: int64 }
+        bytesSalida: { type: integer, format: int64 }
+        latenciaTotalP95: { $ref: '#/components/schemas/Percentil95' }
+        latenciaCompuertaP95: { $ref: '#/components/schemas/Percentil95' }
+        dias:
+          type: array
+          items: { $ref: '#/components/schemas/ConsumoDia' }
+        rutas:
+          type: array
+          items: { $ref: '#/components/schemas/ConsumoRuta' }
+        rechazosCompuerta:
+          type: array
+          items: { $ref: '#/components/schemas/ConsumoError' }
+        erroresOrigen:
+          type: array
+          items: { $ref: '#/components/schemas/ConsumoError' }
+    Problema:
+      type: object
+      required: [type, title, status, codigo]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        codigo: { type: string }
+        errores:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }

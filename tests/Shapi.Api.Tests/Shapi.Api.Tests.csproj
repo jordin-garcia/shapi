@@ -2,6 +2,8 @@
     <PropertyGroup>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <!-- Como las imágenes Alpine de producción, sin ICU: una cultura de país rompe aquí y no solo en el contenedor (JZ-17). -->
+        <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Shapi.Api\Shapi.Api.csproj" />

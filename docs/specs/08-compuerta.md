@@ -191,6 +191,14 @@ Si una API fue eliminada (por ejemplo al reiniciar la siembra de demostración),
 
 **Cálculo del p95** ([RF-35](03-requisitos.md#rf-35)): se suman los histogramas de las filas del periodo y se busca el rango `i` donde la suma acumulada alcanza el 95 % del total. Luego se interpola linealmente entre el límite inferior y el superior de ese rango. El último rango (más de 2500 ms) se reporta como `> 2500 ms`.
 
+**Consulta del proveedor (B1.1, RF-35):** `GET /api/apis/{apiId}/consumo` consulta solo `consumo_diario`, incluyendo producción y pruebas. `desde` y `hasta` son fechas inclusivas `AAAA-MM-DD`; `hasta` vale hoy en Guatemala por defecto, y `desde`, nueve días antes de `hasta`. El periodo admite hasta 366 días para acotar la respuesta. Un formato inválido, un inicio posterior al fin o un periodo mayor responde 400 `datos_invalidos`, con `errores` por campo. La serie incluye los días sin peticiones. Los porcentajes por ruta y por error usan todas las peticiones del periodo como denominador (cero cuando no hay peticiones). Las filas sin ruta o de rutas retiradas se agrupan como «Sin ruta identificada» y conservan su consumo. Las rutas se ordenan por peticiones descendentes y luego por método y patrón. Sin muestras, el p95 es nulo; el rango abierto conserva `supera2500 = true`.
+
+La tabla de errores distingue los rechazos 401/403/429 de la compuerta y los 4xx, 5xx y fallas de conexión o tiempo de espera del origen. Por incluir las fallas que no llegaron al servidor, el encabezado del segundo grupo dice «Errores de su servidor de origen», sin afirmar que todas las peticiones llegaron. Los bytes se presentan en GB decimales (1 GB = 1,000,000,000 bytes). El personal propietario, editor o lector de la organización dueña puede consultar; una API inexistente o de otra organización responde 404 `api_no_encontrada`.
+
+B1.1 conserva las cuatro tarjetas del mockup y muestra también las llamadas descontadas como detalle de «Peticiones a la API», conforme a RF-35; este dato se omitía en el ejemplo anterior. La respuesta conserva la precisión decimal del p95; la pantalla lo presenta redondeado al milisegundo entero más cercano.
+
+El ejemplo de B1.1 y su paquete se sincronizaron con la siembra al implementar JG-11: 93,147 llamadas descontadas, p95 agregado de la compuerta de 10 ms (suma de histogramas, en lugar de los 11 ms del ejemplo anterior) y errores del origen separados en 250 respuestas 4xx, 66 respuestas 5xx y cero fallas. Prevalecen RF-35 y el cálculo de este apartado, conforme al protocolo §C; las fechas del ejemplo siguen siendo relativas en la siembra (07 §6).
+
 ## 8. Rendimiento
 
 - Por cada petición se hacen tres viajes a Redis antes de reenviar, más uno en segundo plano para la medición:

@@ -37,6 +37,12 @@ public sealed class SiembraDemo(
         "mario.pop@transportespeten.com", "gabriela.sac@datoschapines.com"
     ];
 
+    private static readonly string[] Meses =
+    [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+
     private static readonly string[] OrganizacionesDemo =
     [
         "Envíos Xelajú, S.A.", "Agro Precios, S.A.", "Cafetalera del Altiplano, S.A.",
@@ -292,7 +298,7 @@ public sealed class SiembraDemo(
             CrearMensaje(casos[1].Id, propietarios[2].Id, "No recibí el correo de verificación de mi cuenta.", ahora.AddDays(-8)),
             CrearMensaje(casos[2].Id, propietarios[4].Id, "Desde la suspensión, ninguna de nuestras APIs responde.", ahora.AddDays(-4)),
             CrearMensaje(casos[3].Id, propietarios[1].Id, "Un consumidor recibe 429 aunque su cuota todavía tiene llamadas disponibles.", ahora.AddDays(-3)),
-            CrearMensaje(casos[4].Id, propietarios[0].Id, $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {ahora.ToOffset(TimeSpan.FromHours(-6)).AddDays(-3).ToString("d 'de' MMMM", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.", ahora.AddDays(-2)),
+            CrearMensaje(casos[4].Id, propietarios[0].Id, $"El dominio api.enviosxelaju.localhost sigue pendiente de verificación desde el {DiaYMes(ahora.ToOffset(TimeSpan.FromHours(-6)).AddDays(-3))}. Ya creé el registro CNAME que me indicó la pantalla de dominios.", ahora.AddDays(-2)),
             CrearMensaje(casos[4].Id, personal[2].Id, "Gracias, Ana Lucía. Estoy revisando el registro en el DNS y le escribo en cuanto tenga el resultado.", ahora.AddDays(-2).AddMinutes(18)),
             CrearMensaje(casos[4].Id, personal[2].Id, "El registro apunta a envios.shapi.localhost, que es la dirección del portal. Cámbielo a envios.api.shapi.localhost y pulse «Verificar registro DNS» en Dominios.", ahora.AddDays(-2).AddMinutes(23)));
 
@@ -349,6 +355,9 @@ public sealed class SiembraDemo(
 
         return api;
     }
+
+    /// <summary>"24 de septiembre". Sin depender de la cultura del sistema: las imágenes Alpine no traen ICU (JZ-17).</summary>
+    private static string DiaYMes(DateTimeOffset fecha) => $"{fecha.Day} de {Meses[fecha.Month - 1]}";
 
     /// <summary>
     /// Crea la cuenta o, si ya existe, la restablece: el nombre, la contraseña de la demostración, el correo

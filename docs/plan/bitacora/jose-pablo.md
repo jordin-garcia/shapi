@@ -74,3 +74,17 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: las acciones compuestas son transaccionales; responder y cerrar bloquean la fila del caso para serializar la transición; una respuesta de plataforma se notifica al proveedor que abrió el caso y, si soporte abre el caso, al propietario de la organización.
 - Pendiente o aviso para otros:
   - **JZ-13:** los endpoints y las pantallas de soporte ya están listos para incorporar un flujo E2E de apertura, respuesta y cierre.
+
+## 2026-10-09 · JZ-08 · Administración de organizaciones (A6.2 y A6.2b)
+- Hecho: se implementaron la consulta administrativa de organizaciones, la suspensión y reactivación con estado efectivo inmediato en Redis, 403 en la compuerta, correo al propietario, bitácora, contrato OpenAPI y las pantallas poblada, vacía y de confirmación.
+- Decisiones: los casos de uso viven en Aplicación y el acceso a EF queda detrás de un repositorio; la reactivación solo elimina la suspensión administrativa; A6.2b captura el motivo administrativo requerido por RF-38 y la precisión quedó documentada en la especificación de interfaz.
+- Pendiente o aviso para otros:
+  - **EM-10:** la reactivación administrativa conserva el estado efectivo `suspendida` mientras la suscripción de plataforma continúe suspendida por falta de pago.
+  - **JZ-13:** puede agregar al flujo E2E la suspensión desde A6.2b y comprobar el 403 `api_no_disponible` de la compuerta.
+
+## 2026-10-09 · JZ-18 · Levantar el ambiente con la siembra en un solo comando
+- Hecho: se agregó el perfil `demo` con el servicio de una sola ejecución `siembra-demo`, que espera las migraciones y comparte imagen, configuración y llaves con el trabajador. Se actualizaron el verificador, el manual técnico, arquitectura §7 y el paso 1 del guion 2.
+- Decisiones: el arranque sin perfil conserva la garantía de no sembrar. `up -d --build` devuelve el control antes de terminar la siembra; se espera la salida 0 de `siembra-demo`. `--sembrar` prueba ambos modos y la idempotencia del comando; `--demo` verifica un ambiente ya sembrado.
+- Verificación: fase roja confirmada; el verificador pasó en desarrollo, en producción sin siembra, con `--sembrar` (dos arranques sin duplicar datos) y con `--demo`. Las pruebas productivas usaron volúmenes nuevos del proyecto `shapi-jz18-prueba`, conservando los datos locales existentes. Plan válido (75 tareas), sintaxis y diff correctos. Revisión independiente sin hallazgos.
+- Pendiente o aviso para otros:
+  - **JZ-13:** para levantar todo con datos use `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build` y espere la salida 0 de `siembra-demo`; luego puede ejecutar `node infra/verificar.mjs --demo`. El reinicio explícito de datos con `sembrar-demo --reiniciar` sigue disponible.

@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-10
 depende_de: [JG-09, DC-02]
 requisitos: [RF-35]
@@ -56,3 +56,14 @@ Verificación manual con el entorno levantado:
 
 ## Fuera de alcance
 - Consumo por consumidor (JG-13)
+
+## Resultado
+
+- Se implementó `GET /api/apis/{apiId}/consumo` con el caso de uso `ConsultarConsumoApi`. Consulta las filas consolidadas, incluye ambos entornos, suma los histogramas antes de calcular cada p95 y devuelve totales, llamadas descontadas, bytes, días (incluidos los ceros), rutas y errores separados entre compuerta y origen.
+- El periodo es inclusivo, por defecto los últimos diez días en Guatemala con `IReloj`; admite hasta 366 días. Las fechas inválidas responden 400 con errores por campo. Propietario, editor y lector pueden consultar; otra organización o una API inexistente responde 404. Se conserva el consumo sin ruta identificada y los porcentajes usan el total del periodo.
+- B1.1 reproduce los cuatro indicadores, las barras, las tablas, el selector y la variante vacía. Muestra las llamadas descontadas en la primera tarjeta y redondea solo la presentación del p95 al milisegundo más cercano. Incluye estados de carga, error y reintento.
+- Se creó `contratos/openapi/consumo.yaml` y se generó `frontend/packages/api/src/generado/consumo.ts`. Los archivos principales son `src/Shapi.Aplicacion/Consumo/ConsultarConsumoApi.cs`, `src/Shapi.Api/Consumo/Endpoints.cs`, `ConsumoModulo.cs`, `B1-1-Consumo.tsx` y `modulos/consumo/useConsumo.ts`.
+- Se precisó 08 §7 y se sincronizaron `mockups/B1/Main.dc.html` y el paquete regenerado: 93,147 llamadas descontadas, p95 agregado de compuerta de 10 ms y errores de origen 250/66/0. RF-35 y los histogramas prevalecen sobre el ejemplo anterior (protocolo §C); se amplió la altura del mockup para mostrar todas las filas.
+- Verificación local: compilación completa (0 errores, 0 advertencias), formato completo sin cambios, 48 pruebas de Consumo (incluidas 18 nuevas del endpoint), 352 pruebas del frontend y 7 pruebas dirigidas de B1.1, lint (sin errores, 11 advertencias previas del portal), tipos, build y plan válidos. No se agregaron dependencias ni se cambió el esquema. La CI verifica la suite completa del backend.
+- Verificación visual con la siembra: 105,456 peticiones, 93,147 llamadas, 236/10 ms y 1.84 GB; cuatro rutas y diez barras con las cifras del mockup, errores 476/74/1,476 y 250/66/0. Se eligió el periodo relativo de la siembra (27 sep–6 oct) y un periodo vacío. Capturas y textos en `.shapi/jg11/`, sin versionar.
+- Revisión independiente en contexto limpio: se corrigió la omisión de las llamadas descontadas y se confirmó el código sin hallazgos de corrección.

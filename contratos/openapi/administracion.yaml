@@ -1,0 +1,153 @@
+openapi: 3.0.3
+info:
+  title: Administracion de Shapi
+  version: 1.0.0
+paths:
+  /api/admin/organizaciones:
+    get:
+      operationId: listarOrganizacionesAdministracion
+      responses:
+        '200':
+          description: Organizaciones proveedoras con su suscripcion de plataforma.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizacionAdministracion'
+  /api/admin/organizaciones/{id}/suspender:
+    parameters:
+      - $ref: '#/components/parameters/OrganizacionId'
+    post:
+      operationId: suspenderOrganizacion
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspensionOrganizacion'
+      responses:
+        '204':
+          description: Organizacion suspendida administrativamente.
+        '400':
+          $ref: '#/components/responses/DatosInvalidos'
+        '404':
+          $ref: '#/components/responses/OrganizacionNoEncontrada'
+  /api/admin/organizaciones/{id}/reactivar:
+    parameters:
+      - $ref: '#/components/parameters/OrganizacionId'
+    post:
+      operationId: reactivarOrganizacion
+      parameters:
+        - $ref: '#/components/parameters/XRequestedWith'
+      responses:
+        '204':
+          description: Suspension administrativa retirada.
+        '404':
+          $ref: '#/components/responses/OrganizacionNoEncontrada'
+components:
+  parameters:
+    OrganizacionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    XRequestedWith:
+      name: X-Requested-With
+      in: header
+      required: true
+      description: Proteccion CSRF; el cliente del frontend la agrega siempre.
+      schema:
+        type: string
+        enum: [shapi]
+  responses:
+    DatosInvalidos:
+      description: El motivo de suspension no es valido.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+    OrganizacionNoEncontrada:
+      description: La organizacion no existe o no es proveedora.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+  schemas:
+    OrganizacionAdministracion:
+      type: object
+      required:
+        - id
+        - nombre
+        - propietarioCorreo
+        - numeroApis
+        - numeroApisPublicadas
+        - numeroConsumidores
+        - plan
+        - cicloInicio
+        - cicloFin
+        - estado
+        - suspendidaAdministrativamente
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        propietarioCorreo:
+          type: string
+          format: email
+        numeroApis:
+          type: integer
+          minimum: 0
+        numeroApisPublicadas:
+          type: integer
+          minimum: 0
+        numeroConsumidores:
+          type: integer
+          minimum: 0
+        plan:
+          type: string
+        cicloInicio:
+          type: string
+          format: date-time
+        cicloFin:
+          type: string
+          format: date-time
+        estado:
+          type: string
+          enum: [activa, en_gracia, suspendida]
+        suspendidaAdministrativamente:
+          type: boolean
+        motivoSuspension:
+          type: string
+          nullable: true
+    SuspensionOrganizacion:
+      type: object
+      required: [motivo]
+      properties:
+        motivo:
+          type: string
+          minLength: 1
+    Problema:
+      type: object
+      required: [title, status, codigo]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        codigo:
+          type: string
+        errores:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

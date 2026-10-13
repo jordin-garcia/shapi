@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-10
 depende_de: [JZ-04, JG-04]
 requisitos: [RF-38]
@@ -54,3 +54,13 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Suspensión por falta de pago (EM-10)
+
+## Resultado
+
+- Se agregaron los endpoints administrativos para listar, suspender y reactivar organizaciones, con permisos diferenciados para administrador y soporte y contrato OpenAPI generado para el frontend.
+- Los casos de uso cambian únicamente `estado_admin`, registran la acción sensible, encolan `organizacion_suspendida` al suspender y publican el estado efectivo en Redis después de confirmar la transacción.
+- La integración comprueba que una suspensión llega a la compuerta y produce 403 `api_no_disponible`; la reactivación conserva la suspensión efectiva cuando la suscripción sigue suspendida por falta de pago.
+- A6.2 incluye los estados poblado, vacío, carga y error; A6.2b muestra el impacto, exige el motivo administrativo y conserva los textos y la composición del mockup. La precisión del campo de motivo quedó registrada en `docs/specs/11-interfaz.md`.
+- Se verificaron compilación y formato .NET, pruebas dirigidas de dominio y API, lint, tipos, las 345 pruebas de frontend, el build de ambos frontends y capturas locales a 1440 × 900.
+
+Archivos principales: `src/Shapi.Aplicacion/Administracion/OrganizacionesAdministracion.cs`, `src/Shapi.Api/Administracion/RepositorioOrganizacionesAdministracion.cs`, `src/Shapi.Api/Administracion/Endpoints.cs`, `contratos/openapi/administracion.yaml`, `frontend/apps/panel/src/paginas/A6-2-Organizaciones.tsx` y `frontend/apps/panel/src/paginas/A6-2b-Suspender.tsx`.

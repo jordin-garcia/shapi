@@ -340,6 +340,22 @@ El proyecto tiene presupuesto Q 0.00 ([ADR-09](12-decisiones.md)), así que:
 
 El "ambiente productivo" que piden los lineamientos se cumple con el **mismo stack**, contenedores versionados, configuración externa, TLS, persistencia y verificaciones de salud. Como el presupuesto es cero, corre en un equipo del equipo de trabajo el día de la exposición, y no en un servidor público.
 
+Para levantar el ambiente productivo simulado con los datos de los mockups en un
+solo comando (RNF-14), desde la raíz y con `.env` preparado:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build
+```
+
+El perfil `demo` agrega `siembra-demo`, de una sola ejecución: espera la salud de
+la API tras las migraciones y reutiliza la imagen, configuración y llaves del
+trabajador. Repetir el comando no duplica datos. Como el arranque es separado
+(`-d`), la demostración está lista cuando `siembra-demo` termina con código 0;
+`node infra/verificar.mjs --demo` verifica la clave fija y el portal de Envíos Xelajú.
+Sin el perfil no se siembra; un despliegue real usa `SHAPI_MODO_DEMO=false` y
+volúmenes sin datos de demostración. La siembra rechaza ese modo aunque se active
+el perfil por error.
+
 ### 7.2 Diagrama de despliegue
 
 ```mermaid
