@@ -6,8 +6,6 @@ public sealed class ReglasEstadoTests
 {
     // RF-39: límites exactos de 06 §8.
     [Theory]
-    [InlineData("compuerta", 15, "en_servicio")]
-    [InlineData("compuerta", 15.01, "degradado")]
     [InlineData("api_control", 1000, "en_servicio")]
     [InlineData("api_control", 1000.01, "degradado")]
     [InlineData("redis", 49.99, "en_servicio")]
@@ -16,6 +14,12 @@ public sealed class ReglasEstadoTests
     [InlineData("postgres", 200, "degradado")]
     public void RF_39_Umbrales_ClasificanElLimite(string id, double ms, string esperado) =>
         Assert.Equal(esperado, ReglasEstado.PorLatencia(id, ms));
+
+    [Theory]
+    [InlineData(15d, "en_servicio")]
+    [InlineData(15.01d, "degradado")]
+    public void RF_39_Compuerta_ClasificaElLimiteDeQuinceMilisegundos(double ms, string esperado) =>
+        Assert.Equal(esperado, ReglasEstado.Compuerta(true, (decimal)ms, false));
 
     [Theory]
     [InlineData(false, false, 0d, "fuera_de_servicio")]

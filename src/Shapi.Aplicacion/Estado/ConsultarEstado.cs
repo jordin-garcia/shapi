@@ -70,7 +70,6 @@ public static class ReglasEstado
         "api_control" => ms is null or > 1000 ? "degradado" : "en_servicio",
         "redis" => ms is null ? "fuera_de_servicio" : ms >= 50 ? "degradado" : "en_servicio",
         "postgres" => ms is null ? "fuera_de_servicio" : ms >= 200 ? "degradado" : "en_servicio",
-        "compuerta" => ms > 15 ? "degradado" : "en_servicio",
         _ => throw new ArgumentOutOfRangeException(nameof(id)),
     };
 

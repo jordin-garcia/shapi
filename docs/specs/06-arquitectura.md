@@ -417,6 +417,8 @@ Los latidos se comprueban por existencia con TTL positivo, sin comparar sus marc
 
 El p95 global de la última hora usa las muestras de todas las instancias y peticiones, incluidos rechazos, en una ventana móvil de 3600 segundos del reloj real. Se registra al completar la petición y se interpola en los mismos diez rangos de 08 §7; sin muestras es nulo, y el rango abierto se presenta como `> 2500 ms`. La fecha de comprobación y los datos de negocio usan `IReloj`. B3.1 actualiza automáticamente cada 30 segundos; solo afirma que la compuerta no está afectada cuando su estado comprobado es `en_servicio`.
 
+Si PostgreSQL no responde, no se puede comprobar la cola: el correo se muestra degradado mientras SMTP responda, o fuera de servicio si SMTP tampoco responde. Los avisos de otros componentes muestran su nombre y «está degradado» o «está fuera de servicio», con el texto «El componente requiere atención. El estado se volverá a comprobar automáticamente.»; estos estados no tienen un mockup propio.
+
 ## 9. Estructura del repositorio
 
 ```

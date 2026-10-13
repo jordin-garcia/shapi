@@ -49,7 +49,7 @@ public sealed class LectorEstadoRedis(IConnectionMultiplexer redis, TimeProvider
             var identificadas = pendientes.Any(x => MetricasDiarias.DesdeLlave(x.ToString(), new Dictionary<string, long>()).ApiId != Guid.Empty);
             return new(ms, compuerta, trabajador, lotes || identificadas, HistogramaLatencia.CalcularP95([histograma]));
         }
-        catch (RedisException)
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
             return new(null, false, false, false, new(null));
         }

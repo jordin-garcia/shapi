@@ -71,3 +71,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - Se construyó y sembró un ambiente productivo aislado (`shapi-jz12`, puertos 8443/8088 y volúmenes propios), preservando el ambiente existente. Chromium comprobó la API real con siete componentes en servicio, caché compartida, acceso de administrador y soporte, y comparó normal/degradado/soporte con datos controlados de sus mockups. Capturas locales: `.shapi/jz12/`.
 - Revisión independiente según B9: LISTO, sin hallazgos de corrección ni opcionales.
 - Archivos principales: `Aplicacion/Estado/`, `Infraestructura/Estado/`, `Api/Estado/`, `Api/Modulos/EstadoModulo.cs`, `Compuerta/Medicion/MedicionMiddleware.cs`, `Contratos/Redis/LlavesRedis.cs`, `B3-1-Estado.tsx`, `contratos/openapi/sistema.yaml`, `infra/compose.prod.yml` y sus pruebas.
+
+### Revisión automática del PR #98
+
+- Se corrigió el agotamiento de tiempo de Redis: `RedisTimeoutException` deriva de `TimeoutException`, por lo que la captura original no lo aislaba. Dos regresiones simulan el fallo durante `PING` y durante la lectura del histograma; ambas fallaron con el código anterior y pasan con la corrección.
+- Se eliminó la rama duplicada de umbral de la compuerta y sus pruebas verifican ahora directamente la regla usada en producción. Se precisaron el correo degradado cuando no puede consultarse su cola y el texto de los avisos sin mockup propio.
+- Nueva verificación: 35 pruebas dirigidas correctas, ninguna fallida ni omitida; compilación completa con 0 errores y 0 advertencias, formato completo correcto y plan válido (76 tareas tras actualizar desde `main`).
