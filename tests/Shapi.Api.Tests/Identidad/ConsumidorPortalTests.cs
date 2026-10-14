@@ -193,8 +193,13 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         await InsertarApi("sesion-maxima");
         var (cookie, _) = await ConsumidorConSesion("ana@maxima.test", "sesion-maxima.shapi.localhost");
 
-        _reloj.Avanzar(TimeSpan.FromDays(6) + TimeSpan.FromHours(23));
-        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie)).StatusCode);
+        for (var hora = 0; hora < 167; hora++)
+        {
+            _reloj.Avanzar(TimeSpan.FromHours(1));
+            var vigente = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie);
+            Assert.Equal(HttpStatusCode.OK, vigente.StatusCode);
+        }
+
         _reloj.Avanzar(TimeSpan.FromHours(1));
         var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie);
 
@@ -234,6 +239,10 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
 
         Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
         Assert.Equal("correo_ya_registrado", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+        await using var lectura = _fabrica.Services.CreateAsyncScope();
+        var dbLectura = lectura.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        Assert.Null(await dbLectura.Set<Token>().IgnoreQueryFilters().Where(t => t.HashToken == SeguridadTokens.HashearToken(token))
+            .Select(t => t.UsadoEn).SingleAsync());
     }
 
     [Fact]
@@ -262,7 +271,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         await using (var alcance = _fabrica.Services.CreateAsyncScope())
         {
             var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
-            db.Add(Token.InvitacionConsumidor(SeguridadTokens.HashearToken(valor), organizacionId, "invitada@tienda.test", DateTimeOffset.UtcNow));
+            db.Add(Token.InvitacionConsumidor(SeguridadTokens.HashearToken(valor), organizacionId, "invitada@tienda.test", _reloj.Ahora));
             await db.SaveChangesAsync();
         }
 
@@ -335,7 +344,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
             var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
             var usuario = new Usuario("Usuario Panel", "panel@shapi.test");
             db.Add(usuario);
-            sesion = Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valorCookie), usuario.Id, "salir.shapi.localhost", null, null, DateTimeOffset.UtcNow);
+            sesion = Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valorCookie), usuario.Id, "salir.shapi.localhost", null, null, _reloj.Ahora);
             db.Add(sesion);
             await db.SaveChangesAsync();
         }
@@ -496,7 +505,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
             var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
             var usuario = new Usuario("Persona del panel", "persona@shapi.test");
             db.Add(usuario);
-            db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valorCookie), usuario.Id, "shapi.localhost", null, null, DateTimeOffset.UtcNow));
+            db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valorCookie), usuario.Id, "shapi.localhost", null, null, _reloj.Ahora));
             await db.SaveChangesAsync();
         }
 
@@ -520,9 +529,9 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
             var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
             var consumidor = await db.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.Correo == "ana@recuperacion.test");
             consumidorId = consumidor.Id;
-            db.Add(Token.Recuperacion(SeguridadTokens.HashearToken(tokenValor), null, consumidor.Id, organizacionUno, consumidor.Correo, DateTimeOffset.UtcNow));
+            db.Add(Token.Recuperacion(SeguridadTokens.HashearToken(tokenValor), null, consumidor.Id, organizacionUno, consumidor.Correo, _reloj.Ahora));
             var sesion = Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(SeguridadTokens.GenerarToken()), consumidor.Id,
-                "recuperacion-uno.shapi.localhost", null, null, DateTimeOffset.UtcNow);
+                "recuperacion-uno.shapi.localhost", null, null, _reloj.Ahora);
             sesionId = sesion.Id;
             db.Add(sesion);
             await db.SaveChangesAsync();
@@ -574,8 +583,8 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         {
             var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
             db.AddRange(
-                Token.InvitacionConsumidor(SeguridadTokens.HashearToken(vencida), organizacion, "vencida@tienda.test", DateTimeOffset.UtcNow.AddDays(-8)),
-                Token.InvitacionConsumidor(SeguridadTokens.HashearToken(vigente), organizacion, "ajena@tienda.test", DateTimeOffset.UtcNow));
+                Token.InvitacionConsumidor(SeguridadTokens.HashearToken(vencida), organizacion, "vencida@tienda.test", _reloj.Ahora.AddDays(-8)),
+                Token.InvitacionConsumidor(SeguridadTokens.HashearToken(vigente), organizacion, "ajena@tienda.test", _reloj.Ahora));
             await db.SaveChangesAsync();
         }
 
