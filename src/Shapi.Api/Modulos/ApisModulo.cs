@@ -23,6 +23,20 @@ public static class ApisModulo
         });
         services.AddScoped<IValidator<SolicitudRegistroApi>, ValidadorSolicitudRegistroApi>();
         services.AddScoped<IRepositorioApis, RepositorioApis>();
+        services.AddScoped<ResolutorDnsSimulado>();
+        services.AddSingleton<ResolutorDnsReal>();
+        services.AddScoped<IResolutorDns>(sp =>
+        {
+            var modo = sp.GetRequiredService<ConfiguracionDns>().ModoSimulado;
+            return modo ? sp.GetRequiredService<ResolutorDnsSimulado>() : sp.GetRequiredService<ResolutorDnsReal>();
+        });
+        services.AddSingleton(sp =>
+        {
+            var configuracion = sp.GetRequiredService<IConfiguration>();
+            var modo = !string.Equals(configuracion["SHAPI_DNS_MODO"], "real", StringComparison.OrdinalIgnoreCase);
+            var dominio = configuracion["SHAPI_DOMINIO_BASE"]?.Trim().TrimEnd('.').ToLowerInvariant();
+            return new ConfiguracionDns(modo, string.IsNullOrWhiteSpace(dominio) ? "shapi.localhost" : dominio);
+        });
         services.AddScoped<IProbadorOrigen, ProbadorOrigenHttp>();
         services.AddScoped<ILectorEspecificacionOpenApi, LectorEspecificacionOpenApi>();
         services.AddScoped<RegistrarApi>();
@@ -32,6 +46,8 @@ public static class ApisModulo
         services.AddScoped<ActualizarExposicionRutas>();
         services.AddScoped<ConfigurarRutas>();
         services.AddScoped<CambiarPublicacionApi>();
+        services.AddScoped<GestionarDominios>();
+        services.AddScoped<AutorizarTls>();
         return services;
     }
 

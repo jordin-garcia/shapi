@@ -5,6 +5,7 @@ using Shapi.Trabajador.Consolidacion;
 using Shapi.Trabajador.Correo;
 using Shapi.Trabajador.Resincronizacion;
 using Shapi.Trabajador.Siembra;
+using Shapi.Trabajador.VerificacionDominios;
 
 // Procesos en segundo plano (06 §3): cada trabajo es un BackgroundService en su carpeta.
 var builder = Host.CreateApplicationBuilder(args);
@@ -14,6 +15,7 @@ builder.Services.AgregarProcesamientoCorreo();
 builder.Services.AgregarResincronizacion();
 builder.Services.AgregarConsolidacion();
 builder.Services.AgregarCierreCiclo(builder.Configuration);
+builder.Services.AgregarVerificacionDominios(builder.Configuration);
 builder.Services.AddScoped<SiembraDemo>();
 
 var host = builder.Build();
