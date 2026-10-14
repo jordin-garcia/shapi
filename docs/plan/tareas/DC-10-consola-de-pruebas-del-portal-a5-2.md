@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-12
 depende_de: [DC-07, JG-05]
 requisitos: [RF-16, RF-45]
@@ -48,3 +48,9 @@ Verificación manual con el entorno levantado:
 
 ## Fuera de alcance
 - Documentación (DC-07)
+
+## Resultado
+- Se implementó A5.2 con selección de ruta, edición y validación de parámetros, clave de pruebas enmascarada conservada únicamente en `sessionStorage`, envío real a la compuerta y presentación del estado, cuerpo, errores y cabeceras de límites/cuota.
+- La documentación del portal conserva la ubicación de cada parámetro y distingue cuándo un valor representa el cuerpo JSON completo, para construir correctamente ruta, consulta, cabeceras y cuerpos objeto, arreglo o escalares.
+- Las pruebas cubren éxito, 401, 403, 429, ruta y consulta, `POST` con consulta más cuerpo no objeto, objeto libre sin envoltorio y ausencia de persistencia en `localStorage`.
+- Archivos principales: `A5-2-Consola.tsx`, `modulos/consola/`, `contratos/openapi/portal.yaml`, `ConsultorDocumentacionPortal.cs`, tipos generados y pruebas de Portal/Consola.
