@@ -81,6 +81,41 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
     public Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default) =>
         db.Set<Api>().SingleOrDefaultAsync(a => a.Id == apiId && a.OrganizacionId == organizacionId, cancelacion);
 
+    public Task<bool> PlanPermiteDominioPropio(Guid organizacionId, CancellationToken cancelacion = default) =>
+        (from suscripcion in db.Set<SuscripcionPlataforma>().IgnoreQueryFilters()
+         join plan in db.Set<PlanPlataforma>().IgnoreQueryFilters() on suscripcion.PlanId equals plan.Id
+         where suscripcion.OrganizacionId == organizacionId && suscripcion.Estado != EstadoSuscripcion.Finalizada
+         select plan.DominioPropio).FirstOrDefaultAsync(cancelacion);
+
+    public Task<DominioPropio?> ObtenerDominio(Guid apiId, CancellationToken cancelacion = default) =>
+        db.Set<DominioPropio>().SingleOrDefaultAsync(d => d.ApiId == apiId, cancelacion);
+
+    public Task<DominioPropio?> ObtenerDominioVerificado(string dominio, CancellationToken cancelacion = default) =>
+        db.Set<DominioPropio>().IgnoreQueryFilters().AsNoTracking()
+            .SingleOrDefaultAsync(d => d.Dominio == dominio && d.Estado == EstadoDominio.Verificado, cancelacion);
+
+    public async Task<IReadOnlyList<DominioPropio>> ObtenerDominiosPendientes(CancellationToken cancelacion = default) =>
+        await db.Set<DominioPropio>().IgnoreQueryFilters()
+            .Where(d => d.Estado == EstadoDominio.Pendiente).ToListAsync(cancelacion);
+
+    public void AgregarDominio(DominioPropio dominio) => db.Add(dominio);
+
+    public void EliminarDominio(DominioPropio dominio) => db.Remove(dominio);
+
+    public async Task SimularCname(string nombre, string valor, DateTimeOffset ahora, CancellationToken cancelacion = default)
+    {
+        var registro = await db.Set<RegistroDnsSimulado>().IgnoreQueryFilters()
+            .SingleOrDefaultAsync(r => r.Nombre == nombre, cancelacion);
+        if (registro is null)
+        {
+            db.Add(new RegistroDnsSimulado(nombre, valor, ahora));
+        }
+        else
+        {
+            registro.Actualizar(valor, ahora);
+        }
+    }
+
     public Task<List<Ruta>> ObtenerRutas(Guid apiId, CancellationToken cancelacion = default) =>
         db.Set<Ruta>().Where(r => r.ApiId == apiId).ToListAsync(cancelacion);
 

@@ -276,6 +276,113 @@ paths:
         '404':
           $ref: '#/components/responses/ApiNoEncontrada'
 
+  /api/apis/{id}/dominio:
+    get:
+      summary: Consulta las direcciones, el secreto enmascarado y el dominio propio
+      operationId: obtenerDominioApi
+      security: [{ cookieSesion: [] }]
+      parameters: [{ $ref: '#/components/parameters/ApiId' }]
+      responses:
+        '200':
+          description: Configuración de dominios de la API.
+          content: { application/json: { schema: { $ref: '#/components/schemas/EstadoDominioPropio' } } }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermiso' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+    post:
+      summary: Conecta o reemplaza el dominio propio
+      operationId: conectarDominioApi
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PeticionDominioPropio' } } }
+      responses:
+        '200':
+          description: Dominio pendiente de verificación.
+          content: { application/json: { schema: { $ref: '#/components/schemas/EstadoDominioPropio' } } }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+        '422':
+          description: El plan no incluye dominio propio (`plan_sin_dominio_propio`).
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } }
+    delete:
+      summary: Desconecta el dominio propio
+      operationId: eliminarDominioApi
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      responses:
+        '204': { description: Dominio desconectado. }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+
+  /api/apis/{id}/dominio/simular-registro:
+    post:
+      summary: Crea el CNAME en el DNS simulado
+      operationId: simularRegistroDominio
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      responses:
+        '204': { description: Registro simulado creado. }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+
+  /api/apis/{id}/dominio/verificar:
+    post:
+      summary: Verifica el CNAME del dominio propio
+      operationId: verificarDominioApi
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      responses:
+        '200':
+          description: Resultado de la verificación.
+          content: { application/json: { schema: { $ref: '#/components/schemas/EstadoDominioPropio' } } }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+
+  /api/apis/{id}/secreto/regenerar:
+    post:
+      summary: Regenera el secreto de origen
+      operationId: regenerarSecretoOrigen
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      responses:
+        '200':
+          description: El secreto nuevo se muestra únicamente en esta respuesta.
+          content: { application/json: { schema: { $ref: '#/components/schemas/SecretoOrigenRegenerado' } } }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+
+  /interno/tls/autorizar:
+    get:
+      summary: Autoriza la emisión bajo demanda de TLS para un dominio verificado
+      operationId: autorizarTlsDominio
+      security: []
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: El dominio está verificado. }
+        '404': { description: El dominio no está verificado o la petición no viene de una red privada. }
+
 components:
   securitySchemes:
     cookieSesion:
@@ -507,6 +614,38 @@ components:
           type: string
           format: uri
 
+    PeticionDominioPropio:
+      type: object
+      required: [dominio]
+      properties:
+        dominio: { type: string, example: api.enviosxelaju.localhost }
+
+    EstadoDominioPropio:
+      type: object
+      required: [apiId, apiNombre, urlPortal, urlApi, secretoEnmascarado, modoSimulado, dominio, destinoCname, estado, motivo, verificadoEn]
+      properties:
+        apiId: { type: string, format: uuid }
+        apiNombre: { type: string }
+        urlPortal: { type: string, format: uri }
+        urlApi: { type: string, format: uri }
+        secretoEnmascarado: { type: string }
+        modoSimulado: { type: boolean }
+        dominio: { type: [string, 'null'] }
+        destinoCname: { type: [string, 'null'] }
+        estado: { type: [string, 'null'], enum: [pendiente, verificado, fallido, null] }
+        motivo: { type: [string, 'null'] }
+        verificadoEn:
+          oneOf: [{ type: string, format: date-time }, { type: 'null' }]
+
+    SecretoOrigenRegenerado:
+      type: object
+      required: [secretoOrigen]
+      properties:
+        secretoOrigen:
+          type: string
+          pattern: '^shps_[A-Za-z0-9]{32}$'
+          description: Se muestra una sola vez.
+
     ResumenEspecificacion:
       type: object
       description: La especificación que la API tiene cargada. No se guarda el nombre del archivo.
@@ -610,7 +749,7 @@ components:
           type: integer
         codigo:
           type: string
-          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida, correo_no_verificado, publicacion_incompleta]
+          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida, correo_no_verificado, publicacion_incompleta, plan_sin_dominio_propio]
         detalle:
           type: object
           additionalProperties: true

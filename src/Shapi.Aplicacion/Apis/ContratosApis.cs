@@ -4,6 +4,12 @@ using Shapi.Dominio.Apis;
 namespace Shapi.Aplicacion.Apis;
 
 public sealed record SolicitudRegistroApi(string? Nombre, string? UrlOrigen, string? Subdominio);
+public sealed record SolicitudDominioPropio(string? Dominio);
+public sealed record EstadoDominioPropio(
+    Guid ApiId, string ApiNombre, string UrlPortal, string UrlApi, string SecretoEnmascarado,
+    bool ModoSimulado, string? Dominio, string? DestinoCname, string? Estado, string? Motivo,
+    DateTimeOffset? VerificadoEn);
+public sealed record SecretoOrigenRegenerado(string SecretoOrigen);
 
 public sealed record ActorRegistroApi(Guid Id, string NombreAlterno, string? Ip);
 
@@ -131,6 +137,11 @@ public interface IProbadorOrigen
     Task<ResultadoPruebaOrigen> Probar(DireccionOrigenValidada origen, CancellationToken cancelacion = default);
 }
 
+public interface IResolutorDns
+{
+    Task<string?> ResolverCname(string dominio, CancellationToken cancelacion = default);
+}
+
 public interface IRepositorioApis
 {
     Task<bool> ExisteSubdominio(string subdominio, CancellationToken cancelacion = default);
@@ -154,6 +165,20 @@ public interface IRepositorioApis
     Task<bool> ExistePlanActivo(Guid apiId, CancellationToken cancelacion = default);
 
     Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default);
+
+    Task<bool> PlanPermiteDominioPropio(Guid organizacionId, CancellationToken cancelacion = default);
+
+    Task<DominioPropio?> ObtenerDominio(Guid apiId, CancellationToken cancelacion = default);
+
+    Task<DominioPropio?> ObtenerDominioVerificado(string dominio, CancellationToken cancelacion = default);
+
+    Task<IReadOnlyList<DominioPropio>> ObtenerDominiosPendientes(CancellationToken cancelacion = default);
+
+    void AgregarDominio(DominioPropio dominio);
+
+    void EliminarDominio(DominioPropio dominio);
+
+    Task SimularCname(string nombre, string valor, DateTimeOffset ahora, CancellationToken cancelacion = default);
 
     Task<List<Ruta>> ObtenerRutas(Guid apiId, CancellationToken cancelacion = default);
 

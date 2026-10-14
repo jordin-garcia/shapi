@@ -10,6 +10,7 @@ import PaginaA32Registro from '../paginas/A3-2-Registro';
 import PaginaA33Especificacion from '../paginas/A3-3-Especificacion';
 import PaginaA34Rutas from '../paginas/A3-4-Rutas';
 import PaginaA35ConfigRutas from '../paginas/A3-5-ConfigRutas';
+import PaginaA36Dominio from '../paginas/A3-6-Dominio';
 
 const API = 'http://localhost/api/apis';
 let cliente: QueryClient;
@@ -218,6 +219,37 @@ const RUTAS = [
   { id: '0199a5b2-7c3d-7e4f-8a9b-000000000004', metodo: 'GET', patron: '/rastreo', resumen: 'Rastrear una guía', descripcion: null, expuesta: true, limiteMinuto: 300, cacheSegundos: 30, pesoLlamadas: 1 },
   { id: '0199a5b2-7c3d-7e4f-8a9b-000000000005', metodo: 'GET', patron: '/cobertura', resumen: 'Consultar cobertura', descripcion: null, expuesta: true, limiteMinuto: 120, cacheSegundos: 3600, pesoLlamadas: 1 },
 ] as const;
+
+describe('RF-11, RF-12 y RF-47 · A3.6 Dominios', () => {
+  it('reproduce el mockup y permite simular, verificar y regenerar el secreto', async () => {
+    let simulaciones = 0;
+    let verificaciones = 0;
+    server.use(
+      http.get(`${API}/${API_ID}/dominio`, () => HttpResponse.json({
+        apiId: API_ID, apiNombre: 'API de Cotización de Envíos',
+        urlPortal: 'https://envios.shapi.localhost', urlApi: 'https://envios.api.shapi.localhost',
+        secretoEnmascarado: 'shps_••••••••••••••••••••••••••••••••', modoSimulado: true,
+        dominio: 'api.enviosxelaju.localhost', destinoCname: 'envios.api.shapi.localhost',
+        estado: 'pendiente', motivo: null, verificadoEn: null,
+      })),
+      http.post(`${API}/${API_ID}/dominio/simular-registro`, () => { simulaciones++; return new HttpResponse(null, { status: 204 }); }),
+      http.post(`${API}/${API_ID}/dominio/verificar`, () => { verificaciones++; return HttpResponse.json({ estado: 'verificado' }); }),
+      http.post(`${API}/${API_ID}/secreto/regenerar`, () => HttpResponse.json({ secretoOrigen: 'shps_0123456789ABCDEFGHIJKLMNOPQRSTUV' })),
+    );
+    envolver(<Routes><Route path="/panel/apis/:id/dominios" element={<PaginaA36Dominio />} /></Routes>, `/panel/apis/${API_ID}/dominios`);
+
+    expect(await screen.findByRole('heading', { name: 'Dominios' })).toBeDefined();
+    expect(screen.getByText('https://envios.shapi.localhost')).toBeDefined();
+    expect(screen.getByText('api.enviosxelaju.localhost')).toBeDefined();
+    expect(screen.getByText('envios.api.shapi.localhost')).toBeDefined();
+    await userEvent.click(screen.getByRole('button', { name: 'Simular la creación del registro' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Verificar registro DNS' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerar' }));
+    expect(await screen.findByText('shps_0123456789ABCDEFGHIJKLMNOPQRSTUV')).toBeDefined();
+    expect(simulaciones).toBe(1);
+    expect(verificaciones).toBe(1);
+  });
+});
 
 describe('RF-09 · A3.3 Especificación OpenAPI', () => {
   it('carga el archivo y reproduce las rutas encontradas del mockup', async () => {

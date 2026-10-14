@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Shapi.Api.Identidad;
@@ -28,7 +29,80 @@ public static class Endpoints
             .RequireAuthorization(Permisos.ConfigurarApis);
         grupo.MapPost("/{id:guid}/despublicar", Despublicar)
             .RequireAuthorization(Permisos.ConfigurarApis);
+        grupo.MapGet("/{id:guid}/dominio", ObtenerDominio).RequireAuthorization(Permisos.VerApis);
+        grupo.MapPost("/{id:guid}/dominio", ConectarDominio).RequireAuthorization(Permisos.ConfigurarDominio);
+        grupo.MapPost("/{id:guid}/dominio/simular-registro", SimularRegistro).RequireAuthorization(Permisos.ConfigurarDominio);
+        grupo.MapPost("/{id:guid}/dominio/verificar", VerificarDominio).RequireAuthorization(Permisos.ConfigurarDominio);
+        grupo.MapDelete("/{id:guid}/dominio", EliminarDominio).RequireAuthorization(Permisos.ConfigurarDominio);
+        grupo.MapPost("/{id:guid}/secreto/regenerar", RegenerarSecreto).RequireAuthorization(Permisos.VerSecretoOrigen);
+        app.MapGet("/interno/tls/autorizar", AutorizarCertificado).AllowAnonymous();
         return app;
+    }
+
+    private static async Task<IResult> ObtenerDominio(Guid id, HttpContext contexto, GestionarDominios caso, CancellationToken ct)
+    {
+        var resultado = await caso.Obtener(id, OrganizacionId(contexto.User), ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> ConectarDominio(Guid id, SolicitudDominioPropio solicitud, HttpContext contexto,
+        GestionarDominios caso, CancellationToken ct)
+    {
+        var resultado = await caso.Conectar(id, OrganizacionId(contexto.User), solicitud, Actor(contexto), ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> SimularRegistro(Guid id, HttpContext contexto, GestionarDominios caso, CancellationToken ct)
+    {
+        var resultado = await caso.Simular(id, OrganizacionId(contexto.User), ct);
+        return resultado.EsExito ? TypedResults.NoContent() : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> VerificarDominio(Guid id, HttpContext contexto, GestionarDominios caso, CancellationToken ct)
+    {
+        var resultado = await caso.Verificar(id, OrganizacionId(contexto.User), Actor(contexto), ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> EliminarDominio(Guid id, HttpContext contexto, GestionarDominios caso, CancellationToken ct)
+    {
+        var resultado = await caso.Eliminar(id, OrganizacionId(contexto.User), ct);
+        return resultado.EsExito ? TypedResults.NoContent() : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> RegenerarSecreto(Guid id, HttpContext contexto, GestionarDominios caso, CancellationToken ct)
+    {
+        var resultado = await caso.RegenerarSecreto(id, OrganizacionId(contexto.User), Actor(contexto), ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> AutorizarCertificado(string? domain, HttpContext contexto, AutorizarTls caso, CancellationToken ct)
+    {
+        var ip = contexto.Connection.RemoteIpAddress;
+        if (ip is null || !EsPrivadaOLoopback(ip))
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await caso.EstaAutorizado(domain, ct) ? TypedResults.Ok() : TypedResults.NotFound();
+    }
+
+    private static bool EsPrivadaOLoopback(IPAddress direccion)
+    {
+        if (IPAddress.IsLoopback(direccion))
+        {
+            return true;
+        }
+
+        if (direccion.IsIPv4MappedToIPv6)
+        {
+            direccion = direccion.MapToIPv4();
+        }
+
+        var bytes = direccion.GetAddressBytes();
+        return bytes.Length == 4 && (bytes[0] == 10 || bytes[0] == 192 && bytes[1] == 168 ||
+            bytes[0] == 172 && bytes[1] is >= 16 and <= 31)
+            || bytes.Length == 16 && (bytes[0] & 0xfe) == 0xfc;
     }
 
     private static async Task<IResult> Listar(
@@ -260,6 +334,7 @@ public static class Endpoints
                 => StatusCodes.Status422UnprocessableEntity,
             CodigosError.CorreoNoVerificado or CodigosError.PublicacionIncompleta
                 => StatusCodes.Status422UnprocessableEntity,
+            CodigosError.PlanSinDominioPropio => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError,
         };
         var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };

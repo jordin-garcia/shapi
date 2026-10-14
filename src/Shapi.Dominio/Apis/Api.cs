@@ -123,4 +123,11 @@ public class Api : IPerteneceAOrganizacion
         ActualizadoEn = ahora;
         return true;
     }
+
+    public void RegenerarSecretoOrigen(string secretoOrigenCifrado, DateTimeOffset ahora)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(secretoOrigenCifrado);
+        SecretoOrigenCifrado = secretoOrigenCifrado;
+        ActualizadoEn = ahora;
+    }
 }

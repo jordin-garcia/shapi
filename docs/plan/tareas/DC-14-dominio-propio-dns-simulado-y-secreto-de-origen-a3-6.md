@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-14
 depende_de: [DC-06, JZ-01]
 requisitos: [RF-11, RF-12, RF-47]
@@ -61,3 +61,10 @@ Verificación manual con el entorno levantado:
 
 ## Fuera de alcance
 - Cambios en el Caddyfile (ya los deja JZ-01)
+
+## Resultado
+
+- Se implementaron los resolutores DNS simulado y real, la conexión, verificación y desconexión de dominios propios, la autorización interna de TLS y el verificador periódico con vencimiento a las 72 horas.
+- La regeneración del secreto de origen lo expone una sola vez, registra la bitácora y republica la API; las mutaciones con bitácora son transaccionales y la caché se actualiza después del commit.
+- A3.6 reproduce el flujo del mockup y permite conectar, simular y verificar el CNAME, desconectar el dominio y regenerar el secreto.
+- Verificación: compilación y formato .NET aprobados; 50 pruebas dirigidas de API y 2 de dominio aprobadas; lint sin errores, typecheck, 406 pruebas Vitest y builds de Portal y Panel aprobados.

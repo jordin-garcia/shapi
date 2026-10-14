@@ -131,6 +131,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apis/{id}/dominio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta las direcciones, el secreto enmascarado y el dominio propio */
+        get: operations["obtenerDominioApi"];
+        put?: never;
+        /** Conecta o reemplaza el dominio propio */
+        post: operations["conectarDominioApi"];
+        /** Desconecta el dominio propio */
+        delete: operations["eliminarDominioApi"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/dominio/simular-registro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea el CNAME en el DNS simulado */
+        post: operations["simularRegistroDominio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/dominio/verificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verifica el CNAME del dominio propio */
+        post: operations["verificarDominioApi"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/secreto/regenerar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenera el secreto de origen */
+        post: operations["regenerarSecretoOrigen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interno/tls/autorizar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Autoriza la emisión bajo demanda de TLS para un dominio verificado */
+        get: operations["autorizarTlsDominio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -208,6 +295,31 @@ export interface components {
             /** Format: uri */
             urlPortal: string;
         };
+        PeticionDominioPropio: {
+            /** @example api.enviosxelaju.localhost */
+            dominio: string;
+        };
+        EstadoDominioPropio: {
+            /** Format: uuid */
+            apiId: string;
+            apiNombre: string;
+            /** Format: uri */
+            urlPortal: string;
+            /** Format: uri */
+            urlApi: string;
+            secretoEnmascarado: string;
+            modoSimulado: boolean;
+            dominio: string | null;
+            destinoCname: string | null;
+            /** @enum {string|null} */
+            estado: "pendiente" | "verificado" | "fallido" | null;
+            motivo: string | null;
+            verificadoEn: string | null;
+        };
+        SecretoOrigenRegenerado: {
+            /** @description Se muestra una sola vez. */
+            secretoOrigen: string;
+        };
         /** @description La especificación que la API tiene cargada. No se guarda el nombre del archivo. */
         ResumenEspecificacion: {
             titulo: string;
@@ -257,7 +369,7 @@ export interface components {
             title: string;
             status: number;
             /** @enum {string} */
-            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida" | "correo_no_verificado" | "publicacion_incompleta";
+            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida" | "correo_no_verificado" | "publicacion_incompleta" | "plan_sin_dominio_propio";
             detalle?: {
                 [key: string]: unknown;
             };
@@ -636,6 +748,208 @@ export interface operations {
             401: components["responses"]["SinSesion"];
             403: components["responses"]["SinPermisoOCsrf"];
             404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    obtenerDominioApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuración de dominios de la API. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoDominioPropio"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermiso"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    conectarDominioApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionDominioPropio"];
+            };
+        };
+        responses: {
+            /** @description Dominio pendiente de verificación. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoDominioPropio"];
+                };
+            };
+            400: components["responses"]["DatosInvalidos"];
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+            /** @description El plan no incluye dominio propio (`plan_sin_dominio_propio`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    eliminarDominioApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dominio desconectado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    simularRegistroDominio: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registro simulado creado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    verificarDominioApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resultado de la verificación. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoDominioPropio"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    regenerarSecretoOrigen: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description El secreto nuevo se muestra únicamente en esta respuesta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecretoOrigenRegenerado"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    autorizarTlsDominio: {
+        parameters: {
+            query: {
+                domain: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description El dominio está verificado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El dominio no está verificado o la petición no viene de una red privada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }
