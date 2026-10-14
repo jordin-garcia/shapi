@@ -38,7 +38,7 @@ const implementadas: Record<string, string> = {
   'A3-3': 'Cargar especificación OpenAPI',
   'A3-4': 'Rutas expuestas',
   'A3-5': 'Configuración por ruta',
-  'A3-6': 'Dominios',
+  'A3-6': 'Direcciones y dominio propio',
   'A4-1': 'Planes de la API',
   'A4-2': 'Miembros y roles',
   'A2-1': 'Los planes de Shapi.',

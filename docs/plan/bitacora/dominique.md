@@ -132,7 +132,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 ## 2026-10-14 · DC-14 · Dominio propio, DNS simulado y secreto de origen
 - Hecho: resolución DNS simulada y real; conexión, verificación, reemplazo y desconexión del dominio; autorización interna de TLS; verificación automática cada cinco minutos y fallo a las 72 horas; regeneración del secreto de origen; contrato, tipos generados y pantalla A3.6.
 - Decisiones: en modo simulado solo se admiten dominios `.localhost`; los cambios y sus entradas de bitácora se confirman en una misma transacción, y Redis se actualiza después del commit. El endpoint de TLS responde 404 tanto para dominios no verificados como para clientes fuera de redes privadas o loopback.
-- Verificación: build y formato .NET aprobados; 50 pruebas de API y 2 de dominio aprobadas; lint sin errores (11 avisos preexistentes), typecheck, 406 pruebas Vitest y builds de Portal y Panel aprobados.
+- Verificación: build y formato .NET aprobados; 52 pruebas de API y 2 de dominio aprobadas; lint sin errores (11 avisos preexistentes), typecheck, 406 pruebas Vitest y builds de Portal y Panel aprobados.
 - Pendiente o aviso para otros:
   - **José Pablo:** Caddy puede consultar `GET /interno/tls/autorizar?domain=` desde la red privada; no fue necesario cambiar los Caddyfiles de JZ-01.
   - **Jordin:** la CI empezó a rechazar la dependencia transitiva vulnerable `System.Security.Cryptography.Pkcs 10.0.0` de MailKit; con autorización se fijó centralmente la versión corregida 10.0.13 y se agregó la referencia directa en Infraestructura.

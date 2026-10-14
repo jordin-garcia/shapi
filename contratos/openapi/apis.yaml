@@ -303,7 +303,9 @@ paths:
         '200':
           description: Dominio pendiente de verificación.
           content: { application/json: { schema: { $ref: '#/components/schemas/EstadoDominioPropio' } } }
-        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '400':
+          description: Dominio inválido, reservado para Shapi o conectado a otra API (`datos_invalidos`).
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } }
         '401': { $ref: '#/components/responses/SinSesion' }
         '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
         '404': { $ref: '#/components/responses/ApiNoEncontrada' }

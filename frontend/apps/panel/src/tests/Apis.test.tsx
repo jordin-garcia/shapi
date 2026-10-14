@@ -238,7 +238,13 @@ describe('RF-11, RF-12 y RF-47 · A3.6 Dominios', () => {
     );
     envolver(<Routes><Route path="/panel/apis/:id/dominios" element={<PaginaA36Dominio />} /></Routes>, `/panel/apis/${API_ID}/dominios`);
 
-    expect(await screen.findByRole('heading', { name: 'Dominios' })).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'Direcciones y dominio propio' })).toBeDefined();
+    expect(screen.getByText('Activas')).toBeDefined();
+    expect(screen.getByText('Automático · Vigente')).toBeDefined();
+    expect(screen.getByText('Shapi emite y renueva los certificados de estas direcciones. No tiene que configurar nada.')).toBeDefined();
+    expect(screen.getByText('Por seguridad solo se muestra completo al generarlo.')).toBeDefined();
+    expect(screen.getByText('Pendiente de verificación')).toBeDefined();
+    expect(screen.getByRole('columnheader', { name: 'Valor' })).toBeDefined();
     expect(screen.getByText('https://envios.shapi.localhost')).toBeDefined();
     expect(screen.getByText('api.enviosxelaju.localhost')).toBeDefined();
     expect(screen.getByText('envios.api.shapi.localhost')).toBeDefined();

@@ -22,6 +22,7 @@ using Shapi.Contratos.Red;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Consumo;
 using Shapi.Infraestructura.Persistencia;
+using Shapi.Trabajador.VerificacionDominios;
 using ApiDominio = Shapi.Dominio.Apis.Api;
 using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 
@@ -96,11 +97,17 @@ public sealed class DireccionLoopbackPrueba : IStartupFilter
     {
         app.Use(async (contexto, proximo) =>
         {
-            contexto.Connection.RemoteIpAddress = IPAddress.Loopback;
+            contexto.Connection.RemoteIpAddress = IPAddress.Parse(
+                contexto.Request.Headers["X-Prueba-Ip"].FirstOrDefault() ?? "127.0.0.1");
             await proximo();
         });
         siguiente(app);
     };
+}
+
+public sealed class RelojApisFalso : IReloj
+{
+    public DateTimeOffset Ahora { get; set; } = DateTimeOffset.Parse("2026-10-14T12:00:00Z");
 }
 
 public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<ContenedorPostgresApis>, IAsyncLifetime
@@ -110,6 +117,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
     private HttpClient _cliente = null!;
     private Guid _organizacionId;
     private Guid _usuarioId;
+    private readonly RelojApisFalso _reloj = new();
 
     public async Task InitializeAsync()
     {
@@ -136,6 +144,9 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
                     })
                     .AddScheme<AuthenticationSchemeOptions, AutenticacionApisPrueba>(AutenticacionApisPrueba.Esquema, _ => { });
                 services.AddSingleton<IProbadorOrigen, ProbadorOrigenFalso>();
+                services.RemoveAll<IReloj>();
+                services.AddSingleton<IReloj>(_reloj);
+                services.AddScoped<VerificarDominiosPendientes>();
                 services.AddTransient<IStartupFilter, DireccionLoopbackPrueba>();
                 services.RemoveAll<IPublicadorCache>();
                 services.AddSingleton<PublicadorCacheApisFalso>();
@@ -1025,6 +1036,15 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Equal("dominio-dc14.api.shapi.localhost", conectado.GetProperty("destinoCname").GetString());
         Assert.Equal("pendiente", conectado.GetProperty("estado").GetString());
 
+        using var sinCoincidencia = await EnviarAutenticado(HttpMethod.Post,
+            $"/api/apis/{apiId}/dominio/verificar", null);
+        var pendiente = await sinCoincidencia.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("pendiente", pendiente.GetProperty("estado").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(pendiente.GetProperty("motivo").GetString()));
+
+        using var pendienteTls = await _cliente.GetAsync("/interno/tls/autorizar?domain=api.enviosxelaju.localhost");
+        Assert.Equal(HttpStatusCode.NotFound, pendienteTls.StatusCode);
+
         using var simular = await EnviarAutenticado(HttpMethod.Post,
             $"/api/apis/{apiId}/dominio/simular-registro", null);
         Assert.Equal(HttpStatusCode.NoContent, simular.StatusCode);
@@ -1038,6 +1058,16 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         using var autorizar = await _cliente.GetAsync("/interno/tls/autorizar?domain=api.enviosxelaju.localhost");
         Assert.Equal(HttpStatusCode.OK, autorizar.StatusCode);
         Assert.Contains(apiId, _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas);
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        Assert.Contains(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
+            e => e.ObjetivoId == apiId && e.Accion == "dominio.verificado");
+
+        Assert.Equal(HttpStatusCode.NotFound, (await _cliente.GetAsync("/interno/tls/autorizar?domain=desconocido.localhost")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _cliente.GetAsync("/interno/tls/autorizar")).StatusCode);
+        using var publica = new HttpRequestMessage(HttpMethod.Get, "/interno/tls/autorizar?domain=api.enviosxelaju.localhost");
+        publica.Headers.Add("X-Prueba-Ip", "8.8.8.8");
+        Assert.Equal(HttpStatusCode.NotFound, (await _cliente.SendAsync(publica)).StatusCode);
     }
 
     // RF-11: el dominio propio depende del plan de plataforma vigente.
@@ -1050,6 +1080,26 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             new { dominio = "api.sinplan.localhost" });
 
         await AfirmarProblema(respuesta, (HttpStatusCode)422, "plan_sin_dominio_propio");
+    }
+
+    // RF-11: los hosts de Shapi no pueden reclamarse y un dominio solo pertenece a una API.
+    [Fact]
+    public async Task RF_11_ConectarDominio_ProtegeHostsPlataformaYDominioOcupado()
+    {
+        var apiUno = await RegistrarYObtenerId("dominio-uno-dc14");
+        var apiDos = await RegistrarYObtenerId("dominio-dos-dc14");
+        await HabilitarDominioPropio(_organizacionId);
+
+        using var plataforma = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiUno}/dominio",
+            new { dominio = "victima.api.shapi.localhost" });
+        await AfirmarProblema(plataforma, HttpStatusCode.BadRequest, "datos_invalidos");
+
+        using var primero = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiUno}/dominio",
+            new { dominio = "api.ocupado.localhost" });
+        Assert.Equal(HttpStatusCode.OK, primero.StatusCode);
+        using var ocupado = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiDos}/dominio",
+            new { dominio = "api.ocupado.localhost" });
+        await AfirmarProblema(ocupado, HttpStatusCode.BadRequest, "datos_invalidos");
     }
 
     // RF-11: reemplazar o quitar un host verificado lo elimina de Redis después del commit.
@@ -1070,6 +1120,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
 
         using var eliminar = await EnviarAutenticado(HttpMethod.Delete, $"/api/apis/{apiId}/dominio", null);
         Assert.Equal(HttpStatusCode.NoContent, eliminar.StatusCode);
+        Assert.Contains(("api.dos.localhost", apiId), publicador.HostsEliminados);
     }
 
     // RF-47: el secreto regenerado se devuelve una sola vez, se cifra y se audita.
@@ -1090,6 +1141,36 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             .Descifrar(api.SecretoOrigenCifrado));
         Assert.Contains(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
             e => e.ObjetivoId == apiId && e.Accion == "secreto_origen.regenerado");
+        Assert.Contains(apiId, _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas);
+    }
+
+    // RF-11: el trabajo verifica pendientes y aplica exactamente el umbral de 72 horas.
+    [Fact]
+    public async Task RF_11_Trabajador_VerificaCnameYMarcaFallidoALas72Horas()
+    {
+        var apiVerificada = await RegistrarYObtenerId("trabajo-verifica-dc14");
+        var apiFallida = await RegistrarYObtenerId("trabajo-falla-dc14");
+        var apiPendiente = await RegistrarYObtenerId("trabajo-pendiente-dc14");
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        var ahora = _reloj.Ahora;
+        var correcta = new DominioPropio(apiVerificada, "correcta.localhost", "trabajo-verifica-dc14.api.shapi.localhost", ahora.AddHours(-1));
+        var vencida = new DominioPropio(apiFallida, "vencida.localhost", "trabajo-falla-dc14.api.shapi.localhost", ahora.AddHours(-72));
+        var reciente = new DominioPropio(apiPendiente, "reciente.localhost", "trabajo-pendiente-dc14.api.shapi.localhost", ahora.AddHours(-71));
+        db.AddRange(correcta, vencida, reciente,
+            new RegistroDnsSimulado(correcta.Dominio, correcta.DestinoCname, ahora));
+        await db.SaveChangesAsync();
+
+        await alcance.ServiceProvider.GetRequiredService<VerificarDominiosPendientes>().EjecutarAsync();
+
+        db.ChangeTracker.Clear();
+        var dominios = await db.Set<DominioPropio>().IgnoreQueryFilters().ToDictionaryAsync(d => d.ApiId);
+        Assert.Equal(EstadoDominio.Verificado, dominios[apiVerificada].Estado);
+        Assert.Equal(EstadoDominio.Fallido, dominios[apiFallida].Estado);
+        Assert.Equal(EstadoDominio.Pendiente, dominios[apiPendiente].Estado);
+        Assert.Contains(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToListAsync(),
+            e => e.ObjetivoId == apiVerificada && e.Accion == "dominio.verificado");
+        Assert.Contains(apiVerificada, _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas);
     }
 
     private static void AfirmarConsumoConsolidado(

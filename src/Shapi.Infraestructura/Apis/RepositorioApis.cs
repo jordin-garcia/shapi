@@ -90,6 +90,9 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
     public Task<DominioPropio?> ObtenerDominio(Guid apiId, CancellationToken cancelacion = default) =>
         db.Set<DominioPropio>().SingleOrDefaultAsync(d => d.ApiId == apiId, cancelacion);
 
+    public Task<bool> DominioEnUso(string dominio, Guid apiId, CancellationToken cancelacion = default) =>
+        db.Set<DominioPropio>().IgnoreQueryFilters().AnyAsync(d => d.Dominio == dominio && d.ApiId != apiId, cancelacion);
+
     public Task<DominioPropio?> ObtenerDominioVerificado(string dominio, CancellationToken cancelacion = default) =>
         db.Set<DominioPropio>().IgnoreQueryFilters().AsNoTracking()
             .SingleOrDefaultAsync(d => d.Dominio == dominio && d.Estado == EstadoDominio.Verificado, cancelacion);

@@ -8,8 +8,9 @@ public static class ServiciosVerificacionDominios
     public static IServiceCollection AgregarVerificacionDominios(this IServiceCollection services, IConfiguration configuracion)
     {
         var modoSimulado = !string.Equals(configuracion["SHAPI_DNS_MODO"], "real", StringComparison.OrdinalIgnoreCase);
+        var dominio = configuracion["SHAPI_DOMINIO_BASE"]?.Trim().TrimEnd('.').ToLowerInvariant();
         services.AddSingleton(new ConfiguracionDns(modoSimulado,
-            configuracion["SHAPI_DOMINIO_BASE"]?.Trim().TrimEnd('.').ToLowerInvariant() ?? "shapi.localhost"));
+            string.IsNullOrWhiteSpace(dominio) ? "shapi.localhost" : dominio));
         services.AddScoped<ResolutorDnsSimulado>();
         services.AddSingleton<ResolutorDnsReal>();
         services.AddScoped<IResolutorDns>(sp => modoSimulado

@@ -170,6 +170,8 @@ public interface IRepositorioApis
 
     Task<DominioPropio?> ObtenerDominio(Guid apiId, CancellationToken cancelacion = default);
 
+    Task<bool> DominioEnUso(string dominio, Guid apiId, CancellationToken cancelacion = default);
+
     Task<DominioPropio?> ObtenerDominioVerificado(string dominio, CancellationToken cancelacion = default);
 
     Task<IReadOnlyList<DominioPropio>> ObtenerDominiosPendientes(CancellationToken cancelacion = default);

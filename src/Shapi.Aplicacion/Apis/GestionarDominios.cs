@@ -34,7 +34,10 @@ public sealed class GestionarDominios(
         }
 
         var dominio = Normalizar(solicitud.Dominio);
-        if (dominio is null || (configuracion.ModoSimulado && !dominio.EndsWith(".localhost", StringComparison.Ordinal)))
+        var dominioPlataforma = dominio == configuracion.DominioBase ||
+            dominio?.EndsWith($".{configuracion.DominioBase}", StringComparison.Ordinal) == true;
+        if (dominio is null || dominioPlataforma ||
+            (configuracion.ModoSimulado && !dominio.EndsWith(".localhost", StringComparison.Ordinal)))
         {
             return new Error(CodigosError.DatosInvalidos, "Revise el dominio.",
                 new Dictionary<string, string[]>
@@ -47,6 +50,11 @@ public sealed class GestionarDominios(
         if (!await repositorio.PlanPermiteDominioPropio(organizacionId, ct))
         {
             return new Error(CodigosError.PlanSinDominioPropio, "Su plan no incluye dominio propio.");
+        }
+        if (await repositorio.DominioEnUso(dominio, apiId, ct))
+        {
+            return new Error(CodigosError.DatosInvalidos, "El dominio ya está conectado a otra API.",
+                new Dictionary<string, string[]> { ["dominio"] = ["El dominio ya está conectado a otra API."] });
         }
 
         var destino = $"{api.Subdominio}.api.{configuracion.DominioBase}";
@@ -114,6 +122,7 @@ public sealed class GestionarDominios(
         }
 
         var yaVerificado = dominio.Estado == EstadoDominio.Verificado;
+        var hostVerificado = yaVerificado ? dominio.Dominio : null;
         var coincide = dominio.Verificar(await resolutor.ResolverCname(dominio.Dominio, ct), reloj.Ahora);
         if (coincide && !yaVerificado)
         {
@@ -127,6 +136,11 @@ public sealed class GestionarDominios(
         }
         if (coincide)
         {
+            await publicador.PublicarApi(apiId, ct);
+        }
+        else if (hostVerificado is not null)
+        {
+            await publicador.EliminarHost(hostVerificado, apiId, ct);
             await publicador.PublicarApi(apiId, ct);
         }
         return Estado(api, dominio);
@@ -182,9 +196,15 @@ public sealed class GestionarDominios(
 
     private EstadoDominioPropio Estado(Api api, DominioPropio? dominio) => new(
         api.Id, api.Nombre, $"https://{api.Subdominio}.{configuracion.DominioBase}",
-        $"https://{api.Subdominio}.api.{configuracion.DominioBase}", "shps_••••••••••••••••••••••••••••••••",
+        $"https://{api.Subdominio}.api.{configuracion.DominioBase}", EnmascararSecreto(api.SecretoOrigenCifrado),
         configuracion.ModoSimulado, dominio?.Dominio, dominio?.DestinoCname,
         dominio?.Estado.ToString().ToLowerInvariant(), dominio?.Motivo, dominio?.VerificadoEn);
+
+    private string EnmascararSecreto(string cifrado)
+    {
+        var secreto = protector.Descifrar(cifrado);
+        return $"shps_••••••••••••{secreto[^4..]}";
+    }
 
     private static string? Normalizar(string? valor)
     {
