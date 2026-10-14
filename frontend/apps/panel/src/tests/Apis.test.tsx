@@ -240,7 +240,8 @@ describe('RF-11, RF-12 y RF-47 · A3.6 Dominios', () => {
 
     expect(await screen.findByRole('heading', { name: 'Direcciones y dominio propio' })).toBeDefined();
     expect(screen.getByText('Activas')).toBeDefined();
-    expect(screen.getByText('Automático · Vigente')).toBeDefined();
+    expect(screen.getByText('Automático')).toBeDefined();
+    expect(screen.getByText('Vigente')).toBeDefined();
     expect(screen.getByText('Shapi emite y renueva los certificados de estas direcciones. No tiene que configurar nada.')).toBeDefined();
     expect(screen.getByText('Por seguridad solo se muestra completo al generarlo.')).toBeDefined();
     expect(screen.getByText('Pendiente de verificación')).toBeDefined();
