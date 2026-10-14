@@ -802,7 +802,15 @@ export interface operations {
                     "application/json": components["schemas"]["EstadoDominioPropio"];
                 };
             };
-            400: components["responses"]["DatosInvalidos"];
+            /** @description Dominio inválido, reservado para Shapi o conectado a otra API (`datos_invalidos`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
             401: components["responses"]["SinSesion"];
             403: components["responses"]["SinPermisoOCsrf"];
             404: components["responses"]["ApiNoEncontrada"];
