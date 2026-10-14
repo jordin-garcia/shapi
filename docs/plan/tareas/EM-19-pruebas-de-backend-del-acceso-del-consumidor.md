@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-13
 depende_de: []
 requisitos: [RF-02, RF-03, RF-04, RF-05]
@@ -50,3 +50,10 @@ dotnet format Shapi.slnx --verify-no-changes
 ## Fuera de alcance
 - Las pruebas de aislamiento y de permisos por rol (EM-16)
 - La invitación de consumidores desde el panel (EM-15)
+
+## Resultado
+- Se agregaron pruebas `RF-02` para enlaces de verificación usados y vencidos a las 24 horas, comprobando que el correo siga sin verificar.
+- Se agregaron pruebas `RF-03` para respuestas iguales ante correos existentes y desconocidos y para el vencimiento del enlace de recuperación a los 60 minutos.
+- Se agregaron pruebas `RF-04` para la inactividad configurada en dos horas y el vencimiento máximo a los siete días aunque la sesión se use antes del límite.
+- Se agregaron pruebas `RF-05` para rechazar con 409 `correo_ya_registrado` el registro y la aceptación de invitación con un correo ya usado en la misma organización.
+- No se necesitó modificar `EndpointsPortal.cs`: las pruebas cubren el comportamiento actual. La compilación completa pasa; la ejecución de las pruebas de integración local quedó impedida porque este entorno no tiene Docker disponible.
