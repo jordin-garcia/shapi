@@ -101,3 +101,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: El portal usa la misma paginación `{ elementos, total }`; el historial incluye intentos rechazados sin suscripción, según los registros que guarda EM-08. B2.2 sigue fuera de alcance.
 - Verificación: `dotnet build Shapi.slnx --no-restore` pasó sin advertencias ni errores. `dotnet format Shapi.slnx --verify-no-changes --no-restore`, el validador del plan y `git diff --check` pasan. En `frontend/`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (354 pruebas) y `pnpm build` pasaron; lint conserva 11 advertencias previas en otras pantallas del portal. La prueba dirigida de API compila, pero Testcontainers no puede arrancar sin Docker en `/var/run/docker.sock`; la CI correrá la suite backend completa.
 - Pendiente o aviso para otros: **Jordin:** confirmar la suite completa del backend y la integración de la prueba dirigida en CI, porque Docker no está disponible localmente.
+
+## 2026-10-13 · EM-19 · Pruebas de backend del acceso del consumidor
+- Hecho: agregué ocho pruebas de integración para enlaces usados/vencidos, recuperación sin enumeración de correos y vencimiento, sesiones por inactividad y duración máxima, y duplicados por registro e invitación en la misma organización.
+- Decisiones: usé `RelojFalso` y configuré dos horas de inactividad para verificar los vencimientos sin esperas reales. No hizo falta modificar `EndpointsPortal.cs`.
+- Pendiente o aviso para otros:
+  - **Jordin:** el build y el formato pasan, pero las pruebas dirigidas no pueden iniciar Testcontainers localmente porque falta `/var/run/docker.sock`; CI debe confirmar la suite de Identidad.

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -20,6 +21,7 @@ public sealed class ContenedorPostgresConsumidor : PostgresDePrueba;
 
 public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres) : IClassFixture<ContenedorPostgresConsumidor>, IAsyncLifetime
 {
+    private readonly RelojFalso _reloj = new();
     private string _cadena = null!;
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
@@ -35,6 +37,8 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
             builder.UseSetting("SHAPI_ADMIN_CORREO", "admin@shapi.test");
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "AdminSuperSecreto123!");
+            builder.UseSetting("Sesion:InactividadHoras", "2");
+            builder.ConfigureTestServices(services => services.AddSingleton<IReloj>(_reloj));
         });
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false, AllowAutoRedirect = false });
         return Task.CompletedTask;
@@ -84,6 +88,152 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         Assert.Equal(HttpStatusCode.Unauthorized, contrasenaDeDosEnUno.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, contrasenaDeUnoEnDos.StatusCode);
         Assert.Equal(HttpStatusCode.OK, propiaEnUno.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_02_VerificarCorreo_EnlaceUsadoResponde422YSigueSinVerificar()
+    {
+        await InsertarApi("verificacion-usada");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "verificacion-usada.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@usada.test", contrasena = "ContrasenaValida123" });
+        var token = await TokenCorreo("ana@usada.test", "verificacion-usada.shapi.localhost");
+        var hash = SeguridadTokens.HashearToken(token);
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            await db.Set<Token>().IgnoreQueryFilters().Where(t => t.HashToken == hash)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsadoEn, _reloj.Ahora));
+        }
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/portal/auth/verificar-correo", "verificacion-usada.shapi.localhost", new { token });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, respuesta.StatusCode);
+        Assert.Equal("token_invalido", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+        await using var lectura = _fabrica.Services.CreateAsyncScope();
+        var consumidor = await lectura.ServiceProvider.GetRequiredService<ShapiDbContext>().Set<Consumidor>()
+            .IgnoreQueryFilters().SingleAsync(c => c.Correo == "ana@usada.test");
+        Assert.Null(consumidor.CorreoVerificadoEn);
+    }
+
+    [Fact]
+    public async Task RF_02_VerificarCorreo_EnlaceVencidoALas24HorasResponde422YSigueSinVerificar()
+    {
+        await InsertarApi("verificacion-vencida");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "verificacion-vencida.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@vencida.test", contrasena = "ContrasenaValida123" });
+        var token = await TokenCorreo("ana@vencida.test", "verificacion-vencida.shapi.localhost");
+
+        _reloj.Avanzar(TimeSpan.FromHours(24));
+        var respuesta = await Enviar(HttpMethod.Post, "/api/portal/auth/verificar-correo", "verificacion-vencida.shapi.localhost", new { token });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, respuesta.StatusCode);
+        Assert.Equal("token_invalido", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+        await using var lectura = _fabrica.Services.CreateAsyncScope();
+        var consumidor = await lectura.ServiceProvider.GetRequiredService<ShapiDbContext>().Set<Consumidor>()
+            .IgnoreQueryFilters().SingleAsync(c => c.Correo == "ana@vencida.test");
+        Assert.Null(consumidor.CorreoVerificadoEn);
+    }
+
+    [Fact]
+    public async Task RF_03_Recuperar_ExistenteYDesconocidoRespondenIgual()
+    {
+        await InsertarApi("recuperar-respuesta");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "recuperar-respuesta.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@recuperar.test", contrasena = "ContrasenaValida123" });
+
+        var existente = await Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", "recuperar-respuesta.shapi.localhost", new { correo = "ana@recuperar.test" });
+        var desconocido = await Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", "recuperar-respuesta.shapi.localhost", new { correo = "nadie@recuperar.test" });
+
+        Assert.Equal(existente.StatusCode, desconocido.StatusCode);
+        Assert.Equal(await existente.Content.ReadAsStringAsync(), await desconocido.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, existente.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_03_Recuperar_EnlaceVenceALos60Minutos()
+    {
+        await InsertarApi("recuperar-expira");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "recuperar-expira.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@expira.test", contrasena = "ContrasenaValida123" });
+        await Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", "recuperar-expira.shapi.localhost", new { correo = "ana@expira.test" });
+        string token;
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            var datos = await db.Set<CorreoSaliente>().IgnoreQueryFilters()
+                .Where(c => c.Destinatario == "ana@expira.test" && c.Plantilla == "recuperacion")
+                .Select(c => c.Datos).SingleAsync();
+            using var json = JsonDocument.Parse(datos);
+            token = json.RootElement.GetProperty("token").GetString()!;
+        }
+
+        _reloj.Avanzar(TimeSpan.FromMinutes(60));
+        var respuesta = await Enviar(HttpMethod.Post, "/api/portal/auth/restablecer", "recuperar-expira.shapi.localhost",
+            new { token, contrasena = "NuevaContrasena456" });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, respuesta.StatusCode);
+        Assert.Equal("token_invalido", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+    }
+
+    [Fact]
+    public async Task RF_04_SesionDelConsumidor_ExpiraTrasLaInactividadConfigurada()
+    {
+        await InsertarApi("sesion-inactiva");
+        var (cookie, _) = await ConsumidorConSesion("ana@inactiva.test", "sesion-inactiva.shapi.localhost");
+
+        _reloj.Avanzar(TimeSpan.FromHours(2) + TimeSpan.FromMinutes(1));
+        var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-inactiva.shapi.localhost", cookie: cookie);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_SesionDelConsumidor_ExpiraALosSieteDiasAunqueSigaEnUso()
+    {
+        await InsertarApi("sesion-maxima");
+        var (cookie, _) = await ConsumidorConSesion("ana@maxima.test", "sesion-maxima.shapi.localhost");
+
+        _reloj.Avanzar(TimeSpan.FromDays(6) + TimeSpan.FromHours(23));
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie)).StatusCode);
+        _reloj.Avanzar(TimeSpan.FromHours(1));
+        var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_05_Registro_ElMismoCorreoEnLaOrganizacionResponde409()
+    {
+        await InsertarApi("registro-duplicado");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "registro-duplicado.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@duplicada.test", contrasena = "ContrasenaValida123" });
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "registro-duplicado.shapi.localhost",
+            new { nombre = "Otra Ana", nombreEmpresa = "Otra Tienda", correo = "ana@duplicada.test", contrasena = "OtraContrasena456" });
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.Equal("correo_ya_registrado", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+    }
+
+    [Fact]
+    public async Task RF_05_Invitacion_AceptarConCorreoExistenteEnLaOrganizacionResponde409()
+    {
+        var organizacionId = await InsertarApi("invitacion-duplicada");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", "invitacion-duplicada.shapi.localhost",
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@duplicada.test", contrasena = "ContrasenaValida123" });
+        var token = SeguridadTokens.GenerarToken();
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            db.Add(Token.InvitacionConsumidor(SeguridadTokens.HashearToken(token), organizacionId, "ana@duplicada.test", _reloj.Ahora));
+            await db.SaveChangesAsync();
+        }
+
+        var respuesta = await Enviar(HttpMethod.Post, $"/api/portal/auth/invitacion/{token}/aceptar", "invitacion-duplicada.shapi.localhost",
+            new { nombre = "Ana Invitada", nombreEmpresa = "Tienda", contrasena = "OtraContrasena456" });
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.Equal("correo_ya_registrado", (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
     }
 
     [Fact]
