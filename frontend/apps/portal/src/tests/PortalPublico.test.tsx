@@ -126,6 +126,29 @@ describe('RF-16 · inicio y documentación generados', () => {
     expect(container.firstElementChild?.getAttribute('style')).toContain('--marca-principal: #2F7D4A');
   });
 
+  it('DC-17 muestra enlaces de cuenta sin inventar un consumidor cuando no hay sesión', async () => {
+    montar('/documentacion');
+
+    const barra = await screen.findByRole('navigation', { name: 'Barra lateral del portal' });
+    expect(barra.textContent).toContain('Mi cuenta');
+    expect(screen.getByRole('link', { name: 'Suscripción y claves' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).toBeNull();
+  });
+
+  it('DC-17 permite reintentar si falla la sesión opcional de la barra', async () => {
+    let consultas = 0;
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => {
+      consultas++;
+      return consultas === 1 ? new HttpResponse(null, { status: 503 }) : new HttpResponse(null, { status: 401 });
+    }));
+    montar('/planes');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Todavía no hay planes para esta API' })).toBeDefined();
+    expect(consultas).toBe(2);
+  });
+
   it('/documentacion redirige a la primera ruta y permite elegir otra desde la lista lateral', async () => {
     const { enrutador } = montar('/documentacion');
 

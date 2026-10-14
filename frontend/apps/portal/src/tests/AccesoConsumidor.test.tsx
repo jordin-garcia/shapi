@@ -44,6 +44,18 @@ describe('DC-08 · acceso del consumidor', () => {
     expect(await screen.findByRole('heading', { name: 'Revise su correo' })).toBeDefined();
   });
 
+  it.each([
+    ['Cotización de Envíos', 'obtiene sus claves de la API Cotización de Envíos.'],
+    ['API de Cotización de Envíos', 'obtiene sus claves de la API de Cotización de Envíos.'],
+  ])('DC-17 describe la API sin duplicar su prefijo para %s', async (nombreApi, frase) => {
+    server.use(http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json({ ...configuracion, nombreApi })));
+
+    montar('/registro');
+
+    expect(await screen.findByText((contenido) => contenido.includes(frase))).toBeDefined();
+    expect(screen.queryByText(/la API de API de/)).toBeNull();
+  });
+
   it('RF-05 precarga el correo invitado y crea la cuenta verificada', async () => {
     let cuerpo: unknown;
     server.use(
@@ -113,10 +125,18 @@ describe('DC-08 · acceso del consumidor', () => {
 
   it('RF-02 confirma el enlace una vez y entra', async () => {
     let verificaciones = 0;
-    server.use(http.post(`${API}/verificar-correo`, () => { verificaciones++; return new HttpResponse(null, { status: 200 }); }), http.get(`${API}/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino: '/planes' })));
+    server.use(
+      http.post(`${API}/verificar-correo`, () => { verificaciones++; return new HttpResponse(null, { status: 200 }); }),
+      http.get(`${API}/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino: '/planes' })),
+      http.get('http://localhost/api/portal/planes', () => HttpResponse.json([])),
+    );
     const router = montar('/verificar-correo?token=abc');
     await waitFor(() => expect(router.state.location.pathname).toBe('/planes'));
     expect(verificaciones).toBe(1);
+    // DC-17: la sesión obtenida antes de navegar alimenta la barra sin recargar la página.
+    expect(await screen.findByText('Ana')).toBeDefined();
+    expect(screen.getByText('Tienda')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeDefined();
   });
 
   it('RF-02 muestra el estado de enlace de verificación inválido', async () => {

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { LayoutPublico } from './layouts/LayoutPublico';
 import { LayoutCuenta } from './layouts/LayoutCuenta';
+import { LayoutPortal } from './layouts/LayoutPortal';
 import { RequiereSesionConsumidor } from './modulos/sesion/RequiereSesionConsumidor';
 import A50Inicio from './paginas/A5-0-Inicio';
 import A51Documentacion from './paginas/A5-1-Documentacion';
@@ -27,19 +28,24 @@ export function crearRutas(): RouteObject[] {
       errorElement: <ErrorRuta />,
       children: [
         { path: '/', element: <A50Inicio /> },
-        // Los enlaces de «Documentación» llevan a /documentacion; DC-07 lo redirigirá a la primera ruta expuesta.
-        { path: '/documentacion', element: <A51Documentacion /> },
-        { path: '/documentacion/:ruta', element: <A51Documentacion /> },
         { path: '/consola', element: <A52Consola /> },
         { path: '/registro', element: <A53Registro /> },
         { path: '/invitacion', element: <A53bInvitacion /> },
-        { path: '/planes', element: <A54Planes /> },
-        { path: '/contratar/:plan', element: <A56Pago /> },
         { path: '/entrar', element: <A57Acceso /> },
         { path: '/verificar-correo', element: <A58Verificacion /> },
         { path: '/recuperar', element: <A59Recuperacion /> },
         { path: '/restablecer', element: <A510NuevaContrasena /> },
         { path: '*', element: <Error404 /> },
+      ],
+    },
+    {
+      element: <LayoutPortal />,
+      errorElement: <ErrorRuta />,
+      children: [
+        { path: '/documentacion', element: <A51Documentacion /> },
+        { path: '/documentacion/:ruta', element: <A51Documentacion /> },
+        { path: '/planes', element: <A54Planes /> },
+        { path: '/contratar/:plan', element: <A56Pago /> },
       ],
     },
     {

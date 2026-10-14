@@ -62,36 +62,7 @@ export default function Documentacion() {
   if (!seleccionada) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].metodo, consulta.data.rutas[0].patron)} replace />;
 
   return (
-    <div className="grid min-h-[720px] grid-cols-[272px_minmax(0,1fr)] bg-fondo">
-      <aside className="border-r border-borde bg-panel px-4 py-7" aria-label="Rutas documentadas">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-[.14em] text-tinta-suave">API</p>
-        <nav className="mt-3 flex flex-col gap-1">
-          <Link to={rutaDocumentacion(seleccionada.metodo, seleccionada.patron)} className="rounded-base bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] px-3 py-2 text-[14px] font-medium text-[var(--marca-principal)]">Documentación</Link>
-          {consulta.data.rutas.map(item => (
-            <Link
-              key={`${item.metodo}-${item.patron}`}
-              to={rutaDocumentacion(item.metodo, item.patron)}
-              aria-current={item.metodo === seleccionada.metodo && item.patron === seleccionada.patron ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-base py-2 pl-6 pr-3 text-[14px] ${item.metodo === seleccionada.metodo && item.patron === seleccionada.patron
-                ? 'bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] text-[var(--marca-principal)] font-medium'
-                : 'text-[#2B3547]'}`}
-            >
-              <span className="w-12 shrink-0 text-[11px] font-semibold tracking-[.06em] text-[var(--marca-principal)]">{item.metodo}</span>
-              <span className="truncate">{item.patron}</span>
-            </Link>
-          ))}
-          <Link to="/consola" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Consola de pruebas</Link>
-          <Link to="/planes" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Planes</Link>
-        </nav>
-        <p className="mt-7 px-3 text-[11px] font-semibold uppercase tracking-[.14em] text-tinta-suave">Mi cuenta</p>
-        <nav className="mt-3 flex flex-col gap-1" aria-label="Mi cuenta">
-          <Link to="/cuenta/suscripcion" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Suscripción y claves</Link>
-          <Link to="/cuenta/consumo" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Consumo</Link>
-          <Link to="/cuenta/pagos" className="rounded-base px-3 py-2 text-[14px] text-[#2B3547]">Pagos</Link>
-        </nav>
-      </aside>
-
-      <article className="min-w-0 p-11">
+    <article className="min-w-0 p-11">
         <header className="flex items-end justify-between gap-8">
           <div className="min-w-0">
             <p className="text-[12px] font-medium uppercase tracking-[.16em] text-[var(--marca-principal)]">{marca.nombreApi}</p>
@@ -153,7 +124,6 @@ export default function Documentacion() {
             <Codigo valor={seleccionada.ejemploRespuesta} />
           </section>
         </div>
-      </article>
-    </div>
+    </article>
   );
 }
