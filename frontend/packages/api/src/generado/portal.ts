@@ -109,6 +109,13 @@ export interface components {
             tipo: string;
             obligatorio: boolean;
             descripcion: string | null;
+            /**
+             * @description Lugar de la petición donde la compuerta espera el valor.
+             * @enum {string}
+             */
+            ubicacion: "ruta" | "consulta" | "cabecera" | "cookie" | "cuerpo";
+            /** @description Indica que el valor es el cuerpo JSON completo y no una propiedad de un objeto. */
+            representaCuerpoCompleto: boolean;
         };
     };
     responses: never;

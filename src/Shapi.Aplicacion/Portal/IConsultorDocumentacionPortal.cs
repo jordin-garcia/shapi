@@ -26,4 +26,6 @@ public sealed record ParametroDocumentado(
     string Nombre,
     string Tipo,
     bool Obligatorio,
-    string? Descripcion);
+    string? Descripcion,
+    string Ubicacion,
+    bool RepresentaCuerpoCompleto);

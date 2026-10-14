@@ -113,3 +113,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **EM-21 / Emilio:** se creó la tarea para agregar `apiDisponible`, `graciaHasta`, `ultimoRechazoEn` y `diasRestantes` a `SuscripcionActual`, calculados desde el estado del proveedor, las fechas persistidas e `IReloj`. B2.3 ya consume las propiedades opcionales; no necesita modificar la pantalla.
   - **DC-13:** B2.3 ya integra el pago puntual de reactivación que exige DC-11; el historial y el cambio de plan continúan fuera de alcance.
+
+## 2026-10-13 · DC-10 · Consola de pruebas del portal (A5.2)
+- Hecho: A5.2 permite elegir cualquier ruta expuesta, completar parámetros tipados, conservar la clave de pruebas solo durante la sesión y ejecutar peticiones reales; muestra estado, JSON formateado, errores de compuerta y cabeceras de límites y cuota.
+- Decisiones: el contrato público conserva `ubicacion` y `representaCuerpoCompleto` para separar ruta, consulta, cabeceras y cuerpo sin heurísticas; un cuerpo libre, arreglo o escalar se serializa como el JSON completo.
+- Verificación: revisión independiente sin hallazgos; 13 pruebas de Portal, 401 pruebas Vitest, lint sin errores, typecheck, formato y builds aprobados; `POST /cotizaciones` respondió 200 en Chromium contra la siembra demo y mostró tarifa y cabeceras esperadas. La revisión de CI detectó y se corrigió una colisión de caché al navegar de Documentación a Consola.
+- Pendiente o aviso para otros:
+  - **DC-17:** A5.2 incluye temporalmente su barra lateral para coincidir con el mockup; al unificar la navegación del portal, extraiga o reutilice esa estructura sin cambiar el formulario ni el cliente de la consola.

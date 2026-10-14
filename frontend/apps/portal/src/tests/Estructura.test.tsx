@@ -141,15 +141,6 @@ describe('RF-15 · marca dinámica del portal', () => {
 });
 
 describe('RF-16 · rutas y navegación pública', () => {
-  it.each([
-    ['/consola', 'A5.2'],
-  ])('%s muestra la página de relleno %s', async (ruta, id) => {
-    montar(ruta);
-
-    expect(await screen.findByRole('heading', { name: new RegExp(`^${id.replace('.', '\\.')}`) })).toBeDefined();
-    expect(screen.getAllByRole('banner').length).toBeGreaterThan(0);
-  });
-
   it('A5.4 muestra los planes reales del portal', async () => {
     montar('/planes');
 
