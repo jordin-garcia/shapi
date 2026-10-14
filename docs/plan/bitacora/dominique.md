@@ -135,3 +135,4 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: build y formato .NET aprobados; 50 pruebas de API y 2 de dominio aprobadas; lint sin errores (11 avisos preexistentes), typecheck, 406 pruebas Vitest y builds de Portal y Panel aprobados.
 - Pendiente o aviso para otros:
   - **José Pablo:** Caddy puede consultar `GET /interno/tls/autorizar?domain=` desde la red privada; no fue necesario cambiar los Caddyfiles de JZ-01.
+  - **Jordin:** la CI empezó a rechazar la dependencia transitiva vulnerable `System.Security.Cryptography.Pkcs 10.0.0` de MailKit; con autorización se fijó centralmente la versión corregida 10.0.13 y se agregó la referencia directa en Infraestructura.
