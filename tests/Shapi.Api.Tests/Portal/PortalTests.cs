@@ -160,7 +160,7 @@ public sealed class PortalTests(ContenedorPostgresPortal postgres)
         await InsertarRuta(apiId, "POST", "/cotizaciones", true, 5, """
             {
               "orden":1,
-              "parametros":[],
+              "parametros":[{"name":"version","in":"query","required":false,"schema":{"type":"string"}}],
               "cuerpo":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["origen"],"properties":{"origen":{"type":"string","description":"Código de origen"},"peso":{"type":"number","description":"Peso en kg"}}},"example":{"origen":"0901","peso":2.5}}}},
               "respuestas":{"200":{"content":{"application/json":{"example":{"tarifa":"Q 38.50"}}}}}
             }
@@ -190,12 +190,15 @@ public sealed class PortalTests(ContenedorPostgresPortal postgres)
         Assert.Equal("Q 38.50", rutas[0].GetProperty("ejemploRespuesta").GetProperty("tarifa").GetString());
         Assert.Equal(200, rutas[0].GetProperty("codigoRespuesta").GetInt32());
         var parametros = rutas[0].GetProperty("parametros").EnumerateArray().ToArray();
-        Assert.Equal(2, parametros.Length);
+        Assert.Equal(3, parametros.Length);
         var origen = parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "origen");
         var peso = parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "peso");
         Assert.Equal("string", origen.GetProperty("tipo").GetString());
+        Assert.Equal("cuerpo", origen.GetProperty("ubicacion").GetString());
         Assert.True(origen.GetProperty("obligatorio").GetBoolean());
         Assert.False(peso.GetProperty("obligatorio").GetBoolean());
+        Assert.Equal("consulta", parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "version")
+            .GetProperty("ubicacion").GetString());
         Assert.Equal("GX-1", rutas[1].GetProperty("ejemploPeticion").GetProperty("guia").GetString());
         Assert.DoesNotContain(rutas, ruta => ruta.GetProperty("patron").GetString() == "/oculta");
     }
@@ -214,6 +217,34 @@ public sealed class PortalTests(ContenedorPostgresPortal postgres)
 
         Assert.Equal("https://api.envios.test/rastreo",
             json.GetProperty("rutas")[0].GetProperty("urlCompleta").GetString());
+    }
+
+    [Fact]
+    public async Task RF_16_Documentacion_ConservaConsultaYCuerpoNoObjeto()
+    {
+        // RF-16 · CA1: la consola distingue la consulta de un cuerpo JSON escalar o de arreglo.
+        var apiId = await InsertarApi("envios", "publicada");
+        await InsertarRuta(apiId, "POST", "/procesar", true, 1, """
+            {
+              "orden":1,
+              "parametros":[{"name":"modo","in":"query","required":true,"schema":{"type":"string"},"example":"rapido"}],
+              "cuerpo":{"required":true,"content":{"application/json":{"schema":{"type":"array","items":{"type":"integer"}},"example":[1,2]}}},
+              "respuestas":{"200":{}}
+            }
+            """);
+
+        using var respuesta = await Enviar("/api/portal/documentacion", "envios.shapi.localhost");
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        var parametros = json.GetProperty("rutas")[0].GetProperty("parametros").EnumerateArray().ToArray();
+
+        Assert.Equal("consulta", parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "modo")
+            .GetProperty("ubicacion").GetString());
+        var cuerpo = parametros.Single(parametro => parametro.GetProperty("nombre").GetString() == "cuerpo");
+        Assert.Equal("array", cuerpo.GetProperty("tipo").GetString());
+        Assert.Equal("cuerpo", cuerpo.GetProperty("ubicacion").GetString());
+        Assert.True(cuerpo.GetProperty("representaCuerpoCompleto").GetBoolean());
+        Assert.True(cuerpo.GetProperty("obligatorio").GetBoolean());
+        Assert.Equal(2, json.GetProperty("rutas")[0].GetProperty("ejemploPeticion").GetArrayLength());
     }
 
     [Theory]

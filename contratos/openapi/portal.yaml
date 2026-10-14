@@ -180,7 +180,7 @@ components:
           example: https://envios.api.shapi.localhost/cotizaciones
     ParametroDocumentado:
       type: object
-      required: [nombre, tipo, obligatorio, descripcion]
+      required: [nombre, tipo, obligatorio, descripcion, ubicacion, representaCuerpoCompleto]
       properties:
         nombre:
           type: string
@@ -191,3 +191,10 @@ components:
           type: boolean
         descripcion:
           type: [string, 'null']
+        ubicacion:
+          type: string
+          enum: [ruta, consulta, cabecera, cookie, cuerpo]
+          description: Lugar de la petición donde la compuerta espera el valor.
+        representaCuerpoCompleto:
+          type: boolean
+          description: Indica que el valor es el cuerpo JSON completo y no una propiedad de un objeto.

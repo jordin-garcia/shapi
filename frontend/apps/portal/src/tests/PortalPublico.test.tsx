@@ -25,8 +25,8 @@ const rutasEnvios = [
     metodo: 'POST', patron: '/cotizaciones', resumen: 'Cotizar un envío',
     descripcion: 'Calcula el costo de un envío con **datos seguros**. <script>alert("xss")</script>',
     parametros: [
-      { nombre: 'origen', tipo: 'string', obligatorio: true, descripcion: 'Código del municipio de origen' },
-      { nombre: 'peso_kg', tipo: 'number', obligatorio: false, descripcion: 'Peso del paquete' },
+      { nombre: 'origen', tipo: 'string', obligatorio: true, descripcion: 'Código del municipio de origen', ubicacion: 'cuerpo' },
+      { nombre: 'peso_kg', tipo: 'number', obligatorio: false, descripcion: 'Peso del paquete', ubicacion: 'cuerpo' },
     ],
     ejemploPeticion: { origen: '0901', peso_kg: 2.5 },
     ejemploRespuesta: { tarifa: 'Q 38.50' }, codigoRespuesta: 200, pesoLlamadas: 1,
@@ -52,9 +52,9 @@ const rutasAgro = [{
   metodo: 'GET', patron: '/precios', resumen: 'Consultar precios',
   descripcion: 'Devuelve el precio del día de un producto en un mercado.',
   parametros: [
-    { nombre: 'producto', tipo: 'string', obligatorio: true, descripcion: 'Clave del producto' },
-    { nombre: 'mercado', tipo: 'string', obligatorio: true, descripcion: 'Clave del mercado mayorista' },
-    { nombre: 'fecha', tipo: 'string', obligatorio: false, descripcion: 'Fecha del precio. Si se omite, se devuelve el precio del día' },
+    { nombre: 'producto', tipo: 'string', obligatorio: true, descripcion: 'Clave del producto', ubicacion: 'consulta' },
+    { nombre: 'mercado', tipo: 'string', obligatorio: true, descripcion: 'Clave del mercado mayorista', ubicacion: 'consulta' },
+    { nombre: 'fecha', tipo: 'string', obligatorio: false, descripcion: 'Fecha del precio. Si se omite, se devuelve el precio del día', ubicacion: 'consulta' },
   ],
   ejemploPeticion: { producto: 'frijol_negro', mercado: 'cenma' },
   ejemploRespuesta: { producto: 'Frijol negro', mercado: 'CENMA', unidad: 'quintal', precio: 'Q 510.00', fecha: '10 sep 2026' },

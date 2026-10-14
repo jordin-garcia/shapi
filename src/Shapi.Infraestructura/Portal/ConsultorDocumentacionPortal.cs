@@ -101,7 +101,9 @@ public sealed class ConsultorDocumentacionPortal(ShapiDbContext db) : IConsultor
             nombre,
             LeerTipo(esquema),
             parametro.TryGetProperty("required", out var obligatorio) && obligatorio.ValueKind == JsonValueKind.True,
-            parametro.TryGetProperty("description", out var descripcion) ? descripcion.GetString() : null));
+            parametro.TryGetProperty("description", out var descripcion) ? descripcion.GetString() : null,
+            LeerUbicacion(parametro),
+            false));
 
         if (parametro.TryGetProperty("example", out var ejemplo))
         {
@@ -119,10 +121,23 @@ public sealed class ConsultorDocumentacionPortal(ShapiDbContext db) : IConsultor
         JsonElement cuerpo)
     {
         if (!TryContenido(cuerpo, out var contenido)
-            || !contenido.TryGetProperty("schema", out var esquema)
-            || !esquema.TryGetProperty("properties", out var propiedades)
+            || !contenido.TryGetProperty("schema", out var esquema))
+        {
+            return;
+        }
+
+        var cuerpoObligatorio = cuerpo.TryGetProperty("required", out var requerido)
+            && requerido.ValueKind == JsonValueKind.True;
+        if (!esquema.TryGetProperty("properties", out var propiedades)
             || propiedades.ValueKind != JsonValueKind.Object)
         {
+            destino.Add(new ParametroDocumentado(
+                "cuerpo",
+                LeerTipo(esquema),
+                cuerpoObligatorio,
+                esquema.TryGetProperty("description", out var descripcion) ? descripcion.GetString() : null,
+                "cuerpo",
+                true));
             return;
         }
 
@@ -137,12 +152,31 @@ public sealed class ConsultorDocumentacionPortal(ShapiDbContext db) : IConsultor
                 propiedad.Name,
                 LeerTipo(propiedad.Value),
                 obligatorios.Contains(propiedad.Name),
-                propiedad.Value.TryGetProperty("description", out var descripcion) ? descripcion.GetString() : null));
+                propiedad.Value.TryGetProperty("description", out var descripcion) ? descripcion.GetString() : null,
+                "cuerpo",
+                false));
             if (propiedad.Value.TryGetProperty("example", out var ejemplo))
             {
                 ejemplos[propiedad.Name] = ejemplo.Clone();
             }
         }
+    }
+
+    private static string LeerUbicacion(JsonElement parametro)
+    {
+        if (!parametro.TryGetProperty("in", out var ubicacion) || ubicacion.GetString() is not { } valor)
+        {
+            return "consulta";
+        }
+
+        return valor switch
+        {
+            "path" => "ruta",
+            "query" => "consulta",
+            "header" => "cabecera",
+            "cookie" => "cookie",
+            _ => valor
+        };
     }
 
     private static string LeerTipo(JsonElement esquema)

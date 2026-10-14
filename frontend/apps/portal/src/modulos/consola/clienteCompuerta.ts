@@ -38,26 +38,40 @@ function textoParaUrl(valor: unknown): string {
 }
 
 function prepararPeticion(ruta: RutaConsola, valores: Record<string, string>, clave: string) {
-  const usadosEnRuta = new Set<string>();
+  const parametrosDeRuta = ruta.parametros.filter(parametro =>
+    parametro.ubicacion === 'ruta' || ruta.patron.includes(`{${parametro.nombre}}`));
+  const usadosEnRuta = new Set(parametrosDeRuta.map(parametro => parametro.nombre));
   let urlTexto = ruta.urlCompleta.replace(/\{([^}]+)\}/g, (_coincidencia, nombre: string) => {
-    usadosEnRuta.add(nombre);
     return encodeURIComponent(valores[nombre] ?? '');
   });
-  const parametros = Object.fromEntries(ruta.parametros
-    .filter(parametro => !usadosEnRuta.has(parametro.nombre) && valores[parametro.nombre]?.trim())
-    .map(parametro => [parametro.nombre, valorTipado(valores[parametro.nombre], parametro.tipo)]));
   const metodo = ruta.metodo.toUpperCase();
-  const llevaCuerpo = !['GET', 'HEAD', 'OPTIONS'].includes(metodo);
   const headers: Record<string, string> = { Accept: 'application/json', 'X-Api-Key': clave };
-  let body: string | undefined;
+  ruta.parametros
+    .filter(parametro => parametro.ubicacion === 'cabecera' && valores[parametro.nombre]?.trim())
+    .forEach(parametro => { headers[parametro.nombre] = valores[parametro.nombre]; });
 
-  if (llevaCuerpo) {
+  const url = new URL(urlTexto);
+  ruta.parametros
+    .filter(parametro => !usadosEnRuta.has(parametro.nombre)
+      && parametro.ubicacion === 'consulta' && valores[parametro.nombre]?.trim())
+    .forEach(parametro => url.searchParams.set(
+      parametro.nombre,
+      textoParaUrl(valorTipado(valores[parametro.nombre], parametro.tipo)),
+    ));
+  urlTexto = url.toString();
+
+  const parametrosCuerpo = ruta.parametros.filter(parametro => parametro.ubicacion === 'cuerpo');
+  let body: string | undefined;
+  if (parametrosCuerpo.length > 0) {
     headers['Content-Type'] = 'application/json';
-    body = JSON.stringify(parametros);
-  } else {
-    const url = new URL(urlTexto);
-    Object.entries(parametros).forEach(([nombre, valor]) => url.searchParams.set(nombre, textoParaUrl(valor)));
-    urlTexto = url.toString();
+    const cuerpoCompleto = parametrosCuerpo.length === 1
+      && parametrosCuerpo[0].representaCuerpoCompleto;
+    const cuerpo = cuerpoCompleto
+      ? valorTipado(valores.cuerpo, parametrosCuerpo[0].tipo)
+      : Object.fromEntries(parametrosCuerpo
+        .filter(parametro => valores[parametro.nombre]?.trim())
+        .map(parametro => [parametro.nombre, valorTipado(valores[parametro.nombre], parametro.tipo)]));
+    body = JSON.stringify(cuerpo);
   }
 
   return { url: urlTexto, init: { method: metodo, headers, body } satisfies RequestInit };
@@ -108,7 +122,9 @@ export function valoresDeEjemplo(ruta: RutaConsola): Record<string, string> {
     ? ejemplo as Record<string, unknown>
     : {};
   return Object.fromEntries(ruta.parametros.map(parametro => {
-    const valor = objeto[parametro.nombre];
+    const valor = parametro.representaCuerpoCompleto
+      ? ejemplo
+      : objeto[parametro.nombre];
     return [parametro.nombre, valor === undefined || valor === null
       ? ''
       : typeof valor === 'string' ? valor : JSON.stringify(valor)];

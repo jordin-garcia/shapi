@@ -19,9 +19,9 @@ const rutas = [
   {
     metodo: 'POST', patron: '/cotizaciones', resumen: 'Cotizar un envío', descripcion: null,
     parametros: [
-      { nombre: 'origen', tipo: 'string', obligatorio: true, descripcion: null },
-      { nombre: 'peso_kg', tipo: 'number', obligatorio: true, descripcion: null },
-      { nombre: 'tipo_servicio', tipo: 'string', obligatorio: false, descripcion: null },
+      { nombre: 'origen', tipo: 'string', obligatorio: true, descripcion: null, ubicacion: 'cuerpo' },
+      { nombre: 'peso_kg', tipo: 'number', obligatorio: true, descripcion: null, ubicacion: 'cuerpo' },
+      { nombre: 'tipo_servicio', tipo: 'string', obligatorio: false, descripcion: null, ubicacion: 'cuerpo' },
     ],
     ejemploPeticion: { origen: '0901', peso_kg: 2.5, tipo_servicio: 'normal' },
     ejemploRespuesta: { tarifa: 'Q 38.50' }, codigoRespuesta: 200, pesoLlamadas: 1,
@@ -30,12 +30,29 @@ const rutas = [
   {
     metodo: 'GET', patron: '/rastreo/{guia}', resumen: 'Rastrear una guía', descripcion: null,
     parametros: [
-      { nombre: 'guia', tipo: 'string', obligatorio: true, descripcion: null },
-      { nombre: 'detalle', tipo: 'boolean', obligatorio: false, descripcion: null },
+      { nombre: 'guia', tipo: 'string', obligatorio: true, descripcion: null, ubicacion: 'ruta' },
+      { nombre: 'detalle', tipo: 'boolean', obligatorio: false, descripcion: null, ubicacion: 'consulta' },
     ],
     ejemploPeticion: { guia: 'GX-100', detalle: true }, ejemploRespuesta: null,
     codigoRespuesta: 200, pesoLlamadas: 1,
     urlCompleta: 'https://envios.api.shapi.localhost/rastreo/{guia}',
+  },
+  {
+    metodo: 'POST', patron: '/procesar', resumen: 'Procesar valores', descripcion: null,
+    parametros: [
+      { nombre: 'modo', tipo: 'string', obligatorio: true, descripcion: null, ubicacion: 'consulta' },
+      { nombre: 'cuerpo', tipo: 'array', obligatorio: true, descripcion: null, ubicacion: 'cuerpo', representaCuerpoCompleto: true },
+    ],
+    ejemploPeticion: [1, 2], ejemploRespuesta: null, codigoRespuesta: 200, pesoLlamadas: 1,
+    urlCompleta: 'https://envios.api.shapi.localhost/procesar',
+  },
+  {
+    metodo: 'POST', patron: '/eco', resumen: 'Repetir JSON libre', descripcion: null,
+    parametros: [
+      { nombre: 'cuerpo', tipo: 'object', obligatorio: true, descripcion: null, ubicacion: 'cuerpo', representaCuerpoCompleto: true },
+    ],
+    ejemploPeticion: { libre: 'valor' }, ejemploRespuesta: null, codigoRespuesta: 200, pesoLlamadas: 1,
+    urlCompleta: 'https://envios.api.shapi.localhost/eco',
   },
 ];
 
@@ -151,6 +168,42 @@ describe('RF-16 y RF-45 · consola de pruebas del portal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enviar petición' }));
 
     await waitFor(() => expect(urlRecibida).toContain('/rastreo/GX-100?detalle=true'));
+    expect(await screen.findByText('200')).toBeDefined();
+  });
+
+  it('separa la query del cuerpo JSON no objeto en una petición POST', async () => {
+    let peticionRecibida = false;
+    server.use(http.post('https://envios.api.shapi.localhost/procesar', async ({ request }) => {
+      peticionRecibida = true;
+      expect(new URL(request.url).searchParams.get('modo')).toBe('rapido');
+      expect(await request.json()).toEqual([1, 2]);
+      return HttpResponse.json({ procesados: 2 });
+    }));
+    montar();
+
+    await userEvent.selectOptions(await screen.findByLabelText('Ruta'), 'POST /procesar');
+    await userEvent.type(screen.getByLabelText('modo'), 'rapido');
+    await userEvent.type(screen.getByLabelText('Su clave de pruebas'), 'shp_prueba_valida');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar petición' }));
+
+    await waitFor(() => expect(peticionRecibida).toBe(true));
+    expect(await screen.findByText('200')).toBeDefined();
+  });
+
+  it('envía un objeto libre como cuerpo completo sin envolverlo', async () => {
+    let peticionRecibida = false;
+    server.use(http.post('https://envios.api.shapi.localhost/eco', async ({ request }) => {
+      peticionRecibida = true;
+      expect(await request.json()).toEqual({ libre: 'valor' });
+      return HttpResponse.json({ libre: 'valor' });
+    }));
+    montar();
+
+    await userEvent.selectOptions(await screen.findByLabelText('Ruta'), 'POST /eco');
+    await userEvent.type(screen.getByLabelText('Su clave de pruebas'), 'shp_prueba_valida');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar petición' }));
+
+    await waitFor(() => expect(peticionRecibida).toBe(true));
     expect(await screen.findByText('200')).toBeDefined();
   });
 
