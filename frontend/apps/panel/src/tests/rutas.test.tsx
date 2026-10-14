@@ -44,6 +44,7 @@ const implementadas: Record<string, string> = {
   'A2-2': 'Contratación de un plan superior',
   'A2-5': 'Cambio de plan',
   'B1-4': 'Suscripción de plataforma',
+  'B1-3': 'Historial de pagos',
   'A6-4': 'Casos',
   'A6-4b': 'El dominio propio no verifica',
   'A6-2': 'Organizaciones',
@@ -110,6 +111,7 @@ beforeEach(() => {
       estado: 'activa', periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-29T06:00:00Z' },
       proximaRenovacion: '2026-09-30T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4821', graciaHasta: null, diasRestantesCiclo: 5, diasRestantes: 0, cambioProgramado: null,
     })),
+    http.get('http://localhost/api/pagos', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/admin/bitacora', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/admin/estado', () => HttpResponse.json({
       comprobadoEn: '2026-10-12T16:40:00Z', latenciaP95Ms: null, latenciaSupera2500: false,
