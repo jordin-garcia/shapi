@@ -7,6 +7,7 @@ import { interpretarError, registrarConsumidor, type ErrorFormulario, type Regis
 
 export default function PaginaA53Registro() {
   const marca = useMarcaPortal();
+  const nombreApi = marca.nombreApi.toLocaleUpperCase().startsWith('API ') ? marca.nombreApi : `API ${marca.nombreApi}`;
   const navegar = useNavigate();
   const formulario = useRef<HTMLFormElement>(null);
   const [datos, setDatos] = useState<RegistroConsumidor>({ nombre: '', correo: '', nombreEmpresa: '', contrasena: '' });
@@ -38,7 +39,7 @@ export default function PaginaA53Registro() {
     <MarcoAcceso>
       <EncabezadoAcceso rotulo={<RotuloPortal />} titulo="Crear una cuenta">
         <p className="text-[15px] leading-[1.55] text-tinta-suave">
-          Su cuenta pertenece al portal de {marca.nombrePortal}. Con ella contrata sus planes y obtiene sus claves de la API de {marca.nombreApi}.
+          Su cuenta pertenece al portal de {marca.nombrePortal}. Con ella contrata sus planes y obtiene sus claves de la {nombreApi}.
         </p>
       </EncabezadoAcceso>
       {error && !porCampo && (

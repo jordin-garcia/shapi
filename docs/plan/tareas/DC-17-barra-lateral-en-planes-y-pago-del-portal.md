@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-13
 depende_de: []
 requisitos: [RF-16, RF-19]
@@ -52,3 +52,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ## Fuera de alcance
 - La fila «Medio de pago» de A5.4b (EM-20)
 - La consola de pruebas (DC-10)
+
+## Resultado
+- Se extrajo una barra lateral única para la documentación, los planes, la contratación y el área de cuenta, con sus secciones «API» y «Mi cuenta» y el estado activo correspondiente.
+- Las páginas públicas con barra muestran el nombre, la empresa y la acción de cerrar sesión cuando hay sesión; sin sesión conservan los enlaces de cuenta, y un fallo de sesión ofrece «Reintentar».
+- La sesión obtenida al verificar el correo alimenta inmediatamente la barra de `/planes`, sin recargar, y A5.3 ya compone el nombre de la API sin repetir «API».
+- Vitest cubre los cuatro criterios y el error recuperable. Las capturas de A5.4, A5.6 y A5.4b con sesión se compararon con los mockups y conservaron textos, datos, orden y estados.

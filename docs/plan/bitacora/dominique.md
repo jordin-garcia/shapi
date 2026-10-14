@@ -120,3 +120,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: revisión independiente sin hallazgos; 13 pruebas de Portal, 401 pruebas Vitest, lint sin errores, typecheck, formato y builds aprobados; `POST /cotizaciones` respondió 200 en Chromium contra la siembra demo y mostró tarifa y cabeceras esperadas. La revisión de CI detectó y se corrigió una colisión de caché al navegar de Documentación a Consola.
 - Pendiente o aviso para otros:
   - **DC-17:** A5.2 incluye temporalmente su barra lateral para coincidir con el mockup; al unificar la navegación del portal, extraiga o reutilice esa estructura sin cambiar el formulario ni el cliente de la consola.
+
+## 2026-10-13 · DC-17 · Barra lateral del portal en planes y pago, y texto de A5.3
+- Hecho: A5.1, A5.4, A5.6 y A5.4b comparten la barra lateral del portal; la identidad y el cierre de sesión aparecen cuando existe sesión, incluso inmediatamente después de verificar el correo. A5.3 ya evita «la API de API de…».
+- Decisiones: la consulta de sesión es opcional solo ante 401; un fallo de red o servidor conserva la barra y muestra «Reintentar». Documentación conserva sus rutas por método y patrón dentro del componente compartido, y Planes permanece activo durante la contratación y la confirmación.
+- Verificación: revisión independiente corregida; lint sin errores (11 avisos existentes de Fast Refresh), typecheck limpio, 405 pruebas Vitest y builds de portal/panel aprobados. A5.4, A5.6 y A5.4b se capturaron a 1440 × 900 con sesión y coincidieron en estructura, textos, datos y estados con sus mockups.
+- Pendiente o aviso para otros:
+  - **EM-20:** A5.4b conserva fuera de este cambio la fila «Medio de pago»; puede agregarla sobre el layout lateral ya compartido.
+  - **JG-20:** la barra común está en `layouts/BarraLateralPortal.tsx`; quedan para su tarea los ajustes de encaje a 1366 × 768 y demás detalles visuales transversales.

@@ -59,6 +59,11 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
   it('A5.4 lista los planes activos y A5.0 reutiliza la sección', async () => {
     montar('/planes');
     expect(await screen.findByRole('heading', { name: 'Planes de la API' })).toBeDefined();
+    // DC-17: A5.4 usa la barra lateral del portal, no la navegación pública.
+    const barra = screen.getByRole('navigation', { name: 'Barra lateral del portal' });
+    expect(barra).toBeDefined();
+    expect(screen.queryByRole('navigation', { name: 'Navegación principal' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Suscripción y claves' })).toBeDefined();
     expect(screen.getByText('Básico')).toBeDefined();
     expect(screen.getByText('Q 149.00')).toBeDefined();
     expect(screen.getByText('50,000 llamadas al mes')).toBeDefined();
@@ -102,12 +107,19 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
     );
     montar('/contratar/comercio');
     expect(await screen.findByRole('heading', { name: 'Contratación de un plan' })).toBeDefined();
+    // DC-17: A5.6 conserva la misma barra y muestra al consumidor autenticado.
+    expect(screen.getByRole('navigation', { name: 'Barra lateral del portal' })).toBeDefined();
+    expect(await screen.findByText('Ana')).toBeDefined();
+    expect(screen.getByText('Tienda')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeDefined();
     await userEvent.type(screen.getByLabelText('Número de tarjeta'), '4242 4242 4242 4242');
     await userEvent.type(screen.getByLabelText('Nombre del titular'), 'ANA PÉREZ');
     await userEvent.type(screen.getByLabelText('Vencimiento'), '11 / 28');
     await userEvent.type(screen.getByLabelText('Código de seguridad'), '123');
     await userEvent.click(screen.getByRole('button', { name: /pagar q 450\.00/i }));
     expect(await screen.findByRole('heading', { name: 'Plan contratado' })).toBeDefined();
+    // DC-17: A5.4b permanece dentro de la barra lateral del portal.
+    expect(screen.getByRole('navigation', { name: 'Barra lateral del portal' })).toBeDefined();
     expect(screen.getByText(contratacion.claves[0].clave)).toBeDefined();
     expect(screen.getByText('Periodo activo').parentElement?.textContent).toContain('5 nov 2026');
     expect(screen.getByText('50,000 llamadas')).toBeDefined();
