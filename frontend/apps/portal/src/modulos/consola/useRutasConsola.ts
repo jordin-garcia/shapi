@@ -4,7 +4,7 @@ import type { paths } from '@shapi/api/portal';
 
 const clientePortal = crearCliente<paths>(window.location.origin);
 
-export const claveRutasConsola = ['portal', 'documentacion'] as const;
+export const claveRutasConsola = ['portal', 'documentacion', 'consola'] as const;
 
 export function useRutasConsola() {
   return useQuery({

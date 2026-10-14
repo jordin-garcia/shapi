@@ -86,6 +86,22 @@ afterEach(() => {
 });
 
 describe('RF-16 y RF-45 · consola de pruebas del portal', () => {
+  it('mantiene separada la forma de caché al navegar desde Documentación', async () => {
+    const enrutador = createMemoryRouter(crearRutas(), { initialEntries: ['/documentacion'] });
+    render(
+      <QueryClientProvider client={cliente}>
+        <App enrutador={enrutador as RouterProviderProps['router']} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(enrutador.state.location.pathname)
+      .toBe('/documentacion/POST%20%2Fcotizaciones'));
+    await userEvent.click(await screen.findByRole('link', { name: 'Consola de pruebas' }));
+
+    expect(await screen.findByRole('heading', { name: 'Consola de pruebas' })).toBeDefined();
+    expect(screen.getByLabelText('Ruta')).toBeDefined();
+  });
+
   it('permite elegir una ruta y muestra sus parámetros, tipos y obligatoriedad', async () => {
     montar();
 

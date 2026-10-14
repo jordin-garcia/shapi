@@ -67,7 +67,7 @@ function prepararPeticion(ruta: RutaConsola, valores: Record<string, string>, cl
     const cuerpoCompleto = parametrosCuerpo.length === 1
       && parametrosCuerpo[0].representaCuerpoCompleto;
     const cuerpo = cuerpoCompleto
-      ? valorTipado(valores.cuerpo, parametrosCuerpo[0].tipo)
+      ? valorTipado(valores[parametrosCuerpo[0].nombre], parametrosCuerpo[0].tipo)
       : Object.fromEntries(parametrosCuerpo
         .filter(parametro => valores[parametro.nombre]?.trim())
         .map(parametro => [parametro.nombre, valorTipado(valores[parametro.nombre], parametro.tipo)]));
