@@ -57,6 +57,9 @@ beforeEach(() => {
       correoVerificado: true,
     })),
     http.get('http://localhost/api/portal/suscripcion', () => new HttpResponse(null, { status: 404 })),
+    http.get('http://localhost/api/portal/consumo', () => HttpResponse.json({
+      codigo: 'suscripcion_no_encontrada', title: 'No tiene un plan contratado.', status: 404,
+    }, { status: 404, headers: { 'Content-Type': 'application/problem+json' } })),
     http.post('http://localhost/api/portal/auth/salir', () => {
       sesionCerrada = true;
       return new HttpResponse(null, { status: 200 });
@@ -221,7 +224,7 @@ describe('RF-16 · rutas y navegación pública', () => {
 
 describe('RF-16 · cuenta del consumidor', () => {
   it.each([
-    ['/cuenta/consumo', 'B2.1'],
+    ['/cuenta/consumo', 'Consumo del ciclo'],
     ['/cuenta/pagos', 'B2.2'],
     ['/cuenta/suscripcion', 'Suscripción y claves'],
     ['/cuenta/cambiar-plan/comercio', 'B2.7'],

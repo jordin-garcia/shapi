@@ -2,12 +2,27 @@ using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Consumo;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Consumo;
+using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Planes;
+using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Infraestructura.Consumo;
 
 public sealed class ConsultaConsumo(ShapiDbContext db) : IConsultaConsumo
 {
+    public Task<SuscripcionConsumo?> SuscripcionActualAsync(Guid organizacionId, Guid apiId, Guid consumidorId,
+        CancellationToken cancelacion = default) =>
+        (from suscripcion in db.Set<SuscripcionApi>().IgnoreQueryFilters().AsNoTracking()
+         join api in db.Set<Api>() on suscripcion.ApiId equals api.Id
+         join consumidor in db.Set<Consumidor>() on suscripcion.ConsumidorId equals consumidor.Id
+         join plan in db.Set<PlanApi>() on suscripcion.PlanId equals plan.Id
+         where api.Id == apiId && api.OrganizacionId == organizacionId
+             && consumidor.Id == consumidorId && consumidor.OrganizacionId == organizacionId
+             && plan.ApiId == apiId && suscripcion.Estado != EstadoSuscripcion.Finalizada
+         select new SuscripcionConsumo(suscripcion.Id, suscripcion.Inicio, suscripcion.Fin, plan.CuotaLlamadas))
+        .SingleOrDefaultAsync(cancelacion);
+
     public Task<ConsumoPeriodo> PorApiAsync(Guid organizacionId, Guid apiId, DateOnly desde, DateOnly hasta,
         EntornoConsumo? entorno = null, CancellationToken cancelacion = default) =>
         ConsultarAsync(organizacionId, desde, hasta, entorno, x => x.ApiId == apiId, cancelacion);

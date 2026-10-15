@@ -10,6 +10,7 @@ public static class ConsumoModulo
     public static IServiceCollection AgregarModuloConsumo(this IServiceCollection services)
     {
         services.AddScoped<ConsultarConsumoApi>();
+        services.AddScoped<ConsultarConsumoConsumidor>();
         return services.AgregarConsumo();
     }
 

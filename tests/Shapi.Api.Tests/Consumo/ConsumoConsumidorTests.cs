@@ -6,11 +6,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Shapi.Api.Identidad;
 using Shapi.Api.Tests.Cache;
 using Shapi.Api.Tests.Pagos;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Contratos.Redis;
+using Shapi.Dominio.Identidad;
+using Shapi.Infraestructura.Identidad;
 
 namespace Shapi.Api.Tests.Consumo;
 
@@ -217,6 +220,34 @@ public sealed class ConsumoConsumidorTests(PostgresPersistencia postgres, RedisC
     {
         Identidad(null);
         Assert.Equal(HttpStatusCode.Unauthorized, (await _cliente!.GetAsync("/api/portal/consumo")).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_37_Consumo_CookieRealDelPortalAutorizaSoloSuHost()
+    {
+        var token = Guid.NewGuid().ToString("N");
+        await using (var db = CrearDb())
+        {
+            db.Add(Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(token), _consumidor,
+                "envios.shapi.localhost", null, null, Reloj.Ahora));
+            await db.SaveChangesAsync();
+        }
+        await using var fabricaReal = _fabrica!.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>
+            servicios.AddAuthentication(o =>
+            {
+                o.DefaultAuthenticateScheme = EsquemaAutenticacionPortal.Esquema;
+                o.DefaultChallengeScheme = EsquemaAutenticacionPortal.Esquema;
+                o.DefaultForbidScheme = EsquemaAutenticacionPortal.Esquema;
+            })));
+        using var clienteReal = fabricaReal.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        clienteReal.DefaultRequestHeaders.Host = "envios.shapi.localhost";
+        clienteReal.DefaultRequestHeaders.Add("Cookie", $"portal_sesion={token}");
+        using var respuesta = await clienteReal.GetAsync("/api/portal/consumo");
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal(_suscripcion, (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("suscripcionId").GetGuid());
+        await NuevaApiPublicada(_organizacion, "agro");
+        clienteReal.DefaultRequestHeaders.Host = "agro.shapi.localhost";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await clienteReal.GetAsync("/api/portal/consumo")).StatusCode);
     }
 
     [Theory]
