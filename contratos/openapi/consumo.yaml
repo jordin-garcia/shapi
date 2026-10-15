@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: API de Control - Consumo
   version: 1.0.0
-  description: Consumo consolidado por API y periodo inclusivo (RF-35, B1.1). Incluye producción y pruebas; no consulta Redis. Los porcentajes usan todas las peticiones del periodo. Los histogramas se suman antes de calcular el p95.
+  description: Consumo del proveedor (RF-35, B1.1) y del consumidor (RF-37, B2.1). El proveedor consulta producción y pruebas consolidadas; el consumidor consulta la cuota de producción en Redis y su detalle consolidado por ruta.
 servers:
   - url: https://shapi.localhost
 paths:
@@ -46,13 +46,71 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problema' }
+  /api/portal/consumo:
+    get:
+      operationId: consultarConsumoConsumidor
+      summary: Consumo del ciclo vigente del consumidor
+      description: Sesión de consumidor y API publicada resuelta por el host. Solo producción. Inicio y fin son días inclusivos en Guatemala (fin de la suscripción menos un día). Las llamadas usadas se leen de cuota:susc con el inicio del ciclo; una llave ausente vale cero. El detalle conserva rutas retiradas, suma llamadas realmente descontadas y puede ir hasta diez segundos detrás de Redis. Los porcentajes de las rutas usan las llamadas consolidadas como denominador. El peso es el configurado actualmente y es nulo para rutas retiradas. Mientras no haya renovación, se incluye también el consumo posterior al fin durante la gracia.
+      security:
+        - cookieSesionConsumidor: []
+      responses:
+        '200':
+          description: Cuota en tiempo real y detalle consolidado del ciclo; sin caché HTTP.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsumoCiclo' }
+        '401':
+          description: Sin sesión del consumidor.
+        '403':
+          description: Sesión de otro ámbito.
+        '404':
+          description: suscripcion_no_encontrada si no hay una suscripción no finalizada; api_no_encontrada si el host es inválido o pertenece a otra organización.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+        '503':
+          description: servicio_no_disponible si no se puede leer el contador de Redis; nunca se sustituye un fallo por consumo cero.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
 components:
   securitySchemes:
+    cookieSesionConsumidor:
+      type: apiKey
+      in: cookie
+      name: portal_sesion
     cookieSesionPersonal:
       type: apiKey
       in: cookie
       name: shapi_sesion
   schemas:
+    ConsumoRutaCiclo:
+      type: object
+      required: [rutaId, metodo, patron, pesoLlamadas, peticiones, llamadas, porcentaje]
+      properties:
+        rutaId: { type: [string, 'null'], format: uuid }
+        metodo: { type: [string, 'null'] }
+        patron: { type: string }
+        pesoLlamadas: { type: [integer, 'null'] }
+        peticiones: { type: integer, format: int64 }
+        llamadas: { type: integer, format: int64 }
+        porcentaje: { type: number }
+    ConsumoCiclo:
+      type: object
+      required: [suscripcionId, inicio, fin, llamadas, cuota, restante, porcentaje, peticiones, llamadasConsolidadas, rutas]
+      properties:
+        suscripcionId: { type: string, format: uuid }
+        inicio: { type: string, format: date }
+        fin: { type: string, format: date }
+        llamadas: { type: integer, format: int64 }
+        cuota: { type: integer, format: int64 }
+        restante: { type: integer, format: int64, minimum: 0 }
+        porcentaje: { type: number }
+        peticiones: { type: integer, format: int64 }
+        llamadasConsolidadas: { type: integer, format: int64 }
+        rutas:
+          type: array
+          items: { $ref: '#/components/schemas/ConsumoRutaCiclo' }
     Percentil95:
       type: object
       required: [milisegundos, supera2500]

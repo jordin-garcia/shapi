@@ -5,10 +5,20 @@ namespace Shapi.Aplicacion.Consumo;
 /// <summary>Consultas base del consumo consolidado, con periodo inclusivo y aislamiento de organización.</summary>
 public interface IConsultaConsumo
 {
+    Task<SuscripcionConsumo?> SuscripcionActualAsync(Guid organizacionId, Guid apiId, Guid consumidorId,
+        CancellationToken cancelacion = default);
     Task<ConsumoPeriodo> PorApiAsync(Guid organizacionId, Guid apiId, DateOnly desde, DateOnly hasta,
         EntornoConsumo? entorno = null, CancellationToken cancelacion = default);
     Task<ConsumoPeriodo> PorSuscripcionAsync(Guid organizacionId, Guid suscripcionId, DateOnly desde, DateOnly hasta,
         EntornoConsumo? entorno = null, CancellationToken cancelacion = default);
+}
+
+public sealed record SuscripcionConsumo(Guid Id, DateTimeOffset Inicio, DateTimeOffset Fin, long Cuota);
+
+/// <summary>Cuota de producción del ciclo. Cero si no existe la llave; nulo si Redis no puede informar el consumo.</summary>
+public interface ILectorCuotaConsumo
+{
+    Task<long?> LeerAsync(Guid suscripcionId, DateTimeOffset inicio, CancellationToken cancelacion = default);
 }
 
 public sealed record ConsumoPeriodo(IReadOnlyList<ConsumoDiario> Dias)
