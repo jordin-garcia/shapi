@@ -133,12 +133,24 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
     private static string NombrePlan(string descripcion)
     {
         const string prefijoContratacion = "Contratación del plan ";
+        const string prefijoReactivacion = "Reactivación del plan ";
+        const string prefijoRenovacion = "Renovación · ";
         if (descripcion.StartsWith(prefijoContratacion, StringComparison.Ordinal))
         {
             return descripcion[prefijoContratacion.Length..];
         }
+        if (descripcion.StartsWith(prefijoReactivacion, StringComparison.Ordinal))
+        {
+            return descripcion[prefijoReactivacion.Length..];
+        }
+        if (descripcion.StartsWith(prefijoRenovacion, StringComparison.Ordinal))
+        {
+            return descripcion[prefijoRenovacion.Length..];
+        }
 
-        var separador = descripcion.LastIndexOf('·');
-        return separador >= 0 ? descripcion[(separador + 1)..].Trim() : descripcion;
+        var separador = descripcion.IndexOf('·');
+        var cambioPlan = separador >= 0 ? descripcion[..separador].Trim() : descripcion;
+        var flecha = cambioPlan.LastIndexOf('→');
+        return flecha >= 0 ? cambioPlan[(flecha + 1)..].Trim() : cambioPlan;
     }
 }

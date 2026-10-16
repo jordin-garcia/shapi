@@ -122,6 +122,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: implementé GET/POST/PUT/desactivar de planes de plataforma, listado y reversión de pagos de plataforma, y las pantallas A6.1, A6.3 y A6.3b. Actualicé OpenAPI, los tipos generados y agregué pruebas de integración y Vitest para permisos, alta/edición/desactivación, pagos, reversión y periodo de gracia.
 - Decisiones: `maxApis` y `maxMiembros` nulos representan límites ilimitados. A6.3b aparece como paso de confirmación dentro de A6.3. Solo los pagos de plataforma autorizados se pueden revertir; los pagos de API no aparecen en la lista administrativa.
 - Verificación: el build y formato del backend pasan; la suite frontend completa pasa (448 pruebas), al igual que lint, typecheck y build. `node scripts/tareas.mjs --validar` informa 76 tareas válidas. Las pruebas de integración con Testcontainers no pudieron arrancar localmente porque no hay daemon de Docker; la CI del PR debe confirmar el backend.
+- Revisión en contexto limpio: revisión independiente LISTO. Se corrigió el nombre de plan mostrado en pagos por cambio, reactivación y renovación, y se agregó cobertura para los tres casos.
 - Pendiente o aviso para otros:
   - **Jordin:** confirmar en CI las pruebas backend de integración; Docker no está disponible en el entorno local.
   - **Dominique:** actualicé los interceptores MSW del catálogo de rutas para A6.1 y A6.3 en `frontend/apps/panel/src/tests/rutas.test.tsx`.

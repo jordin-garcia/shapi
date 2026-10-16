@@ -157,6 +157,18 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
             INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado, motivo_rechazo)
             VALUES (gen_random_uuid(), '{suscripcion}', 'renovacion', 'Renovación del plan mensual', 199, 'rechazado', 'pago_rechazado') RETURNING id
             """);
+        var pagoCambioPlan = await Escalar<Guid>($"""
+            INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado)
+            VALUES (gen_random_uuid(), '{suscripcion}', 'cambio_plan', 'Lanzamiento → Producto · diferencia prorrateada', 173.34, 'rechazado') RETURNING id
+            """);
+        var pagoReactivacion = await Escalar<Guid>($"""
+            INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado)
+            VALUES (gen_random_uuid(), '{suscripcion}', 'reactivacion', 'Reactivación del plan Producto', 599, 'rechazado') RETURNING id
+            """);
+        var pagoRenovacion = await Escalar<Guid>($"""
+            INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado)
+            VALUES (gen_random_uuid(), '{suscripcion}', 'renovacion', 'Renovación · Producto', 599, 'rechazado') RETURNING id
+            """);
         var api = await NuevaApi(org);
         var planApi = await NuevoPlanApi(api);
         var consumidor = await NuevoConsumidor(org);
@@ -166,7 +178,12 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         using var listar = await Enviar(HttpMethod.Get, "/api/admin/pagos", admin);
         listar.StatusCode.Should().Be(HttpStatusCode.OK);
         var elementos = (await listar.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray().ToArray();
-        elementos.Select(x => x.GetProperty("id").GetGuid()).Should().Contain(pago).And.Contain(pagoRechazado).And.HaveCount(2);
+        elementos.Select(x => x.GetProperty("id").GetGuid()).Should().Contain(pago).And.Contain(pagoRechazado)
+            .And.Contain(pagoCambioPlan).And.Contain(pagoReactivacion).And.Contain(pagoRenovacion).And.HaveCount(5);
+        foreach (var id in new[] { pagoCambioPlan, pagoReactivacion, pagoRenovacion })
+        {
+            elementos.Single(x => x.GetProperty("id").GetGuid() == id).GetProperty("plan").GetString().Should().Be("Producto");
+        }
 
         using var revertirRechazado = await Enviar(HttpMethod.Post, $"/api/admin/pagos/{pagoRechazado}/revertir", admin);
         revertirRechazado.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
