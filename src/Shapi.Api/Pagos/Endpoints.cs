@@ -15,9 +15,35 @@ public static class Endpoints
 {
     public static IEndpointRouteBuilder MapearEndpointsPagos(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/admin/pagos", ListarPagosPlataformaAdministracion).RequireAuthorization(Permisos.VerPagos);
+        app.MapPost("/api/admin/pagos/{id:guid}/revertir", RevertirPagoPlataforma)
+            .RequireAuthorization(Permisos.RevertirPagos);
         app.MapGet("/api/pagos", PagosPlataforma).RequireAuthorization(Permisos.VerSuscripcion);
         app.MapGet("/api/portal/pagos", PagosPortal).RequireAuthorization(Permisos.ConsumidorVerCuenta);
         return app;
+    }
+
+    private static async Task<IResult> ListarPagosPlataformaAdministracion(
+        AdministrarPagosPlataforma caso, CancellationToken ct) => TypedResults.Ok(await caso.Listar(ct));
+
+    private static async Task<IResult> RevertirPagoPlataforma(
+        Guid id, HttpContext http, AdministrarPagosPlataforma caso, CancellationToken ct)
+    {
+        var actorId = Guid.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var actorNombre = http.User.FindFirstValue(ClaimTypes.Name) ?? "Administrador";
+        var organizacion = Guid.Parse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);
+        var resultado = await caso.Revertir(id, actorId, actorNombre, organizacion,
+            http.Connection.RemoteIpAddress?.ToString(), ct);
+        return resultado switch
+        {
+            ResultadoReversionPago.Exito => TypedResults.NoContent(),
+            ResultadoReversionPago.NoEncontrado => TypedResults.NotFound(),
+            ResultadoReversionPago.NoAutorizado => Problemas.Crear(StatusCodes.Status422UnprocessableEntity,
+                CodigosError.DatosInvalidos, "Solo se pueden revertir pagos de plataforma autorizados."),
+            ResultadoReversionPago.PasarelaNoDisponible => Problemas.Crear(StatusCodes.Status503ServiceUnavailable,
+                CodigosError.PasarelaNoDisponible, "La pasarela no pudo revertir el pago."),
+            _ => throw new ArgumentOutOfRangeException(nameof(resultado)),
+        };
     }
 
     private static async Task<IResult> PagosPlataforma(

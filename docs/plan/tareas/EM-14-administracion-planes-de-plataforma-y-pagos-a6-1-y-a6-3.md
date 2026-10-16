@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-16
 depende_de: [EM-09, DC-02]
 requisitos: [RF-17, RF-24]
@@ -52,3 +52,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Organizaciones (JZ-08)
+
+## Resultado
+- Se agregaron los endpoints administrativos para listar, crear, editar y desactivar planes de plataforma, y para consultar y revertir pagos. La reversión exige un pago autorizado, registra la bitácora y pone en gracia por siete días la suscripción cuyo ciclo vigente se reembolsó.
+- Se implementaron A6.1, A6.3 y la confirmación A6.3b, con permisos, errores, estados vacíos y formularios conectados a la API. Los contratos OpenAPI y los tipos TypeScript se actualizaron.
+- Verificación local: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; `pnpm lint`, `pnpm typecheck`, `pnpm test` (448 pruebas) y `pnpm build` pasan; `node scripts/tareas.mjs --validar` informa 76 tareas válidas.
+- Las pruebas de integración con Testcontainers no se pudieron ejecutar localmente porque Docker no está disponible; se ejecutarán en la CI del PR.

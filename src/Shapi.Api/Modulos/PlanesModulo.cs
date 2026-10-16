@@ -11,6 +11,7 @@ public static class PlanesModulo
         services.AddScoped<CrearPlan>();
         services.AddScoped<EditarPlan>();
         services.AddScoped<DesactivarPlan>();
+        services.AddScoped<AdministrarPlanesPlataforma>();
         return services;
     }
 

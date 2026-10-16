@@ -1,4 +1,56 @@
 export interface paths {
+    "/api/admin/planes-plataforma": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista los planes de plataforma para administración */
+        get: operations["administrarListarPlanesPlataforma"];
+        put?: never;
+        /** Crea un plan de plataforma */
+        post: operations["crearPlanPlataformaAdministracion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/planes-plataforma/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edita un plan de plataforma */
+        put: operations["editarPlanPlataformaAdministracion"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/planes-plataforma/{id}/desactivar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Desactiva un plan de plataforma */
+        post: operations["desactivarPlanPlataformaAdministracion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/planes-plataforma": {
         parameters: {
             query?: never;
@@ -92,6 +144,35 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PeticionPlanPlataforma: {
+            nombre: string;
+            descripcion: string;
+            precio: number;
+            vigenciaDias: number;
+            maxApis?: number | null;
+            maxMiembros?: number | null;
+            /** Format: int64 */
+            cuotaPeticiones: number;
+            dominioPropio: boolean;
+        };
+        PlanPlataformaAdministracion: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            descripcion: string;
+            precio: number;
+            /** @constant */
+            moneda: "GTQ";
+            vigenciaDias: number;
+            maxApis?: number | null;
+            maxMiembros?: number | null;
+            /** Format: int64 */
+            cuotaPeticiones: number;
+            dominioPropio: boolean;
+            esPrueba: boolean;
+            activo: boolean;
+            orden: number;
+        };
         PlanPlataforma: {
             /** Format: uuid */
             id: string;
@@ -159,6 +240,166 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    administrarListarPlanesPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Planes ordenados, incluidos los inactivos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanPlataformaAdministracion"][];
+                };
+            };
+            /** @description Solo el administrador puede ver estos planes */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    crearPlanPlataformaAdministracion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionPlanPlataforma"];
+            };
+        };
+        responses: {
+            /** @description Plan creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanPlataformaAdministracion"];
+                };
+            };
+            /** @description Datos inválidos (`datos_invalidos`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo el administrador puede crear planes */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ya existe un plan con ese nombre (`plan_duplicado`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    editarPlanPlataformaAdministracion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionPlanPlataforma"];
+            };
+        };
+        responses: {
+            /** @description Plan actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanPlataformaAdministracion"];
+                };
+            };
+            /** @description Datos inválidos (`datos_invalidos`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo el administrador puede editar planes */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Plan no encontrado (`plan_no_encontrado`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ya existe un plan con ese nombre (`plan_duplicado`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    desactivarPlanPlataformaAdministracion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plan desactivado; las suscripciones históricas se conservan */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo el administrador puede desactivar planes */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Plan no encontrado (`plan_no_encontrado`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listarPlanesPlataforma: {
         parameters: {
             query?: never;

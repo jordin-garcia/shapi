@@ -56,6 +56,19 @@ public abstract class Suscripcion
         ActualizadoEn = ahora;
     }
 
+    /// <summary>Fija el fin de gracia indicado por una regla externa, como el reembolso de un ciclo vigente (09 §7).</summary>
+    public void EntrarEnGraciaHasta(DateTimeOffset graciaHasta, DateTimeOffset ahora)
+    {
+        if (graciaHasta <= ahora)
+        {
+            throw new ArgumentOutOfRangeException(nameof(graciaHasta));
+        }
+
+        Estado = EstadoSuscripcion.EnGracia;
+        GraciaHasta = graciaHasta;
+        ActualizadoEn = ahora;
+    }
+
     /// <summary>Suspende al terminar el periodo de gracia (09 §3).</summary>
     public void Suspender(DateTimeOffset ahora)
     {

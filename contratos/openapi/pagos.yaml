@@ -3,6 +3,34 @@ info:
   title: API de pagos de Shapi
   version: 1.0.0
 paths:
+  /api/admin/pagos:
+    get:
+      summary: Lista solo los pagos de plataforma para administración
+      operationId: administrarListarPagosPlataforma
+      responses:
+        '200':
+          description: Pagos de suscripciones de plataforma ordenados del más reciente al más antiguo
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PagoPlataformaAdministracion' }
+        '403': { description: Solo el administrador puede ver los pagos de plataforma }
+  /api/admin/pagos/{id}/revertir:
+    post:
+      summary: Reembolsa un pago autorizado de plataforma
+      operationId: revertirPagoPlataforma
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Pago reembolsado y registrado como revertido }
+        '403': { description: Solo el administrador puede revertir pagos }
+        '404': { description: Pago de plataforma no encontrado }
+        '422': { description: Solo se pueden revertir pagos autorizados (`datos_invalidos`) }
+        '503': { description: La pasarela no pudo reembolsar el pago (`pasarela_no_disponible`) }
   /api/pagos:
     get:
       summary: Consulta el historial de pagos de plataforma de la organización
@@ -62,6 +90,20 @@ components:
       required: false
       schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
   schemas:
+    PagoPlataformaAdministracion:
+      type: object
+      required: [id, fecha, organizacion, plan, monto, moneda, estado]
+      properties:
+        id: { type: string, format: uuid }
+        fecha: { type: string, format: date-time }
+        organizacion: { type: string }
+        plan: { type: string }
+        monto: { type: number, format: decimal }
+        moneda: { type: string, const: GTQ }
+        tarjeta: { type: [string, 'null'] }
+        estado: { type: string, enum: [pagado, rechazado, revertido] }
+        periodoInicio: { type: [string, 'null'], format: date-time }
+        periodoFin: { type: [string, 'null'], format: date-time }
     PagosPaginados:
       type: object
       required: [elementos, total]

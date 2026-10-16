@@ -1,4 +1,38 @@
 export interface paths {
+    "/api/admin/pagos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista solo los pagos de plataforma para administración */
+        get: operations["administrarListarPagosPlataforma"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pagos/{id}/revertir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reembolsa un pago autorizado de plataforma */
+        post: operations["revertirPagoPlataforma"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pagos": {
         parameters: {
             query?: never;
@@ -37,6 +71,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PagoPlataformaAdministracion: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            fecha: string;
+            organizacion: string;
+            plan: string;
+            /** Format: decimal */
+            monto: number;
+            /** @constant */
+            moneda: "GTQ";
+            tarjeta?: string | null;
+            /** @enum {string} */
+            estado: "pagado" | "rechazado" | "revertido";
+            /** Format: date-time */
+            periodoInicio?: string | null;
+            /** Format: date-time */
+            periodoFin?: string | null;
+        };
         PagosPaginados: {
             elementos: components["schemas"]["Pago"][];
             total: number;
@@ -90,6 +143,81 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    administrarListarPagosPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pagos de suscripciones de plataforma ordenados del más reciente al más antiguo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagoPlataformaAdministracion"][];
+                };
+            };
+            /** @description Solo el administrador puede ver los pagos de plataforma */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revertirPagoPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pago reembolsado y registrado como revertido */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo el administrador puede revertir pagos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pago de plataforma no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo se pueden revertir pagos autorizados (`datos_invalidos`) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La pasarela no pudo reembolsar el pago (`pasarela_no_disponible`) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listarPagosPlataforma: {
         parameters: {
             query?: {

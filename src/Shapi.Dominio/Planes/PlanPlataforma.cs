@@ -18,4 +18,43 @@ public class PlanPlataforma
     public DateTimeOffset ActualizadoEn { get; private set; }
 
     protected PlanPlataforma() { }
+
+    public static PlanPlataforma Crear(Guid id, string nombre, string descripcion, decimal precio, int vigenciaDias,
+        int? maxApis, int? maxMiembros, long cuotaPeticiones, bool dominioPropio, int orden, DateTimeOffset ahora) => new()
+        {
+            Id = id,
+            Nombre = nombre,
+            Descripcion = descripcion,
+            Precio = precio,
+            VigenciaDias = vigenciaDias,
+            MaxApis = maxApis,
+            MaxMiembros = maxMiembros,
+            CuotaPeticiones = cuotaPeticiones,
+            DominioPropio = dominioPropio,
+            EsPrueba = false,
+            Activo = true,
+            Orden = orden,
+            CreadoEn = ahora,
+            ActualizadoEn = ahora,
+        };
+
+    public void Editar(string nombre, string descripcion, decimal precio, int vigenciaDias, int? maxApis,
+        int? maxMiembros, long cuotaPeticiones, bool dominioPropio, DateTimeOffset ahora)
+    {
+        Nombre = nombre;
+        Descripcion = descripcion;
+        Precio = precio;
+        VigenciaDias = vigenciaDias;
+        MaxApis = maxApis;
+        MaxMiembros = maxMiembros;
+        CuotaPeticiones = cuotaPeticiones;
+        DominioPropio = dominioPropio;
+        ActualizadoEn = ahora;
+    }
+
+    public void Desactivar(DateTimeOffset ahora)
+    {
+        Activo = false;
+        ActualizadoEn = ahora;
+    }
 }

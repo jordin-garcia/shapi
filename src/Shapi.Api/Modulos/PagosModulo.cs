@@ -10,6 +10,7 @@ public static class PagosModulo
         services.AddScoped<Shapi.Aplicacion.Pagos.IPasarelaPagos, Shapi.Infraestructura.Pagos.PasarelaSimulada>();
         services.AddScoped<Shapi.Aplicacion.Pagos.IConsultaPagos, Shapi.Infraestructura.Pagos.ConsultaPagos>();
         services.AddScoped<Shapi.Aplicacion.Pagos.ConsultarPagos>();
+        services.AddScoped<AdministrarPagosPlataforma>();
         return services;
     }
 

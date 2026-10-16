@@ -102,4 +102,17 @@ public class Pago
         Estado = EstadoPago.Rechazado,
         MotivoRechazo = motivo,
     };
+
+    public void Revertir(Guid actorId, DateTimeOffset ahora)
+    {
+        if (Estado != EstadoPago.Autorizado || SuscripcionPlataformaId is null)
+        {
+            throw new InvalidOperationException("Solo se pueden revertir pagos de plataforma autorizados.");
+        }
+
+        Estado = EstadoPago.Revertido;
+        RevertidoEn = ahora;
+        RevertidoPor = actorId;
+        ActualizadoEn = ahora;
+    }
 }
