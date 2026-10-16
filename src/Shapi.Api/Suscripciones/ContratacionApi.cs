@@ -559,6 +559,7 @@ public sealed class ContratacionApi(
             aPagar = prorrateo.APagar,
             inicio = (reemplazo ?? actual).Inicio,
             fin = (reemplazo ?? actual).Fin,
+            claves,
         });
     }
 

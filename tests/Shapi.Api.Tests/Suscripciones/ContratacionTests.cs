@@ -39,6 +39,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         web.ConfigureTestServices(servicios =>
         {
             servicios.AddSingleton<IReloj>(Reloj);
+            servicios.AddScoped<AvisosCuotaPlataforma>();
             SesionConsumidorDePrueba.Registrar(servicios);
         });
     });
@@ -396,6 +397,10 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>($"SELECT count(*) FROM clave WHERE suscripcion_id = '{nueva}' AND estado = 'activa'"))
             .Should().Be(2);
         (await Hash(LlavesRedis.Suscripcion(nueva))).Should().ContainKey("plan_id");
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("claves").GetArrayLength().Should().Be(2);
+        body.GetProperty("claves").EnumerateArray().Should().OnlyContain(clave =>
+            !string.IsNullOrWhiteSpace(clave.GetProperty("clave").GetString()));
     }
 
     // RF-43: el trabajador encola cada umbral una sola vez por ciclo y vuelve a avisar al cruzar el siguiente.

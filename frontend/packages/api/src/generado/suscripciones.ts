@@ -256,6 +256,18 @@ export interface components {
             /** Format: date-time */
             fin: string;
         };
+        ResultadoCambioSuscripcionApi: {
+            /** @constant */
+            estado: "activa";
+            credito: number;
+            cargo: number;
+            aPagar: number;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            claves: components["schemas"]["ClaveEmitida"][];
+        };
         PeticionSuscripcionPlataforma: {
             /** Format: uuid */
             planId: string;
@@ -945,7 +957,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ResultadoCambioSuscripcionApi"] | components["schemas"]["ResultadoCambioProgramado"] | components["schemas"]["ResultadoSinCambios"];
                 };
             };
             /** @description Falta la tarjeta o sus datos no son válidos */

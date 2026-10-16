@@ -341,7 +341,11 @@ paths:
           description: Cambio prorrateado, plan cambiado, sin cambios o cambio programado
           content:
             application/json:
-              schema: { type: object }
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ResultadoCambioSuscripcionApi"
+                  - $ref: "#/components/schemas/ResultadoCambioProgramado"
+                  - $ref: "#/components/schemas/ResultadoSinCambios"
         "400":
           description: Falta la tarjeta o sus datos no son válidos
           content:
@@ -428,6 +432,20 @@ components:
         estado: { type: string, const: activa }
         inicio: { type: string, format: date-time }
         fin: { type: string, format: date-time }
+    ResultadoCambioSuscripcionApi:
+      type: object
+      required: [estado, credito, cargo, aPagar, inicio, fin, claves]
+      properties:
+        estado: { type: string, const: activa }
+        credito: { type: number }
+        cargo: { type: number }
+        aPagar: { type: number }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+        claves:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClaveEmitida"
     PeticionSuscripcionPlataforma:
       type: object
       required: [planId]

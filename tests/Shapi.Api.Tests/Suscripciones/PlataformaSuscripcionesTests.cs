@@ -17,6 +17,7 @@ using NSubstitute;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
+using Shapi.Contratos.Redis;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Pagos;
 using Shapi.Infraestructura.Persistencia;
@@ -65,6 +66,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
 {
     private WebApplicationFactory<Program>? _factory;
     private int _demoraPagosMs;
+    private string? _llaveCuotaEsperada;
     private PublicadorSuscripcionFalso Publicador => _factory!.Services.GetRequiredService<PublicadorSuscripcionFalso>();
     private WebApplicationFactory<Program> Factory => _factory ??= new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
@@ -74,7 +76,8 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         builder.ConfigureTestServices(services =>
         {
             var redisDb = Substitute.For<IDatabase>();
-            redisDb.StringGetAsync(Arg.Any<RedisKey>(), CommandFlags.None).Returns(new RedisValue("800"));
+            redisDb.StringGetAsync(Arg.Any<RedisKey>(), CommandFlags.None).Returns(call =>
+                new RedisValue(call.Arg<RedisKey>().ToString() == _llaveCuotaEsperada ? "800" : "0"));
             var redis = Substitute.For<IConnectionMultiplexer>();
             redis.GetDatabase(Arg.Any<int>(), Arg.Any<object?>()).Returns(redisDb);
             services.RemoveAll<IConnectionMultiplexer>();
@@ -211,7 +214,9 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         await NuevaMembresia(user, org, "propietario");
         var plan = await NuevoPlanPlataforma();
         await Ejecutar($"UPDATE plan_plataforma SET cuota_peticiones = 1000 WHERE id = '{plan}'");
-        await NuevaSuscripcionPlataforma(org, plan);
+        var suscripcion = await NuevaSuscripcionPlataforma(org, plan);
+        var inicio = await Escalar<DateTimeOffset>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{suscripcion}'");
+        _llaveCuotaEsperada = LlavesRedis.CuotaOrganizacion(org, inicio.ToUnixTimeSeconds());
         using var client = Factory.CreateClient();
 
         using var response = await Enviar(client, HttpMethod.Get, "/api/suscripcion/uso", org, user, null);

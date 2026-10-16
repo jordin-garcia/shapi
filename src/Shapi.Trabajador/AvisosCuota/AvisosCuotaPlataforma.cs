@@ -24,7 +24,7 @@ public sealed class AvisosCuotaPlataforma(
                              join plan in db.Set<PlanPlataforma>().IgnoreQueryFilters().AsNoTracking() on suscripcion.PlanId equals plan.Id
                              join membresia in db.Set<Membresia>().IgnoreQueryFilters().AsNoTracking() on suscripcion.OrganizacionId equals membresia.OrganizacionId
                              join usuario in db.Set<Usuario>().IgnoreQueryFilters().AsNoTracking() on membresia.UsuarioId equals usuario.Id
-                             where suscripcion.Estado == EstadoSuscripcion.Activa
+                             where (suscripcion.Estado == EstadoSuscripcion.Activa || suscripcion.Estado == EstadoSuscripcion.EnGracia)
                                 && membresia.Rol == Rol.Propietario
                                 && usuario.Estado == EstadoCuenta.Activo
                                 && plan.CuotaPeticiones > 0
