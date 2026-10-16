@@ -39,6 +39,27 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problema"
+  /api/suscripcion/uso:
+    get:
+      summary: Consulta el consumo de cuota de la suscripción de plataforma
+      operationId: obtenerUsoSuscripcionPlataforma
+      responses:
+        "200":
+          description: Peticiones utilizadas, cuota y porcentaje del ciclo actual
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [peticiones, cuotaPeticiones, porcentaje]
+                properties:
+                  peticiones: { type: integer, format: int64 }
+                  cuotaPeticiones: { type: integer, format: int64 }
+                  porcentaje: { type: number }
+        "404":
+          description: No existe una suscripción vigente
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
   /api/suscripcion/contratar:
     post:
       summary: Contrata un plan de plataforma
@@ -293,6 +314,46 @@ paths:
               schema: { $ref: "#/components/schemas/Problema" }
         "422":
           description: La tarjeta no es válida o la suscripción no es de pago
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "503":
+          description: La pasarela no está disponible
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+  /api/portal/suscripcion/cambiar:
+    post:
+      summary: Cambia o programa un cambio de plan del consumidor
+      operationId: cambiarPlanSuscripcionApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId: { type: string, format: uuid }
+                tarjeta: { $ref: "#/components/schemas/Tarjeta" }
+      responses:
+        "200":
+          description: Cambio prorrateado, plan cambiado, sin cambios o cambio programado
+          content:
+            application/json:
+              schema: { type: object }
+        "400":
+          description: Falta la tarjeta o sus datos no son válidos
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "402":
+          description: La pasarela rechazó el pago y no se cambió el plan
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
+        "404":
+          description: Portal, consumidor, suscripción o plan no encontrado
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }

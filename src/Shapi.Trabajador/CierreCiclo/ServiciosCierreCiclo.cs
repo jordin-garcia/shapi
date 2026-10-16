@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shapi.Aplicacion.Pagos;
 using Shapi.Infraestructura.Pagos;
+using Shapi.Trabajador.AvisosCuota;
 
 namespace Shapi.Trabajador.CierreCiclo;
 
@@ -19,6 +20,8 @@ public static class ServiciosCierreCiclo
         servicios.AddScoped<IPasarelaPagos, PasarelaSimulada>();
         servicios.AddScoped<CerrarCiclo>();
         servicios.AddHostedService<TrabajoCierreCiclo>();
+        servicios.AddScoped<AvisosCuotaPlataforma>();
+        servicios.AddHostedService<TrabajoAvisosCuota>();
         return servicios;
     }
 }

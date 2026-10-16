@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using FluentValidation;
 using Shapi.Aplicacion.Comun;
+using Shapi.Aplicacion.Suscripciones;
 using Shapi.Contratos;
 using Shapi.Contratos.Red;
 using Shapi.Dominio.Apis;
@@ -34,7 +35,8 @@ public sealed class RegistrarApi(
     IRepositorioApis repositorio,
     IProtectorSecretoOrigen protector,
     IBitacora bitacora,
-    IReloj reloj)
+    IReloj reloj,
+    IVerificadorLimitesPlan verificadorLimites)
 {
     private const string AlfabetoBase62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -99,6 +101,12 @@ public sealed class RegistrarApi(
             protector.Cifrar(secreto),
             reloj.Ahora);
         await using var transaccion = await repositorio.IniciarTransaccion(cancelacion);
+        var limite = await verificadorLimites.VerificarRegistroApi(organizacionId, cancelacion);
+        if (limite is not null)
+        {
+            return limite;
+        }
+
         if (!await repositorio.Agregar(api, cancelacion))
         {
             return SubdominioOcupado();

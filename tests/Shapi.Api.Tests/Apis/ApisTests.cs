@@ -200,6 +200,28 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Equal("api.registrada", entrada.Accion);
     }
 
+    // RF-43: todas las APIs de la organización cuentan para el límite y el rechazo no guarda otra API.
+    [Fact]
+    public async Task RF_43_RegistrarApi_AlcanzarMaximoResponde422ConLimiteApis()
+    {
+        await using (var conexion = new NpgsqlConnection(_cadena))
+        {
+            await conexion.OpenAsync();
+            await using var comando = new NpgsqlCommand("UPDATE plan_plataforma SET max_apis = 1 WHERE es_prueba", conexion);
+            await comando.ExecuteNonQueryAsync();
+        }
+
+        using var existente = await Registrar($"existente-{Guid.NewGuid():N}"[..20], "https://8.8.8.8");
+        Assert.Equal(HttpStatusCode.Created, existente.StatusCode);
+        using var respuesta = await Registrar($"nueva-{Guid.NewGuid():N}"[..20], "https://8.8.8.8");
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, respuesta.StatusCode);
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("limite_del_plan", problema.GetProperty("codigo").GetString());
+        Assert.Equal("apis", problema.GetProperty("detalle").GetProperty("limite").GetString());
+        Assert.Equal(1, await ContarApis());
+    }
+
     [Fact]
     public async Task RF_08_Registrar_SubdominioReservado_Responde400SinGuardar()
     {

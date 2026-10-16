@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
 using Shapi.Contratos;
+using Shapi.Contratos.Redis;
 using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
+using StackExchange.Redis;
 
 namespace Shapi.Api.Suscripciones;
 
@@ -17,8 +19,25 @@ public sealed record RespuestaPlanPlataforma(Guid Id, string Nombre, string Desc
     DateTimeOffset InicioCicloPrevisto);
 
 public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, IPasarelaPagos pasarela,
-    IPublicadorCache publicador, IBitacora bitacora)
+    IPublicadorCache publicador, IBitacora bitacora, IConnectionMultiplexer redis)
 {
+    public async Task<IResult> ConsultarUso(HttpContext http, CancellationToken ct)
+    {
+        var organizacionId = OrganizacionId(http.User);
+        var suscripcion = await db.Set<SuscripcionPlataforma>().AsNoTracking()
+            .SingleOrDefaultAsync(x => x.OrganizacionId == organizacionId && x.Estado != EstadoSuscripcion.Finalizada, ct);
+        if (suscripcion is null)
+        {
+            return Error(404, CodigosError.SuscripcionNoEncontrada, "No se encontró una suscripción vigente.");
+        }
+
+        var plan = await db.Set<PlanPlataforma>().AsNoTracking().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
+        var valor = await redis.GetDatabase().StringGetAsync(LlavesRedis.CuotaOrganizacion(organizacionId, suscripcion.Inicio.ToUnixTimeSeconds()));
+        var peticiones = long.TryParse(valor.ToString(), out var uso) ? uso : 0;
+        var porcentaje = plan.CuotaPeticiones <= 0 ? 0m : decimal.Round(peticiones * 100m / plan.CuotaPeticiones, 2);
+        return TypedResults.Ok(new { peticiones, cuotaPeticiones = plan.CuotaPeticiones, porcentaje });
+    }
+
     public async Task<IResult> ListarPlanes(CancellationToken ct)
     {
         var inicioCiclo = Suscripcion.InicioDeCiclo(reloj.Ahora);

@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NSubstitute;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
@@ -20,6 +21,7 @@ using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Pagos;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.CierreCiclo;
+using StackExchange.Redis;
 
 namespace Shapi.Api.Tests.Suscripciones;
 
@@ -71,6 +73,12 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         builder.UseSetting("Pagos:DemoraMs", _demoraPagosMs.ToString());
         builder.ConfigureTestServices(services =>
         {
+            var redisDb = Substitute.For<IDatabase>();
+            redisDb.StringGetAsync(Arg.Any<RedisKey>(), CommandFlags.None).Returns(new RedisValue("800"));
+            var redis = Substitute.For<IConnectionMultiplexer>();
+            redis.GetDatabase(Arg.Any<int>(), Arg.Any<object?>()).Returns(redisDb);
+            services.RemoveAll<IConnectionMultiplexer>();
+            services.AddSingleton(redis);
             services.AddSingleton<IReloj>(Reloj);
             services.AddAuthentication(options =>
             {
@@ -192,6 +200,27 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         body.GetProperty("periodo").GetProperty("inicio").GetDateTimeOffset().Should().BeAfter(DateTimeOffset.MinValue);
         body.GetProperty("proximaRenovacion").GetDateTimeOffset().Should().BeAfter(DateTimeOffset.MinValue);
         (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(1);
+    }
+
+    // RF-43: el uso de plataforma consulta el contador del ciclo actual en Redis y calcula el porcentaje.
+    [Fact]
+    public async Task RF_43_ConsultarUso_DevuelvePeticionesCuotaYPorcentaje()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET cuota_peticiones = 1000 WHERE id = '{plan}'");
+        await NuevaSuscripcionPlataforma(org, plan);
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Get, "/api/suscripcion/uso", org, user, null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("peticiones").GetInt64().Should().Be(800);
+        body.GetProperty("cuotaPeticiones").GetInt64().Should().Be(1000);
+        body.GetProperty("porcentaje").GetDecimal().Should().Be(80m);
     }
 
     // RNF-08: una organización no puede consultar la suscripción de otra.

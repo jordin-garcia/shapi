@@ -30,6 +30,15 @@ export default function PaginaB14Suscripcion() {
     },
     retry: false,
   });
+  const uso = useQuery({
+    queryKey: ['suscripcion-plataforma-uso'],
+    queryFn: async ({ signal }) => {
+      const { data, response } = await cliente.GET('/api/suscripcion/uso', { signal });
+      if (!response.ok || !data) throw new Error('No se pudo cargar el uso de la cuota.');
+      return data;
+    },
+    retry: false,
+  });
   function limpiarTarjeta() { setNumero(''); setMes(''); setAnio(''); setCvv(''); setTitular(''); }
   const pagar = useMutation({
     mutationFn: async () => {
@@ -65,6 +74,8 @@ export default function PaginaB14Suscripcion() {
       <h2 className="font-display text-[22px]">Su tráfico está detenido</h2>
       <p className="mt-3 text-sm leading-relaxed">Desde el {s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)} sus APIs dejaron de responder: la compuerta rechaza con 403 las peticiones de sus consumidores. Sus claves, las suscripciones de sus consumidores y su historial se conservan. {gratuito ? 'Contrate un plan de pago para restablecer el tráfico.' : 'El tráfico se restablece en cuanto se autorice el cobro.'}</p>
     </section>}
+    {uso.data && uso.data.porcentaje >= 100 && <div className="mt-6"><Aviso estado="error">Ha alcanzado el 100 % de su cuota de peticiones del ciclo ({uso.data.peticiones.toLocaleString('es-GT')} de {uso.data.cuotaPeticiones.toLocaleString('es-GT')}).</Aviso></div>}
+    {uso.data && uso.data.porcentaje >= 80 && uso.data.porcentaje < 100 && <div className="mt-6"><Aviso estado="neutro">Ha alcanzado el 80 % de su cuota de peticiones del ciclo ({uso.data.peticiones.toLocaleString('es-GT')} de {uso.data.cuotaPeticiones.toLocaleString('es-GT')}).</Aviso></div>}
     <section className="mt-8 rounded-base border border-borde bg-panel p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

@@ -33,6 +33,7 @@ function renderizar(entrada: string, vista: React.ReactNode) {
 
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  server.use(http.get(API + '/suscripcion/uso', () => HttpResponse.json({ peticiones: 0, cuotaPeticiones: 1000, porcentaje: 0 })));
   server.use(http.get(API + '/auth/sesion', () => HttpResponse.json({
     usuario: { nombre: 'Ana', correo: 'ana@example.com' },
     organizacion: { id: 'org-1', nombre: 'Envíos Xelajú, S.A.' },
@@ -327,6 +328,24 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     expect(screen.getByText('Activa')).toBeDefined();
     expect(screen.getByText('Q 199.00')).toBeDefined();
     expect(screen.getByText('Vigencia de 30 días')).toBeDefined();
+  });
+
+  it('RF-43 · B1.4 avisa al llegar al 80 % de la cuota del ciclo', async () => {
+    server.use(
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcion)),
+      http.get(API + '/suscripcion/uso', () => HttpResponse.json({ peticiones: 800, cuotaPeticiones: 1000, porcentaje: 80 })),
+    );
+    renderizar('/panel/suscripcion', <PaginaB14Suscripcion />);
+    expect(await screen.findByText('Ha alcanzado el 80 % de su cuota de peticiones del ciclo (800 de 1,000).')).toBeDefined();
+  });
+
+  it('RF-43 · B1.4 muestra el aviso de cuota agotada al llegar al 100 %', async () => {
+    server.use(
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcion)),
+      http.get(API + '/suscripcion/uso', () => HttpResponse.json({ peticiones: 1000, cuotaPeticiones: 1000, porcentaje: 100 })),
+    );
+    renderizar('/panel/suscripcion', <PaginaB14Suscripcion />);
+    expect(await screen.findByText('Ha alcanzado el 100 % de su cuota de peticiones del ciclo (1,000 de 1,000).')).toBeDefined();
   });
 
   it('B1.4 en gracia permite pagar con otra tarjeta y reactivar', async () => {

@@ -12,6 +12,22 @@ namespace Shapi.Infraestructura.Apis;
 
 public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
 {
+    public async Task BloquearRegistroApi(Guid organizacionId, CancellationToken cancelacion = default) =>
+        _ = await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({organizacionId.ToString()}, 0))", cancelacion);
+
+    public async Task<(int Total, int? Maximo)> ContarApisYObtenerLimite(Guid organizacionId, CancellationToken cancelacion = default)
+    {
+        var total = await db.Set<Api>().IgnoreQueryFilters()
+            .CountAsync(api => api.OrganizacionId == organizacionId, cancelacion);
+        var maximo = await (from suscripcion in db.Set<SuscripcionPlataforma>().IgnoreQueryFilters()
+                            join plan in db.Set<PlanPlataforma>().IgnoreQueryFilters() on suscripcion.PlanId equals plan.Id
+                            where suscripcion.OrganizacionId == organizacionId && suscripcion.Estado != EstadoSuscripcion.Finalizada
+                            orderby suscripcion.CreadoEn descending
+                            select plan.MaxApis).FirstOrDefaultAsync(cancelacion);
+        return (total, maximo);
+    }
+
     public Task<bool> ExisteSubdominio(string subdominio, CancellationToken cancelacion = default) =>
         db.Set<Api>().IgnoreQueryFilters().AnyAsync(a => a.Subdominio == subdominio, cancelacion);
 

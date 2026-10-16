@@ -18,11 +18,15 @@ public static class Endpoints
             .RequireAuthorization(Permisos.ConsumidorVerCuenta);
         portal.MapPost("/suscripcion/pagar", (ContratacionApi caso, HttpContext http, PeticionPagarSuscripcionApi cuerpo, CancellationToken ct) => caso.Pagar(http, cuerpo, ct))
             .RequireAuthorization(Permisos.ConsumidorContratarPlan);
+        portal.MapPost("/suscripcion/cambiar", (ContratacionApi caso, HttpContext http, PeticionCambiarPlanApi cuerpo, CancellationToken ct) => caso.CambiarPlan(http, cuerpo, ct))
+            .RequireAuthorization(Permisos.ConsumidorContratarPlan);
 
         app.MapGet("/api/planes-plataforma", (PlataformaSuscripcionesApi caso, CancellationToken ct) => caso.ListarPlanes(ct))
             .AllowAnonymous();
         var panel = app.MapGroup("/api/suscripcion");
         panel.MapGet("", (PlataformaSuscripcionesApi caso, HttpContext http, CancellationToken ct) => caso.Consultar(http, ct))
+            .RequireAuthorization(Permisos.VerSuscripcion);
+        panel.MapGet("/uso", (PlataformaSuscripcionesApi caso, HttpContext http, CancellationToken ct) => caso.ConsultarUso(http, ct))
             .RequireAuthorization(Permisos.VerSuscripcion);
         panel.MapPost("/contratar", (PlataformaSuscripcionesApi caso, HttpContext http, PeticionSuscripcionPlataforma p, CancellationToken ct) => caso.Contratar(http, p, ct))
             .RequireAuthorization(Permisos.ContratarSuscripcion);

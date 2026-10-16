@@ -45,6 +45,9 @@ public static class LlavesRedis
     public static string CuotaOrganizacion(Guid organizacionId, long cicloInicioEpoch) =>
         $"cuota:org:{organizacionId}:{cicloInicioEpoch.ToString(CultureInfo.InvariantCulture)}";
 
+    public static string AvisoCuotaOrganizacion(Guid organizacionId, long cicloInicioEpoch, int porcentaje) =>
+        $"aviso:cuota:org:{organizacionId}:{cicloInicioEpoch.ToString(CultureInfo.InvariantCulture)}:{porcentaje.ToString(CultureInfo.InvariantCulture)}";
+
     /// <param name="minutoEpoch"><c>floor(unix / 60)</c> (08 §3).</param>
     public static string LimiteMinutoSuscripcion(Guid suscripcionId, long minutoEpoch) =>
         $"rl:s:{suscripcionId}:{minutoEpoch.ToString(CultureInfo.InvariantCulture)}";
