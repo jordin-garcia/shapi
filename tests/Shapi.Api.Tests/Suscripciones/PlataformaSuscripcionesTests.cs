@@ -224,7 +224,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         var plan = await NuevoPlanPlataforma();
         await Ejecutar($"UPDATE plan_plataforma SET cuota_peticiones = 1000 WHERE id = '{plan}'");
         var suscripcion = await NuevaSuscripcionPlataforma(org, plan);
-        var inicio = await Escalar<DateTimeOffset>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{suscripcion}'");
+        var inicio = DateTimeOffset.Parse(await Escalar<string>($"SELECT inicio::text FROM suscripcion_plataforma WHERE id = '{suscripcion}'"));
         _llaveCuotaEsperada = LlavesRedis.CuotaOrganizacion(org, inicio.ToUnixTimeSeconds());
         using var client = Factory.CreateClient();
 
@@ -246,7 +246,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         await NuevaMembresia(user, org, "propietario");
         var plan = await NuevoPlanPlataforma();
         var suscripcion = await NuevaSuscripcionPlataforma(org, plan);
-        var inicio = await Escalar<DateTimeOffset>($"SELECT inicio FROM suscripcion_plataforma WHERE id = '{suscripcion}'");
+        var inicio = DateTimeOffset.Parse(await Escalar<string>($"SELECT inicio::text FROM suscripcion_plataforma WHERE id = '{suscripcion}'"));
         _llaveCuotaEsperada = LlavesRedis.CuotaOrganizacion(org, inicio.ToUnixTimeSeconds());
         _redisNoDisponible = true;
         using var client = Factory.CreateClient();

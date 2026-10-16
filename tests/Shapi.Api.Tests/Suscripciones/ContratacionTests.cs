@@ -361,7 +361,11 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
     public async Task CambiarPlanApi_PagoRechazadoConservaPlanYRegistraRechazo()
     {
         var e = await CrearEscenario(verificado: true);
-        var destino = await NuevoPlanApiCon(e.ApiId, "Superior", 900, 30);
+        var destino = await Escalar<Guid>($"""
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), '{e.ApiId}', 'Superior', 'Plan superior', 900, false, 30, 9000, 120, true)
+            RETURNING id
+            """);
         var suscripcion = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa",
             Reloj.Ahora.AddDays(-17), Reloj.Ahora.AddDays(13));
 
