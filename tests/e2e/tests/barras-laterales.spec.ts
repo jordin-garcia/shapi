@@ -32,6 +32,7 @@ for (const [area, host, correo, ruta] of [
       await page.getByRole('link', { name: 'Planes', exact: true }).click();
     }
     await expect(page.locator('main').first().getByRole('heading').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('main').first().getByRole('status', { name: 'Cargando', exact: true })).toHaveCount(0, { timeout: 30_000 });
     const barra = page.getByRole('navigation').filter({ has: page.getByRole('button', { name: 'Cerrar sesión', exact: true }) });
     await expect(barra).toBeVisible();
     await expect(barra.getByRole('button', { name: 'Cerrar sesión' })).toBeInViewport({ ratio: 1 });
