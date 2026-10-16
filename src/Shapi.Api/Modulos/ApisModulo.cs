@@ -1,6 +1,7 @@
 using FluentValidation;
 using Shapi.Api.Apis;
 using Shapi.Aplicacion.Apis;
+using Shapi.Aplicacion.Suscripciones;
 using Shapi.Contratos.Red;
 using Shapi.Infraestructura.Apis;
 
@@ -23,6 +24,7 @@ public static class ApisModulo
         });
         services.AddScoped<IValidator<SolicitudRegistroApi>, ValidadorSolicitudRegistroApi>();
         services.AddScoped<IRepositorioApis, RepositorioApis>();
+        services.AddScoped<IVerificadorLimitesPlan, VerificadorLimitesPlan>();
         services.AddScoped<ResolutorDnsSimulado>();
         services.AddSingleton<ResolutorDnsReal>();
         services.AddScoped<IResolutorDns>(sp =>

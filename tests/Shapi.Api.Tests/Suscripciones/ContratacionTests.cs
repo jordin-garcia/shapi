@@ -18,6 +18,7 @@ using Shapi.Contratos.Redis;
 using Shapi.Dominio.Claves;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
+using Shapi.Trabajador.AvisosCuota;
 
 namespace Shapi.Api.Tests.Suscripciones;
 
@@ -38,6 +39,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         web.ConfigureTestServices(servicios =>
         {
             servicios.AddSingleton<IReloj>(Reloj);
+            servicios.AddScoped<AvisosCuotaPlataforma>();
             SesionConsumidorDePrueba.Registrar(servicios);
         });
     });
@@ -319,6 +321,140 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         json.GetProperty("tarjetaEnmascarada").GetString().Should().Be("Visa •••• 4242");
         json.GetProperty("cuotaLlamadas").GetInt64().Should().Be(5000);
         json.GetProperty("limiteMinuto").GetInt32().Should().Be(60);
+    }
+
+    // RF-25: subir de plan API reutiliza el prorrateo y publica la suscripción cambiada.
+    [Fact]
+    public async Task CambiarPlanApi_SubidaProrrateaRegistraPagoYActualizaRedis()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var medio = await NuevoMedioPago(null, e.ConsumidorId);
+        var destino = await Escalar<Guid>($"""
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), '{e.ApiId}', 'Superior', 'Plan superior', 900, false, 30, 9000, 120, true)
+            RETURNING id
+            """);
+        var suscripcion = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, medio_pago_id, estado, inicio, fin)
+            VALUES (gen_random_uuid(), '{e.ConsumidorId}', '{e.ApiId}', '{e.PlanId}', '{medio}', 'activa',
+                    '{Reloj.Ahora.AddDays(-17):O}', '{Reloj.Ahora.AddDays(13):O}') RETURNING id
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/cambiar", e, new { planId = destino });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var resultado = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        resultado.GetProperty("credito").GetDecimal().Should().Be(195m);
+        resultado.GetProperty("cargo").GetDecimal().Should().Be(390m);
+        resultado.GetProperty("aPagar").GetDecimal().Should().Be(195m);
+        (await Fila($"SELECT plan_id::text, estado FROM suscripcion_api WHERE id = '{suscripcion}'"))
+            .Should().Equal(destino.ToString(), "activa");
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'cambio_plan' AND estado = 'autorizado' AND monto = 195"))
+            .Should().Be(1);
+        var publicada = ContextoSuscripcion.DesdeCampos(suscripcion, await Hash(LlavesRedis.Suscripcion(suscripcion)));
+        publicada.Should().NotBeNull();
+        publicada!.PlanId.Should().Be(destino);
+    }
+
+    // RF-25: un pago rechazado al subir de plan conserva el plan vigente y registra el intento.
+    [Fact]
+    public async Task CambiarPlanApi_PagoRechazadoConservaPlanYRegistraRechazo()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var destino = await Escalar<Guid>($"""
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), '{e.ApiId}', 'Superior', 'Plan superior', 900, false, 30, 9000, 120, true)
+            RETURNING id
+            """);
+        var suscripcion = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa",
+            Reloj.Ahora.AddDays(-17), Reloj.Ahora.AddDays(13));
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/cambiar", e,
+            new { planId = destino, tarjeta = Tarjeta with { Numero = "4000000000000002" } });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.PaymentRequired, await respuesta.Content.ReadAsStringAsync());
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        problema.GetProperty("codigo").GetString().Should().Be("pago_rechazado");
+        (await Fila($"SELECT plan_id::text, estado FROM suscripcion_api WHERE id = '{suscripcion}'"))
+            .Should().Equal(e.PlanId.ToString(), "activa");
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'cambio_plan' AND estado = 'rechazado'"))
+            .Should().Be(1);
+    }
+
+    // RF-25: bajar o igualar precio diario programa el plan para el próximo cierre sin cobrar.
+    [Fact]
+    public async Task CambiarPlanApi_BajadaProgramaCambioSinCobro()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var destino = await Escalar<Guid>($"""
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), '{e.ApiId}', 'Básico', 'Plan básico', 90, false, 30, 1000, 30, true)
+            RETURNING id
+            """);
+        var suscripcion = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/cambiar", e, new { planId = destino });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Fila($"SELECT plan_siguiente_id::text, estado FROM suscripcion_api WHERE id = '{suscripcion}'"))
+            .Should().Equal(destino.ToString(), "activa");
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+    }
+
+    // 09 §5: salir del plan gratuito crea una suscripción pagada nueva con claves nuevas.
+    [Fact]
+    public async Task CambiarPlanApi_DesdeGratuitoCreaSuscripcionNuevaYFinalizaAnterior()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        var destino = await NuevoPlanApiCon(e.ApiId, "Superior", 9000, 120);
+        var anterior = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/cambiar", e,
+            new { planId = destino, tarjeta = Tarjeta });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var nueva = await Escalar<Guid>($"SELECT id FROM suscripcion_api WHERE consumidor_id = '{e.ConsumidorId}' AND estado = 'activa'");
+        nueva.Should().NotBe(anterior);
+        (await Fila($"SELECT estado, plan_id::text FROM suscripcion_api WHERE id = '{anterior}'"))
+            .Should().Equal("finalizada", e.PlanId.ToString());
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{nueva}' AND concepto = 'cambio_plan' AND estado = 'autorizado' AND monto = 450"))
+            .Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM clave WHERE suscripcion_id = '{nueva}' AND estado = 'activa'"))
+            .Should().Be(2);
+        (await Hash(LlavesRedis.Suscripcion(nueva))).Should().ContainKey("plan_id");
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("claves").GetArrayLength().Should().Be(2);
+        body.GetProperty("claves").EnumerateArray().Should().OnlyContain(clave =>
+            !string.IsNullOrWhiteSpace(clave.GetProperty("clave").GetString()));
+    }
+
+    // RF-43: el trabajador encola cada umbral una sola vez por ciclo y vuelve a avisar al cruzar el siguiente.
+    [Fact]
+    public async Task AvisosCuotaPlataforma_Cruza80Y100_EncolaCadaUmbralUnaVez()
+    {
+        var organizacion = await NuevaOrganizacion();
+        var propietario = await NuevoUsuario();
+        await NuevaMembresia(propietario, organizacion, "propietario");
+        var plan = await NuevoPlanPlataformaCon(1000);
+        var inicio = Suscripcion.InicioDeCiclo(Reloj.Ahora);
+        await NuevaSuscripcionPlataformaEn(organizacion, plan, "activa", inicio, inicio.AddDays(30));
+        var llaveUso = LlavesRedis.CuotaOrganizacion(organizacion, inicio.ToUnixTimeSeconds());
+        await Redis.StringSetAsync(llaveUso, "800");
+
+        async Task EjecutarAvisos()
+        {
+            using var alcance = Fabrica.Services.CreateScope();
+            await alcance.ServiceProvider.GetRequiredService<AvisosCuotaPlataforma>().EjecutarAsync();
+        }
+
+        await EjecutarAvisos();
+        (await Escalar<long>("SELECT count(*) FROM correo_saliente WHERE plantilla = 'aviso_cuota_plataforma'")).Should().Be(1);
+        (await Fila("SELECT datos->>'porcentaje' FROM correo_saliente WHERE plantilla = 'aviso_cuota_plataforma'")).Should().Equal("80");
+
+        await Redis.StringSetAsync(llaveUso, "1000");
+        await EjecutarAvisos();
+        await EjecutarAvisos();
+        (await Escalar<long>("SELECT count(*) FROM correo_saliente WHERE plantilla = 'aviso_cuota_plataforma'")).Should().Be(2);
     }
 
     // RF-22: pagar reactiva suscripciones API en gracia o suspendidas con un ciclo nuevo desde hoy y publica Redis.

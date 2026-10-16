@@ -144,6 +144,10 @@ public interface IResolutorDns
 
 public interface IRepositorioApis
 {
+    Task BloquearRegistroApi(Guid organizacionId, CancellationToken cancelacion = default);
+
+    Task<(int Total, int? Maximo)> ContarApisYObtenerLimite(Guid organizacionId, CancellationToken cancelacion = default);
+
     Task<bool> ExisteSubdominio(string subdominio, CancellationToken cancelacion = default);
 
     Task<bool> Agregar(Api api, CancellationToken cancelacion = default);

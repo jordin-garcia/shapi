@@ -13,13 +13,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NSubstitute;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
+using Shapi.Contratos;
+using Shapi.Contratos.Redis;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Pagos;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.CierreCiclo;
+using StackExchange.Redis;
 
 namespace Shapi.Api.Tests.Suscripciones;
 
@@ -63,6 +67,8 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
 {
     private WebApplicationFactory<Program>? _factory;
     private int _demoraPagosMs;
+    private string? _llaveCuotaEsperada;
+    private bool _redisNoDisponible;
     private PublicadorSuscripcionFalso Publicador => _factory!.Services.GetRequiredService<PublicadorSuscripcionFalso>();
     private WebApplicationFactory<Program> Factory => _factory ??= new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
@@ -71,6 +77,20 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         builder.UseSetting("Pagos:DemoraMs", _demoraPagosMs.ToString());
         builder.ConfigureTestServices(services =>
         {
+            var redisDb = Substitute.For<IDatabase>();
+            redisDb.StringGetAsync(Arg.Any<RedisKey>(), CommandFlags.None).Returns(call =>
+            {
+                if (_redisNoDisponible && call.Arg<RedisKey>().ToString() == _llaveCuotaEsperada)
+                {
+                    throw new TimeoutException("Redis no responde.");
+                }
+
+                return new RedisValue(call.Arg<RedisKey>().ToString() == _llaveCuotaEsperada ? "800" : "0");
+            });
+            var redis = Substitute.For<IConnectionMultiplexer>();
+            redis.GetDatabase(Arg.Any<int>(), Arg.Any<object?>()).Returns(redisDb);
+            services.RemoveAll<IConnectionMultiplexer>();
+            services.AddSingleton(redis);
             services.AddSingleton<IReloj>(Reloj);
             services.AddAuthentication(options =>
             {
@@ -192,6 +212,50 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         body.GetProperty("periodo").GetProperty("inicio").GetDateTimeOffset().Should().BeAfter(DateTimeOffset.MinValue);
         body.GetProperty("proximaRenovacion").GetDateTimeOffset().Should().BeAfter(DateTimeOffset.MinValue);
         (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(1);
+    }
+
+    // RF-43: el uso de plataforma consulta el contador del ciclo actual en Redis y calcula el porcentaje.
+    [Fact]
+    public async Task RF_43_ConsultarUso_DevuelvePeticionesCuotaYPorcentaje()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET cuota_peticiones = 1000 WHERE id = '{plan}'");
+        var suscripcion = await NuevaSuscripcionPlataforma(org, plan);
+        var inicio = DateTimeOffset.Parse(await Escalar<string>($"SELECT inicio::text FROM suscripcion_plataforma WHERE id = '{suscripcion}'"));
+        _llaveCuotaEsperada = LlavesRedis.CuotaOrganizacion(org, inicio.ToUnixTimeSeconds());
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Get, "/api/suscripcion/uso", org, user, null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("peticiones").GetInt64().Should().Be(800);
+        body.GetProperty("cuotaPeticiones").GetInt64().Should().Be(1000);
+        body.GetProperty("porcentaje").GetDecimal().Should().Be(80m);
+    }
+
+    // RF-43: si Redis no responde, consultar el uso informa indisponibilidad temporal.
+    [Fact]
+    public async Task RF_43_ConsultarUso_RedisNoDisponibleResponde503()
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var plan = await NuevoPlanPlataforma();
+        var suscripcion = await NuevaSuscripcionPlataforma(org, plan);
+        var inicio = DateTimeOffset.Parse(await Escalar<string>($"SELECT inicio::text FROM suscripcion_plataforma WHERE id = '{suscripcion}'"));
+        _llaveCuotaEsperada = LlavesRedis.CuotaOrganizacion(org, inicio.ToUnixTimeSeconds());
+        _redisNoDisponible = true;
+        using var client = Factory.CreateClient();
+
+        using var response = await Enviar(client, HttpMethod.Get, "/api/suscripcion/uso", org, user, null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("codigo").GetString().Should().Be(CodigosError.ServicioNoDisponible);
     }
 
     // RNF-08: una organización no puede consultar la suscripción de otra.

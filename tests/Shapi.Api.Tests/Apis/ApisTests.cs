@@ -200,6 +200,28 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Equal("api.registrada", entrada.Accion);
     }
 
+    // RF-43: todas las APIs de la organización cuentan para el límite y el rechazo no guarda otra API.
+    [Fact]
+    public async Task RF_43_RegistrarApi_AlcanzarMaximoResponde422ConLimiteApis()
+    {
+        await using (var conexion = new NpgsqlConnection(_cadena))
+        {
+            await conexion.OpenAsync();
+            await using var comando = new NpgsqlCommand("UPDATE plan_plataforma SET max_apis = 1 WHERE es_prueba", conexion);
+            await comando.ExecuteNonQueryAsync();
+        }
+
+        using var existente = await Registrar($"existente-{Guid.NewGuid():N}"[..20], "https://8.8.8.8");
+        Assert.Equal(HttpStatusCode.Created, existente.StatusCode);
+        using var respuesta = await Registrar($"nueva-{Guid.NewGuid():N}"[..20], "https://8.8.8.8");
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, respuesta.StatusCode);
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("limite_del_plan", problema.GetProperty("codigo").GetString());
+        Assert.Equal("apis", problema.GetProperty("detalle").GetProperty("limite").GetString());
+        Assert.Equal(1, await ContarApis());
+    }
+
     [Fact]
     public async Task RF_08_Registrar_SubdominioReservado_Responde400SinGuardar()
     {
@@ -1086,6 +1108,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
     [Fact]
     public async Task RF_11_ConectarDominio_ProtegeHostsPlataformaYDominioOcupado()
     {
+        await AumentarLimiteApis(_organizacionId, 50);
         var apiUno = await RegistrarYObtenerId("dominio-uno-dc14");
         var apiDos = await RegistrarYObtenerId("dominio-dos-dc14");
         await HabilitarDominioPropio(_organizacionId);
@@ -1148,6 +1171,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
     [Fact]
     public async Task RF_11_Trabajador_VerificaCnameYMarcaFallidoALas72Horas()
     {
+        await AumentarLimiteApis(_organizacionId, 50);
         var apiVerificada = await RegistrarYObtenerId("trabajo-verifica-dc14");
         var apiFallida = await RegistrarYObtenerId("trabajo-falla-dc14");
         var apiPendiente = await RegistrarYObtenerId("trabajo-pendiente-dc14");
@@ -1342,6 +1366,21 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
             WHERE id = (SELECT plan_id FROM suscripcion_plataforma
                         WHERE organizacion_id = @organizacion AND estado <> 'finalizada')
             """;
+        comando.Parameters.AddWithValue("organizacion", organizacionId);
+        await comando.ExecuteNonQueryAsync();
+    }
+
+    private async Task AumentarLimiteApis(Guid organizacionId, int maxApis)
+    {
+        await using var conexion = new NpgsqlConnection(_cadena);
+        await conexion.OpenAsync();
+        await using var comando = conexion.CreateCommand();
+        comando.CommandText = """
+            UPDATE plan_plataforma SET max_apis = @max_apis
+            WHERE id = (SELECT plan_id FROM suscripcion_plataforma
+                        WHERE organizacion_id = @organizacion AND estado <> 'finalizada')
+            """;
+        comando.Parameters.AddWithValue("max_apis", maxApis);
         comando.Parameters.AddWithValue("organizacion", organizacionId);
         await comando.ExecuteNonQueryAsync();
     }

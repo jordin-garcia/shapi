@@ -53,38 +53,9 @@ public class SuscripcionPlataforma : Suscripcion, IPerteneceAOrganizacion
         };
     }
 
-    public void Finalizar(DateTimeOffset ahora)
-    {
-        Estado = EstadoSuscripcion.Finalizada;
-        PlanSiguienteId = null;
-        ActualizadoEn = ahora;
-    }
-
-    public void ProgramarCambio(Guid planId, DateTimeOffset ahora)
-    {
-        PlanSiguienteId = planId;
-        ActualizadoEn = ahora;
-    }
-
-    public void CancelarCambio(DateTimeOffset ahora)
-    {
-        PlanSiguienteId = null;
-        ActualizadoEn = ahora;
-    }
-
     public void CambiarPlan(PlanPlataforma plan, Guid? medioPagoId, DateTimeOffset? inicioNuevoCiclo, DateTimeOffset ahora)
     {
-        PlanId = plan.Id;
-        MedioPagoId = medioPagoId;
-        PlanSiguienteId = null;
-        if (inicioNuevoCiclo is not null)
-        {
-            Inicio = inicioNuevoCiclo.Value;
-            Fin = Inicio.AddDays(plan.VigenciaDias);
-        }
-        Estado = EstadoSuscripcion.Activa;
-        GraciaHasta = null;
-        ActualizadoEn = ahora;
+        base.CambiarPlan(plan.Id, medioPagoId, inicioNuevoCiclo, plan.VigenciaDias, ahora);
     }
 
     public void Reactivar(PlanPlataforma plan, Guid medioPagoId, DateTimeOffset ahora)

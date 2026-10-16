@@ -33,6 +33,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suscripcion/uso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta el consumo de cuota de la suscripción de plataforma */
+        get: operations["obtenerUsoSuscripcionPlataforma"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/suscripcion/contratar": {
         parameters: {
             query?: never;
@@ -152,6 +169,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/suscripcion/cambiar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cambia o programa un cambio de plan del consumidor */
+        post: operations["cambiarPlanSuscripcionApi"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -221,6 +255,18 @@ export interface components {
             inicio: string;
             /** Format: date-time */
             fin: string;
+        };
+        ResultadoCambioSuscripcionApi: {
+            /** @constant */
+            estado: "activa";
+            credito: number;
+            cargo: number;
+            aPagar: number;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fin: string;
+            claves: components["schemas"]["ClaveEmitida"][];
         };
         PeticionSuscripcionPlataforma: {
             /** Format: uuid */
@@ -422,6 +468,50 @@ export interface operations {
             };
             /** @description No existe una suscripción vigente */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    obtenerUsoSuscripcionPlataforma: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Peticiones utilizadas, cuota y porcentaje del ciclo actual */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        peticiones: number;
+                        /** Format: int64 */
+                        cuotaPeticiones: number;
+                        porcentaje: number;
+                    };
+                };
+            };
+            /** @description No existe una suscripción vigente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Redis no está disponible para consultar el uso de cuota (`servicio_no_disponible`) */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -835,6 +925,70 @@ export interface operations {
             };
             /** @description La tarjeta no es válida o la suscripción no es de pago */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela no está disponible */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    cambiarPlanSuscripcionApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    planId: string;
+                    tarjeta?: components["schemas"]["Tarjeta"];
+                };
+            };
+        };
+        responses: {
+            /** @description Cambio prorrateado, plan cambiado, sin cambios o cambio programado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultadoCambioSuscripcionApi"] | components["schemas"]["ResultadoCambioProgramado"] | components["schemas"]["ResultadoSinCambios"];
+                };
+            };
+            /** @description Falta la tarjeta o sus datos no son válidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description La pasarela rechazó el pago y no se cambió el plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Portal, consumidor, suscripción o plan no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

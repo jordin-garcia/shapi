@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-14
 depende_de: [EM-10, DC-04]
 requisitos: [RF-43, RF-25]
@@ -51,3 +51,11 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Pantalla B2.7 (DC-13)
+
+## Resultado
+- Se aplica el límite `max_apis` antes de registrar una API y se expone `PermiteDominioPropio` para su reutilización.
+- Se agregó la consulta del uso de cuota, los avisos del panel en 80 % y 100 %, y el trabajo periódico que notifica una vez por umbral y ciclo.
+- El consumidor puede subir o bajar de plan con prorrateo y publicación de caché; las bajadas quedan programadas y las subidas gratuitas crean el nuevo ciclo y devuelven las claves emitidas una sola vez.
+- Los avisos de cuota también cubren suscripciones en gracia y conservan los filtros de propietario activo y cuota positiva.
+- El contrato OpenAPI y los tipos de TypeScript quedaron actualizados. Las pruebas de integración cubren los límites, cambios de plan y avisos.
+- En `docs/plan/bitacora/emilio.md` está la evidencia de verificación y los avisos a las personas dueñas de archivos.

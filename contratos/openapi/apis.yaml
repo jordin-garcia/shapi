@@ -64,7 +64,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problema'
         '422':
-          description: El origen está prohibido (`origen_no_permitido`) o no respondió (`origen_inaccesible`).
+          description: El origen está prohibido (`origen_no_permitido`), no respondió (`origen_inaccesible`) o se alcanzó el límite de APIs del plan (`limite_del_plan`, `detalle.limite = apis`).
           content:
             application/problem+json:
               schema:

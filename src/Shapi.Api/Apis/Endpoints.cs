@@ -335,6 +335,7 @@ public static class Endpoints
             CodigosError.CorreoNoVerificado or CodigosError.PublicacionIncompleta
                 => StatusCodes.Status422UnprocessableEntity,
             CodigosError.PlanSinDominioPropio => StatusCodes.Status422UnprocessableEntity,
+            CodigosError.LimiteDelPlan => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError,
         };
         var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };

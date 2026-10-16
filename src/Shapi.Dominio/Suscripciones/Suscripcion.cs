@@ -63,6 +63,46 @@ public abstract class Suscripcion
         ActualizadoEn = ahora;
     }
 
+    public void ProgramarCambio(Guid planId, DateTimeOffset ahora)
+    {
+        PlanSiguienteId = planId;
+        ActualizadoEn = ahora;
+    }
+
+    public void CancelarCambio(DateTimeOffset ahora)
+    {
+        PlanSiguienteId = null;
+        ActualizadoEn = ahora;
+    }
+
+    public void Finalizar(DateTimeOffset ahora)
+    {
+        Estado = EstadoSuscripcion.Finalizada;
+        PlanSiguienteId = null;
+        ActualizadoEn = ahora;
+    }
+
+    public void CambiarPlan(Guid planId, Guid? medioPagoId, DateTimeOffset? inicioNuevoCiclo, int vigenciaDias, DateTimeOffset ahora)
+    {
+        if (vigenciaDias <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(vigenciaDias));
+        }
+
+        PlanId = planId;
+        MedioPagoId = medioPagoId;
+        PlanSiguienteId = null;
+        if (inicioNuevoCiclo is not null)
+        {
+            Inicio = inicioNuevoCiclo.Value;
+            Fin = Inicio.AddDays(vigenciaDias);
+        }
+
+        Estado = EstadoSuscripcion.Activa;
+        GraciaHasta = null;
+        ActualizadoEn = ahora;
+    }
+
     /// <summary>
     /// Inicio de un ciclo (09 §4): el momento de la contratación redondeado al inicio del día en America/Guatemala.
     /// El fin es <c>inicio + vigencia_dias</c>.
