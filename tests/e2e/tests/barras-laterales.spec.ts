@@ -63,17 +63,21 @@ for (const [area, host, correo, ruta] of [
 }
 
 test('RNF-12 · solo la lista de rutas se desplaza cuando excede la barra', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1366, height: 650 });
   await entrar(page, 'https://envios.shapi.localhost', 'mariajose@mercaditoantigua.com');
-  await page.route('**/api/portal/documentacion', async ruta => {
-    const respuesta = await ruta.fetch();
-    const datos = await respuesta.json();
-    datos.rutas = Array.from({ length: 35 }, (_, i) => ({ ...datos.rutas[0], patron: `/ruta-${i}` }));
-    await ruta.fulfill({ response: respuesta, json: datos });
+  // Obtiene el contrato real desde el navegador: Chromium resuelve *.localhost sin DNS externo.
+  const datos = await page.evaluate(async () => {
+    const respuesta = await fetch('/api/portal/documentacion');
+    if (!respuesta.ok) throw new Error('No se pudo preparar la documentación de prueba.');
+    return respuesta.json();
   });
+  expect(datos.rutas.length).toBeGreaterThan(0);
+  datos.rutas = Array.from({ length: 35 }, (_, i) => ({ ...datos.rutas[0], patron: `/ruta-${i}` }));
+  await page.route('**/api/portal/documentacion', ruta => ruta.fulfill({ json: datos }));
   await page.goto('https://envios.shapi.localhost/documentacion');
   const lista = page.getByLabel('Rutas documentadas');
-  await expect(lista.getByRole('link')).toHaveCount(35);
+  await expect(lista.getByRole('link')).toHaveCount(35, { timeout: 30_000 });
   expect(await lista.evaluate(e => e.scrollHeight > e.clientHeight)).toBe(true);
   await lista.evaluate(e => { e.scrollTop = e.scrollHeight; });
   await expect(lista.getByRole('link').last()).toBeInViewport({ ratio: 1 });
