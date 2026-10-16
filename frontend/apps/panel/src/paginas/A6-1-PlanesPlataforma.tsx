@@ -18,6 +18,15 @@ function dinero(precio: number) {
   return `Q ${precio.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function limites(plan: Plan) {
+  if (plan.maxApis === null && plan.maxMiembros === null) {
+    return `APIs y miembros ilimitados · ${plan.cuotaPeticiones.toLocaleString('en-US')} peticiones${plan.dominioPropio ? ' · dominio propio' : ''}`;
+  }
+  const apis = plan.maxApis === null ? 'APIs ilimitadas' : `${plan.maxApis} ${plan.maxApis === 1 ? 'API' : 'APIs'}`;
+  const miembros = plan.maxMiembros === null ? 'miembros ilimitados' : `${plan.maxMiembros} ${plan.maxMiembros === 1 ? 'miembro' : 'miembros'}`;
+  return `${apis} · ${plan.cuotaPeticiones.toLocaleString('en-US')} peticiones · ${miembros}${plan.dominioPropio ? ' · dominio propio' : ''}`;
+}
+
 export default function PaginaA61PlanesPlataforma() {
   const cache = useQueryClient();
   const consulta = useQuery({ queryKey: ['admin', 'planes-plataforma'], queryFn: listar, retry: false });
@@ -61,7 +70,7 @@ export default function PaginaA61PlanesPlataforma() {
           <td className="py-3 pr-4 text-sm">{plan.descripcion}</td>
           <td className="py-3 pr-4 whitespace-nowrap">{dinero(plan.precio)}</td>
           <td className="py-3 pr-4 whitespace-nowrap">{plan.vigenciaDias} días</td>
-          <td className="py-3 pr-4 text-sm">{plan.maxApis ?? 'Ilimitadas'} APIs · {plan.cuotaPeticiones.toLocaleString('en-US')} peticiones · {plan.maxMiembros ?? 'Ilimitados'} miembros{plan.dominioPropio ? ' · Dominio propio' : ''}</td>
+          <td className="py-3 pr-4 text-sm">{limites(plan)}</td>
           <td className="py-3 text-right"><button type="button" onClick={() => setPlanSeleccionado(plan)} className="font-medium text-principal hover:underline">Editar</button></td>
         </tr>)}</tbody>
       </table></div>
@@ -98,14 +107,14 @@ function FormularioPlan({ original, cancelar, guardado, desactivar, errorDesacti
       <section className="rounded-base border border-borde bg-panel p-5">
         <h2 className="font-display text-[21px]">Datos del plan</h2>
         <div className="mt-5 flex flex-col gap-4 border-t border-borde-fila pt-5">
-          <Campo label="Nombre" value={nombre} onChange={setNombre} required />
-          <Campo label="Descripción" value={descripcion} onChange={setDescripcion} required multiline />
+          <Campo label="Nombre" value={nombre} onChange={setNombre} required placeholder="Nombre del plan" />
+          <Campo label="Descripción" value={descripcion} onChange={setDescripcion} required multiline placeholder="Para qué sirve este plan" />
         </div>
         <h2 className="mt-6 border-t border-borde-fila pt-5 font-display text-[21px]">Límites del plan</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          <Campo label="APIs" value={apis} onChange={setApis} type="number" min="1" placeholder="Ilimitadas" />
-          <Campo label="Peticiones por ciclo" value={peticiones} onChange={setPeticiones} type="number" min="1" required />
-          <Campo label="Miembros" value={miembros} onChange={setMiembros} type="number" min="1" placeholder="Ilimitados" />
+          <Campo label="APIs" value={apis} onChange={setApis} type="number" min="1" placeholder="0" suffix="APIs" />
+          <Campo label="Peticiones por ciclo" value={peticiones} onChange={setPeticiones} type="number" min="1" required placeholder="0" suffix="peticiones" />
+          <Campo label="Miembros" value={miembros} onChange={setMiembros} type="number" min="1" placeholder="0" suffix="miembros" />
         </div>
         <label className="mt-5 flex items-start gap-3 rounded-base border border-borde p-3.5"><input type="checkbox" checked={dominio} onChange={e => setDominio(e.target.checked)} /><span><span className="block font-medium">Dominio propio</span><span className="text-sm text-tinta-suave">Con este plan la organización puede conectar su propio dominio a las APIs que publique.</span></span></label>
       </section>
@@ -124,8 +133,8 @@ function FormularioPlan({ original, cancelar, guardado, desactivar, errorDesacti
   </div>;
 }
 
-function Campo({ label, value, onChange, type = 'text', min, step, placeholder, required, multiline, prefix }: { label: string; value: string; onChange: (value: string) => void; type?: string; min?: string; step?: string; placeholder?: string; required?: boolean; multiline?: boolean; prefix?: string }) {
+function Campo({ label, value, onChange, type = 'text', min, step, placeholder, required, multiline, prefix, suffix }: { label: string; value: string; onChange: (value: string) => void; type?: string; min?: string; step?: string; placeholder?: string; required?: boolean; multiline?: boolean; prefix?: string; suffix?: string }) {
   const id = `campo-${label.toLowerCase().replaceAll(' ', '-')}`;
   const common = { id, 'aria-label': label, value, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value), required, placeholder, className: 'w-full rounded-base border border-borde bg-white px-3.5 py-3 text-[15px] font-normal' };
-  return <label htmlFor={id} className="flex flex-col gap-1.5 text-[13px] font-semibold">{label}{multiline ? <textarea {...common} rows={3} /> : <span className="flex items-center rounded-base border border-borde bg-white px-3.5"><span>{prefix}</span><input {...common} type={type} min={min} step={step} className="w-full border-0 px-2 py-3 text-[15px] font-normal outline-none" /></span>}</label>;
+  return <label htmlFor={id} className="flex flex-col gap-1.5 text-[13px] font-semibold">{label}{multiline ? <textarea {...common} rows={3} /> : <span className="flex items-center rounded-base border border-borde bg-white px-3.5"><span>{prefix}</span><input {...common} type={type} min={min} step={step} className="w-full border-0 px-2 py-3 text-[15px] font-normal outline-none" /><span className="text-xs text-tinta-suave">{suffix}</span></span>}</label>;
 }

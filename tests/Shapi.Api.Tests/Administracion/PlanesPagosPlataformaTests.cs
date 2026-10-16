@@ -92,7 +92,7 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         using var crear = await Enviar(HttpMethod.Post, "/api/admin/planes-plataforma", admin,
             new
             {
-                nombre = "Escala anual",
+                nombre = "Administración EM14",
                 descripcion = "Para equipos grandes",
                 precio = 1999m,
                 vigenciaDias = 365,
@@ -109,7 +109,7 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         using var editar = await Enviar(HttpMethod.Put, $"/api/admin/planes-plataforma/{planNuevo}", admin,
             new
             {
-                nombre = "Escala anual",
+                nombre = "Administración EM14",
                 descripcion = "Actualizado",
                 precio = 2099m,
                 vigenciaDias = 365,
@@ -131,6 +131,9 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         desactivarVigente.StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await Escalar<string>($"SELECT activo::text FROM plan_plataforma WHERE id = '{planConSuscripcion}'")).Should().Be("false");
         (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'plan_plataforma.creado' AND objetivo_id = '{planNuevo}'")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'plan_plataforma.editado' AND objetivo_id = '{planNuevo}'")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'plan_plataforma.desactivado' AND objetivo_id = '{planConSuscripcion}'")).Should().Be(1);
 
         using var denegada = await Enviar(HttpMethod.Get, "/api/admin/planes-plataforma", soporte);
         denegada.StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -196,6 +199,21 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
             .Should().Equal("en_gracia", "true");
         _fabrica.Services.GetRequiredService<PublicadorCacheAdministracionFalso>().SuscripcionesPublicadas.Should().Contain(suscripcion);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'pago.revertido' AND objetivo_id = '{pago}'")).Should().Be(1);
+
+        var suscripcionFinalizada = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin)
+            VALUES (gen_random_uuid(), '{org}', '{plan}', 'finalizada', '{Reloj.Ahora.AddDays(-5):O}', '{Reloj.Ahora.AddDays(25):O}')
+            RETURNING id
+            """);
+        var pagoFinalizado = await Escalar<Guid>($"""
+            INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado, referencia_pasarela, periodo_inicio, periodo_fin)
+            VALUES (gen_random_uuid(), '{suscripcionFinalizada}', 'contratacion', 'Contratación del plan Lanzamiento', 199, 'autorizado', 'ch_finalizado_123',
+                    '{Reloj.Ahora.AddDays(-5):O}', '{Reloj.Ahora.AddDays(25):O}') RETURNING id
+            """);
+        using var revertirFinalizada = await Enviar(HttpMethod.Post, $"/api/admin/pagos/{pagoFinalizado}/revertir", admin);
+        revertirFinalizada.StatusCode.Should().Be(HttpStatusCode.NoContent, await revertirFinalizada.Content.ReadAsStringAsync());
+        (await Fila($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcionFinalizada}'")).Should().Equal("finalizada");
+        (await Fila($"SELECT estado FROM pago WHERE id = '{pagoFinalizado}'")).Should().Equal("revertido");
     }
 
     // RF-24: soporte no lista ni revierte pagos de plataforma.

@@ -7,7 +7,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PaginaA61PlanesPlataforma from './A6-1-PlanesPlataforma';
 
 const planes = [{ id: 'plan-1', nombre: 'Lanzamiento', descripcion: 'Para empezar', precio: 199, moneda: 'GTQ' as const,
-  vigenciaDias: 30, maxApis: 5, maxMiembros: 3, cuotaPeticiones: 50000, dominioPropio: false, esPrueba: false, activo: true, orden: 1 }];
+  vigenciaDias: 30, maxApis: 5, maxMiembros: 3, cuotaPeticiones: 50000, dominioPropio: false, esPrueba: false, activo: true, orden: 1 },
+{ id: 'plan-2', nombre: 'Prueba', descripcion: 'Primera API', precio: 0, moneda: 'GTQ' as const,
+  vigenciaDias: 30, maxApis: 1, maxMiembros: 1, cuotaPeticiones: 10000, dominioPropio: false, esPrueba: true, activo: true, orden: 2 },
+{ id: 'plan-3', nombre: 'Escala', descripcion: 'Sin límites de recursos', precio: 1500, moneda: 'GTQ' as const,
+  vigenciaDias: 30, maxApis: null, maxMiembros: null, cuotaPeticiones: 10000000, dominioPropio: true, esPrueba: false, activo: true, orden: 3 }];
 const servidor = setupServer(
   http.get('http://localhost/api/admin/planes-plataforma', () => HttpResponse.json(planes)),
   http.post('http://localhost/api/admin/planes-plataforma', async ({ request }) => HttpResponse.json({ id: 'plan-2', ...(await request.json() as object), moneda: 'GTQ', esPrueba: false, activo: true, orden: 2 }, { status: 201 })),
@@ -30,6 +34,13 @@ describe('PaginaA61PlanesPlataforma', () => {
     expect(screen.getByText('Lanzamiento')).toBeDefined();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Crear un plan' }));
     expect(screen.getByRole('heading', { name: 'Crear plan de plataforma' })).toBeDefined();
+  });
+
+  it('RF-17 reproduce singular y plural de límites y el texto de límites ilimitados', async () => {
+    renderizar();
+    expect(await screen.findByText('1 API · 10,000 peticiones · 1 miembro')).toBeDefined();
+    expect(screen.getByText('5 APIs · 50,000 peticiones · 3 miembros')).toBeDefined();
+    expect(screen.getByText('APIs y miembros ilimitados · 10,000,000 peticiones · dominio propio')).toBeDefined();
   });
 
   it('RF-17 crea un plan con sus límites y precio', async () => {
@@ -61,7 +72,7 @@ describe('PaginaA61PlanesPlataforma', () => {
       return HttpResponse.json({ ...planes[0], descripcion: cuerpo.descripcion });
     }));
     renderizar();
-    await usuario.click(await screen.findByRole('button', { name: 'Editar' }));
+    await usuario.click((await screen.findAllByRole('button', { name: 'Editar' }))[0]);
     expect(screen.getByRole('heading', { name: 'Editar plan de plataforma' })).toBeDefined();
     const descripcion = screen.getByRole('textbox', { name: 'Descripción' });
     await usuario.clear(descripcion);

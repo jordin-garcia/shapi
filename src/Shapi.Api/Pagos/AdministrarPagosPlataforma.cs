@@ -43,13 +43,11 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
                 on pago.SuscripcionPlataformaId equals (Guid?)suscripcion.Id
             join organizacion in db.Set<Organizacion>().IgnoreQueryFilters().AsNoTracking()
                 on suscripcion.OrganizacionId equals organizacion.Id
-            join plan in db.Set<PlanPlataforma>().IgnoreQueryFilters().AsNoTracking()
-                on suscripcion.PlanId equals plan.Id
             join medio in db.Set<MedioPago>().IgnoreQueryFilters().AsNoTracking()
                 on pago.MedioPagoId equals (Guid?)medio.Id into medios
             from medio in medios.DefaultIfEmpty()
             orderby pago.CreadoEn descending
-            select new { pago, organizacion, plan, medio };
+            select new { pago, organizacion, medio };
 
         var resultados = await consulta.Take(500).ToListAsync(ct);
         return resultados.Select(fila => new PagoPlataformaAdministracion(
@@ -92,6 +90,7 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
         var suscripcion = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters()
             .SingleOrDefaultAsync(s => s.Id == suscripcionId, ct);
         var afectaCicloVigente = suscripcion is not null
+            && suscripcion.Estado != EstadoSuscripcion.Finalizada
             && pago.PeriodoInicio is not null
             && pago.PeriodoFin is not null
             && suscripcion.Inicio == pago.PeriodoInicio

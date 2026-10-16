@@ -56,6 +56,8 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ## Resultado
 - Se agregaron los endpoints administrativos para listar, crear, editar y desactivar planes de plataforma, y para consultar y revertir pagos. La reversión exige un pago autorizado, registra la bitácora y pone en gracia por siete días la suscripción cuyo ciclo vigente se reembolsó.
 - Se implementaron A6.1, A6.3 y la confirmación A6.3b, con permisos, errores, estados vacíos y formularios conectados a la API. Los contratos OpenAPI y los tipos TypeScript se actualizaron.
-- Verificación local: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; `pnpm lint`, `pnpm typecheck`, `pnpm test` (448 pruebas) y `pnpm build` pasan; `node scripts/tareas.mjs --validar` informa 76 tareas válidas.
+- A6.1 ofrece la acción de desactivar desde la edición para que el administrador pueda aplicar la operación del criterio 1 sin borrar planes. La columna de límites mantiene singular/plural y el texto combinado de límites ilimitados del mockup.
+- Verificación local: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; `pnpm lint`, `pnpm typecheck`, `pnpm test` (451 pruebas) y `pnpm build` pasan; `node scripts/tareas.mjs --validar` informa 76 tareas válidas.
 - Revisión en contexto limpio: revisión independiente LISTO, sin hallazgos pendientes. Se corrigió el nombre mostrado en los pagos por cambio de plan, reactivación y renovación, con cobertura para los tres formatos.
 - Las pruebas de integración con Testcontainers no se pudieron ejecutar localmente porque Docker no está disponible; se ejecutarán en la CI del PR.
+- La primera CI encontró que el nombre del plan nuevo usado por una prueba de integración ya existía en los datos sembrados. Lo cambié a un nombre exclusivo; la CI del nuevo commit volverá a ejecutar la suite backend completa.
