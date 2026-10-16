@@ -31,8 +31,7 @@ public static class Endpoints
     {
         var actorId = Guid.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var actorNombre = http.User.FindFirstValue(ClaimTypes.Name) ?? "Administrador";
-        var organizacion = Guid.Parse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);
-        var resultado = await caso.Revertir(id, actorId, actorNombre, organizacion,
+        var resultado = await caso.Revertir(id, actorId, actorNombre,
             http.Connection.RemoteIpAddress?.ToString(), ct);
         return resultado switch
         {

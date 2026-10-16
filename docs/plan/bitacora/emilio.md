@@ -125,6 +125,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Revisión en contexto limpio: revisión independiente LISTO. Se corrigió el nombre de plan mostrado en pagos por cambio, reactivación y renovación, y se agregó cobertura para los tres casos.
 - Revisión automática del PR: se cubre el reembolso de una suscripción finalizada sin reactivarla, los textos singular/plural e ilimitados de A6.1, el orden de A6.3b y las tres acciones de bitácora de planes.
 - Verificación: tras esos cambios, las 451 pruebas del frontend, lint, typecheck y build pasan; el build backend pasa sin advertencias ni errores y el formato verificado. La primera CI backend corrió 956 pruebas y detectó que una prueba nueva usaba un nombre de plan ya sembrado; cambié el nombre para que sea exclusivo y la CI del nuevo commit confirmará el arreglo.
+- Revisión automática del segundo commit: se restringió la gracia a suscripciones activas y se probó que una suspendida conserve su estado. La bitácora de reembolso ahora identifica la organización afectada y describe el monto y el cobro; la prueba verifica ambos campos. La revisión independiente quedó LISTO.
 - Pendiente o aviso para otros:
   - **Jordin:** confirmar en CI las pruebas backend de integración; Docker no está disponible en el entorno local.
   - **Dominique:** actualicé los interceptores MSW del catálogo de rutas para A6.1 y A6.3 en `frontend/apps/panel/src/tests/rutas.test.tsx`.

@@ -199,6 +199,9 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
             .Should().Equal("en_gracia", "true");
         _fabrica.Services.GetRequiredService<PublicadorCacheAdministracionFalso>().SuscripcionesPublicadas.Should().Contain(suscripcion);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'pago.revertido' AND objetivo_id = '{pago}'")).Should().Be(1);
+        var nombreOrg = await Escalar<string>($"SELECT nombre FROM organizacion WHERE id = '{org}'");
+        (await Fila($"SELECT organizacion_id::text, descripcion FROM bitacora WHERE accion = 'pago.revertido' AND objetivo_id = '{pago}'"))
+            .Should().Equal(org.ToString(), $"Revirtió el cobro de Q 199.00 de {nombreOrg}");
 
         var suscripcionFinalizada = await Escalar<Guid>($"""
             INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin)
@@ -214,6 +217,21 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         revertirFinalizada.StatusCode.Should().Be(HttpStatusCode.NoContent, await revertirFinalizada.Content.ReadAsStringAsync());
         (await Fila($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcionFinalizada}'")).Should().Equal("finalizada");
         (await Fila($"SELECT estado FROM pago WHERE id = '{pagoFinalizado}'")).Should().Equal("revertido");
+
+        var orgSuspendida = await NuevaOrganizacion();
+        var suscripcionSuspendida = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin)
+            VALUES (gen_random_uuid(), '{orgSuspendida}', '{plan}', 'suspendida', '{Reloj.Ahora.AddDays(-5):O}', '{Reloj.Ahora.AddDays(25):O}')
+            RETURNING id
+            """);
+        var pagoSuspendido = await Escalar<Guid>($"""
+            INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado, referencia_pasarela, periodo_inicio, periodo_fin)
+            VALUES (gen_random_uuid(), '{suscripcionSuspendida}', 'cambio_plan', 'Lanzamiento → Producto · diferencia prorrateada', 173.34, 'autorizado', 'ch_suspendido_123',
+                    '{Reloj.Ahora.AddDays(-5):O}', '{Reloj.Ahora.AddDays(25):O}') RETURNING id
+            """);
+        using var revertirSuspendida = await Enviar(HttpMethod.Post, $"/api/admin/pagos/{pagoSuspendido}/revertir", admin);
+        revertirSuspendida.StatusCode.Should().Be(HttpStatusCode.NoContent, await revertirSuspendida.Content.ReadAsStringAsync());
+        (await Fila($"SELECT estado FROM suscripcion_plataforma WHERE id = '{suscripcionSuspendida}'")).Should().Equal("suspendida");
     }
 
     // RF-24: soporte no lista ni revierte pagos de plataforma.

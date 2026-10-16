@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
@@ -63,8 +64,8 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
             fila.pago.PeriodoFin)).ToArray();
     }
 
-    public async Task<ResultadoReversionPago> Revertir(Guid id, Guid actorId, string actorNombre,
-        Guid organizacionPlataforma, string? ip, CancellationToken ct)
+    public async Task<ResultadoReversionPago> Revertir(Guid id, Guid actorId, string actorNombre, string? ip,
+        CancellationToken ct)
     {
         await using var transaccion = await db.Database.BeginTransactionAsync(ct);
         var pago = await db.Set<Pago>().FromSqlInterpolated($"SELECT * FROM pago WHERE id = {id} FOR UPDATE")
@@ -78,6 +79,17 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
             return ResultadoReversionPago.NoAutorizado;
         }
 
+        var suscripcionId = pago.SuscripcionPlataformaId.Value;
+        var suscripcion = await db.Set<SuscripcionPlataforma>()
+            .FromSqlInterpolated($"SELECT * FROM suscripcion_plataforma WHERE id = {suscripcionId} FOR UPDATE")
+            .IgnoreQueryFilters().SingleOrDefaultAsync(ct);
+        if (suscripcion is null)
+        {
+            return ResultadoReversionPago.NoEncontrado;
+        }
+        var nombreOrganizacion = await db.Set<Organizacion>().IgnoreQueryFilters()
+            .Where(o => o.Id == suscripcion.OrganizacionId).Select(o => o.Nombre).SingleAsync(ct);
+
         var reembolso = await pasarela.ReembolsarAsync(pago.ReferenciaPasarela);
         if (!reembolso.Exitoso)
         {
@@ -86,11 +98,7 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
 
         var ahora = reloj.Ahora;
         pago.Revertir(actorId, ahora);
-        var suscripcionId = pago.SuscripcionPlataformaId.Value;
-        var suscripcion = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters()
-            .SingleOrDefaultAsync(s => s.Id == suscripcionId, ct);
-        var afectaCicloVigente = suscripcion is not null
-            && suscripcion.Estado != EstadoSuscripcion.Finalizada
+        var afectaCicloVigente = suscripcion.Estado == EstadoSuscripcion.Activa
             && pago.PeriodoInicio is not null
             && pago.PeriodoFin is not null
             && suscripcion.Inicio == pago.PeriodoInicio
@@ -99,11 +107,13 @@ public sealed class AdministrarPagosPlataforma(ShapiDbContext db, IPasarelaPagos
             && ahora < pago.PeriodoFin;
         if (afectaCicloVigente)
         {
-            suscripcion!.EntrarEnGraciaHasta(ahora.AddDays(7), ahora);
+            suscripcion.EntrarEnGraciaHasta(ahora.AddDays(7), ahora);
         }
 
-        await bitacora.Registrar(new Shapi.Aplicacion.Comun.EntradaBitacora(TipoActor.Usuario, actorId, actorNombre, organizacionPlataforma,
-            AccionesBitacora.PagoRevertido, $"Revirtió el pago de plataforma {pago.Id} por Q {pago.Monto:0.00}.")
+        var descripcionBitacora = string.Create(CultureInfo.InvariantCulture,
+            $"Revirtió el cobro de Q {pago.Monto:0.00} de {nombreOrganizacion}");
+        await bitacora.Registrar(new Shapi.Aplicacion.Comun.EntradaBitacora(TipoActor.Usuario, actorId, actorNombre, suscripcion.OrganizacionId,
+            AccionesBitacora.PagoRevertido, descripcionBitacora)
         {
             ObjetivoTipo = "pago",
             ObjetivoId = pago.Id,
