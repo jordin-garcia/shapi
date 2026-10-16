@@ -54,6 +54,7 @@ beforeEach(() => {
     http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())),
     http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos' }], total: 1 })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
+    http.get('http://localhost/api/planes-plataforma', () => HttpResponse.json([])),
   );
 });
 afterEach(() => { cleanup(); cliente.clear(); vi.restoreAllMocks(); });
@@ -113,7 +114,7 @@ describe('RF-07 · H-102 barras laterales completas (N.1, A6 y B3)', () => {
 describe('RNF-12 · H-94 y H-95 sitio público y errores', () => {
   it('RNF-12 A0.1 (/) se muestra sin el encabezado de A1', async () => {
     await abrir('/');
-    expect(await screen.findByText(/^A0-1 ·/)).toBeDefined();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Shapi' })).toBeDefined();
     expect(screen.queryByRole('banner')).toBeNull();
   });
 

@@ -28,6 +28,7 @@ const rutas = [...catalogo.matchAll(/^\| (A[0-468][\w.]*|A7[\w.]*|B[13][\w.]*) \
 rutas.push({ ruta: '/', id: 'A0-1' });
 // Las pantallas ya implementadas se reconocen por su título, en lugar del texto de relleno "<ID> ·".
 const implementadas: Record<string, string> = {
+  'A0-1': 'Shapi',
   'A1-1': 'Crear una cuenta',
   'A1-2': 'Revise su correo',
   'A1-3': 'Entrar a Shapi',
