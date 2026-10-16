@@ -39,11 +39,11 @@ const errorDelServidor = () => HttpResponse.json({ type: 'https://tools.ietf.org
   { status: 500, headers: { 'Content-Type': 'application/problem+json' } });
 const errorBajo = (etiqueta: string) => {
   const id = campo(etiqueta).getAttribute('aria-describedby')?.split(' ').at(-1);
-  return id ? document.getElementById(id)?.textContent : null;
+  return (id ? document.getElementById(id)?.textContent : '') ?? '';
 };
 
 it.each(['/registro', '/entrar', '/restablecer?token=abc', '/invitacion?token=abc'])('RNF-12 · el campo compartido permite mostrar la contraseña en %s', async ruta => {
-  server.use(http.get('http://localhost/api/invitaciones/abc', () => HttpResponse.json({ correo: 'invitada@ejemplo.test', nombreOrganizacion: 'Organización', cuentaExistente: false })));
+  server.use(http.get('http://localhost/api/invitaciones/abc', () => HttpResponse.json({ correo: 'invitada@ejemplo.test', organizacion: 'Organización', rol: 'editor', expiraEn: '2026-12-01T06:00:00Z', cuentaExistente: false })));
   await abrir(ruta);
   const ojo = await screen.findByRole('button', { name: 'Mostrar contraseña' });
   const entrada = screen.getByLabelText(ruta.startsWith('/restablecer') ? 'Contraseña nueva' : 'Contraseña') as HTMLInputElement;

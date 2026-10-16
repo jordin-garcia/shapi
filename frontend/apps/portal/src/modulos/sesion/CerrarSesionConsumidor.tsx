@@ -25,7 +25,7 @@ export function CerrarSesionConsumidor() {
     },
   });
 
-  // Fragmento: el aviso ocupa una línea propia, a todo el ancho del pie de la barra (que usa flex-wrap).
+  // El error queda sobre el contenido para no desplazar ni tapar las opciones del pie fijo.
   return (
     <>
       <button
@@ -43,7 +43,7 @@ export function CerrarSesionConsumidor() {
         </svg>
       </button>
       {cerrar.isError && (
-        <div className="basis-full">
+        <div className="fixed bottom-5 left-[288px] z-50 w-[360px]">
           <AvisoError mensaje="No se pudo cerrar la sesión." reintentar={() => cerrar.mutate()} />
         </div>
       )}
