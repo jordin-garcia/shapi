@@ -30,6 +30,7 @@ export default function PaginaB14Suscripcion() {
     },
     retry: false,
   });
+  function limpiarTarjeta() { setNumero(''); setMes(''); setAnio(''); setCvv(''); setTitular(''); }
   const pagar = useMutation({
     mutationFn: async () => {
       const { data, response } = await cliente.POST('/api/suscripcion/pagar', {
@@ -38,8 +39,11 @@ export default function PaginaB14Suscripcion() {
       if (!response.ok || !data) throw new Error('No se pudo reactivar la suscripción.');
       return data;
     },
-    onSuccess: async () => { setMostrarPago(false); await cache.invalidateQueries({ queryKey: ['suscripcion-plataforma'] }); },
-    onError: e => setError(e instanceof ErrorApi ? e.titulo : 'No se autorizó el cobro. Revise los datos de la tarjeta.'),
+    onSuccess: async () => { limpiarTarjeta(); setMostrarPago(false); await cache.invalidateQueries({ queryKey: ['suscripcion-plataforma'] }); },
+    onError: e => {
+      if (e instanceof ErrorApi && e.estado === 402 && e.codigo === 'pago_rechazado') limpiarTarjeta();
+      setError(e instanceof ErrorApi ? e.titulo : 'No se autorizó el cobro. Revise los datos de la tarjeta.');
+    },
   });
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.isError) return <EstadoError mensaje="No se pudo cargar la suscripción." reintentar={() => void consulta.refetch()} />;

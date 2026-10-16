@@ -43,6 +43,16 @@ const problema = (estado: number, codigo: string, titulo: string, errores?: Reco
     { status: estado, headers: { 'Content-Type': 'application/problem+json' } });
 
 describe('RF-04 · A8.1 Perfil', () => {
+  it('RNF-12 · los dos campos de A8.1 usan el ojo compartido de forma independiente', async () => {
+    await abrir('/panel/perfil');
+    const ojos = await screen.findAllByRole('button', { name: 'Mostrar contraseña' });
+    expect(ojos).toHaveLength(2);
+    await userEvent.click(ojos[0]);
+    expect((screen.getByLabelText('Contraseña actual') as HTMLInputElement).type).toBe('text');
+    expect((screen.getByLabelText('Contraseña nueva') as HTMLInputElement).type).toBe('password');
+    await userEvent.click(ojos[1]);
+    expect((screen.getByLabelText('Contraseña nueva') as HTMLInputElement).type).toBe('text');
+  });
   it('muestra el formulario con el perfil actual', async () => {
     await abrir('/panel/perfil');
     expect(await screen.findByRole('heading', { name: 'Mi perfil' })).toBeDefined();

@@ -1,6 +1,6 @@
 import { useState, useRef, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Boton, Campo, Toast } from '@shapi/ui';
+import { Boton, Campo, CampoContrasena, Toast } from '@shapi/ui';
 import { editarPerfil, cambiarContrasena, interpretarError, type ErrorFormulario } from '../modulos/identidad/useIdentidad';
 import { AvisoError } from '../modulos/identidad/Formularios';
 import { useSesion, claveSesion } from '../modulos/sesion/useSesion';
@@ -138,12 +138,12 @@ export default function PaginaA81Perfil() {
 
               <div className="flex flex-col gap-[7px]">
                 <label htmlFor="contrasenaActual" className="text-[13px] font-semibold text-tinta">Contraseña actual</label>
-                <Campo id="contrasenaActual" type="password" value={contrasenaActual} onChange={(e) => setContrasenaActual(e.target.value)} error={errContAct} className="tracking-[0.18em]" />
+                <CampoContrasena id="contrasenaActual" type="password" value={contrasenaActual} onChange={(e) => setContrasenaActual(e.target.value)} error={errContAct} className="tracking-[0.18em]" />
               </div>
 
               <div className="flex flex-col gap-[7px]">
                 <label htmlFor="contrasenaNueva" className="text-[13px] font-semibold text-tinta">Contraseña nueva</label>
-                <Campo id="contrasenaNueva" type="password" value={contrasenaNueva} onChange={(e) => setContrasenaNueva(e.target.value)} error={errContNue} className="tracking-[0.18em]" />
+                <CampoContrasena id="contrasenaNueva" type="password" value={contrasenaNueva} onChange={(e) => setContrasenaNueva(e.target.value)} error={errContNue} className="tracking-[0.18em]" />
                 <p className="text-[13px] leading-[1.5] text-tinta-suave m-0">Al menos 10 caracteres. Al cambiarla se cierran sus sesiones en otros equipos.</p>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Boton, Campo } from '@shapi/ui';
+import { Boton, Campo, CampoContrasena } from '@shapi/ui';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import { AvisoError, EncabezadoAcceso, MarcoAcceso, RotuloPortal } from '../modulos/sesion/FormulariosAcceso';
 import { interpretarError, registrarConsumidor, type ErrorFormulario, type RegistroConsumidor } from '../modulos/sesion/useIdentidadConsumidor';
@@ -77,7 +77,7 @@ export default function PaginaA53Registro() {
           error={errorDe('nombreEmpresa')}
           autoComplete="organization"
         />
-        <Campo
+        <CampoContrasena
           etiqueta="Contraseña"
           type="password"
           value={datos.contrasena}

@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-15
 depende_de: [DC-17]
 requisitos: [RNF-12, RF-20]
@@ -78,3 +78,15 @@ Verificación manual con el ambiente levantado:
 
 ## Notas
 - La tarea toca archivos de Dominique (`packages/ui`, layouts y pantallas del portal), de Emilio (A1, A2, A8, B1.4) y de José Pablo (`tests/e2e/`). Como es del coordinador, no hace falta preguntar (protocolo §E1), pero la bitácora lleva el aviso para cada uno.
+
+
+## Resultado
+- Los cuatro formularios de tarjeta (A2.2, A2.5, B1.4 y A5.6) vacían todos sus datos al autorizarse o rechazarse el cobro; los conservan ante validación, red o servicio no disponible. A2.5 también habilita el pago del formulario completo cuando no existe una tarjeta guardada.
+- Las barras de proveedor, administración, soporte y portal conservan opciones, orden y pie a 1366 × 650; solo el contenido se desplaza. La lista de documentación tiene su propio desplazamiento cuando excede el espacio disponible. Se compactaron grupos y filas según la decisión del 9 de octubre, sin rediseñar la navegación.
+- `CampoContrasena`, en `packages/ui`, muestra y oculta los diez campos de las nueve pantallas mediante un ojo con `aria-label`, `aria-pressed` y teclado, sin enviar el formulario. El adaptador `CampoEtiquetado` lo reutiliza en las pantallas A1 y A8.2.
+- El cursor se define en la hoja compartida: mano para acciones habilitadas y `not-allowed` para deshabilitadas, incluso si conservan una utilidad `cursor-pointer`.
+- El error al salir aparece sobre el contenido junto al pie, para no expandir ni cortar la navegación; conserva mensaje y reintento. Las precisiones están en 11 §1 y §4.
+- Pruebas: 439 de frontend correctas en 35 archivos; lint sin errores (11 advertencias previas del portal), typecheck y builds de panel/portal aprobados; 14 pruebas de reglas del repositorio y plan válido de 76 tareas. Las regresiones de tarjeta confirmaron la retención incorrecta con el código previo. La aserción anterior del espaciado de N.1 se actualizó a la decisión de esta tarea, conservando las demás comprobaciones y agregando ausencia de desplazamiento propio.
+- E2E: 12 correctas, sin omisiones, incluidas las cinco barras y sus errores al salir, 35 rutas documentadas, cursores y registro → tarjeta rechazada → cinco campos vacíos → tarjeta aprobada. El workflow de main prepara la siembra mediante `verificar.mjs --sembrar`, igual que el job obligatorio del PR. La prueba de rutas largas usa una copia del contrato obtenido dentro del navegador para respetar la resolución de `*.localhost` en Windows.
+- Pantallas: se abrieron 18 mockups en Chromium; capturas de N.1, A5.1 y administración a 1366 × 650 y 1440 × 900, además de rechazo y aprobación. Textos y orden de navegación conservados; diferencia de espaciado documentada. Evidencia local no versionada en `.shapi/jg20-capturas/`. El entorno local usó imágenes previas del backend y el frontend compilado montado; administración mostró el error recuperable de datos y se verificó su barra en ese estado. La CI reconstruye las imágenes del PR.
+- Revisión independiente: corregidos el crecimiento del pie al fallar la salida y la precedencia del cursor deshabilitado, con regresiones de navegador. No se agregaron dependencias ni endpoints ni se modificaron ADR.

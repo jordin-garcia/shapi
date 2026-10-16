@@ -208,11 +208,18 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     expect(await screen.findByRole('heading', { name: 'Contratación de un plan superior' })).toBeDefined();
     expect((screen.getByLabelText('Número de tarjeta') as HTMLInputElement).value).toBe('');
     expect((screen.getByLabelText('Código de seguridad') as HTMLInputElement).value).toBe('');
+    // RF-20 · JG-20: el reintento comienza sin ningún dato de tarjeta.
+    for (const etiqueta of ['Mes de vencimiento', 'Año de vencimiento', 'Titular de la tarjeta']) {
+      expect((screen.getByLabelText(etiqueta) as HTMLInputElement).value).toBe('');
+    }
     server.use(http.post(API + '/suscripcion/contratar', () => HttpResponse.json({
       id: 'sub-1', plan: lanzamiento, estado: 'activa', periodo: suscripcion.periodo,
       proximaRenovacion: suscripcion.proximaRenovacion, tarjetaEnmascarada: 'Visa •••• 4242',
     }, { status: 201 })));
     await userEvent.type(screen.getByLabelText('Número de tarjeta'), '4242424242424242');
+    await userEvent.type(screen.getByLabelText('Mes de vencimiento'), '12');
+    await userEvent.type(screen.getByLabelText('Año de vencimiento'), '2030');
+    await userEvent.type(screen.getByLabelText('Titular de la tarjeta'), 'Ana Morales');
     await userEvent.type(screen.getByLabelText('Código de seguridad'), '123');
     await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 199.00 y activar el plan' }));
     expect(await screen.findByRole('heading', { name: 'Plan activado' })).toBeDefined();

@@ -196,9 +196,12 @@ describe('RNF-12 · H-97 a H-99 medidas, tokens y altura', () => {
     expect(selector.className).toContain('py-[9px]');
     expect(screen.getByRole('banner').className).toContain('pl-7');
     expect(screen.getByRole('banner').className).toContain('pr-11');
-    for (const clase of ['px-4', 'pt-6', 'pb-5', 'w-[272px]']) expect(barra.className).toContain(clase);
+    // RNF-12 · JG-20: espaciado compacto autorizado para mostrar todas las opciones a 1366 × 650.
+    for (const clase of ['px-4', 'py-3', 'w-[272px]']) expect(barra.className).toContain(clase);
+    expect(barra.className).not.toContain('overflow-y-auto');
     expect(within(barra).getByText('Publicación').className).toContain('leading-[1.2]');
     expect(within(barra).getByRole('link', { name: 'APIs' }).className).toContain('leading-[1.5]');
+    expect(within(barra).getByRole('link', { name: 'APIs' }).className).toContain('py-[2px]');
     const salir = within(barra).getByRole('button', { name: 'Cerrar sesión' });
     expect(salir.className).toContain('hover:border-principal');
     expect(salir.className).toContain('hover:text-tinta');

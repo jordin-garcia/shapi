@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, type RouterProviderProps } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -56,6 +56,20 @@ afterEach(() => {
 });
 
 describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
+  it.each(['rechazo', 'validacion', 'red'])('RF-20 · A5.6 vacía solo una respuesta de pago: %s', async resultado => {
+    server.use(
+      http.get(`${API}/auth/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino: '/planes' })),
+      http.post(`${API}/suscripciones`, () => resultado === 'red' ? HttpResponse.error() : HttpResponse.json({ title: 'Respuesta de prueba', codigo: resultado === 'rechazo' ? 'pago_rechazado' : 'datos_invalidos' }, { status: resultado === 'rechazo' ? 402 : 400, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+    montar('/contratar/comercio');
+    await screen.findByLabelText('Número de tarjeta');
+    const etiquetas = ['Número de tarjeta', 'Nombre del titular', 'Vencimiento', 'Código de seguridad'];
+    const valores = ['4000000000000002', 'Ana Morales', '12 / 30', '123'];
+    etiquetas.forEach((etiqueta, i) => fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valores[i] } }));
+    await userEvent.click(screen.getByRole('button', { name: /Pagar Q/ }));
+    await screen.findByText('Respuesta de prueba').catch(() => screen.findByText('No se pudo completar la contratación. Intente de nuevo.'));
+    etiquetas.forEach((etiqueta, i) => expect((screen.getByLabelText(etiqueta) as HTMLInputElement).value).toBe(resultado === 'rechazo' ? '' : valores[i]));
+  });
   it('A5.4 lista los planes activos y A5.0 reutiliza la sección', async () => {
     montar('/planes');
     expect(await screen.findByRole('heading', { name: 'Planes de la API' })).toBeDefined();

@@ -56,6 +56,7 @@ export default function PaginaA22Contratacion() {
     },
     retry: false,
   });
+  function limpiarTarjeta() { setNumero(''); setMes(''); setAnio(''); setCvv(''); setTitular(''); }
   const contratar = useMutation({
     mutationFn: async () => {
       if (!plan) throw new Error('No se encontró el plan.');
@@ -67,10 +68,11 @@ export default function PaginaA22Contratacion() {
       if (!response.ok || !data) throw new Error('No se pudo contratar el plan.');
       return data;
     },
-    onSuccess: datos => setResultado({ tipo: 'exito', datos }),
+    onSuccess: datos => { limpiarTarjeta(); setResultado({ tipo: 'exito', datos }); },
     onError: error => {
       if (error instanceof ErrorApi && error.estado === 402 && error.codigo === 'pago_rechazado') {
         setResultado({ tipo: 'rechazo', tarjeta: tarjetaEnmascarada() });
+        limpiarTarjeta();
         return;
       }
       setErrorContratacion(error instanceof ErrorApi ? error.titulo : 'No se pudo completar la contratación. Intente de nuevo.');
@@ -89,8 +91,6 @@ export default function PaginaA22Contratacion() {
   if (resultado?.tipo === 'rechazo') return <Rechazo plan={plan.nombre} monto={dinero(plan.precio)} tarjeta={resultado.tarjeta} suscripcion={suscripcion.data ?? null} reintentar={() => {
     setResultado(undefined);
     setErrorContratacion(undefined);
-    setNumero('');
-    setCvv('');
     setUsarRegistrada(false);
     contratar.reset();
   }} />;

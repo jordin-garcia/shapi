@@ -1,5 +1,5 @@
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from 'react';
-import { Campo } from '@shapi/ui';
+import { Campo, CampoContrasena } from '@shapi/ui';
 
 /** Tarjeta centrada de las pantallas de acceso (A1): 520 px o 460 px de ancho, 40 px de relleno. */
 export function MarcoAcceso({ ancho = 520, children }: { ancho?: 460 | 520; children: ReactNode }) {
@@ -26,10 +26,11 @@ export function Encabezado({ rotulo, titulo, children }: { rotulo: string; titul
 /** Campo con su etiqueta asociada; el error se muestra debajo, en `--alerta` (11 §4). */
 export function CampoEtiquetado({ etiqueta, error, ...props }: ComponentPropsWithoutRef<'input'> & { etiqueta: string; error?: string }) {
   const id = useId();
+  const Componente = props.type === 'password' ? CampoContrasena : Campo;
   return (
     <div className="flex flex-col gap-[7px]">
       <label htmlFor={id} className="text-[13px] font-semibold text-tinta">{etiqueta}</label>
-      <Campo id={id} error={error} aria-invalid={error ? true : undefined} {...props} />
+      <Componente id={id} error={error} aria-invalid={error ? true : undefined} {...props} />
     </div>
   );
 }

@@ -10,6 +10,6 @@ export function CerrarSesion() {
         <path d="M8 3.5 H5 A1.5 1.5 0 0 0 3.5 5 V15 A1.5 1.5 0 0 0 5 16.5 H8 M8.5 10 H16.5 M13.5 7 L16.5 10 L13.5 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
-    {salir.isError && <EstadoError mensaje="No se pudo cerrar la sesión." reintentar={() => salir.mutate()} />}
+    {salir.isError && <div className="fixed bottom-5 left-[288px] z-50 w-[360px]"><EstadoError mensaje="No se pudo cerrar la sesión." reintentar={() => salir.mutate()} /></div>}
   </div>;
 }

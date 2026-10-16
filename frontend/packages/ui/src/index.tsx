@@ -16,24 +16,40 @@ export function Boton({ principal = true, deshabilitado = false, disabled = fals
 }
 
 /** Campo de texto con su etiqueta y su error debajo, en `--alerta` (11 §4). El error se anuncia con `aria-describedby`. */
-export function Campo({ etiqueta, error, id, className = '', 'aria-describedby': descritoPor, ...props }: React.ComponentPropsWithoutRef<"input"> & { etiqueta?: string; error?: string }) {
+export function Campo({ etiqueta, error, id, className = '', accion, 'aria-describedby': descritoPor, ...props }: React.ComponentPropsWithoutRef<"input"> & { etiqueta?: string; error?: string; accion?: React.ReactNode }) {
   const idGenerado = useId();
   const idCampo = id ?? idGenerado;
   const idError = `${idCampo}-error`;
   const descripciones = [descritoPor, error ? idError : undefined].filter(Boolean).join(' ') || undefined;
+  const entrada = <input
+    id={idCampo}
+    aria-invalid={error ? true : undefined}
+    aria-describedby={descripciones}
+    className={`w-full h-12 rounded-base border px-[14px] ${accion ? 'pr-12' : ''} text-[15px] bg-panel text-tinta outline-none transition-colors placeholder:text-tinta-inactiva focus:ring-[3px] focus:ring-anillo-foco ${error ? 'border-alerta focus:border-alerta' : 'border-borde-campo focus:border-principal'}`}
+    {...props}
+  />;
   return (
     <div className={`flex flex-col gap-[6px] ${className}`}>
       {etiqueta && <label htmlFor={idCampo} className="text-[13px] font-semibold text-tinta">{etiqueta}</label>}
-      <input
-        id={idCampo}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={descripciones}
-        className={`h-12 rounded-base border px-[14px] text-[15px] bg-panel text-tinta outline-none transition-colors placeholder:text-tinta-inactiva focus:ring-[3px] focus:ring-anillo-foco ${error ? 'border-alerta focus:border-alerta' : 'border-borde-campo focus:border-principal'}`}
-        {...props}
-      />
+      {accion ? <div className="relative">{entrada}{accion}</div> : entrada}
       {error && <span id={idError} className="text-alerta text-sm">{error}</span>}
     </div>
   );
+}
+
+/** RNF-12: conserva los atributos y errores de Campo; el ojo nunca envía el formulario. */
+export function CampoContrasena(props: Omit<React.ComponentPropsWithoutRef<typeof Campo>, 'accion'>) {
+  const [visible, setVisible] = useState(false);
+  return <Campo {...props} type={visible ? 'text' : 'password'} accion={
+    <button type="button" disabled={props.disabled} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={visible}
+      onClick={() => setVisible(actual => !actual)} className="absolute right-1 top-1 h-10 w-10 flex items-center justify-center rounded-base text-tinta-suave focus-visible:outline-2 focus-visible:outline-principal">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="3" />
+        {visible && <path d="m3 3 18 18" />}
+      </svg>
+    </button>
+  } />;
 }
 
 export function Etiqueta({ estado, children }: { estado: 'correcto' | 'alerta' | 'neutro', children: React.ReactNode }) {

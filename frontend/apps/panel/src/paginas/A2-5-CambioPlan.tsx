@@ -49,6 +49,7 @@ export default function PaginaA25CambioPlan() {
   const cargo = destino && origen ? (destino.vigenciaDias === origen.vigenciaDias
     ? Math.round((destino.precio * dias / destino.vigenciaDias + Number.EPSILON) * 100) / 100 : destino.precio) : 0;
   const aPagar = Math.max(cargo - credito, 0);
+  function limpiarTarjeta() { setNumero(''); setMes(''); setAnio(''); setCvv(''); setTitular(''); }
   const cambio = useMutation({
     mutationFn: async () => {
       if (!destino) throw new Error('No se encontró el plan.');
@@ -61,10 +62,14 @@ export default function PaginaA25CambioPlan() {
       return data;
     },
     onSuccess: async () => {
+      limpiarTarjeta();
       await cache.invalidateQueries({ queryKey: ['suscripcion-plataforma'] });
       await navegar('/panel/suscripcion');
     },
-    onError: fallo => setError(fallo instanceof ErrorApi ? fallo.titulo : 'No se pudo cambiar el plan.'),
+    onError: fallo => {
+      if (fallo instanceof ErrorApi && fallo.estado === 402 && fallo.codigo === 'pago_rechazado') limpiarTarjeta();
+      setError(fallo instanceof ErrorApi ? fallo.titulo : 'No se pudo cambiar el plan.');
+    },
   });
   if (planes.isPending || suscripcion.isPending) return <EstadoCargando />;
   if (planes.isError || suscripcion.isError) return <EstadoError mensaje="No se pudo cargar la suscripción." reintentar={() => { void planes.refetch(); void suscripcion.refetch(); }} />;
@@ -130,7 +135,7 @@ export default function PaginaA25CambioPlan() {
             <Campo etiqueta="Titular de la tarjeta" autoComplete="cc-name" value={titular} onChange={e => setTitular(e.target.value)} required />
           </>}
         </div>}
-        <Boton className="mt-6 w-full" onClick={() => { setError(''); cambio.mutate(); }} deshabilitado={cambio.isPending || (aPagar > 0 && (usarRegistrada ? !actual.tarjetaEnmascarada : !numero || !mes || !anio || !cvv || !titular))}>
+        <Boton className="mt-6 w-full" onClick={() => { setError(''); cambio.mutate(); }} deshabilitado={cambio.isPending || (aPagar > 0 && (usarRegistrada && actual.tarjetaEnmascarada ? false : !numero || !mes || !anio || !cvv || !titular))}>
           {cambio.isPending ? 'Procesando…' : 'Pagar ' + dinero(aPagar) + ' y cambiar de plan'}
         </Boton>
       </div>
