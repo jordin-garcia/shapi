@@ -136,3 +136,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **José Pablo:** Caddy puede consultar `GET /interno/tls/autorizar?domain=` desde la red privada; no fue necesario cambiar los Caddyfiles de JZ-01.
   - **Jordin:** la CI empezó a rechazar la dependencia transitiva vulnerable `System.Security.Cryptography.Pkcs 10.0.0` de MailKit; con autorización se fijó centralmente la versión corregida 10.0.13 y se agregó la referencia directa en Infraestructura.
+
+## 2026-10-15 · DC-15 · Sitio público: inicio de Shapi (A0.1)
+- Hecho: se implementó la página de inicio pública `A0-1-Inicio.tsx` sobre la superficie oscura de la variante 4 (`mockups/A0/Main.dc.html`), con todas sus secciones (encabezado, héroe, «Cómo funciona» con 3 pasos, «Qué recibe el proveedor», planes desde `GET /api/planes-plataforma` y pie), agrupando «Escala mensual» y «Escala anual» en una sola tarjeta y enlazando a `/registro` y `/entrar`. Se agregaron las pruebas Vitest + MSW en `Inicio.test.tsx`.
+- Decisiones: la consulta de planes se muestra dentro de la sección `#planes` conservando visibles las secciones estáticas durante la carga o ante un error recuperable; el encabezado propio de `A0.1` usa `div` para no colisionar con el `banner` de `LayoutPublico` (`A1`).
+- Pendiente o aviso para otros:
+  - **Todos:** la ruta pública `/` (`A0.1`) ya está implementada y registrada en `rutas.test.tsx`.
+
