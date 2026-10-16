@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { Boton, Campo } from '@shapi/ui';
+import { Boton, Campo, CampoContrasena } from '@shapi/ui';
 import { AvisoError, EncabezadoAcceso, MarcoAcceso, RotuloPortal } from '../modulos/sesion/FormulariosAcceso';
 import { entrarConsumidor, interpretarError, useIrAlDestinoConsumidor, type ErrorFormulario } from '../modulos/sesion/useIdentidadConsumidor';
 
@@ -45,7 +45,7 @@ export default function PaginaA57Acceso() {
             <label htmlFor="contrasena-acceso" className="text-[13px] font-semibold">Contraseña</label>
             <Link className="text-sm text-[var(--marca-principal)]" to="/recuperar">¿Olvidó su contraseña?</Link>
           </div>
-          <Campo
+          <CampoContrasena
             id="contrasena-acceso"
             type="password"
             value={contrasena}

@@ -22,7 +22,7 @@ export function MarcaShapi() {
 
 export function GrupoNavegacion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <span className="px-3 text-[11px] leading-[1.2] tracking-[.14em] uppercase font-semibold text-tinta-rotulo">{titulo}</span>
       {children}
     </div>
@@ -36,7 +36,7 @@ export function ListaEnlaces({ children }: { children: ReactNode }) {
 export function EnlaceNavegacion({ a, exacto = false, children }: { a: string; exacto?: boolean; children: ReactNode }) {
   return (
     <NavLink to={a} end={exacto} className={({ isActive }) =>
-      `block px-3 py-[7px] rounded-base text-[14px] leading-[1.5] transition-colors ${isActive ? 'bg-fondo-activo text-principal font-medium' : 'text-tinta-navegacion hover:text-tinta'}`}>
+      `block px-3 py-[2px] rounded-base text-[14px] leading-[1.5] transition-colors ${isActive ? 'bg-fondo-activo text-principal font-medium' : 'text-tinta-navegacion hover:text-tinta'}`}>
       {children}
     </NavLink>
   );
@@ -64,9 +64,9 @@ export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, childr
         <span className="text-[14px] text-tinta-suave">{textoSuperior}</span>
       </header>
       <div className="flex-1 flex min-h-0">
-        <nav className="dark w-[272px] shrink-0 bg-fondo border-r border-borde-barra px-4 pt-6 pb-5 flex flex-col justify-between overflow-y-auto">
-          <div className="flex flex-col gap-5">{children}</div>
-          <div className="flex items-center justify-between gap-3 border-t border-borde-barra pt-4 pr-1 pl-3">
+        <nav className="dark w-[272px] shrink-0 bg-fondo border-r border-borde-barra px-4 py-3 flex flex-col justify-between gap-2">
+          <div className="flex flex-col gap-3">{children}</div>
+          <div className="flex items-center justify-between gap-3 border-t border-borde-barra pt-2 shrink-0 pr-1 pl-3">
             <div className="flex flex-col gap-px min-w-0">
               <NavLink to={perfil} className="text-[14px] font-medium leading-[1.5] text-tinta truncate hover:underline">{nombre || 'Usuario'}</NavLink>
               <span className="text-[13px] leading-[1.5] text-tinta-suave">{rol ? nombresDeRol[rol] ?? rol : 'Rol'}</span>

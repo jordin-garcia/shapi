@@ -37,7 +37,22 @@ const ENLACE_REENVIADO = 'Si su correo todavía no está confirmado, le llegará
 // Así responde la API ante una excepción no controlada (AddProblemDetails + UseExceptionHandler): sin `codigo`.
 const errorDelServidor = () => HttpResponse.json({ type: 'https://tools.ietf.org/html/rfc9110#section-15.6.1', title: 'An error occurred while processing your request.', status: 500 },
   { status: 500, headers: { 'Content-Type': 'application/problem+json' } });
-const errorBajo = (etiqueta: string) => campo(etiqueta).parentElement!.textContent;
+const errorBajo = (etiqueta: string) => {
+  const id = campo(etiqueta).getAttribute('aria-describedby')?.split(' ').at(-1);
+  return id ? document.getElementById(id)?.textContent : null;
+};
+
+it.each(['/registro', '/entrar', '/restablecer?token=abc', '/invitacion?token=abc'])('RNF-12 · el campo compartido permite mostrar la contraseña en %s', async ruta => {
+  server.use(http.get('http://localhost/api/invitaciones/abc', () => HttpResponse.json({ correo: 'invitada@ejemplo.test', nombreOrganizacion: 'Organización', cuentaExistente: false })));
+  await abrir(ruta);
+  const ojo = await screen.findByRole('button', { name: 'Mostrar contraseña' });
+  const entrada = screen.getByLabelText(ruta.startsWith('/restablecer') ? 'Contraseña nueva' : 'Contraseña') as HTMLInputElement;
+  expect(entrada.type).toBe('password');
+  await userEvent.click(ojo);
+  expect(entrada.type).toBe('text');
+  await userEvent.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+  expect(entrada.type).toBe('password');
+});
 
 beforeEach(() => {
   rol = 'propietario';

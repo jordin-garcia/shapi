@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Boton, Campo, EstadoCargando } from '@shapi/ui';
+import { Boton, Campo, CampoContrasena, EstadoCargando } from '@shapi/ui';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import { AvisoError, EncabezadoAcceso, MarcoAcceso, RotuloPortal } from '../modulos/sesion/FormulariosAcceso';
 import {
@@ -122,7 +122,7 @@ export default function PaginaA53bInvitacion() {
           error={error?.errores.nombreEmpresa?.[0]}
           autoComplete="organization"
         />
-        <Campo
+        <CampoContrasena
           etiqueta="Contraseña"
           type="password"
           value={contrasena}

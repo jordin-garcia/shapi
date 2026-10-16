@@ -10,6 +10,18 @@ import { server } from '../../../../test/servidor';
 
 const API = 'http://localhost/api/portal/auth';
 const configuracion = { nombrePortal: 'Envíos Xelajú', colorPrincipal: '#B8322A', urlLogo: null, bienvenida: 'Bienvenido', nombreApi: 'Cotización de Envíos', descripcionApi: 'API', hostPortal: 'envios.shapi.localhost', hostApi: 'envios.api.shapi.localhost', nombreOrganizacion: 'Envíos Xelajú, S.A.' };
+
+it.each(['/registro', '/entrar', '/restablecer?token=abc', '/invitacion?token=abc'])('RNF-12 · el campo compartido muestra y oculta la contraseña del portal en %s', async ruta => {
+  server.use(http.get(`${API}/invitacion/abc`, () => HttpResponse.json({ correo: 'invitada@ejemplo.test' })));
+  montar(ruta);
+  const ojo = await screen.findByRole('button', { name: 'Mostrar contraseña' });
+  const entrada = screen.getByLabelText(ruta.startsWith('/restablecer') ? 'Contraseña nueva' : 'Contraseña') as HTMLInputElement;
+  expect(entrada.type).toBe('password');
+  await userEvent.click(ojo);
+  expect(entrada.type).toBe('text');
+  await userEvent.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+  expect(entrada.type).toBe('password');
+});
 function problema(estado: number, codigo: string, title: string) {
   return HttpResponse.json({ status: estado, codigo, title }, { status: estado, headers: { 'Content-Type': 'application/problem+json' } });
 }

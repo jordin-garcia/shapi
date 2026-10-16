@@ -45,11 +45,14 @@ Se precisó el 26 de septiembre: la tabla solo tenía el tono de etiqueta, mient
 ### Componentes base
 - **Radio único:** 8 px. **Espaciado:** 4 · 8 · 12 · 16 · 20 · 24 · 32 · 44 · 64 · 80.
 - **Botón principal:** 46 px de alto, texto de 15 px con peso 500, fondo `--principal`. **Botón secundario:** borde `#C9D2E1`. **Botón deshabilitado:** borde `#E4E9F1` y texto `#A3AEC2`.
+- **Contraseña:** los diez campos de contraseña de A1.1, A1.3, A1.4b, A8.1 (actual y nueva), A8.2, A5.3, A5.3b, A5.7 y A5.10 usan `CampoContrasena`, con un ojo a la derecha. El ojo abierto muestra el valor y el tachado lo oculta; el botón alterna «Mostrar contraseña» / «Ocultar contraseña» y `aria-pressed`, funciona con teclado y no envía el formulario.
+- **Tarjeta:** A2.2, A2.5, B1.4 y A5.6 vacían todos los datos de tarjeta (número, vencimiento, CVV y titular) cuando el pago resulta autorizado o rechazado. Un error de validación, de red o de servicio los conserva para corregir y reintentar.
+- **Cursor:** las acciones habilitadas (botones, enlaces, selectores, casillas y opciones de navegación) muestran la mano; las deshabilitadas muestran `not-allowed`. La regla es común en `packages/ui/src/style.css`.
 - **Campo:** 48 px de alto, texto de 15 px, relleno horizontal de 14 px y borde `#C9D2E1`. Enfocado: borde `--principal` y anillo de 3 px `--anillo-foco`. Texto guía en `--tinta-inactiva`. La etiqueta va encima, en 13 px seminegra.
 - **Etiqueta de estado:** clases `eti-c` (correcto), `eti-a` (alerta) y `eti-n` (neutro).
 - **Tabla:** filas de 42 px, encabezado de 11 px en mayúsculas, seminegro, con 10 px debajo y borde `#DCE3EE`, y separador `#EBEFF5` en todas las filas. Las celdas tienen 16 px de relleno a la derecha y ninguno a la izquierda.
 - **Tarjeta:** fondo blanco, borde de 1 px `#DCE3EE`, radio de 8 px y relleno de 20 px, **sin sombra**.
-- **Estructura del panel:** barra superior oscura de 76 px, barra lateral oscura de 272 px con grupos *Publicación · API · Organización* y contenido con un margen de 44 px. Se diseña para 1440 × 900 y funciona desde 1280 px.
+- **Estructura del panel:** barra superior oscura de 76 px, barra lateral oscura de 272 px con grupos *Publicación · API · Organización* y contenido con un margen de 44 px. Se diseña para 1440 × 900 y funciona desde 1280 px. Desde un área visible de 1366 × 650 px (pantalla de 1366 × 768 con Chrome al 100 %), todas las opciones y el pie de cada barra lateral quedan visibles sin desplazamiento propio. Se compactan filas y grupos sin quitar opciones ni cambiar su orden; este espaciado se aparta de N.1 por decisión de Jordin del 9 de octubre de 2026 (JG-20).
 - **Portal:** usa la misma estructura clara, pero el color principal es `--marca-principal`, el de la API. En el portal no aparece la marca de Shapi.
 
 ## 2. Formato de los mockups
@@ -224,7 +227,7 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - Quien entra al área de otro rol (un proveedor a `/admin`, o el personal de Shapi a `/panel`) ve "No tiene permiso para ver esta página" sin barra lateral, con "Ir a su panel" (su destino) y "Cerrar sesión". Dentro de su área, el 403 y el 404 conservan la barra lateral.
 - Un error que no es 404 (por ejemplo, una página que no se pudo descargar) muestra el aviso de error con "Reintentar", que vuelve a cargar la página.
 - La sesión consultada se considera vigente 5 minutos. Entrar la vuelve a pedir y salir borra la caché.
-- La estructura ocupa la altura de la ventana: solo se desplaza el contenido, y el pie de la barra lateral queda fijo.
+- La estructura ocupa la altura de la ventana: solo se desplaza el contenido, con su barra a la derecha, y la barra lateral completa y su pie quedan fijos, sin desplazamiento propio, en panel, administración, soporte y portal. Desde 1366 × 650 px visibles caben todas las opciones y el pie, incluso con una API seleccionada. En documentación caben las rutas de la siembra; si hay más rutas de las que caben, solo su lista interna puede desplazarse, conservando visibles el resto de enlaces y el pie.
 
 ### Comportamiento de las pantallas de acceso (EM-03)
 

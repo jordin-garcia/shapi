@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Boton, Campo } from '@shapi/ui';
+import { Boton, CampoContrasena } from '@shapi/ui';
 import { AvisoError, EncabezadoAcceso, MarcoAcceso } from '../modulos/sesion/FormulariosAcceso';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
 import { interpretarError, restablecerConsumidor, useIrAlDestinoConsumidor, type ErrorFormulario } from '../modulos/sesion/useIdentidadConsumidor';
@@ -58,7 +58,7 @@ export default function PaginaA510NuevaContrasena() {
         </div>
       )}
       <form ref={formulario} onSubmit={enviar} noValidate className="mt-8">
-        <Campo
+        <CampoContrasena
           etiqueta="Contraseña nueva"
           type="password"
           value={contrasena}
