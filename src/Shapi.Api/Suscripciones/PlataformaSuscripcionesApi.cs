@@ -32,7 +32,17 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         }
 
         var plan = await db.Set<PlanPlataforma>().AsNoTracking().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
-        var valor = await redis.GetDatabase().StringGetAsync(LlavesRedis.CuotaOrganizacion(organizacionId, suscripcion.Inicio.ToUnixTimeSeconds()));
+        RedisValue valor;
+        try
+        {
+            valor = await redis.GetDatabase().StringGetAsync(LlavesRedis.CuotaOrganizacion(organizacionId, suscripcion.Inicio.ToUnixTimeSeconds()));
+        }
+        catch (Exception error) when (error is RedisException or TimeoutException)
+        {
+            return Error(StatusCodes.Status503ServiceUnavailable, CodigosError.ServicioNoDisponible,
+                "No se pudo consultar el uso de cuota.");
+        }
+
         var peticiones = long.TryParse(valor.ToString(), out var uso) ? uso : 0;
         var porcentaje = plan.CuotaPeticiones <= 0 ? 0m : decimal.Round(peticiones * 100m / plan.CuotaPeticiones, 2);
         return TypedResults.Ok(new { peticiones, cuotaPeticiones = plan.CuotaPeticiones, porcentaje });

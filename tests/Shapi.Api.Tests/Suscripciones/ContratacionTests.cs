@@ -356,6 +356,27 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         publicada!.PlanId.Should().Be(destino);
     }
 
+    // RF-25: un pago rechazado al subir de plan conserva el plan vigente y registra el intento.
+    [Fact]
+    public async Task CambiarPlanApi_PagoRechazadoConservaPlanYRegistraRechazo()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var destino = await NuevoPlanApiCon(e.ApiId, "Superior", 900, 30);
+        var suscripcion = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa",
+            Reloj.Ahora.AddDays(-17), Reloj.Ahora.AddDays(13));
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/cambiar", e,
+            new { planId = destino, tarjeta = Tarjeta with { Numero = "4000000000000002" } });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.PaymentRequired, await respuesta.Content.ReadAsStringAsync());
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        problema.GetProperty("codigo").GetString().Should().Be("pago_rechazado");
+        (await Fila($"SELECT plan_id::text, estado FROM suscripcion_api WHERE id = '{suscripcion}'"))
+            .Should().Equal(e.PlanId.ToString(), "activa");
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'cambio_plan' AND estado = 'rechazado'"))
+            .Should().Be(1);
+    }
+
     // RF-25: bajar o igualar precio diario programa el plan para el próximo cierre sin cobrar.
     [Fact]
     public async Task CambiarPlanApi_BajadaProgramaCambioSinCobro()

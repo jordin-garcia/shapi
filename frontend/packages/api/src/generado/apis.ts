@@ -501,7 +501,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description El origen está prohibido (`origen_no_permitido`) o no respondió (`origen_inaccesible`). */
+            /** @description El origen está prohibido (`origen_no_permitido`), no respondió (`origen_inaccesible`) o se alcanzó el límite de APIs del plan (`limite_del_plan`, `detalle.limite = apis`). */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -60,6 +60,11 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
+        "503":
+          description: Redis no está disponible para consultar el uso de cuota (`servicio_no_disponible`)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
   /api/suscripcion/contratar:
     post:
       summary: Contrata un plan de plataforma

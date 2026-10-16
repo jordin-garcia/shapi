@@ -115,4 +115,5 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Revisión en contexto limpio: revisión independiente LISTO, sin hallazgos de corrección. La revisión automática de Claude identificó dos fallos obligatorios y tres mejoras; se corrigió la resolución del trabajador en la prueba, la respuesta con claves y el esquema OpenAPI, además de incluir la gracia y probar la llave Redis esperada.
 - Pendiente o aviso para otros:
   - **Dominique:** el límite en el registro requirió cambios relacionados en `ApisModulo.cs`, `ContratosApis.cs`, `RepositorioApis.cs` y `ApisTests.cs`, además de la llamada acordada en `RegistrarApi.cs`.
+  - **Dominique:** tras la revisión automática, `Apis/Endpoints.cs` traduce ahora `limite_del_plan` a 422 y `contratos/openapi/apis.yaml` documenta `detalle.limite = apis`; se agregó cobertura del caso de pago rechazado al cambiar de plan.
   - **Jordin:** agregué `AvisoCuotaOrganizacion` a `LlavesRedis.cs`; las pruebas API de integración necesitan confirmación de CI porque Docker no está disponible localmente.
