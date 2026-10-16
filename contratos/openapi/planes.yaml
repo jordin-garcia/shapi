@@ -3,6 +3,73 @@ info:
   title: API de Planes de Shapi
   version: 1.0.0
 paths:
+  /api/admin/planes-plataforma:
+    get:
+      summary: Lista los planes de plataforma para administración
+      operationId: administrarListarPlanesPlataforma
+      responses:
+        "200":
+          description: Planes ordenados, incluidos los inactivos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PlanPlataformaAdministracion" }
+        "403": { description: Solo el administrador puede ver estos planes }
+    post:
+      summary: Crea un plan de plataforma
+      operationId: crearPlanPlataformaAdministracion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PeticionPlanPlataforma" }
+      responses:
+        "201":
+          description: Plan creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlanPlataformaAdministracion" }
+        "400": { description: Datos inválidos (`datos_invalidos`) }
+        "403": { description: Solo el administrador puede crear planes }
+        "409": { description: Ya existe un plan con ese nombre (`plan_duplicado`) }
+  /api/admin/planes-plataforma/{id}:
+    put:
+      summary: Edita un plan de plataforma
+      operationId: editarPlanPlataformaAdministracion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PeticionPlanPlataforma" }
+      responses:
+        "200":
+          description: Plan actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlanPlataformaAdministracion" }
+        "400": { description: Datos inválidos (`datos_invalidos`) }
+        "403": { description: Solo el administrador puede editar planes }
+        "404": { description: Plan no encontrado (`plan_no_encontrado`) }
+        "409": { description: Ya existe un plan con ese nombre (`plan_duplicado`) }
+  /api/admin/planes-plataforma/{id}/desactivar:
+    post:
+      summary: Desactiva un plan de plataforma
+      operationId: desactivarPlanPlataformaAdministracion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Plan desactivado; las suscripciones históricas se conservan }
+        "403": { description: Solo el administrador puede desactivar planes }
+        "404": { description: Plan no encontrado (`plan_no_encontrado`) }
   /api/planes-plataforma:
     get:
       summary: Lista los planes de plataforma activos por orden
@@ -224,6 +291,35 @@ paths:
                 $ref: "#/components/schemas/Problema"
 components:
   schemas:
+    PeticionPlanPlataforma:
+      type: object
+      required: [nombre, descripcion, precio, vigenciaDias, cuotaPeticiones, dominioPropio]
+      properties:
+        nombre: { type: string, maxLength: 100 }
+        descripcion: { type: string, maxLength: 500 }
+        precio: { type: number, minimum: 0 }
+        vigenciaDias: { type: integer, minimum: 1, maximum: 366 }
+        maxApis: { type: [integer, "null"], minimum: 1 }
+        maxMiembros: { type: [integer, "null"], minimum: 1 }
+        cuotaPeticiones: { type: integer, format: int64, minimum: 1 }
+        dominioPropio: { type: boolean }
+    PlanPlataformaAdministracion:
+      type: object
+      required: [id, nombre, descripcion, precio, moneda, vigenciaDias, cuotaPeticiones, dominioPropio, esPrueba, activo, orden]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        descripcion: { type: string }
+        precio: { type: number }
+        moneda: { type: string, const: GTQ }
+        vigenciaDias: { type: integer }
+        maxApis: { type: [integer, "null"] }
+        maxMiembros: { type: [integer, "null"] }
+        cuotaPeticiones: { type: integer, format: int64 }
+        dominioPropio: { type: boolean }
+        esPrueba: { type: boolean }
+        activo: { type: boolean }
+        orden: { type: integer }
     PlanPlataforma:
       type: object
       required: [id, nombre, descripcion, precio, moneda, vigenciaDias, cuotaPeticiones, dominioPropio, esPrueba, inicioCicloPrevisto]

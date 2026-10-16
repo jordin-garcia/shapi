@@ -50,6 +50,8 @@ const implementadas: Record<string, string> = {
   'A6-4': 'Casos',
   'A6-4b': 'El dominio propio no verifica',
   'A6-2': 'Organizaciones',
+  'A6-1': 'Planes de plataforma',
+  'A6-3': 'Pagos de la plataforma',
   'A6-5': 'Cuentas de administración y soporte',
   'A7-1': 'Casos de soporte',
   'A7-2': 'El dominio propio no verifica',
@@ -127,6 +129,8 @@ beforeEach(() => {
         .map(id => ({ id, estado: 'en_servicio', incidenciaDesde: null })),
     })),
     http.get('http://localhost/api/admin/organizaciones', () => HttpResponse.json([])),
+    http.get('http://localhost/api/admin/planes-plataforma', () => HttpResponse.json([])),
+    http.get('http://localhost/api/admin/pagos', () => HttpResponse.json([])),
     http.get('http://localhost/api/admin/cuentas', () => HttpResponse.json([])),
     http.get('http://localhost/api/casos', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/casos/:numero', () => HttpResponse.json({

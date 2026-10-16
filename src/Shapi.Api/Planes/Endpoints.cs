@@ -13,6 +13,12 @@ public static class Endpoints
 {
     public static IEndpointRouteBuilder MapearEndpointsPlanes(this IEndpointRouteBuilder app)
     {
+        var administracion = app.MapGroup("/api/admin/planes-plataforma");
+        administracion.MapGet("", ListarPlataforma).RequireAuthorization(Permisos.GestionarPlanesPlataforma);
+        administracion.MapPost("", CrearPlataforma).RequireAuthorization(Permisos.GestionarPlanesPlataforma);
+        administracion.MapPut("/{id:guid}", EditarPlataforma).RequireAuthorization(Permisos.GestionarPlanesPlataforma);
+        administracion.MapPost("/{id:guid}/desactivar", DesactivarPlataforma).RequireAuthorization(Permisos.GestionarPlanesPlataforma);
+
         var grupo = app.MapGroup("/api/apis/{apiId:guid}/planes");
         grupo.MapGet("", Listar).RequireAuthorization(Permisos.VerApis);
         grupo.MapPost("", Crear).RequireAuthorization(Permisos.AdministrarPlanesApi);
@@ -22,6 +28,60 @@ public static class Endpoints
         app.MapGet("/api/portal/planes", PortalPlanes).AllowAnonymous();
         return app;
     }
+
+    private static async Task<IResult> ListarPlataforma(AdministrarPlanesPlataforma caso, CancellationToken ct) =>
+        TypedResults.Ok(await caso.Listar(ct));
+
+    private static async Task<IResult> CrearPlataforma(
+        [FromBody] SolicitudPlanPlataforma solicitud, HttpContext http, AdministrarPlanesPlataforma caso, CancellationToken ct)
+    {
+        var resultado = await caso.Crear(solicitud, UsuarioId(http.User), Nombre(http.User), OrganizacionId(http.User),
+            http.Connection.RemoteIpAddress?.ToString(), ct);
+        return resultado.EsExito
+            ? TypedResults.Created($"/api/admin/planes-plataforma/{resultado.Valor.Id}", Respuesta(resultado.Valor))
+            : ProblemaPlataforma(resultado.Error);
+    }
+
+    private static async Task<IResult> EditarPlataforma(
+        Guid id, [FromBody] SolicitudPlanPlataforma solicitud, HttpContext http, AdministrarPlanesPlataforma caso, CancellationToken ct)
+    {
+        var resultado = await caso.Editar(id, solicitud, UsuarioId(http.User), Nombre(http.User), OrganizacionId(http.User),
+            http.Connection.RemoteIpAddress?.ToString(), ct);
+        return resultado.EsExito ? TypedResults.Ok(Respuesta(resultado.Valor)) : ProblemaPlataforma(resultado.Error);
+    }
+
+    private static async Task<IResult> DesactivarPlataforma(
+        Guid id, HttpContext http, AdministrarPlanesPlataforma caso, CancellationToken ct)
+    {
+        var resultado = await caso.Desactivar(id, UsuarioId(http.User), Nombre(http.User), OrganizacionId(http.User),
+            http.Connection.RemoteIpAddress?.ToString(), ct);
+        return resultado.EsExito ? TypedResults.NoContent() : ProblemaPlataforma(resultado.Error!);
+    }
+
+    private static RespuestaPlanPlataforma Respuesta(PlanPlataforma plan) => new(
+        plan.Id, plan.Nombre, plan.Descripcion, plan.Precio, "GTQ", plan.VigenciaDias, plan.MaxApis, plan.MaxMiembros,
+        plan.CuotaPeticiones, plan.DominioPropio, plan.EsPrueba, plan.Activo, plan.Orden);
+
+    private static IResult ProblemaPlataforma(Error error)
+    {
+        var estado = error.Codigo switch
+        {
+            CodigosError.DatosInvalidos => StatusCodes.Status400BadRequest,
+            CodigosError.PlanDuplicado => StatusCodes.Status409Conflict,
+            CodigosError.PlanNoEncontrado => StatusCodes.Status404NotFound,
+            _ => StatusCodes.Status500InternalServerError,
+        };
+        var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };
+        if (error.Codigo == CodigosError.DatosInvalidos && error.Detalle is IDictionary<string, string[]> errores)
+        {
+            extensiones["errores"] = errores;
+        }
+
+        return TypedResults.Problem(statusCode: estado, title: error.Mensaje, type: "about:blank", extensions: extensiones);
+    }
+
+    private static Guid UsuarioId(ClaimsPrincipal usuario) => Guid.Parse(usuario.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private static string Nombre(ClaimsPrincipal usuario) => usuario.FindFirstValue(ClaimTypes.Name) ?? "Administrador";
 
     private static async Task<IResult> Listar(
         Guid apiId,
