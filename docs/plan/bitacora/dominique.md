@@ -143,3 +143,8 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Todos:** la ruta pública `/` (`A0.1`) ya está implementada y registrada en `rutas.test.tsx`.
 
+## 2026-10-16 · DC-13 · Pagos y cambio de plan del consumidor (B2.2 y B2.7)
+- Hecho: se implementaron el historial de pagos con su variante vacía y el cambio de plan con selección de destino, prorrateo, bajada programada, cobro completo al salir del plan gratuito y revelación única de claves nuevas. Se agregaron pruebas Vitest + MSW para RF-21 y RF-25.
+- Decisiones: se conservaron sin cambios los contratos de EM-13 y se consumieron sus tipos generados; cuando B2.3 abre B2.7 con el plan vigente, la misma pantalla presenta los demás planes activos antes de mostrar la confirmación.
+- Pendiente o aviso para otros:
+  - **Todos:** B2.2 y B2.7 ya consumen `GET /api/portal/pagos` y `POST /api/portal/suscripcion/cambiar`; los cambios desde un plan gratuito muestran las claves devueltas antes de volver a B2.3.

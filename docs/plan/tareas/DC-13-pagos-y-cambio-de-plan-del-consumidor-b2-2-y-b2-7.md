@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-16
 depende_de: [EM-11, EM-13, DC-11]
 requisitos: [RF-21, RF-25]
@@ -42,3 +42,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Backend (EM-11 y EM-13)
+
+## Resultado
+- Se implementó B2.2 con `GET /api/portal/pagos`, tabla de fecha, concepto, periodo, monto, medio de pago y estado, además de la variante vacía enlazada al catálogo de planes.
+- Se implementó B2.7 con selección del plan de destino, comparación con el plan vigente y prorrateo según precio diario, días restantes y vigencia. Las subidas se cobran y aplican de inmediato; las bajadas se programan para la próxima renovación.
+- Los cambios desde un plan gratuito cobran el ciclo completo y muestran las claves nuevas una sola vez antes de volver a la suscripción. Las consultas y mutaciones usan los tipos generados de `pagos.yaml` y `suscripciones.yaml`; los contratos no necesitaron cambios.
+- Se agregaron pruebas Vitest + MSW para el historial con datos y vacío, la navegación desde B2.3, la subida prorrateada, la bajada programada y el cambio desde un plan gratuito con tarjeta y claves nuevas.

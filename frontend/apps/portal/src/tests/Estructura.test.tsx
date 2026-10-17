@@ -225,10 +225,21 @@ describe('RF-16 · rutas y navegación pública', () => {
 describe('RF-16 · cuenta del consumidor', () => {
   it.each([
     ['/cuenta/consumo', 'Consumo del ciclo'],
-    ['/cuenta/pagos', 'B2.2'],
+    ['/cuenta/pagos', 'Historial de pagos'],
     ['/cuenta/suscripcion', 'Suscripción y claves'],
-    ['/cuenta/cambiar-plan/comercio', 'B2.7'],
+    ['/cuenta/cambiar-plan/basico', 'Cambio de plan'],
   ])('%s exige sesión y muestra %s', async (ruta, titulo) => {
+    if (ruta === '/cuenta/pagos') {
+      server.use(http.get('http://localhost/api/portal/pagos', () => HttpResponse.json({ elementos: [], total: 0 })));
+    }
+    if (ruta.startsWith('/cuenta/cambiar-plan/')) {
+      server.use(http.get('http://localhost/api/portal/suscripcion', () => HttpResponse.json({
+        plan: { id: 'actual', nombre: 'Actual', precio: 499, moneda: 'GTQ' }, estado: 'activa',
+        periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-30T06:00:00Z' },
+        proximaRenovacion: '2026-10-01T06:00:00Z', tarjetaEnmascarada: 'Visa •••• 4242',
+        cuotaLlamadas: 10_000, limiteMinuto: 60,
+      })));
+    }
     montar(ruta);
 
     expect(await screen.findByRole('heading', { name: new RegExp(`^${titulo.replace('.', '\\.')}`) })).toBeDefined();
