@@ -11,6 +11,7 @@ import ClaveNueva from './B2-5-ClaveNueva';
 const cliente = crearCliente<paths>(window.location.origin);
 const DIA = 86_400_000;
 const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const mesesLargos = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 function redondear(valor: number) { return Math.round((valor + Number.EPSILON) * 100) / 100; }
 function fecha(valor: string | Date) {
@@ -19,6 +20,13 @@ function fecha(valor: string | Date) {
   }).formatToParts(typeof valor === 'string' ? new Date(valor) : valor);
   const numeroParte = (tipo: Intl.DateTimeFormatPartTypes) => Number(partes.find(parte => parte.type === tipo)!.value);
   return `${numeroParte('day')} ${meses[numeroParte('month') - 1]} ${numeroParte('year')}`;
+}
+function fechaLarga(valor: string | Date) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'America/Guatemala',
+  }).formatToParts(typeof valor === 'string' ? new Date(valor) : valor);
+  const numeroParte = (tipo: Intl.DateTimeFormatPartTypes) => Number(partes.find(parte => parte.type === tipo)!.value);
+  return `${numeroParte('day')} de ${mesesLargos[numeroParte('month') - 1]} de ${numeroParte('year')}`;
 }
 
 function TarjetaPlan({ plan, tipo, cuota, limite }: { plan: Pick<PlanApi, 'id' | 'nombre' | 'precio'> & Partial<Pick<PlanApi, 'vigenciaDias'>>; tipo: string; cuota: number; limite: number }) {
@@ -117,7 +125,7 @@ export default function CambioPlan() {
             <Fila nombre="Tarjeta registrada" valor={actual.tarjetaEnmascarada ?? 'Sin tarjeta registrada'} />
           </dl>
           <p className="mt-4 text-[14px] leading-[1.5] text-tinta-suave">{!desdeGratuito && destino.vigenciaDias === vigenciaActual
-            ? `Desde el ${fecha(actual.proximaRenovacion)} el plan ${destino.nombre} se cobra completo: ${dinero(destino.precio)} cada ${destino.vigenciaDias} días.`
+            ? `Desde el ${fechaLarga(actual.proximaRenovacion)} el plan ${destino.nombre} se cobra completo: ${dinero(destino.precio)} cada ${destino.vigenciaDias} días.`
             : `El plan ${destino.nombre} inicia un ciclo nuevo hoy y después se cobra ${dinero(destino.precio)} cada ${destino.vigenciaDias} días.`}</p>
           {requiereTarjeta && <div className="mt-5 space-y-4 border-t border-borde-fila pt-5">
             <Campo etiqueta="Número de tarjeta" value={tarjeta.numero} onChange={cambiarTarjeta('numero')} autoComplete="cc-number" />

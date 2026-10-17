@@ -123,6 +123,7 @@ describe('DC-13 · RF-25 · cambio de plan', () => {
     expect(screen.getByText('Q 520.00')).toBeDefined();
     expect(screen.getByText('Q 325.00')).toBeDefined();
     expect(screen.getByText('Mastercard •••• 3057')).toBeDefined();
+    expect(screen.getByText('Desde el 1 de octubre de 2026 el plan Volumen se cobra completo: Q 1,200.00 cada 30 días.')).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: 'Pagar Q 325.00 y cambiar de plan' }));
 
     await waitFor(() => expect(cuerpo).toEqual({ planId: 'plan-volumen' }));
