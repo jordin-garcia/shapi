@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-17
 depende_de: [JG-06, JZ-06]
 requisitos: [RNF-01, RNF-03]
@@ -45,3 +45,31 @@ node scripts/tareas.mjs --validar
 
 ## Fuera de alcance
 - Optimizar (si hace falta, es tarea de Jordin)
+
+## Resultado
+
+Se implementaron escenarios k6 reproducibles para el mismo POST de cotización
+contra la compuerta y el origen, con tasa abierta de 200 peticiones/s durante
+cinco minutos, validación de la respuesta, errores, percentiles y omisiones.
+Los comandos de preparación y ejecución construyen un ambiente productivo
+aislado (`shapi-jz14`), elevan los límites del plan, ruta y plataforma, generan
+una clave aleatoria de producción y sincronizan Redis con el trabajador.
+
+La ejecución del 18 de octubre de 2026 completó 60 000 peticiones al origen y
+60 001 a través de la compuerta, sin errores, respuestas inválidas ni omisiones.
+Los p95 fueron 2.003 ms y 10.585 ms: la diferencia de 8.583 ms cumple RNF-01.
+La compuerta alcanzó 200.030 peticiones/s durante la carga programada de cinco
+minutos, con 0 % de errores, cumpliendo RNF-03. No se detectó un incumplimiento
+que requiriera una tarea de optimización para Jordin.
+
+Decisiones: red, volúmenes y puertos separados para conservar el ambiente
+habitual; `hosts` de k6 mantiene los destinos HTTP/SNI y traduce solo el puerto
+local; una iteración adicional en el límite temporal se acepta sin reducir el
+mínimo de 60 000 ni admitir omisiones. Los valores en claro y resúmenes locales
+quedan en `.shapi/carga/`, fuera de Git. José Pablo autorizó agregar al manual
+técnico la referencia al informe que exige 08 §8.
+
+Archivos principales: `tests/carga/{escenario,comun,comparar,preparar,ejecutar}.js`,
+sus pruebas y README, `docs/pruebas-de-carga.md` y la referencia en
+`docs/manual-tecnico.md`. Nueve pruebas de Node, humo Docker y ambas mediciones
+completas pasaron; el informe contiene equipo, método, tabla y conclusión.
