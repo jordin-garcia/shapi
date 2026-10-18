@@ -38,7 +38,7 @@ if (process.argv.includes('--apagar')) {
   ejecutar([...compose, 'down']); // Se conservan los volúmenes y las evidencias.
 } else {
   ejecutar([...compose, 'up', '-d', ...(process.argv.includes('--sin-compilar') ? [] : ['--build']), '--wait', '--wait-timeout', '300']);
-  ejecutar([...compose, 'exec', '-T', 'trabajador', 'dotnet', 'Shapi.Trabajador.dll', 'sembrar-demo']);
+  ejecutar([...compose, 'exec', '-T', '-e', 'Logging__LogLevel__Default=Warning', 'trabajador', 'dotnet', 'Shapi.Trabajador.dll', 'sembrar-demo']);
   const alfabeto = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
   const clave = `shp_prod_${Array.from({ length: 26 }, () => alfabeto[randomInt(62)]).join('')}`;
   const hash = createHash('sha256').update(clave).digest('hex');
@@ -55,7 +55,7 @@ WHERE tipo = 'produccion' AND estado = 'activa' AND suscripcion_id IN (
   WHERE c.correo = 'oscar@ferreteriazona11.com');
 COMMIT;
 `);
-  ejecutar([...compose, 'exec', '-T', 'trabajador', 'dotnet', 'Shapi.Trabajador.dll', 'sembrar-demo']);
+  ejecutar([...compose, 'exec', '-T', '-e', 'Logging__LogLevel__Default=Warning', 'trabajador', 'dotnet', 'Shapi.Trabajador.dll', 'sembrar-demo']);
   writeFileSync(resolve(carpeta, '.env.carga'), `CARGA_CLAVE=${clave}\n`, { mode: 0o600 });
   console.log('Ambiente shapi-jz14 listo. Resultados: .shapi/carga. Puertos: borde 18443, origen 15101.');
 }

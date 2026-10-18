@@ -23,6 +23,13 @@ test('RNF-03: exige menos del 1 % de errores', () => {
   assert.equal(comparar({ ...resumen('A'), errores: 600 }, resumen('B')).cumple, false);
 });
 
+test('RNF-03: acepta la iteración adicional del límite temporal, sin admitir menos carga', () => {
+  const a = { ...resumen('A'), peticiones: 60001, iteraciones: 60001 };
+  assert.equal(comparar(a, resumen('B')).cumple, true);
+  assert.equal(comparar({ ...a, iteraciones: 60000 }, resumen('B')).cumple, false);
+  assert.equal(comparar({ ...a, peticiones: 60002, iteraciones: 60002 }, resumen('B')).cumple, false);
+});
+
 test('RNF-03: una carga incompleta, omitida o breve no demuestra el requisito', () => {
   for (const cambios of [
     { peticiones: 59999 }, { iteraciones: 59999 }, { omitidas: 1 },

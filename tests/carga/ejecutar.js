@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -14,8 +14,12 @@ const secreto = spawnSync(docker, ['exec', 'shapi-jz14-origen-envios-1', 'printe
 if (secreto.status !== 0) throw new Error('No se pudo consultar el origen aislado. Ejecute preparar.js.');
 const entorno = { ...process.env, CARGA_CLAVE: clave, CARGA_SECRETO_ORIGEN: secreto.stdout.trim() };
 let fallos = false;
+if (!humo) rmSync(resolve(carpeta, 'comparacion.json'), { force: true });
 for (const escenario of ['B', 'A']) {
   const archivo = `${escenario}${humo ? '-humo' : ''}.json`;
+  const rutaResumen = resolve(carpeta, archivo);
+  rmSync(rutaResumen, { force: true });
+  console.log(`Iniciando ${escenario}: ${humo ? '5/s durante 10 s' : '200/s durante 300 s'}.`);
   const resultado = spawnSync(docker, [
     'run', '--rm', '--network', 'host',
     '--mount', `type=bind,source=${resolve(raiz, 'tests/carga')},target=/pruebas,readonly`,
@@ -28,7 +32,10 @@ for (const escenario of ['B', 'A']) {
   ], { cwd: raiz, env: entorno, encoding: 'utf8' });
   writeFileSync(resolve(carpeta, `${archivo}.log`), (resultado.stdout || '') + (resultado.stderr || ''));
   if (resultado.error) throw resultado.error;
-  const resumen = JSON.parse(readFileSync(resolve(carpeta, archivo), 'utf8'));
+  if (!existsSync(rutaResumen)) {
+    throw new Error(`k6 no generó ${archivo}. Consulte .shapi/carga/${archivo}.log; no se reutilizan resultados anteriores.`);
+  }
+  const resumen = JSON.parse(readFileSync(rutaResumen, 'utf8'));
   const { metricas, ...visible } = resumen;
   console.log(JSON.stringify(visible, null, 2));
   if (resultado.status !== 0) fallos = true;

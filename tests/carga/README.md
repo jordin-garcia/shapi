@@ -68,7 +68,8 @@ caminos; esos archivos no sirven para certificar los requisitos. La ejecución
 completa usa un modelo abierto de **200 iteraciones/s durante 300 s**, una
 petición por iteración, sin pausas ni redirecciones, con 100 VU preasignados y
 máximo 500. Cada escenario debe completar 60 000 peticiones e iteraciones y
-tener cero `dropped_iterations`.
+tener cero `dropped_iterations`. Se admite una petición adicional si k6 inicia
+una iteración en el límite temporal exacto; nunca se admiten menos de 60 000.
 
 Los JSON `A.json` y `B.json` guardan p50, p95, p99 de `http_req_duration`,
 conteos, errores y las métricas originales de k6. `peticionesPorSegundo` es la

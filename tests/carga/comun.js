@@ -23,8 +23,9 @@ export function opciones(entorno) {
       errores: ['rate<0.01'],
       respuestas_invalidas: ['count==0'],
       dropped_iterations: ['count==0'],
-      iterations: [`count==${tasa * segundos}`],
-      http_reqs: [`count==${tasa * segundos}`],
+      // k6 puede iniciar una última iteración en el límite exacto de la duración.
+      iterations: [`count>=${tasa * segundos}`, `count<=${tasa * segundos + 1}`],
+      http_reqs: [`count>=${tasa * segundos}`, `count<=${tasa * segundos + 1}`],
     },
     systemTags: ['status', 'method', 'name', 'scenario', 'error_code'],
     // No registrar cuerpos ni cabeceras: contienen claves en las solicitudes.

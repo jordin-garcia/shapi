@@ -306,3 +306,8 @@ Las imágenes publicadas por la integración continua se llaman
 `ghcr.io/jordin-garcia/shapi-{api,compuerta,trabajador,borde}`. Compose usa la
 etiqueta `latest`; la opción `--build` permite construir el mismo contenido
 localmente.
+
+## Pruebas de carga
+
+Los resultados de RNF-01 y RNF-03, el equipo y la reproducción de los escenarios
+están en [Pruebas de carga](pruebas-de-carga.md).

@@ -10,7 +10,7 @@ export function comparar(a, b) {
       if (!Number.isFinite(dato?.[campo]) || dato[campo] < 0) problemas.push(`${escenario}: ${campo} inválido.`);
     }
     if (dato?.tasa !== 200 || dato?.duracionSegundos !== 300) problemas.push(`${escenario}: se requieren 200 peticiones/s durante 300 s.`);
-    if (dato?.peticiones !== 60000 || dato?.iteraciones !== 60000 || dato?.omitidas !== 0) problemas.push(`${escenario}: carga incompleta.`);
+    if (![60000, 60001].includes(dato?.peticiones) || dato?.iteraciones !== dato?.peticiones || dato?.omitidas !== 0) problemas.push(`${escenario}: carga incompleta o distinta de la programada.`);
     if (dato?.respuestasInvalidas !== 0) problemas.push(`${escenario}: respuesta de cotización inválida.`);
   }
   const porcentajeErrores = 100 * a?.errores / a?.peticiones;

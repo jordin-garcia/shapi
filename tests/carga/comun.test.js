@@ -7,7 +7,7 @@ test('RNF-03: modelo abierto de 200/s durante 5 minutos con 60000 solicitudes', 
   assert.equal(datos.scenarios.carga.executor, 'constant-arrival-rate');
   assert.equal(datos.scenarios.carga.rate, 200);
   assert.equal(datos.scenarios.carga.duration, '300s');
-  assert.deepEqual(datos.thresholds.http_reqs, ['count==60000']);
+  assert.deepEqual(datos.thresholds.http_reqs, ['count>=60000', 'count<=60001']);
   assert.deepEqual(datos.thresholds.dropped_iterations, ['count==0']);
   assert.deepEqual(datos.summaryTrendStats, ['med', 'p(95)', 'p(99)']);
 });
