@@ -137,6 +137,14 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Jordin:** las pruebas API de integración requieren confirmación en CI porque Docker no está disponible localmente.
 
+## 2026-10-18 · EM-15 · Invitar consumidores (B1.5)
+- Hecho: implementé el contrato y los endpoints para crear, listar, reenviar y cancelar invitaciones; el correo usa el subdominio del portal y el token vence en siete días. Completé B1.5 y agregué pruebas de integración y Vitest, incluida cobertura de aislamiento entre organizaciones y duplicados pendientes.
+- Decisiones: las invitaciones pertenecen a la organización y se muestran en la pantalla B1.5 de cualquiera de sus APIs. Reenviar invalida el token anterior y genera uno nuevo. Con autorización del usuario, `MotorPlantillasCorreo` ahora arma al renderizar el enlace del consumidor a partir del token y `hostPortal`, y elimina el token de los datos de la cola al enviar o fallar definitivamente.
+- Verificación: `dotnet build Shapi.slnx --no-restore` y `dotnet format Shapi.slnx --verify-no-changes --no-restore` pasan; también pasan los 67 tests unitarios de `MotorPlantillasCorreoTests`. En `frontend/`, `pnpm generar:api`, `pnpm lint`, `pnpm typecheck`, `pnpm exec vitest run --maxWorkers=1` (459 pruebas) y `pnpm build` pasan. La suite normal tuvo un timeout intermitente en una prueba preexistente de A8.1; esa prueba pasa aislada y la suite completa en un solo worker. El detector de interfaz no reportó problemas. Las pruebas dirigidas de integración compilan, pero no pueden arrancar Testcontainers porque el daemon Docker no está disponible; la primera CI detectó el enlace faltante, ya corregido, y la siguiente debe confirmar backend. La revisión independiente quedó LISTO.
+- Pendiente o aviso para otros:
+  - **Jordin:** las pruebas API de integración necesitan confirmación en CI por falta de Docker local.
+  - **José Pablo:** con autorización expresa del usuario, esta tarea modificó `src/Shapi.Infraestructura/Correo/MotorPlantillasCorreo.cs` para generar el enlace de `invitacion_consumidor` desde el token y el host del portal al renderizar.
+
 ## 2026-10-19 · EM-21 · Disponibilidad del proveedor en la cuenta del consumidor
 - Hecho: `GET /api/portal/suscripcion` informa la disponibilidad del proveedor y devuelve las fechas de gracia y rechazo/reversión persistidas junto con los días restantes calculados por `IReloj`. OpenAPI y los tipos TypeScript quedaron actualizados; B2.3 no requirió cambios.
 - Decisiones: la gracia de una suscripción API tiene prioridad para los campos de gracia; si la API no está en gracia pero sí la suscripción de plataforma, se devuelven las fechas de esta última. La gracia del proveedor sigue contando como API disponible. Una organización sin suscripción de plataforma vigente se considera disponible si no está suspendida administrativamente.
