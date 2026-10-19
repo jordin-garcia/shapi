@@ -204,7 +204,12 @@ public sealed class ContratacionApi(
             await publicador.PublicarClave(clave.Id, cancelacion);
         }
 
-        return TypedResults.Created("/api/portal/suscripcion", new { suscripcion = Vista(suscripcion, plan), claves });
+        return TypedResults.Created("/api/portal/suscripcion", new
+        {
+            suscripcion = Vista(suscripcion, plan),
+            medioPago = medioPago is null ? null : new { marca = Marca(medioPago.Marca), ultimos4 = medioPago.Ultimos4 },
+            claves,
+        });
     }
 
     public async Task<IResult> Consultar(HttpContext http, CancellationToken cancelacion)

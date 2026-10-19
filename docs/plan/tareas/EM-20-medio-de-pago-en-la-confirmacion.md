@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P3
-estado: pendiente
+estado: hecha
 programada: 2026-10-17
 depende_de: [DC-17]
 requisitos: [RF-20]
@@ -53,3 +53,9 @@ cd frontend && pnpm generar:api && pnpm lint && pnpm typecheck && pnpm test && p
 
 ## Fuera de alcance
 - La barra lateral de A5.4b (DC-17)
+
+## Resultado
+- `POST /api/portal/suscripciones` devuelve `medioPago` con la marca y los últimos cuatro dígitos en planes de pago; para un plan gratuito devuelve `null`. No expone el número completo ni el token.
+- A5.4b muestra la fila «Medio de pago» solo cuando hay tarjeta, y se quitó la nota temporal del catálogo de interfaz.
+- Se actualizó OpenAPI y se regeneraron los tipos de TypeScript. Las pruebas de integración cubren el medio de pago y su exclusión de datos sensibles; Vitest cubre la fila pagada y su ausencia en el plan gratuito.
+- Archivos principales: `ContratacionApi.cs`, `suscripciones.yaml`, `A5-4b-Confirmacion.tsx`, `PlanesSuscripcion.test.tsx` y `ContratacionTests.cs`.

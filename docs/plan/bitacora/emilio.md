@@ -129,3 +129,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Jordin:** confirmar en CI las pruebas backend de integración; Docker no está disponible en el entorno local.
   - **Dominique:** actualicé los interceptores MSW del catálogo de rutas para A6.1 y A6.3 en `frontend/apps/panel/src/tests/rutas.test.tsx`.
+
+## 2026-10-18 · EM-20 · Medio de pago en la confirmación de la contratación (A5.4b)
+- Hecho: la respuesta de contratación incluye la marca y los últimos cuatro dígitos del medio de pago sin exponer número completo ni token; A5.4b muestra esa fila en planes de pago y la oculta en los gratuitos. Se actualizó OpenAPI y se regeneraron los tipos.
+- Decisiones: `medioPago` es `null` cuando el plan es gratuito; los datos expuestos se limitan a `marca` y `ultimos4`.
+- Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan. El test Vitest de `PlanesSuscripcion.test.tsx` pasa (9/9); la suite completa del frontend pasa serial (457/457), además de lint, typecheck y build. Las pruebas API dirigidas compilan, pero no arrancan porque Testcontainers no encuentra Docker (`/var/run/docker.sock`); CI debe confirmar backend.
+- Pendiente o aviso para otros:
+  - **Jordin:** las pruebas API de integración requieren confirmación en CI porque Docker no está disponible localmente.
