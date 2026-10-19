@@ -75,12 +75,12 @@ public sealed class ConsumoConsumidoresTests(ContenedorPostgresApis postgres) : 
     {
         await Suscripcion();
         await Sql("""
-            INSERT INTO consumo_diario (fecha, api_id, suscripcion_id, entorno, llamadas, peticiones, hist_latencia_total, hist_latencia_compuerta, actualizado_en)
-            VALUES ('2026-10-01', @api, @susc, 'produccion', 31000, 100, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now()),
-            ('2026-10-02', @api, @susc, 'produccion', 480, 10, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now()),
-            ('2026-10-01', @api, @susc, 'pruebas', 80000, 1, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now()),
-            ('2026-09-30', @api, @susc, 'produccion', 90000, 1, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now()),
-            ('2026-10-31', @api, @susc, 'produccion', 70000, 1, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now());
+            INSERT INTO consumo_diario (fecha, api_id, suscripcion_id, entorno, llamadas, peticiones, hist_latencia_total, hist_latencia_compuerta, latencia_total_suma_ms, latencia_compuerta_suma_ms, actualizado_en)
+            VALUES ('2026-10-01', @api, @susc, 'produccion', 31000, 100, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-02', @api, @susc, 'produccion', 480, 10, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-01', @api, @susc, 'pruebas', 80000, 1, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-09-30', @api, @susc, 'produccion', 90000, 1, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-31', @api, @susc, 'produccion', 70000, 1, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now());
             """);
         await Pago(400, "autorizado", "2026-10-01T06:00:00Z", "2026-10-31T06:00:00Z", "2026-10-01T06:00:00Z");
         await Pago(50, "autorizado", "2026-10-01T06:00:00Z", "2026-10-31T06:00:00Z", "2026-10-02T06:00:00Z");
@@ -126,10 +126,15 @@ public sealed class ConsumoConsumidoresTests(ContenedorPostgresApis postgres) : 
         Assert.Equal(activas, json.GetProperty("activas").GetInt32());
     }
 
-    [Fact]
-    public async Task RF_36_Consumidores_SinSuscripcionesOFinalizadasDevuelveListaYTotalesVacios()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RF_36_Consumidores_SinSuscripcionesOFinalizadasDevuelveListaYTotalesVacios(bool finalizada)
     {
-        await Suscripcion("finalizada");
+        if (finalizada)
+        {
+            await Suscripcion("finalizada");
+        }
         var json = await Obtener();
         Assert.Empty(json.GetProperty("elementos").EnumerateArray());
         foreach (var campo in new[] { "total", "activas", "llamadas", "cuota", "facturacion" })
@@ -139,14 +144,47 @@ public sealed class ConsumoConsumidoresTests(ContenedorPostgresApis postgres) : 
     }
 
     [Fact]
+    public async Task RF_36_RNF_08_Consumidores_OrdenaYSumaVariosCiclosSinIncluirOtraApi()
+    {
+        await Suscripcion();
+        await Pago(450, "autorizado", "2026-10-01T06:00:00Z", "2026-10-31T06:00:00Z", "2026-10-01T06:00:00Z");
+        await Sql("""
+            INSERT INTO consumidor (id, organizacion_id, nombre, nombre_empresa, correo, hash_contrasena, estado)
+            VALUES ('10000000-0000-0000-0000-000000000001', @org, 'Ana', 'Boutique Cayalá', 'ana@boutique.test', 'hash', 'activo');
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin)
+            VALUES ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', @api, @plan, 'suspendida', '2026-10-05T06:00:00Z', '2026-11-04T06:00:00Z');
+            INSERT INTO api (id, organizacion_id, nombre, subdominio, url_origen, estado, secreto_origen_cifrado)
+            VALUES ('30000000-0000-0000-0000-000000000001', @org, 'Otra API', 'otra', 'https://8.8.8.8', 'borrador', 'cifrado');
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto)
+            VALUES ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Otro plan', '', 50, false, 30, 100, 10);
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin)
+            VALUES ('50000000-0000-0000-0000-000000000001', @consumidor, '30000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', 'activa', '2026-10-01T06:00:00Z', '2026-10-31T06:00:00Z');
+            INSERT INTO consumo_diario (fecha, api_id, suscripcion_id, entorno, llamadas, hist_latencia_total, hist_latencia_compuerta, latencia_total_suma_ms, latencia_compuerta_suma_ms, actualizado_en)
+            VALUES ('2026-10-05', @api, @susc, 'produccion', 300, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-05', @api, '20000000-0000-0000-0000-000000000001', 'produccion', 200, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-04', @api, '20000000-0000-0000-0000-000000000001', 'produccion', 999, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-05', '30000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'produccion', 9999, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now());
+            """);
+        var json = await Obtener();
+        var filas = json.GetProperty("elementos").EnumerateArray().ToArray();
+        Assert.Equal(new[] { "Boutique Cayalá", "Mercadito Antigua" }, filas.Select(x => x.GetProperty("consumidor").GetString()));
+        Assert.Equal(new long[] { 200, 300 }, filas.Select(x => x.GetProperty("llamadas").GetInt64()));
+        Assert.Equal(2, json.GetProperty("total").GetInt32());
+        Assert.Equal(1, json.GetProperty("activas").GetInt32());
+        Assert.Equal(500, json.GetProperty("llamadas").GetInt64());
+        Assert.Equal(100000, json.GetProperty("cuota").GetInt64());
+        Assert.Equal(450, json.GetProperty("facturacion").GetDecimal());
+    }
+
+    [Fact]
     public async Task RF_36_Consumidores_GraciaConservaConsumoTrasFinHastaHoyDeGuatemala()
     {
         await Suscripcion("en_gracia");
         await Sql("""
             UPDATE suscripcion_api SET inicio = '2026-09-11T06:00:00Z', fin = '2026-10-11T06:00:00Z' WHERE id = @susc;
-            INSERT INTO consumo_diario (fecha, api_id, suscripcion_id, entorno, llamadas, hist_latencia_total, hist_latencia_compuerta, actualizado_en)
-            VALUES ('2026-10-11', @api, @susc, 'produccion', 100, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now()),
-            ('2026-10-12', @api, @susc, 'produccion', 200, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), now());
+            INSERT INTO consumo_diario (fecha, api_id, suscripcion_id, entorno, llamadas, hist_latencia_total, hist_latencia_compuerta, latencia_total_suma_ms, latencia_compuerta_suma_ms, actualizado_en)
+            VALUES ('2026-10-11', @api, @susc, 'produccion', 100, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now()),
+            ('2026-10-12', @api, @susc, 'produccion', 200, array_fill(0::bigint, ARRAY[10]), array_fill(0::bigint, ARRAY[10]), 0, 0, now());
             """);
         var fila = Assert.Single((await Obtener()).GetProperty("elementos").EnumerateArray());
         Assert.Equal(100, fila.GetProperty("llamadas").GetInt64());
