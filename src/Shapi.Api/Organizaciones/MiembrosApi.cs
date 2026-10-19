@@ -30,6 +30,7 @@ public static class MiembrosApi
         var invitaciones = app.MapGroup("/api/invitaciones");
         invitaciones.MapGet("/{token}", ConsultarInvitacion).AllowAnonymous();
         invitaciones.MapPost("/{token}/aceptar", AceptarInvitacion).AllowAnonymous();
+        app.MapearEndpointsInvitacionesConsumidores();
         return app;
     }
 

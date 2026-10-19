@@ -293,7 +293,7 @@ Formato: **Actor**, **Precondiciones**, **Flujo principal**, **Flujos alternos**
 
 ### CU-23 Invitar consumidores
 - **Actor:** propietario o editor.
-- **Flujo principal:** el actor escribe el correo del consumidor y envía la invitación (vence a los 7 días). La lista muestra las invitaciones pendientes, que se pueden cancelar o reenviar.
+- **Flujo principal:** el actor escribe el correo del consumidor y envía la invitación (vence a los 7 días). La lista muestra las invitaciones pendientes de la organización, que se pueden cancelar o reenviar desde cualquiera de sus APIs. Si el correo ya tiene cuenta de consumidor o una invitación vigente en la organización, no se crea otra: responde `409 consumidor_existente` o `409 invitacion_pendiente`, respectivamente.
 - **Requisitos:** RF-05 · **Pantallas:** B1.5.
 
 ### CU-24 Explorar la documentación y probar en la consola

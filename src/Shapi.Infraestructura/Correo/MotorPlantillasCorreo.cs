@@ -95,6 +95,18 @@ public sealed partial class MotorPlantillasCorreo
 
     private void AgregarEnlace(string plantilla, IDictionary<string, string> datos)
     {
+        if (plantilla == "invitacion_consumidor")
+        {
+            if (!datos.TryGetValue("token", out var tokenConsumidor) || string.IsNullOrWhiteSpace(tokenConsumidor))
+            {
+                throw new InvalidOperationException($"Falta el dato 'token' para la plantilla '{plantilla}'.");
+            }
+
+            var hostPortal = HostDelEnlace(datos);
+            datos["enlace"] = $"https://{hostPortal}/invitacion?token={Uri.EscapeDataString(tokenConsumidor)}";
+            return;
+        }
+
         if (plantilla is not ("verificacion_correo" or "recuperacion" or "invitacion_miembro" or "definir_contrasena"))
         {
             return;

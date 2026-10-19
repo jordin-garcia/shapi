@@ -1,4 +1,56 @@
 export interface paths {
+    "/api/apis/{apiId}/invitaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista las invitaciones pendientes a consumidores */
+        get: operations["listarInvitacionesConsumidores"];
+        put?: never;
+        /** Invita a un consumidor al portal de la API */
+        post: operations["invitarConsumidor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{apiId}/invitaciones/{invitacionId}/reenviar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reenvía una invitación con un token nuevo */
+        post: operations["reenviarInvitacionConsumidor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{apiId}/invitaciones/{invitacionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancela una invitación pendiente */
+        delete: operations["cancelarInvitacionConsumidor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/miembros": {
         parameters: {
             query?: never;
@@ -105,6 +157,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PeticionInvitarConsumidor: {
+            /** Format: email */
+            correo: string;
+        };
+        ListaInvitacionesConsumidores: {
+            nombreApi: string;
+            nombrePortal: string;
+            elementos: components["schemas"]["InvitacionConsumidor"][];
+        };
+        InvitacionConsumidor: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            correo: string;
+            /** Format: date-time */
+            enviadaEn: string;
+            /** Format: date-time */
+            venceEn: string;
+        };
         ListaMiembros: {
             elementos: components["schemas"]["Miembro"][];
             /** @description Miembros e invitaciones vigentes */
@@ -174,6 +245,196 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listarInvitacionesConsumidores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitaciones pendientes de la organización */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaInvitacionesConsumidores"];
+                };
+            };
+            /** @description Se requiere una sesión personal */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo propietario o editor pueden administrar invitaciones */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description API no encontrada en esta organización */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    invitarConsumidor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionInvitarConsumidor"];
+            };
+        };
+        responses: {
+            /** @description Invitación creada y correo encolado */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Correo inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+            /** @description Se requiere una sesión personal */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo propietario o editor pueden administrar invitaciones */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description API no encontrada en esta organización */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description codigo=consumidor_existente si el correo ya tiene cuenta de consumidor en la organización; codigo=invitacion_pendiente si ya hay una invitación vigente para el correo en la organización. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
+    reenviarInvitacionConsumidor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiId: string;
+                invitacionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitación renovada y correo encolado */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Se requiere una sesión personal */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo propietario o editor pueden administrar invitaciones */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description API o invitación pendiente no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelarInvitacionConsumidor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiId: string;
+                invitacionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitación cancelada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Se requiere una sesión personal */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo propietario o editor pueden administrar invitaciones */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description API o invitación pendiente no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listarMiembros: {
         parameters: {
             query?: never;

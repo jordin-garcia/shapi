@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-18
 depende_de: [EM-05]
 requisitos: [RF-05]
@@ -25,6 +25,7 @@ Permitir que el proveedor invite consumidores a su portal y administre las invit
 
 ## Archivos que creas o modificas
 - `src/*/Organizaciones/**` (modificar)
+- `src/Shapi.Infraestructura/Correo/MotorPlantillasCorreo.cs` y `tests/Shapi.Api.Tests/Correo/MotorPlantillasCorreoTests.cs` (modificar con autorización explícita del usuario para renderizar y probar el enlace de la invitación)
 - `contratos/openapi/organizaciones.yaml`
 - `frontend/apps/panel/src/paginas/B1-5-InvitarConsumidores.tsx`
 - `tests/**`
@@ -50,3 +51,11 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Aceptación en el portal (EM-05 y DC-08)
+
+## Resultado
+- Se implementaron el contrato OpenAPI y los endpoints para crear, listar, reenviar y cancelar invitaciones a consumidores, con tokens de siete días y correo encolado al subdominio del portal.
+- Se completó B1.5 con gestión de invitaciones pendientes, estados de carga/error/vacío y acciones accesibles; se regeneraron los tipos de la API.
+- Se agregaron pruebas de integración para ciclo de vida, permisos, consumidor existente y aislamiento RNF-08 entre organizaciones, además de pruebas Vitest.
+- Se documentó CU-23: las invitaciones son de la organización y su lista se comparte entre sus APIs; los correos ya invitados o con una invitación vigente responden 409 con códigos distintos.
+- Decisiones: la lista devuelve el nombre de la API y del portal para reproducir el texto dinámico del mockup. El motor de correo arma el enlace del portal al renderizarlo desde el token y el host, y elimina el token de los datos al terminar.
+- Archivos principales: `src/Shapi.Api/Organizaciones/InvitacionesConsumidoresApi.cs`, `contratos/openapi/organizaciones.yaml`, `frontend/apps/panel/src/paginas/B1-5-InvitarConsumidores.tsx` y sus pruebas.

@@ -12,7 +12,7 @@ public class MotorPlantillasCorreoTests
         { "verificacion_correo", """{"nombre":"Ana","token":"token-1"}""" },
         { "recuperacion", """{"nombre":"Ana","token":"token-1"}""" },
         { "invitacion_miembro", """{"nombre":"Ana","nombreOrganizacion":"Acme","token":"token-1"}""" },
-        { "invitacion_consumidor", """{"nombre":"Ana","nombreApi":"API de envíos","enlace":"https://envios.shapi.localhost/invitacion?token=token-1"}""" },
+        { "invitacion_consumidor", """{"nombre":"Ana","nombreApi":"API de envíos","token":"token-1","hostPortal":"envios.shapi.localhost"}""" },
         { "definir_contrasena", """{"nombre":"Ana","token":"token-1"}""" },
         { "pago_rechazado", """{"nombre":"Ana","nombrePlan":"Profesional","motivo":"Fondos insuficientes","enlace":"https://shapi.localhost/pagos"}""" },
         { "suscripcion_en_gracia", """{"nombre":"Ana","nombrePlan":"Profesional","fechaSuspension":"12 de octubre de 2026","enlace":"https://shapi.localhost/suscripcion"}""" },
@@ -107,6 +107,20 @@ public class MotorPlantillasCorreoTests
 
         resultado.Html.Should().Contain("https://shapi.localhost/invitacion?token=token-1");
         resultado.Texto.Should().Contain("https://shapi.localhost/invitacion?token=token-1");
+    }
+
+    // RF-05: el motor calcula el enlace de invitación de consumidor desde el token y el host del portal.
+    [Fact]
+    public void RF_05_InvitacionConsumidor_GeneraElEnlaceCodificadoDelPortal()
+    {
+        var motor = CrearMotor();
+
+        var resultado = motor.Renderizar("invitacion_consumidor", """{"nombre":"Ana","nombreApi":"API de envíos","token":"token+1","nombrePortal":"Envíos Xelajú","hostPortal":"envios.shapi.localhost","colorPortal":"#E11D48"}""");
+
+        resultado.Html.Should().Contain("https://envios.shapi.localhost/invitacion?token=token%2B1");
+        resultado.Texto.Should().Contain("https://envios.shapi.localhost/invitacion?token=token%2B1");
+        resultado.Html.Should().NotContain("{{");
+        resultado.Texto.Should().NotContain("{{");
     }
 
     // RF-46
