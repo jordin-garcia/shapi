@@ -2,10 +2,37 @@ openapi: 3.1.0
 info:
   title: API de Control - Consumo
   version: 1.0.0
-  description: Consumo del proveedor (RF-35, B1.1) y del consumidor (RF-37, B2.1). El proveedor consulta producción y pruebas consolidadas; el consumidor consulta la cuota de producción en Redis y su detalle consolidado por ruta.
+  description: Consumo del proveedor (RF-35, B1.1), facturación por consumidor (RF-36, B1.2) y consumo del consumidor (RF-37, B2.1). El proveedor consulta datos consolidados; el consumidor consulta la cuota de producción en Redis y su detalle consolidado por ruta.
 servers:
   - url: https://shapi.localhost
 paths:
+  /api/apis/{apiId}/consumidores:
+    get:
+      operationId: consultarConsumoConsumidores
+      summary: Consumo del ciclo y facturación por consumidor (RF-36)
+      description: Propietario, editor o lector de la organización dueña. Una fila por suscripción no finalizada, ordenada por empresa y suscripción. Suma las llamadas de producción consolidadas desde el inicio del ciclo hasta su fin o el día actual si está vencido, incluyendo rutas retiradas. La facturación suma los pagos autorizados cuyo periodo coincide con el ciclo vigente, incluidos prorrateos; no usa el precio actual del plan. El último cobro es el último intento de la suscripción, ordenado por fecha e ID; es nulo si nunca hubo cobros. Las fechas son inclusivas en Guatemala. Los totales abarcan todas las filas. Sin paginación.
+      security:
+        - cookieSesionPersonal: []
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Suscripciones vigentes y totales, o lista vacía; sin caché HTTP.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsumoConsumidores' }
+        '401':
+          description: Sin sesión del personal.
+        '403':
+          description: El rol no puede consultar el consumo.
+        '404':
+          description: La API no existe o pertenece a otra organización.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
   /api/apis/{apiId}/consumo:
     get:
       operationId: consultarConsumoApi
@@ -84,6 +111,37 @@ components:
       in: cookie
       name: shapi_sesion
   schemas:
+    ConsumoConsumidores:
+      type: object
+      required: [apiId, apiNombre, elementos, total, activas, llamadas, cuota, facturacion, moneda]
+      properties:
+        apiId: { type: string, format: uuid }
+        apiNombre: { type: string }
+        elementos:
+          type: array
+          items: { $ref: '#/components/schemas/ConsumoConsumidor' }
+        total: { type: integer }
+        activas: { type: integer }
+        llamadas: { type: integer, format: int64 }
+        cuota: { type: integer, format: int64 }
+        facturacion: { type: number }
+        moneda: { type: string, const: GTQ }
+    ConsumoConsumidor:
+      type: object
+      required: [suscripcionId, consumidorId, consumidor, plan, inicio, fin, llamadas, cuota, porcentaje, facturacion, ultimoCobro, estadoSuscripcion]
+      properties:
+        suscripcionId: { type: string, format: uuid }
+        consumidorId: { type: string, format: uuid }
+        consumidor: { type: string }
+        plan: { type: string }
+        inicio: { type: string, format: date }
+        fin: { type: string, format: date }
+        llamadas: { type: integer, format: int64 }
+        cuota: { type: integer, format: int64 }
+        porcentaje: { type: number }
+        facturacion: { type: number }
+        ultimoCobro: { type: [string, 'null'], enum: [autorizado, rechazado, revertido, null] }
+        estadoSuscripcion: { type: string, enum: [activa, en_gracia, suspendida] }
     ConsumoRutaCiclo:
       type: object
       required: [rutaId, metodo, patron, pesoLlamadas, peticiones, llamadas, porcentaje]

@@ -13,9 +13,21 @@ public static class Endpoints
     {
         app.MapGet("/api/apis/{apiId:guid}/consumo", Consultar)
             .RequireAuthorization(Permisos.VerConsumo);
+        app.MapGet("/api/apis/{apiId:guid}/consumidores", ConsultarConsumidores)
+            .RequireAuthorization(Permisos.VerConsumo);
         app.MapGet("/api/portal/consumo", ConsultarConsumidor)
             .RequireAuthorization(Permisos.ConsumidorVerCuenta);
         return app;
+    }
+
+    private static async Task<IResult> ConsultarConsumidores(Guid apiId, HttpContext http,
+        ConsultarConsumoConsumidores casoUso, CancellationToken cancelacion)
+    {
+        http.Response.Headers.CacheControl = "no-store";
+        var organizacion = Guid.Parse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);
+        var resultado = await casoUso.Ejecutar(organizacion, apiId, cancelacion);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor)
+            : Problemas.Crear(404, resultado.Error.Codigo, resultado.Error.Mensaje);
     }
 
     private static async Task<IResult> ConsultarConsumidor(HttpContext http, IResolutorPortal resolutor,
