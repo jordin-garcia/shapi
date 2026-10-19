@@ -533,9 +533,9 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
-    // RF-23: la gracia del proveedor no detiene la API y expone las fechas persistidas, incluida una reversión.
+    // RF-23: la gracia por reversión del proveedor no detiene la API ni expone sus fechas privadas al consumidor.
     [Fact]
-    public async Task RF_23_ConsultarSuscripcion_ProveedorEnGraciaPorReversion_DevuelveDisponibilidadYFechasPersistidas()
+    public async Task RF_23_ConsultarSuscripcion_ProveedorEnGraciaPorReversion_ConservaDisponibilidadYSoloDevuelveFechasNulas()
     {
         var e = await CrearEscenario(verificado: true, gratuito: true);
         var suscripcionApi = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa",
@@ -559,9 +559,9 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
         var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("apiDisponible").GetBoolean().Should().BeTrue();
-        body.GetProperty("graciaHasta").GetDateTimeOffset().Should().Be(graciaHasta);
-        body.GetProperty("ultimoRechazoEn").GetDateTimeOffset().Should().Be(fechaReversion);
-        body.GetProperty("diasRestantes").GetInt32().Should().Be(4);
+        body.GetProperty("graciaHasta").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("ultimoRechazoEn").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("diasRestantes").GetInt32().Should().Be(0);
         body.GetProperty("plan").GetProperty("id").GetGuid().Should().Be(e.PlanId);
         body.GetProperty("periodo").GetProperty("inicio").GetDateTimeOffset().Should().Be(Reloj.Ahora.AddDays(-1));
         body.GetProperty("periodo").GetProperty("fin").GetDateTimeOffset().Should().Be(Reloj.Ahora.AddDays(28));
@@ -570,7 +570,7 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcionApi}'")).Should().Be("activa");
     }
 
-    // RF-23: los rechazos de renovación de la propia suscripción API conservan su fecha persistida.
+    // RF-23: el rechazo de renovación de la suscripción API conserva su fecha persistida.
     [Fact]
     public async Task RF_23_ConsultarSuscripcion_ConsumidorEnGracia_DevuelveFechasPersistidas()
     {
@@ -592,6 +592,32 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         body.GetProperty("graciaHasta").GetDateTimeOffset().Should().Be(graciaHasta);
         body.GetProperty("ultimoRechazoEn").GetDateTimeOffset().Should().Be(fechaRechazo);
         body.GetProperty("diasRestantes").GetInt32().Should().Be(6);
+    }
+
+    // RF-23: una reversión asociada a la suscripción API usa revertido_en, sin reconstruir la fecha desde el periodo.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_ConsumidorEnGraciaPorReversion_DevuelveFechasPersistidas()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        var suscripcionApi = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "en_gracia",
+            Reloj.Ahora.AddDays(-8), Reloj.Ahora.AddDays(22));
+        var graciaHasta = Reloj.Ahora.AddDays(3).AddHours(12);
+        var fechaReversion = Reloj.Ahora.AddHours(-2);
+        await Ejecutar($"UPDATE suscripcion_api SET gracia_hasta = '{graciaHasta:O}' WHERE id = '{suscripcionApi}'");
+        await Ejecutar($"""
+            INSERT INTO pago (id, suscripcion_api_id, concepto, descripcion, monto, estado, revertido_en)
+            VALUES (gen_random_uuid(), '{suscripcionApi}', 'renovacion', 'Reversión de prueba', 50, 'revertido', '{fechaReversion:O}')
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("estado").GetString().Should().Be("en_gracia");
+        body.GetProperty("graciaHasta").GetDateTimeOffset().Should().Be(graciaHasta);
+        body.GetProperty("ultimoRechazoEn").GetDateTimeOffset().Should().Be(fechaReversion);
+        body.GetProperty("diasRestantes").GetInt32().Should().Be(4);
+        (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcionApi}'")).Should().Be("en_gracia");
     }
 
     // RF-23: la API no está disponible si se suspende administrativamente la organización proveedora.

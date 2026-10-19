@@ -243,14 +243,11 @@ public sealed class ContratacionApi(
             .SingleAsync(x => x.Id == portal.OrganizacionId, cancelacion);
         var suscripcionPlataforma = await db.Set<SuscripcionPlataforma>().AsNoTracking()
             .SingleOrDefaultAsync(x => x.OrganizacionId == portal.OrganizacionId && x.Estado != EstadoSuscripcion.Finalizada, cancelacion);
-        var suscripcionApiEnGracia = fila.Suscripcion.Estado == EstadoSuscripcion.EnGracia ? fila.Suscripcion : null;
-        var suscripcionPlataformaEnGracia = suscripcionApiEnGracia is null
-            && suscripcionPlataforma?.Estado == EstadoSuscripcion.EnGracia ? suscripcionPlataforma : null;
-        var graciaHasta = suscripcionApiEnGracia?.GraciaHasta ?? suscripcionPlataformaEnGracia?.GraciaHasta;
-        var ultimoRechazoEn = graciaHasta is not null
+        var enGracia = fila.Suscripcion.Estado == EstadoSuscripcion.EnGracia;
+        var graciaHasta = enGracia ? fila.Suscripcion.GraciaHasta : null;
+        var ultimoRechazoEn = enGracia
             ? await db.Set<Pago>().AsNoTracking()
-                .Where(x => ((suscripcionApiEnGracia != null && x.SuscripcionApiId == suscripcionApiEnGracia.Id)
-                    || (suscripcionPlataformaEnGracia != null && x.SuscripcionPlataformaId == suscripcionPlataformaEnGracia.Id))
+                .Where(x => x.SuscripcionApiId == fila.Suscripcion.Id
                     && (x.Estado == EstadoPago.Rechazado || x.Estado == EstadoPago.Revertido))
                 .Select(x => x.Estado == EstadoPago.Revertido ? x.RevertidoEn : x.CreadoEn)
                 .MaxAsync(cancelacion)
