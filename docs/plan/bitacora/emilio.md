@@ -136,3 +136,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan. El test Vitest de `PlanesSuscripcion.test.tsx` pasa (9/9); la suite completa del frontend pasa serial (457/457), además de lint, typecheck y build. Las pruebas API dirigidas compilan, pero no arrancan porque Testcontainers no encuentra Docker (`/var/run/docker.sock`); CI debe confirmar backend.
 - Pendiente o aviso para otros:
   - **Jordin:** las pruebas API de integración requieren confirmación en CI porque Docker no está disponible localmente.
+
+## 2026-10-18 · EM-15 · Invitar consumidores (B1.5)
+- Hecho: implementé el contrato y los endpoints para crear, listar, reenviar y cancelar invitaciones; el correo usa el subdominio del portal y el token vence en siete días. Completé B1.5 y agregué pruebas de integración y Vitest, incluida cobertura de aislamiento entre organizaciones.
+- Decisiones: la lista devuelve el nombre de la API y del portal para mostrar el texto dinámico del mockup. Reenviar invalida el token anterior y genera uno nuevo.
+- Verificación: `dotnet build Shapi.slnx --no-restore` y `dotnet format Shapi.slnx --verify-no-changes --no-restore` pasan. En `frontend/`, `pnpm generar:api`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (459 pruebas) y `pnpm build` pasan. El detector de interfaz no reportó problemas. La prueba dirigida de integración no puede arrancar Testcontainers porque el daemon Docker no está disponible; CI debe confirmar backend. Revisión independiente: LISTO tras agregar los casos RNF-08.
+- Pendiente o aviso para otros:
+  - **Jordin:** las pruebas API de integración necesitan confirmación en CI por falta de Docker local.

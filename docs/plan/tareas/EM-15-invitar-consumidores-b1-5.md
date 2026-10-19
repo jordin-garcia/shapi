@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-18
 depende_de: [EM-05]
 requisitos: [RF-05]
@@ -50,3 +50,10 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Aceptación en el portal (EM-05 y DC-08)
+
+## Resultado
+- Se implementaron el contrato OpenAPI y los endpoints para crear, listar, reenviar y cancelar invitaciones a consumidores, con tokens de siete días y correo encolado al subdominio del portal.
+- Se completó B1.5 con gestión de invitaciones pendientes, estados de carga/error/vacío y acciones accesibles; se regeneraron los tipos de la API.
+- Se agregaron pruebas de integración para ciclo de vida, permisos, consumidor existente y aislamiento RNF-08 entre organizaciones, además de pruebas Vitest.
+- Decisión: la lista devuelve el nombre de la API y del portal para reproducir el texto dinámico del mockup sin depender de datos estáticos.
+- Archivos principales: `src/Shapi.Api/Organizaciones/InvitacionesConsumidoresApi.cs`, `contratos/openapi/organizaciones.yaml`, `frontend/apps/panel/src/paginas/B1-5-InvitarConsumidores.tsx` y sus pruebas.

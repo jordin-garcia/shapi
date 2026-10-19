@@ -60,6 +60,7 @@ const implementadas: Record<string, string> = {
   'B3-2': 'Bitácora de acciones sensibles',
   'B3-1': 'Estado de los componentes',
   'B1-1': 'Consumo, latencia y errores',
+  'B1-5': 'Invitar consumidores',
   'A4-3': 'Claves de sus consumidores',
 };
 async function esperarPantalla(id: string) {
@@ -100,6 +101,10 @@ beforeEach(() => {
       dominio: null, destinoCname: null, estado: null, motivo: null, verificadoEn: null,
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
+    http.get('http://localhost/api/apis/:id/invitaciones', ({ params }) => HttpResponse.json({
+      nombreApi: params.id === 'api-2' ? 'Agro Precios' : 'API de Cotización de Envíos',
+      nombrePortal: 'Envíos Xelajú', elementos: [],
+    })),
     http.get('http://localhost/api/apis/:id/claves', () => HttpResponse.json({ elementos: [], total: 0 })),
     http.get('http://localhost/api/apis/:id/consumo', ({ params }) => HttpResponse.json({
       apiId: params.id, apiNombre: 'Envíos Xelajú', desde: '2026-10-02', hasta: '2026-10-11',

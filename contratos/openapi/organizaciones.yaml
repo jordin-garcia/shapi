@@ -3,6 +3,80 @@ info:
   title: API de Organizaciones de Shapi
   version: 1.0.0
 paths:
+  /api/apis/{apiId}/invitaciones:
+    get:
+      summary: Lista las invitaciones pendientes a consumidores
+      operationId: listarInvitacionesConsumidores
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Invitaciones pendientes de la organización
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListaInvitacionesConsumidores" }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo propietario o editor pueden administrar invitaciones }
+        "404": { description: API no encontrada en esta organización }
+    post:
+      summary: Invita a un consumidor al portal de la API
+      operationId: invitarConsumidor
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PeticionInvitarConsumidor" }
+      responses:
+        "202": { description: Invitación creada y correo encolado }
+        "400": { description: Correo inválido, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problema" } } } }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo propietario o editor pueden administrar invitaciones }
+        "404": { description: API no encontrada en esta organización }
+        "409": { description: El correo ya tiene cuenta de consumidor o invitación pendiente }
+  /api/apis/{apiId}/invitaciones/{invitacionId}/reenviar:
+    post:
+      summary: Reenvía una invitación con un token nuevo
+      operationId: reenviarInvitacionConsumidor
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: invitacionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "202": { description: Invitación renovada y correo encolado }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo propietario o editor pueden administrar invitaciones }
+        "404": { description: API o invitación pendiente no encontrada }
+  /api/apis/{apiId}/invitaciones/{invitacionId}:
+    delete:
+      summary: Cancela una invitación pendiente
+      operationId: cancelarInvitacionConsumidor
+      parameters:
+        - name: apiId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: invitacionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Invitación cancelada }
+        "401": { description: Se requiere una sesión personal }
+        "403": { description: Solo propietario o editor pueden administrar invitaciones }
+        "404": { description: API o invitación pendiente no encontrada }
   /api/miembros:
     get:
       summary: Lista los miembros y el uso del límite de la organización
@@ -126,6 +200,28 @@ paths:
         "422": { description: El correo ya pertenece a otra organización }
 components:
   schemas:
+    PeticionInvitarConsumidor:
+      type: object
+      required: [correo]
+      properties:
+        correo: { type: string, format: email }
+    ListaInvitacionesConsumidores:
+      type: object
+      required: [nombreApi, nombrePortal, elementos]
+      properties:
+        nombreApi: { type: string }
+        nombrePortal: { type: string }
+        elementos:
+          type: array
+          items: { $ref: "#/components/schemas/InvitacionConsumidor" }
+    InvitacionConsumidor:
+      type: object
+      required: [id, correo, enviadaEn, venceEn]
+      properties:
+        id: { type: string, format: uuid }
+        correo: { type: string, format: email }
+        enviadaEn: { type: string, format: date-time }
+        venceEn: { type: string, format: date-time }
     ListaMiembros:
       type: object
       required: [elementos, total, invitacionesPendientes, organizacion, usuarioActualId, plan]
