@@ -40,7 +40,13 @@ paths:
         "401": { description: Se requiere una sesión personal }
         "403": { description: Solo propietario o editor pueden administrar invitaciones }
         "404": { description: API no encontrada en esta organización }
-        "409": { description: El correo ya tiene cuenta de consumidor o invitación pendiente }
+        "409":
+          description: >-
+            codigo=consumidor_existente si el correo ya tiene cuenta de consumidor en la organización;
+            codigo=invitacion_pendiente si ya hay una invitación vigente para el correo en la organización.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problema" }
   /api/apis/{apiId}/invitaciones/{invitacionId}/reenviar:
     post:
       summary: Reenvía una invitación con un token nuevo

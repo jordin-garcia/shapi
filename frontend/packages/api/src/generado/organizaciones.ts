@@ -340,12 +340,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description El correo ya tiene cuenta de consumidor o invitación pendiente */
+            /** @description codigo=consumidor_existente si el correo ya tiene cuenta de consumidor en la organización; codigo=invitacion_pendiente si ya hay una invitación vigente para el correo en la organización. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
         };
     };

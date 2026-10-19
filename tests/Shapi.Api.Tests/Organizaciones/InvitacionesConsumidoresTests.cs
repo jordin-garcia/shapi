@@ -65,6 +65,7 @@ public sealed class InvitacionesConsumidoresTests(PostgresPersistencia postgres)
         var datosJson = await Escalar<string>("SELECT datos::text FROM correo_saliente WHERE destinatario = 'ana@ejemplo.com'");
         using var datos = JsonDocument.Parse(datosJson);
         var tokenCorreo = datos.RootElement.GetProperty("token").GetString()!;
+        datos.RootElement.TryGetProperty("enlace", out _).Should().BeFalse();
         datos.RootElement.GetProperty("hostPortal").GetString().Should().Be("envios.shapi.localhost");
         datos.RootElement.GetProperty("nombreApi").GetString().Should().Be("API Envíos");
         var motor = new MotorPlantillasCorreo(new Microsoft.Extensions.Configuration.ConfigurationBuilder()
@@ -124,6 +125,28 @@ public sealed class InvitacionesConsumidoresTests(PostgresPersistencia postgres)
         respuesta.StatusCode.Should().Be(HttpStatusCode.Conflict);
         using var cuerpo = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
         cuerpo.RootElement.GetProperty("codigo").GetString().Should().Be("consumidor_existente");
+    }
+
+    // CU-23: una invitación pendiente vigente impide crear otra para el mismo correo en la organización.
+    [Fact]
+    public async Task CU_23_InvitarConsumidorConInvitacionPendiente_Responde409()
+    {
+        var (organizacion, propietario) = await Preparar();
+        using var client = Factory.CreateClient();
+        using var primera = await Enviar(client, HttpMethod.Post, $"/api/apis/{_apiId}/invitaciones", organizacion, propietario,
+            new { correo = "ana@ejemplo.com" });
+        primera.StatusCode.Should().Be(HttpStatusCode.Accepted);
+
+        using var duplicada = await Enviar(client, HttpMethod.Post, $"/api/apis/{_apiId}/invitaciones", organizacion, propietario,
+            new { correo = "ANA@ejemplo.com" });
+
+        duplicada.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        using var cuerpo = JsonDocument.Parse(await duplicada.Content.ReadAsStringAsync());
+        cuerpo.RootElement.GetProperty("codigo").GetString().Should().Be("invitacion_pendiente");
+        (await Escalar<long>("SELECT count(*) FROM token WHERE correo = 'ana@ejemplo.com' AND tipo = 'invitacion_consumidor' AND usado_en IS NULL"))
+            .Should().Be(1);
+        (await Escalar<long>("SELECT count(*) FROM correo_saliente WHERE destinatario = 'ana@ejemplo.com' AND plantilla = 'invitacion_consumidor'"))
+            .Should().Be(1);
     }
 
     // RF-05 y 04 §3.1: propietario y editor administran invitaciones; lector no puede hacerlo.

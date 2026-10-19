@@ -103,7 +103,7 @@ Cada plantilla recibe estos datos para su contenido, además de los datos de mar
 | `aviso_cuota_plataforma` | `nombre`, `porcentaje`, `enlace` |
 | `respuesta_caso` | `nombre`, `numeroCaso` (por ejemplo, `CAS-104`), `asunto`, `enlace` |
 
-Las fechas llegan ya formateadas en español y los enlaces son absolutos. El motor arma por sí mismo el `enlace` de `verificacion_correo` y `recuperacion` a partir del `token` y del ámbito de la cuenta.
+Las fechas llegan ya formateadas en español y los enlaces son absolutos. El motor arma por sí mismo el `enlace` de `verificacion_correo` y `recuperacion` a partir del `token` y del ámbito de la cuenta, y el de `invitacion_consumidor` a partir del `token` y `hostPortal`. En los tres casos el token se elimina de los datos de la cola al enviar el correo o agotar los reintentos.
 
 **Reintentos:** el trabajador revisa `correo_saliente` cada 5 segundos. Si un envío falla, reintenta hasta 5 veces, con esperas de 5 s, 30 s, 2 min, 10 min y 1 h antes de cada reintento. Si falla el quinto reintento (el sexto intento), el correo queda `fallido`, con `intentos = 6` y `ultimo_error`. Un error al armar el correo, por ejemplo un `hostPortal` inválido, también cuenta como intento fallido.
 
