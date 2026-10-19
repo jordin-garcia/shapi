@@ -337,6 +337,11 @@ export interface components {
         };
         Contratacion: {
             suscripcion: components["schemas"]["Suscripcion"];
+            medioPago: {
+                /** @enum {string} */
+                marca: "Visa" | "Mastercard" | "American Express";
+                ultimos4: string;
+            } | null;
             claves: components["schemas"]["ClaveEmitida"][];
         };
         Suscripcion: {

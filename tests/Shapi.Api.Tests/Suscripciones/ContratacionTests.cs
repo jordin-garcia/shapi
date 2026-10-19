@@ -65,7 +65,15 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta });
 
         respuesta.StatusCode.Should().Be(HttpStatusCode.Created, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
-        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        // RF-20 · EM-20: devuelve solo la marca y los últimos cuatro dígitos, nunca el número ni el token.
+        var contenido = await respuesta.Content.ReadAsStringAsync();
+        using var documento = JsonDocument.Parse(contenido);
+        var json = documento.RootElement;
+        var medioPago = json.GetProperty("medioPago");
+        medioPago.GetProperty("marca").GetString().Should().Be("Visa");
+        medioPago.GetProperty("ultimos4").GetString().Should().Be("4242");
+        contenido.Should().NotContain(Tarjeta.Numero);
+        contenido.Should().NotContain("tok_sim_");
         json.GetProperty("claves").GetArrayLength().Should().Be(2);
         var id = json.GetProperty("suscripcion").GetProperty("id").GetGuid();
         (await Escalar<long>($"SELECT count(*) FROM suscripcion_api WHERE id = '{id}' AND estado = 'activa'")).Should().Be(1);
@@ -261,6 +269,8 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         respuesta.StatusCode.Should().Be(HttpStatusCode.Created);
         var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         json.GetProperty("suscripcion").GetProperty("estado").GetString().Should().Be("activa");
+        // RF-20 · EM-20: el plan gratuito no devuelve un medio de pago.
+        json.GetProperty("medioPago").ValueKind.Should().Be(JsonValueKind.Null);
         json.GetProperty("claves").GetArrayLength().Should().Be(2);
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
         (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);

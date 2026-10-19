@@ -532,10 +532,18 @@ components:
         titular: { type: string }
     Contratacion:
       type: object
-      required: [suscripcion, claves]
+      required: [suscripcion, medioPago, claves]
       properties:
         suscripcion:
           $ref: "#/components/schemas/Suscripcion"
+        medioPago:
+          oneOf:
+            - type: object
+              required: [marca, ultimos4]
+              properties:
+                marca: { type: string, enum: [Visa, Mastercard, "American Express"] }
+                ultimos4: { type: string, pattern: '^[0-9]{4}$' }
+            - type: "null"
         claves:
           type: array
           minItems: 2

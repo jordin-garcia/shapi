@@ -21,6 +21,7 @@ const planes = [
   { id: 'gratis', apiId: 'api-1', nombre: 'Prueba gratuita', descripcion: 'Para probar la API.', precio: 0, moneda: 'GTQ', esGratuito: true, vigenciaDias: 30, cuotaLlamadas: 1000, limiteMinuto: 10, activo: true },
 ];
 const contratacion = {
+  medioPago: { marca: 'Mastercard', ultimos4: '3057' },
   suscripcion: { id: 'susc-1', apiId: 'api-1', planId: 'comercio', nombrePlan: 'Comercio', estado: 'activa', inicio: '2026-10-07T06:00:00Z', fin: '2026-11-06T06:00:00Z', proximaRenovacion: '2026-11-06T06:00:00Z' },
   claves: [
     { id: 'clave-1', tipo: 'produccion', clave: 'shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e', claveEnmascarada: 'shp_prod_••••7c2e', estado: 'activa' },
@@ -109,7 +110,7 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
     expect(await screen.findByText(/verifique su correo/i)).toBeDefined();
   });
 
-  it('A5.6 procesa el pago y A5.4b muestra las claves completas una sola vez', async () => {
+  it('RF-20 · A5.6 procesa el pago y A5.4b muestra el medio de pago y las claves completas una sola vez', async () => {
     server.use(
       http.get(`${API}/auth/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true, destino: '/planes' })),
       http.post(`${API}/suscripciones`, async ({ request }) => {
@@ -138,6 +139,7 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
     expect(screen.getByText('Periodo activo').parentElement?.textContent).toContain('5 nov 2026');
     expect(screen.getByText('50,000 llamadas')).toBeDefined();
     expect(screen.getByText('120 peticiones')).toBeDefined();
+    expect(screen.getByText('Medio de pago').parentElement?.textContent).toContain('Mastercard •••• 3057');
     expect(screen.getByText('Cópielas ahora.')).toBeDefined();
     await userEvent.click(screen.getByRole('link', { name: 'Ir a la documentación' }));
     expect(screen.queryByText(contratacion.claves[0].clave)).toBeNull();
@@ -165,12 +167,13 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
       http.post(`${API}/suscripciones`, async ({ request }) => {
         const cuerpo = await request.json() as Record<string, unknown>;
         expect(cuerpo).toEqual({ planId: 'gratis' });
-        return HttpResponse.json({ ...contratacion, suscripcion: { ...contratacion.suscripcion, planId: 'gratis', nombrePlan: 'Prueba gratuita' } }, { status: 201 });
+        return HttpResponse.json({ ...contratacion, medioPago: null, suscripcion: { ...contratacion.suscripcion, planId: 'gratis', nombrePlan: 'Prueba gratuita' } }, { status: 201 });
       }),
     );
     montar('/planes');
     const gratis = await screen.findByText('Prueba gratuita');
     await userEvent.click(gratis.closest('article')?.querySelector('button') as HTMLElement);
     expect(await screen.findByRole('heading', { name: 'Plan contratado' })).toBeDefined();
+    expect(screen.queryByText('Medio de pago')).toBeNull();
   });
 });
