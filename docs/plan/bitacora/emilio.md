@@ -136,3 +136,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan. El test Vitest de `PlanesSuscripcion.test.tsx` pasa (9/9); la suite completa del frontend pasa serial (457/457), además de lint, typecheck y build. Las pruebas API dirigidas compilan, pero no arrancan porque Testcontainers no encuentra Docker (`/var/run/docker.sock`); CI debe confirmar backend.
 - Pendiente o aviso para otros:
   - **Jordin:** las pruebas API de integración requieren confirmación en CI porque Docker no está disponible localmente.
+
+## 2026-10-19 · EM-21 · Disponibilidad del proveedor en la cuenta del consumidor
+- Hecho: `GET /api/portal/suscripcion` informa la disponibilidad del proveedor y devuelve las fechas de gracia y rechazo/reversión persistidas junto con los días restantes calculados por `IReloj`. OpenAPI y los tipos TypeScript quedaron actualizados; B2.3 no requirió cambios.
+- Decisiones: la gracia de una suscripción API tiene prioridad para los campos de gracia; si la API no está en gracia pero sí la suscripción de plataforma, se devuelven las fechas de esta última. La gracia del proveedor sigue contando como API disponible. Una organización sin suscripción de plataforma vigente se considera disponible si no está suspendida administrativamente.
+- Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; 69 pruebas de `Shapi.Api.Tests.Suscripciones` pasan. `pnpm generar:api`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (457 pruebas) y `pnpm build` pasan. Una primera corrida de Vitest tuvo un timeout intermitente preexistente en A8.1; la prueba aislada y la repetición completa pasaron.
+- Pendiente o aviso para otros: ninguno.

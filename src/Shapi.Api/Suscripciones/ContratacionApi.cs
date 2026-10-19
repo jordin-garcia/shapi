@@ -9,6 +9,7 @@ using Shapi.Aplicacion.Pagos;
 using Shapi.Aplicacion.Portal;
 using Shapi.Contratos;
 using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Organizaciones;
 using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
@@ -238,6 +239,26 @@ public sealed class ContratacionApi(
             return TypedResults.NotFound();
         }
 
+        var organizacion = await db.Set<Organizacion>().AsNoTracking()
+            .SingleAsync(x => x.Id == portal.OrganizacionId, cancelacion);
+        var suscripcionPlataforma = await db.Set<SuscripcionPlataforma>().AsNoTracking()
+            .SingleOrDefaultAsync(x => x.OrganizacionId == portal.OrganizacionId && x.Estado != EstadoSuscripcion.Finalizada, cancelacion);
+        var suscripcionApiEnGracia = fila.Suscripcion.Estado == EstadoSuscripcion.EnGracia ? fila.Suscripcion : null;
+        var suscripcionPlataformaEnGracia = suscripcionApiEnGracia is null
+            && suscripcionPlataforma?.Estado == EstadoSuscripcion.EnGracia ? suscripcionPlataforma : null;
+        var graciaHasta = suscripcionApiEnGracia?.GraciaHasta ?? suscripcionPlataformaEnGracia?.GraciaHasta;
+        var ultimoRechazoEn = graciaHasta is not null
+            ? await db.Set<Pago>().AsNoTracking()
+                .Where(x => ((suscripcionApiEnGracia != null && x.SuscripcionApiId == suscripcionApiEnGracia.Id)
+                    || (suscripcionPlataformaEnGracia != null && x.SuscripcionPlataformaId == suscripcionPlataformaEnGracia.Id))
+                    && (x.Estado == EstadoPago.Rechazado || x.Estado == EstadoPago.Revertido))
+                .Select(x => x.Estado == EstadoPago.Revertido ? x.RevertidoEn : x.CreadoEn)
+                .MaxAsync(cancelacion)
+            : null;
+        var diasRestantes = graciaHasta is not null
+            ? Math.Max(0, (int)Math.Ceiling((graciaHasta.Value - reloj.Ahora).TotalDays))
+            : 0;
+
         return TypedResults.Ok(new
         {
             plan = new { id = fila.Plan.Id, nombre = fila.Plan.Nombre, precio = fila.Plan.Precio, moneda = "GTQ" },
@@ -247,6 +268,11 @@ public sealed class ContratacionApi(
             tarjetaEnmascarada = fila.Medio is null ? null : $"{Marca(fila.Medio.Marca)} •••• {fila.Medio.Ultimos4}",
             cuotaLlamadas = fila.Plan.CuotaLlamadas,
             limiteMinuto = fila.Plan.LimiteMinuto,
+            apiDisponible = organizacion.EstadoAdmin != EstadoAdmin.Suspendida
+                && suscripcionPlataforma?.Estado != EstadoSuscripcion.Suspendida,
+            graciaHasta,
+            ultimoRechazoEn,
+            diasRestantes,
         });
     }
 

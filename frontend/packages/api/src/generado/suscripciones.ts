@@ -394,6 +394,12 @@ export interface components {
             /** Format: int64 */
             cuotaLlamadas: number;
             limiteMinuto: number;
+            apiDisponible: boolean;
+            /** Format: date-time */
+            graciaHasta: string | null;
+            /** Format: date-time */
+            ultimoRechazoEn: string | null;
+            diasRestantes: number;
         };
         Problema: {
             type?: string;

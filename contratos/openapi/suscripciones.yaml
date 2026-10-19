@@ -573,7 +573,7 @@ components:
         estado: { type: string, const: activa }
     SuscripcionActual:
       type: object
-      required: [plan, estado, periodo, proximaRenovacion, cuotaLlamadas, limiteMinuto]
+      required: [plan, estado, periodo, proximaRenovacion, cuotaLlamadas, limiteMinuto, apiDisponible, graciaHasta, ultimoRechazoEn, diasRestantes]
       properties:
         plan:
           type: object
@@ -594,6 +594,10 @@ components:
         tarjetaEnmascarada: { type: [string, "null"] }
         cuotaLlamadas: { type: integer, format: int64 }
         limiteMinuto: { type: integer }
+        apiDisponible: { type: boolean }
+        graciaHasta: { type: [string, "null"], format: date-time }
+        ultimoRechazoEn: { type: [string, "null"], format: date-time }
+        diasRestantes: { type: integer }
     Problema:
       type: object
       properties:

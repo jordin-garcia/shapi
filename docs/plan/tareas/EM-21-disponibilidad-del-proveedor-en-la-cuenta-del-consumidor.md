@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-19
 depende_de: [EM-10, JZ-08]
 requisitos: [RF-23]
@@ -57,3 +57,10 @@ cd frontend && pnpm generar:api && pnpm typecheck
 
 ## Notas
 - DC-11 no puede inferir el estado del proveedor desde un 403: el mockup exige conservar visibles los datos reales de la suscripción y las claves. Tampoco puede reconstruir una gracia por reversión desde `proximaRenovacion`. Las propiedades explícitas evitan inventar esos datos o guardarlos fuera de la API.
+
+## Resultado
+- `GET /api/portal/suscripcion` devuelve `apiDisponible`, las fechas persistidas de gracia y rechazo/reversión, y los días restantes calculados con `IReloj`.
+- Se agregaron pruebas de integración para suspensión administrativa, suspensión de plataforma, gracia con reversión, valores nulos fuera de gracia y aislamiento entre organizaciones.
+- Se actualizaron `contratos/openapi/suscripciones.yaml` y los tipos generados; B2.3 no requirió cambios.
+- Verificación: build y formato de la solución aprobados; las 69 pruebas de Suscripciones aprobadas; generación de API, lint, typecheck y build del frontend aprobados. La suite frontend se repitió tras una falla intermitente aislada en el perfil.
+- Decisión: una organización sin una suscripción de plataforma vigente se considera disponible, salvo que esté suspendida administrativamente.
