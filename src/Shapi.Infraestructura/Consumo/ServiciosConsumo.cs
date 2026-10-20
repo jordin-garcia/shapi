@@ -9,6 +9,7 @@ public static class ServiciosConsumo
     {
         servicios.AddScoped<RepositorioConsolidacion>();
         servicios.AddScoped<IConsultaConsumo, ConsultaConsumo>();
+        servicios.AddScoped<IConsultaConsumoConsumidores, ConsultaConsumoConsumidores>();
         servicios.AddScoped<ILectorCuotaConsumo, LectorCuotaConsumo>();
         return servicios;
     }

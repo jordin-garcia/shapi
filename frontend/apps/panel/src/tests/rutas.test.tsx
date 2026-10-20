@@ -60,6 +60,7 @@ const implementadas: Record<string, string> = {
   'B3-2': 'Bitácora de acciones sensibles',
   'B3-1': 'Estado de los componentes',
   'B1-1': 'Consumo, latencia y errores',
+  'B1-2': 'Consumo y facturación por consumidor',
   'B1-5': 'Invitar consumidores',
   'A4-3': 'Claves de sus consumidores',
 };
@@ -106,6 +107,10 @@ beforeEach(() => {
       nombrePortal: 'Envíos Xelajú', elementos: [],
     })),
     http.get('http://localhost/api/apis/:id/claves', () => HttpResponse.json({ elementos: [], total: 0 })),
+    http.get('http://localhost/api/apis/:id/consumidores', ({ params }) => HttpResponse.json({
+      apiId: params.id, apiNombre: 'Envíos Xelajú', elementos: [], total: 0, activas: 0,
+      llamadas: 0, cuota: 0, facturacion: 0, moneda: 'GTQ',
+    })),
     http.get('http://localhost/api/apis/:id/consumo', ({ params }) => HttpResponse.json({
       apiId: params.id, apiNombre: 'Envíos Xelajú', desde: '2026-10-02', hasta: '2026-10-11',
       peticiones: 0, llamadas: 0, bytesEntrada: 0, bytesSalida: 0,

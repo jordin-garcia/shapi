@@ -141,6 +141,10 @@ El proveedor no puede convertir un plan gratuito en uno de pago, ni al revés, m
 - Liquidarle ese dinero al proveedor **queda fuera del alcance** ([01 §7](01-vision-y-alcance.md#7-alcance)).
 - Los pagos de API **no** aparecen en A6.3, que muestra solo los de plataforma, y el administrador no los revierte.
 
+**B1.2 (RF-36).** Se muestra una fila por suscripción no finalizada de la API, incluida la gracia y la suspensión. El consumidor se identifica por su empresa. El consumo suma las llamadas realmente descontadas y consolidadas de producción, de todas las rutas (también las retiradas), desde el inicio del ciclo hasta su último día inclusivo en Guatemala; si el ciclo venció sin renovarse, incluye el consumo hasta hoy, igual que B2.1. Puede ir hasta diez segundos detrás de Redis. La cuota y el nombre corresponden al plan actual; el porcentaje se presenta redondeado al entero más cercano, sin limitarlo a 100 %.
+
+La facturación suma los pagos de API autorizados cuyo inicio y fin de periodo coinciden con el ciclo vigente, incluidos los cambios prorrateados. No se calcula a partir del precio actual del plan y no incluye cobros rechazados ni ciclos anteriores. El estado del último cobro corresponde al último intento de la suscripción (fecha e ID descendentes), aunque fuera rechazado al renovar. Sin pagos se muestran Q 0.00 y «Sin cobros». Los totales abarcan todas las suscripciones mostradas. El pie dice «con suscripción activa» cuando todas están activas; en los demás casos dice «con suscripción vigente». Las filas se ordenan por empresa y luego por ID de suscripción. Solo propietario y editor ven el enlace para invitar; el lector puede consultar la tabla.
+
 ## 9. Modo demostración
 
 Con `SHAPI_MODO_DEMO=true` se habilita el endpoint `POST /api/admin/demo/reloj` (`{ "adelantarDias": 30 }`), que solo puede usar el administrador. Adelanta el `IReloj` de la API y del trabajador (los dos lo leen de `demo:reloj:desplazamiento` en Redis) y dispara el cierre de ciclo. Así se pueden mostrar en vivo la renovación, la gracia y la suspensión sin esperar 30 días. **Nunca está habilitado cuando `SHAPI_MODO_DEMO=false`.**

@@ -1,4 +1,24 @@
 export interface paths {
+    "/api/apis/{apiId}/consumidores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consumo del ciclo y facturación por consumidor (RF-36)
+         * @description Propietario, editor o lector de la organización dueña. Una fila por suscripción no finalizada, ordenada por empresa y suscripción. Suma las llamadas de producción consolidadas desde el inicio del ciclo hasta su fin o el día actual si está vencido, incluyendo rutas retiradas. La facturación suma los pagos autorizados cuyo periodo coincide con el ciclo vigente, incluidos prorrateos; no usa el precio actual del plan. El último cobro es el último intento de la suscripción, ordenado por fecha e ID; es nulo si nunca hubo cobros. Las fechas son inclusivas en Guatemala. Los totales abarcan todas las filas. Sin paginación.
+         */
+        get: operations["consultarConsumoConsumidores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/apis/{apiId}/consumo": {
         parameters: {
             query?: never;
@@ -43,6 +63,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ConsumoConsumidores: {
+            /** Format: uuid */
+            apiId: string;
+            apiNombre: string;
+            elementos: components["schemas"]["ConsumoConsumidor"][];
+            total: number;
+            activas: number;
+            /** Format: int64 */
+            llamadas: number;
+            /** Format: int64 */
+            cuota: number;
+            facturacion: number;
+            /** @constant */
+            moneda: "GTQ";
+        };
+        ConsumoConsumidor: {
+            /** Format: uuid */
+            suscripcionId: string;
+            /** Format: uuid */
+            consumidorId: string;
+            consumidor: string;
+            plan: string;
+            /** Format: date */
+            inicio: string;
+            /** Format: date */
+            fin: string;
+            /** Format: int64 */
+            llamadas: number;
+            /** Format: int64 */
+            cuota: number;
+            porcentaje: number;
+            facturacion: number;
+            /** @enum {string|null} */
+            ultimoCobro: "autorizado" | "rechazado" | "revertido" | null;
+            /** @enum {string} */
+            estadoSuscripcion: "activa" | "en_gracia" | "suspendida";
+        };
         ConsumoRutaCiclo: {
             /** Format: uuid */
             rutaId: string | null;
@@ -145,6 +202,51 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    consultarConsumoConsumidores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suscripciones vigentes y totales, o lista vacía; sin caché HTTP. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsumoConsumidores"];
+                };
+            };
+            /** @description Sin sesión del personal. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El rol no puede consultar el consumo. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La API no existe o pertenece a otra organización. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
+            };
+        };
+    };
     consultarConsumoApi: {
         parameters: {
             query?: {
