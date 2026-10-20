@@ -48,6 +48,7 @@ public sealed class TuberiaCompuerta(
         typeof(FiltroSuscripcion), // 4 · suscripción activa o en gracia
         typeof(FiltroRuta), // 5 · método + patrón expuestos
         typeof(FiltroLimitesYCuotas), // 6 · límites por minuto y cuotas (un script Lua)
+        typeof(FiltroCache), // 7 · caché de respuestas GET, después de descontar cuota
     ];
 
     public Task ProcesarAsync(HttpContext http)
@@ -79,7 +80,14 @@ public sealed class TuberiaCompuerta(
             return;
         }
 
-        await reenvio.ReenviarAsync(contexto);
+        if (contexto.CapturarRespuesta is { } capturar)
+        {
+            await capturar(() => reenvio.ReenviarAsync(contexto));
+        }
+        else
+        {
+            await reenvio.ReenviarAsync(contexto);
+        }
     }
 
     private async Task<ResultadoFiltro> EvaluarAsync(ContextoPeticion contexto)
@@ -115,7 +123,10 @@ public sealed class TuberiaCompuerta(
             return RespuestaError.EscribirAsync(http, resultado);
         }
 
-        http.Response.StatusCode = resultado.Estado;
+        if (!http.Response.HasStarted)
+        {
+            http.Response.StatusCode = resultado.Estado;
+        }
         return Task.CompletedTask;
     }
 }

@@ -718,7 +718,7 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 | `rl:s:{suscripcion_id}:{minuto_epoch}` | string (int) | Peticiones en ese minuto. TTL 120 s | Compuerta | Compuerta |
 | `rl:r:{suscripcion_id}:{ruta_id}:{minuto_epoch}` | string (int) | Peticiones a esa ruta en ese minuto. TTL 120 s | Compuerta | Compuerta |
 | `rl:p:{clave_id}:{minuto_epoch}` y `dia:p:{clave_id}:{aaaammdd}` | string (int) | Límites de la clave de pruebas: peticiones en ese minuto (TTL 120 s) y en ese día de Guatemala (vence un día después de la medianoche en que termina) | Compuerta | Compuerta |
-| `cache:{api_id}:{ruta_id}:{sha256(metodo+ruta+query)}` | hash | `status`, `headers` (JSON), `body` (hasta 1 MB). TTL = `cache_segundos` | Compuerta | Compuerta |
+| `cache:{api_id}:{ruta_id}:{sha256(metodo+ruta+query)}` | hash | `status`, `headers` (JSON), `body` (hasta 1 MB), `version` (la de `api:{id}` al obtener la respuesta). TTL = `cache_segundos` | Compuerta | Compuerta |
 | `met:{aaaammdd}:{api}:{ruta\|-}:{susc\|-}:{entorno}` | hash | Contadores y rangos del histograma (`h_t_0`…`h_t_9`, `h_c_0`…`h_c_9`) | Compuerta | Trabajador |
 | `met:pendientes` | set | Llaves `met:` que tienen datos | Compuerta | Trabajador |
 | `met:lote:{lote_id}:{llave}` | hash | Una instantánea que se está consolidando | Trabajador | Trabajador |

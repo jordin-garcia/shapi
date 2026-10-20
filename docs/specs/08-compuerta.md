@@ -64,6 +64,14 @@ flowchart LR
 | 8 | Reenvío (YARP) | Destino = `url_origen` + el camino y la query. Quita `X-Api-Key` y las cabeceras `X-Shapi-*` que haya puesto el cliente. Agrega `X-Shapi-Consumidor: {consumidor_id}`, `X-Shapi-Entorno: produccion\|pruebas`, `X-Shapi-Secreto: {secreto}` (si la API lo tiene) y `X-Forwarded-For/Proto/Host` ([§5](#5-cabeceras)). Usa un `SocketsHttpHandler.ConnectCallback` que **rechaza direcciones internas** y se conecta a una de las direcciones ya validadas ([RNF-10](03-requisitos.md#rnf-10), [10 §4](10-identidad-y-seguridad.md#4-proteccion-del-origen-ssrf)) | `api:{id}.url_origen`, `.secreto` |
 | 9 | `MedicionMiddleware` | Siempre se ejecuta y va **al final**. Incrementa `met:{…}` en un *pipeline* sin esperar la respuesta de Redis (*fire-and-forget*) y agrega la llave a `met:pendientes` | `met:*` |
 
+### Caché de respuestas (RF-13)
+
+Solo se consultan y guardan respuestas de GET en rutas con `cache_segundos > 0`. La llave es la de 07 §4: método en mayúsculas, camino escapado y query tal como llegan. La caché es compartida entre consumidores y entornos; la validación y la reserva de cuota siempre ocurren antes del acierto. `X-Shapi-Cache` vale `HIT` o `MISS` y reemplaza cualquier valor del origen.
+
+Se guardan únicamente respuestas 200 completas de hasta 1 MB (1,048,576 bytes), con su cuerpo binario y las cabeceras de la respuesta. La copia se limita a ese tamaño sin detener la transmisión de respuestas mayores. Las respuestas que establecen cookies (`Set-Cookie`) se transmiten sin guardarse, para no compartir una cookie entre consumidores. No se almacenan cabeceras de conexión, ni las de cuota, plan, caché o CORS: estas últimas se calculan para cada petición. `Vary: Origin` también se agrega para la petición actual, sin acumularlo desde la copia.
+
+El hash almacena la `version` de configuración que obtuvo la respuesta. Una entrada con otra versión se considera un fallo y se reemplaza al guardar la respuesta nueva; las entradas que no se vuelven a consultar desaparecen por su TTL. Un cambio de versión invalida de forma conservadora todas las respuestas de esa API, también durante una petición en vuelo: una respuesta de la versión anterior nunca produce un acierto en la nueva. Cuerpo, cabeceras, versión y TTL se escriben en una sola transacción. Un fallo de Redis al consultar sigue el 503 habitual; al guardar, cuando la respuesta ya se transmitió, solo se registra el fallo sin cambiarla.
+
 ### Script `evaluar_limites.lua`
 
 Es una sola llamada a Redis, que es atómica:
