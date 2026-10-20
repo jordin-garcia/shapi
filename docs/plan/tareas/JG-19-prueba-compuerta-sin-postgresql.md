@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-18
 depende_de: []
 requisitos: [RNF-02, RNF-04]
@@ -46,3 +46,10 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Las pruebas de carga (JZ-14)
+
+## Resultado
+- Se agregó `tests/Shapi.Compuerta.Tests/Tuberia/DisponibilidadCompuertaTests.cs`, con tres casos de integración identificados por RNF-02 y RNF-04. Redis y PostgreSQL usan Testcontainers exclusivos y el origen usa HTTP real con Kestrel.
+- RNF-02 publica una API y una clave en Redis, comprueba el origen con PostgreSQL encendido, detiene el contenedor y verifica 200 con el cuerpo del origen, 401 `clave_invalida` y 403 `ruta_no_permitida`. Los rechazos no llegan al origen.
+- RNF-04 comprueba tanto la compuerta ya en marcha como su arranque en frío después de detener PostgreSQL. La API de control y el trabajador no se inician; Redis sigue disponible. La cadena de PostgreSQL se conserva antes de apagar el contenedor para configurar el arranque diferido de la compuerta.
+- Se agregó al proyecto de pruebas la referencia `Testcontainers.PostgreSql`, cuya versión ya estaba centralizada. La CI existente ejecuta estas pruebas con la solución completa; no fue necesario modificar los servicios, contratos, especificaciones ni workflows.
+- Verificación local: compilación completa con cero errores y advertencias, formato completo sin cambios, plan válido y 288 pruebas de compuerta aprobadas, sin omisiones. La ejecución inicial detectó y permitió corregir la lectura diferida del puerto del contenedor detenido. La revisión independiente no dejó hallazgos de corrección.

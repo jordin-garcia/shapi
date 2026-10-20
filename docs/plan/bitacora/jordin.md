@@ -939,3 +939,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pantallas: seis capturas a 1600 × 900 y 1366 × 650 de tabla, variante vacía y error recuperable, comparadas visualmente y por contenido con ambos mockups. La revisión independiente del código y las capturas no encontró hallazgos de corrección; el cierre se comprueba antes del PR.
 - Pendiente o aviso para otros:
   - **Dominique:** actualicé `frontend/apps/panel/src/tests/rutas.test.tsx` para reconocer B1.2 y simular el nuevo endpoint, y regeneré `frontend/packages/api/src/generado/consumo.ts`. Actualiza tu rama desde `main` al integrarse. No cambiaron las rutas ni el layout.
+
+## 2026-10-19 · JG-19 · Compuerta sin PostgreSQL ni plano de control
+- Hecho: tres casos de integración de RNF-02 y RNF-04 detienen PostgreSQL y verifican el 200 de un origen HTTP real, los rechazos 401 y 403, y el funcionamiento y arranque en frío de la compuerta sin iniciar la API de control ni el trabajador. Los contenedores y datos son exclusivos de las pruebas y se eliminan al terminar.
+- Decisiones: se reutiliza el soporte de siembra en Redis y se agrega al proyecto de compuerta la referencia a `Testcontainers.PostgreSql`, ya centralizada. Se conserva la cadena de PostgreSQL antes de detenerlo porque la fábrica configura el host de forma diferida. No se cambiaron comportamiento, contratos, especificaciones ni CI.
+- Verificación: la primera compilación de las pruebas señaló la referencia faltante; la primera ejecución pasó dos casos y detectó la lectura del puerto después de detener PostgreSQL en el tercero. Corregido el soporte, pasaron las 288 pruebas de compuerta, sin fallos ni omisiones, con un hilo de pruebas por la memoria disponible. Compilación completa con cero errores y advertencias, formato sin cambios y plan válido. Revisión independiente sin hallazgos de corrección.
+- Pendiente o aviso para otros: ninguno.
