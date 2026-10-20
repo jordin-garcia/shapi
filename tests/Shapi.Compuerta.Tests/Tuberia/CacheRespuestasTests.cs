@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Shapi.Compuerta.Tests.Soporte;
@@ -135,6 +136,60 @@ public sealed class CacheRespuestasTests(EntornoCompuerta entorno) : IClassFixtu
         using var tercera = await cliente.GetAsync("/cotizaciones");
         tercera.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         _peticiones.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RF_13_VariaCompresion_NoEntregaGzipAClienteSinSoporte()
+    {
+        var (cliente, _, _, _) = await PrepararAsync();
+        entorno.Origen.Responder = async http =>
+        {
+            _peticiones++;
+            http.Response.Headers.Vary = "Accept-Encoding";
+            var cuerpo = "respuesta"u8.ToArray();
+            if (http.Request.Headers.AcceptEncoding.ToString().Contains("gzip", StringComparison.Ordinal))
+            {
+                http.Response.Headers.ContentEncoding = "gzip";
+                using var comprimido = new MemoryStream();
+                await using (var gzip = new GZipStream(comprimido, CompressionMode.Compress, leaveOpen: true))
+                {
+                    await gzip.WriteAsync(cuerpo);
+                }
+                cuerpo = comprimido.ToArray();
+            }
+            await http.Response.Body.WriteAsync(cuerpo);
+        };
+        cliente.DefaultRequestHeaders.Add("Accept-Encoding", "gzip");
+        using var primera = await cliente.GetAsync("/cotizaciones");
+        primera.Content.Headers.ContentEncoding.Should().Contain("gzip");
+        cliente.DefaultRequestHeaders.Remove("Accept-Encoding");
+        using var segunda = await cliente.GetAsync("/cotizaciones");
+        segunda.Content.Headers.ContentEncoding.Should().BeEmpty();
+        (await segunda.Content.ReadAsStringAsync()).Should().Be("respuesta");
+        segunda.Headers.GetValues("X-Shapi-Cache").Should().Equal("MISS");
+        _peticiones.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData("Vary", "*")]
+    [InlineData("Cache-Control", "private")]
+    [InlineData("Cache-Control", "no-store")]
+    [InlineData("Cache-Control", "no-cache")]
+    [InlineData("Cache-Control", "public, private=\"X-Privado\"")]
+    public async Task RF_13_RespuestaNoCompartible_NoSeGuarda(string cabecera, string valor)
+    {
+        var (cliente, _, _, _) = await PrepararAsync();
+        entorno.Origen.Responder = async http =>
+        {
+            _peticiones++;
+            http.Response.Headers[cabecera] = valor;
+            await http.Response.WriteAsync($"respuesta-{_peticiones}");
+        };
+        using var primera = await cliente.GetAsync("/cotizaciones");
+        using var segunda = await cliente.GetAsync("/cotizaciones");
+        (await segunda.Content.ReadAsStringAsync()).Should().Be("respuesta-2");
+        segunda.Headers.GetValues("X-Shapi-Cache").Should().Equal("MISS");
+        _peticiones.Should().Be(2);
     }
 
     [Fact]

@@ -75,13 +75,13 @@ public sealed class FiltroCache(IConnectionMultiplexer redis, ILogger<FiltroCach
 
         if (http.Response.StatusCode != StatusCodes.Status200OK || contexto.FalloOrigen
             || http.RequestAborted.IsCancellationRequested || copia.SuperaLimite
-            || http.Response.Headers.ContainsKey("Set-Cookie"))
+            || http.Response.Headers.ContainsKey("Set-Cookie") || NoEsCompartible(http.Response))
         {
             return;
         }
 
         var cabeceras = http.Response.Headers.Where(c => EsCabeceraAlmacenable(c.Key))
-            .ToDictionary(c => c.Key, c => c.Value.Select(v => v ?? "").ToArray());
+            .ToDictionary(c => c.Key, c => c.Value.Select(v => v ?? "").ToArray(), StringComparer.OrdinalIgnoreCase);
         // Vary: Origin lo agrega el filtro CORS para la petición actual; no se acumula en los aciertos.
         if (cabeceras.TryGetValue("Vary", out var vary))
         {
@@ -115,6 +115,21 @@ public sealed class FiltroCache(IConnectionMultiplexer redis, ILogger<FiltroCach
             // La respuesta ya se transmitió: una falla al guardar la copia no la convierte en un 503.
             registro.LogWarning("No se pudo guardar la respuesta en caché: {Tipo}", excepcion.GetType().Name);
         }
+    }
+
+    private static bool NoEsCompartible(HttpResponse respuesta)
+    {
+        var varia = respuesta.Headers.Vary.ToString().Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (varia.Any(v => !v.Equals("Origin", StringComparison.OrdinalIgnoreCase)))
+        {
+            // La llave contractual no incluye las cabeceras de la petición (por ejemplo Accept-Encoding).
+            return true;
+        }
+        return respuesta.Headers.CacheControl.ToString()
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(d => d.Split('=', 2)[0].Trim())
+            .Any(d => d.Equals("private", StringComparison.OrdinalIgnoreCase)
+                || d.Equals("no-store", StringComparison.OrdinalIgnoreCase) || d.Equals("no-cache", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool EsCabeceraAlmacenable(string nombre) =>
