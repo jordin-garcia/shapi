@@ -144,3 +144,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Jordin:** las pruebas API de integración necesitan confirmación en CI por falta de Docker local.
   - **José Pablo:** con autorización expresa del usuario, esta tarea modificó `src/Shapi.Infraestructura/Correo/MotorPlantillasCorreo.cs` para generar el enlace de `invitacion_consumidor` desde el token y el host del portal al renderizar.
+
+## 2026-10-19 · EM-21 · Disponibilidad del proveedor en la cuenta del consumidor
+- Hecho: `GET /api/portal/suscripcion` informa la disponibilidad del proveedor y devuelve las fechas de gracia y rechazo/reversión persistidas junto con los días restantes calculados por `IReloj`. OpenAPI y los tipos TypeScript quedaron actualizados; B2.3 no requirió cambios.
+- Decisiones: los campos de gracia corresponden solo a la suscripción API del consumidor y son nulos fuera de `en_gracia`; la gracia de plataforma del proveedor mantiene `apiDisponible`, sin exponer sus fechas de cobro. Una organización sin suscripción de plataforma vigente se considera disponible si no está suspendida administrativamente.
+- Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; 70 pruebas de `Shapi.Api.Tests.Suscripciones` pasan. `pnpm generar:api`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (457 pruebas) y `pnpm build` pasan. Una primera corrida de Vitest tuvo un timeout intermitente preexistente en A8.1; la prueba aislada y la repetición completa pasaron.
+- Pendiente o aviso para otros: ninguno.

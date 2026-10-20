@@ -533,6 +533,156 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
+    // RF-23: la gracia por reversión del proveedor no detiene la API ni expone sus fechas privadas al consumidor.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_ProveedorEnGraciaPorReversion_ConservaDisponibilidadYSoloDevuelveFechasNulas()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        var suscripcionApi = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa",
+            Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+        var graciaHasta = Reloj.Ahora.AddDays(3).AddHours(12);
+        var fechaReversion = Reloj.Ahora.AddHours(-2);
+        var planPlataforma = await NuevoPlanPlataforma();
+        var suscripcionPlataforma = await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{e.OrganizacionId}', '{planPlataforma}', 'en_gracia',
+                    '{Reloj.Ahora.AddDays(-10):O}', '{Reloj.Ahora.AddDays(20):O}', '{graciaHasta:O}')
+            RETURNING id
+            """);
+        await Ejecutar($"""
+            INSERT INTO pago (id, suscripcion_plataforma_id, concepto, descripcion, monto, estado, revertido_en)
+            VALUES (gen_random_uuid(), '{suscripcionPlataforma}', 'renovacion', 'Reversión de prueba', 199, 'revertido', '{fechaReversion:O}')
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("apiDisponible").GetBoolean().Should().BeTrue();
+        body.GetProperty("graciaHasta").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("ultimoRechazoEn").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("diasRestantes").GetInt32().Should().Be(0);
+        body.GetProperty("plan").GetProperty("id").GetGuid().Should().Be(e.PlanId);
+        body.GetProperty("periodo").GetProperty("inicio").GetDateTimeOffset().Should().Be(Reloj.Ahora.AddDays(-1));
+        body.GetProperty("periodo").GetProperty("fin").GetDateTimeOffset().Should().Be(Reloj.Ahora.AddDays(28));
+        body.GetProperty("cuotaLlamadas").GetInt64().Should().Be(5000);
+        body.GetProperty("limiteMinuto").GetInt32().Should().Be(60);
+        (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcionApi}'")).Should().Be("activa");
+    }
+
+    // RF-23: el rechazo de renovación de la suscripción API conserva su fecha persistida.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_ConsumidorEnGracia_DevuelveFechasPersistidas()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        var suscripcionApi = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "en_gracia",
+            Reloj.Ahora.AddDays(-8), Reloj.Ahora.AddDays(22));
+        var graciaHasta = Reloj.Ahora.AddDays(6);
+        var fechaRechazo = Reloj.Ahora.AddHours(-1);
+        await Ejecutar($"UPDATE suscripcion_api SET gracia_hasta = '{graciaHasta:O}' WHERE id = '{suscripcionApi}'");
+        await Ejecutar($"""
+            INSERT INTO pago (id, suscripcion_api_id, concepto, descripcion, monto, estado, creado_en)
+            VALUES (gen_random_uuid(), '{suscripcionApi}', 'renovacion', 'Rechazo de prueba', 50, 'rechazado', '{fechaRechazo:O}')
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("graciaHasta").GetDateTimeOffset().Should().Be(graciaHasta);
+        body.GetProperty("ultimoRechazoEn").GetDateTimeOffset().Should().Be(fechaRechazo);
+        body.GetProperty("diasRestantes").GetInt32().Should().Be(6);
+    }
+
+    // RF-23: una reversión asociada a la suscripción API usa revertido_en, sin reconstruir la fecha desde el periodo.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_ConsumidorEnGraciaPorReversion_DevuelveFechasPersistidas()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        var suscripcionApi = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "en_gracia",
+            Reloj.Ahora.AddDays(-8), Reloj.Ahora.AddDays(22));
+        var graciaHasta = Reloj.Ahora.AddDays(3).AddHours(12);
+        var fechaReversion = Reloj.Ahora.AddHours(-2);
+        await Ejecutar($"UPDATE suscripcion_api SET gracia_hasta = '{graciaHasta:O}' WHERE id = '{suscripcionApi}'");
+        await Ejecutar($"""
+            INSERT INTO pago (id, suscripcion_api_id, concepto, descripcion, monto, estado, revertido_en)
+            VALUES (gen_random_uuid(), '{suscripcionApi}', 'renovacion', 'Reversión de prueba', 50, 'revertido', '{fechaReversion:O}')
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("estado").GetString().Should().Be("en_gracia");
+        body.GetProperty("graciaHasta").GetDateTimeOffset().Should().Be(graciaHasta);
+        body.GetProperty("ultimoRechazoEn").GetDateTimeOffset().Should().Be(fechaReversion);
+        body.GetProperty("diasRestantes").GetInt32().Should().Be(4);
+        (await Escalar<string>($"SELECT estado FROM suscripcion_api WHERE id = '{suscripcionApi}'")).Should().Be("en_gracia");
+    }
+
+    // RF-23: la API no está disponible si se suspende administrativamente la organización proveedora.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_OrganizacionSuspendida_IndicaApiNoDisponible()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+        await Ejecutar($"UPDATE organizacion SET estado_admin = 'suspendida' WHERE id = '{e.OrganizacionId}'");
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("apiDisponible").GetBoolean().Should().BeFalse();
+    }
+
+    // RF-23: la suscripción de plataforma suspendida hace indisponible la API proveedora.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_PlataformaSuspendida_IndicaApiNoDisponible()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+        var plan = await NuevoPlanPlataforma();
+        await Escalar<Guid>($"""
+            INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin)
+            VALUES (gen_random_uuid(), '{e.OrganizacionId}', '{plan}', 'suspendida', '{Reloj.Ahora.AddDays(-30):O}', '{Reloj.Ahora:O}')
+            RETURNING id
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("apiDisponible").GetBoolean().Should().BeFalse();
+    }
+
+    // RF-23: una API disponible fuera de gracia devuelve las fechas de gracia como nulas.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_FueraDeGracia_DevuelveFechasNulas()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("apiDisponible").GetBoolean().Should().BeTrue();
+        body.GetProperty("graciaHasta").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("ultimoRechazoEn").ValueKind.Should().Be(JsonValueKind.Null);
+        body.GetProperty("diasRestantes").GetInt32().Should().Be(0);
+    }
+
+    // RF-23: la consulta usa el host y la sesión del consumidor sin revelar la suscripción de otra organización.
+    [Fact]
+    public async Task RF_23_ConsultarSuscripcion_SesionDeOtraOrganizacion_Responde404()
+    {
+        var e = await CrearEscenario(verificado: true, gratuito: true);
+        await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa", Reloj.Ahora.AddDays(-1), Reloj.Ahora.AddDays(29));
+        var intruso = await CrearEscenario(verificado: true, gratuito: true, subdominio: "agro");
+
+        using var respuesta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", intruso);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // RF-26: una falla antes del commit revierte suscripción y claves sin publicar en Redis.
     [Fact]
     public async Task PrepararClaves_DentroDeLaTransaccion_NoPublicaYSeRevierteConLaSuscripcion()
