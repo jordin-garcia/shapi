@@ -4,6 +4,7 @@ using Npgsql;
 using Shapi.Aplicacion.Apis;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Organizaciones;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
@@ -86,6 +87,22 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
             .Where(u => u.Id == usuarioId)
             .Select(u => u.Nombre)
             .FirstOrDefaultAsync(cancelacion);
+
+    public Task<string?> ObtenerNombreOrganizacion(Guid organizacionId, CancellationToken cancelacion = default) =>
+        db.Set<Organizacion>()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(o => o.Id == organizacionId)
+            .Select(o => o.Nombre)
+            .FirstOrDefaultAsync(cancelacion);
+
+    public Task<List<PlanApi>> ObtenerPlanesActivos(Guid apiId, CancellationToken cancelacion = default) =>
+        db.Set<PlanApi>()
+            .AsNoTracking()
+            .Where(p => p.ApiId == apiId && p.Activo)
+            .OrderBy(p => p.Precio)
+            .ThenBy(p => p.CreadoEn)
+            .ToListAsync(cancelacion);
 
     public Task<bool> CorreoVerificado(Guid usuarioId, CancellationToken cancelacion = default) =>
         db.Set<Usuario>()

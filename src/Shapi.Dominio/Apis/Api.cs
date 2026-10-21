@@ -5,6 +5,9 @@ namespace Shapi.Dominio.Apis;
 public class Api : IPerteneceAOrganizacion
 {
     public const string PatronSubdominio = "^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$";
+    public const string PatronColorPortal = "^#[0-9A-Fa-f]{6}$";
+    public const int MaximoBienvenida = 280;
+    public const int MaximoBytesLogo = 512 * 1024;
 
     public Guid Id { get; private set; }
     public Guid OrganizacionId { get; private set; }
@@ -128,6 +131,38 @@ public class Api : IPerteneceAOrganizacion
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(secretoOrigenCifrado);
         SecretoOrigenCifrado = secretoOrigenCifrado;
+        ActualizadoEn = ahora;
+    }
+
+    public void ActualizarPortal(string? nombre, string color, string? bienvenida, DateTimeOffset ahora)
+    {
+        if (string.IsNullOrWhiteSpace(color) || !System.Text.RegularExpressions.Regex.IsMatch(color, PatronColorPortal))
+        {
+            throw new ArgumentException("El color principal debe tener el formato #RRGGBB.", nameof(color));
+        }
+
+        var nombreNormalizado = string.IsNullOrWhiteSpace(nombre) ? null : nombre.Trim();
+        var bienvenidaNormalizada = string.IsNullOrWhiteSpace(bienvenida) ? null : bienvenida.Trim();
+        if (bienvenidaNormalizada is not null && bienvenidaNormalizada.Length > MaximoBienvenida)
+        {
+            throw new ArgumentException("El texto de bienvenida no puede superar 280 caracteres.", nameof(bienvenida));
+        }
+
+        PortalNombre = nombreNormalizado;
+        PortalColor = color.ToUpperInvariant();
+        PortalBienvenida = bienvenidaNormalizada;
+        ActualizadoEn = ahora;
+    }
+
+    public void ActualizarLogoPortal(byte[] logo, LogoTipo tipo, DateTimeOffset ahora)
+    {
+        if (logo is null || logo.Length == 0 || logo.Length > MaximoBytesLogo)
+        {
+            throw new ArgumentException("El logotipo no puede estar vacío ni superar 512 KB.", nameof(logo));
+        }
+
+        PortalLogo = logo;
+        PortalLogoTipo = tipo;
         ActualizadoEn = ahora;
     }
 }

@@ -3,7 +3,7 @@ info:
   title: API de Control - APIs
   version: 1.0.0
   description: |
-    Registro, especificación, rutas y publicación de las APIs de una organización (DC-04 a DC-06).
+    Registro, especificación, rutas, dominios, personalización del portal y publicación de las APIs de una organización (DC-04 a DC-06, DC-12 y DC-13).
     La sesión viaja en la cookie `shapi_sesion` y los métodos no seguros exigen
     `X-Requested-With: shapi`.
 servers:
@@ -385,6 +385,83 @@ paths:
         '200': { description: El dominio está verificado. }
         '404': { description: El dominio no está verificado o la petición no viene de una red privada. }
 
+  /api/apis/{id}/portal:
+    get:
+      summary: Consulta la personalización del portal y los datos de su vista previa
+      operationId: obtenerPersonalizacionPortal
+      security: [{ cookieSesion: [] }]
+      parameters: [{ $ref: '#/components/parameters/ApiId' }]
+      responses:
+        '200':
+          description: Personalización actual del portal y datos para la vista previa de inicio.
+          content: { application/json: { schema: { $ref: '#/components/schemas/PersonalizacionPortal' } } }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermiso' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+    put:
+      summary: Actualiza el nombre, el color principal y el texto de bienvenida del portal
+      operationId: actualizarPersonalizacionPortal
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PeticionPersonalizacionPortal' } } }
+      responses:
+        '200':
+          description: Personalización guardada.
+          content: { application/json: { schema: { $ref: '#/components/schemas/PersonalizacionPortal' } } }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+
+  /api/apis/{id}/portal/logo:
+    get:
+      summary: Descarga el logotipo del portal de una API desde el panel
+      operationId: obtenerLogoPortalApi
+      security: [{ cookieSesion: [] }]
+      parameters: [{ $ref: '#/components/parameters/ApiId' }]
+      responses:
+        '200':
+          description: "Logotipo en PNG o SVG (`Content-Security-Policy: sandbox` para SVG)."
+          content:
+            image/png: { schema: { type: string, format: binary } }
+            image/svg+xml: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermiso' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+    put:
+      summary: Sube o reemplaza el logotipo del portal de una API
+      operationId: cargarLogoPortalApi
+      security: [{ cookieSesion: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/ApiId' }
+        - { $ref: '#/components/parameters/XRequestedWith' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archivo]
+              properties:
+                archivo:
+                  type: string
+                  format: binary
+                  description: Imagen PNG o SVG de hasta 512 KB.
+      responses:
+        '200':
+          description: Logotipo guardado y personalización vigente.
+          content: { application/json: { schema: { $ref: '#/components/schemas/PersonalizacionPortal' } } }
+        '401': { $ref: '#/components/responses/SinSesion' }
+        '403': { $ref: '#/components/responses/SinPermisoOCsrf' }
+        '404': { $ref: '#/components/responses/ApiNoEncontrada' }
+        '422':
+          description: "Logotipo inválido (`logo_invalido`): ausente, mayor de 512 KB o con formato distinto de PNG o SVG."
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } }
+
 components:
   securitySchemes:
     cookieSesion:
@@ -738,6 +815,66 @@ components:
         expuesta:
           type: boolean
 
+    PeticionPersonalizacionPortal:
+      type: object
+      required: [color]
+      properties:
+        nombre:
+          type: [string, 'null']
+        color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+        bienvenida:
+          type: [string, 'null']
+          maxLength: 280
+
+    RutaVistaPreviaPortal:
+      type: object
+      required: [metodo, patron, pesoLlamadas]
+      properties:
+        metodo: { type: string }
+        patron: { type: string }
+        resumen: { type: [string, 'null'] }
+        descripcion: { type: [string, 'null'] }
+        ejemploPeticion: { description: Objeto, lista o escalar JSON del ejemplo de petición; nulo si no hay ejemplo. }
+        ejemploRespuesta: { description: Objeto, lista o escalar JSON del ejemplo de respuesta; nulo si no hay ejemplo. }
+        codigoRespuesta: { type: [integer, 'null'] }
+        pesoLlamadas: { type: integer, minimum: 1 }
+
+    PlanVistaPreviaPortal:
+      type: object
+      required: [id, nombre, descripcion, precio, esGratuito, vigenciaDias, cuotaLlamadas, limiteMinuto]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        descripcion: { type: string }
+        precio: { type: number }
+        esGratuito: { type: boolean }
+        vigenciaDias: { type: integer, minimum: 1 }
+        cuotaLlamadas: { type: integer, minimum: 1 }
+        limiteMinuto: { type: integer, minimum: 1 }
+
+    PersonalizacionPortal:
+      type: object
+      required: [apiId, apiNombre, nombreOrganizacion, urlPortal, nombre, color, bienvenida, tieneLogo, urlLogo, descripcionApi, rutas, planes]
+      properties:
+        apiId: { type: string, format: uuid }
+        apiNombre: { type: string }
+        nombreOrganizacion: { type: string }
+        urlPortal: { type: string, format: uri }
+        nombre: { type: [string, 'null'] }
+        color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        bienvenida: { type: [string, 'null'] }
+        tieneLogo: { type: boolean }
+        urlLogo: { type: [string, 'null'] }
+        descripcionApi: { type: [string, 'null'] }
+        rutas:
+          type: array
+          items: { $ref: '#/components/schemas/RutaVistaPreviaPortal' }
+        planes:
+          type: array
+          items: { $ref: '#/components/schemas/PlanVistaPreviaPortal' }
+
     Problema:
       type: object
       description: ProblemDetails de la API de control.
@@ -751,7 +888,7 @@ components:
           type: integer
         codigo:
           type: string
-          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida, correo_no_verificado, publicacion_incompleta, plan_sin_dominio_propio]
+          enum: [datos_invalidos, csrf, api_no_encontrada, subdominio_ocupado, origen_no_permitido, origen_inaccesible, especificacion_invalida, correo_no_verificado, publicacion_incompleta, plan_sin_dominio_propio, limite_del_plan, logo_invalido]
         detalle:
           type: object
           additionalProperties: true

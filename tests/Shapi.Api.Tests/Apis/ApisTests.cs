@@ -1197,6 +1197,183 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Contains(apiVerificada, _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas);
     }
 
+    // RF-15: la personalización del portal se guarda, devuelve rutas expuestas y planes activos para la vista previa,
+    // y al guardarse se refleja en el portal publicado.
+    [Fact]
+    public async Task RF_15_PersonalizarPortal_GuardaMarcaYLaReflejaEnElPortalPublicado()
+    {
+        var apiId = await RegistrarYObtenerId("portal-dc12");
+        using var carga = await CargarEspecificacion(apiId, "origenes-demo/envios-xelaju/cotizacion-envios.yaml");
+        Assert.Equal(HttpStatusCode.OK, carga.StatusCode);
+        var rutas = await ObtenerRutas(apiId);
+        var cambiosExposicion = rutas.GetProperty("elementos").EnumerateArray()
+            .Select((r, indice) => new { rutaId = r.GetProperty("id").GetGuid(), expuesta = indice < 2 })
+            .ToArray();
+        using var exponer = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/rutas/exposicion", cambiosExposicion);
+        Assert.Equal(HttpStatusCode.OK, exponer.StatusCode);
+        await CrearPlanActivo(apiId);
+        using var publicar = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/publicar", null);
+        Assert.Equal(HttpStatusCode.OK, publicar.StatusCode);
+
+        using var inicial = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/portal", null, "Lector");
+        Assert.Equal(HttpStatusCode.OK, inicial.StatusCode);
+        var jsonInicial = await inicial.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("API de Cotización de Envíos", jsonInicial.GetProperty("apiNombre").GetString());
+        Assert.Equal("Envíos Xelajú, S.A.", jsonInicial.GetProperty("nombreOrganizacion").GetString());
+        Assert.Equal("https://portal-dc12.shapi.localhost", jsonInicial.GetProperty("urlPortal").GetString());
+        Assert.Equal(JsonValueKind.Null, jsonInicial.GetProperty("nombre").ValueKind);
+        Assert.Equal("#3B6FF0", jsonInicial.GetProperty("color").GetString());
+        Assert.Equal(JsonValueKind.Null, jsonInicial.GetProperty("bienvenida").ValueKind);
+        Assert.False(jsonInicial.GetProperty("tieneLogo").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, jsonInicial.GetProperty("urlLogo").ValueKind);
+        Assert.Equal(2, jsonInicial.GetProperty("rutas").GetArrayLength());
+        Assert.Equal(1, jsonInicial.GetProperty("planes").GetArrayLength());
+
+        using var actualizar = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/portal", new
+        {
+            nombre = "Envíos Xelajú",
+            color = "#b8322a",
+            bienvenida = "Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.",
+        }, "Editor");
+        Assert.Equal(HttpStatusCode.OK, actualizar.StatusCode);
+        var jsonActualizado = await actualizar.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Envíos Xelajú", jsonActualizado.GetProperty("nombre").GetString());
+        Assert.Equal("#B8322A", jsonActualizado.GetProperty("color").GetString());
+        Assert.Equal("Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.", jsonActualizado.GetProperty("bienvenida").GetString());
+
+        var svg = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"></svg>");
+        using var subirLogo = await SubirLogoPortal(apiId, "logo.svg", svg, "image/svg+xml");
+        Assert.Equal(HttpStatusCode.OK, subirLogo.StatusCode);
+        var jsonConLogo = await subirLogo.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(jsonConLogo.GetProperty("tieneLogo").GetBoolean());
+        Assert.Equal($"/api/apis/{apiId}/portal/logo", jsonConLogo.GetProperty("urlLogo").GetString());
+
+        using var logoPanel = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/portal/logo", null, "Lector");
+        Assert.Equal(HttpStatusCode.OK, logoPanel.StatusCode);
+        Assert.Equal("image/svg+xml", logoPanel.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("sandbox", logoPanel.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Equal("nosniff", logoPanel.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal(svg, await logoPanel.Content.ReadAsByteArrayAsync());
+
+        // El portal publicado refleja de inmediato la marca y el logotipo guardados.
+        using var peticionPortal = new HttpRequestMessage(HttpMethod.Get, "/api/portal/configuracion");
+        peticionPortal.Headers.Host = "portal-dc12.shapi.localhost";
+        using var respuestaPortal = await _cliente.SendAsync(peticionPortal);
+        Assert.Equal(HttpStatusCode.OK, respuestaPortal.StatusCode);
+        var jsonPortal = await respuestaPortal.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Envíos Xelajú", jsonPortal.GetProperty("nombrePortal").GetString());
+        Assert.Equal("#B8322A", jsonPortal.GetProperty("colorPrincipal").GetString());
+        Assert.Equal("/api/portal/logo", jsonPortal.GetProperty("urlLogo").GetString());
+        Assert.Equal("Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.", jsonPortal.GetProperty("bienvenida").GetString());
+
+        using var peticionLogoPortal = new HttpRequestMessage(HttpMethod.Get, "/api/portal/logo");
+        peticionLogoPortal.Headers.Host = "portal-dc12.shapi.localhost";
+        using var respuestaLogoPortal = await _cliente.SendAsync(peticionLogoPortal);
+        Assert.Equal(HttpStatusCode.OK, respuestaLogoPortal.StatusCode);
+        Assert.Equal(svg, await respuestaLogoPortal.Content.ReadAsByteArrayAsync());
+    }
+
+    // RF-15: valida color #RRGGBB y texto de bienvenida de hasta 280 caracteres.
+    [Fact]
+    public async Task RF_15_PersonalizarPortal_ValidaColorYBienvenida()
+    {
+        var apiId = await RegistrarYObtenerId("portal-valida-dc12");
+
+        using var invalido = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/portal", new
+        {
+            nombre = "Portal",
+            color = "rojo",
+            bienvenida = new string('a', 281),
+        });
+        var problema = await AfirmarProblema(invalido, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.True(problema.GetProperty("errores").TryGetProperty("color", out _));
+        Assert.True(problema.GetProperty("errores").TryGetProperty("bienvenida", out _));
+
+        // 280 caracteres exactos y nombre vacío (vuelve al nombre de la API como respaldo) son válidos.
+        using var limite = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/portal", new
+        {
+            nombre = "   ",
+            color = "#1F8A5B",
+            bienvenida = new string('a', 280),
+        });
+        Assert.Equal(HttpStatusCode.OK, limite.StatusCode);
+        var json = await limite.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(JsonValueKind.Null, json.GetProperty("nombre").ValueKind);
+        Assert.Equal("#1F8A5B", json.GetProperty("color").GetString());
+        Assert.Equal(280, json.GetProperty("bienvenida").GetString()!.Length);
+    }
+
+    // RF-15: el logotipo acepta PNG o SVG de hasta 512 KB y rechaza otros formatos o tamaños con 422 logo_invalido.
+    [Fact]
+    public async Task RF_15_LogoPortal_AceptaPngYSvgHasta512KbYRechazaInvalidosCon422()
+    {
+        var apiId = await RegistrarYObtenerId("portal-logo-dc12");
+
+        byte[] pngValido = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D];
+        using var respuestaPng = await SubirLogoPortal(apiId, "marca.png", pngValido, "image/png");
+        Assert.Equal(HttpStatusCode.OK, respuestaPng.StatusCode);
+        using var descargaPng = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/portal/logo", null);
+        Assert.Equal(HttpStatusCode.OK, descargaPng.StatusCode);
+        Assert.Equal("image/png", descargaPng.Content.Headers.ContentType?.MediaType);
+        Assert.False(descargaPng.Headers.Contains("Content-Security-Policy"));
+        Assert.Equal(pngValido, await descargaPng.Content.ReadAsByteArrayAsync());
+
+        // Mayor de 512 KB (524,288 bytes) -> 422 logo_invalido.
+        var gigante = new byte[(512 * 1024) + 1];
+        Array.Copy(pngValido, gigante, pngValido.Length);
+        using var respuestaGigante = await SubirLogoPortal(apiId, "gigante.png", gigante, "image/png");
+        await AfirmarProblema(respuestaGigante, HttpStatusCode.UnprocessableEntity, "logo_invalido");
+
+        // Formato no permitido (JPEG / texto arbitrario / XML que no es <svg>) -> 422 logo_invalido.
+        using var respuestaJpg = await SubirLogoPortal(apiId, "foto.jpg", [0xFF, 0xD8, 0xFF, 0xE0], "image/jpeg");
+        await AfirmarProblema(respuestaJpg, HttpStatusCode.UnprocessableEntity, "logo_invalido");
+
+        using var respuestaHtml = await SubirLogoPortal(
+            apiId,
+            "falso.svg",
+            Encoding.UTF8.GetBytes("<html><body>no es svg</body></html>"),
+            "image/svg+xml");
+        await AfirmarProblema(respuestaHtml, HttpStatusCode.UnprocessableEntity, "logo_invalido");
+
+        // El logotipo anterior se conserva tras los rechazos.
+        using var conserva = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/portal/logo", null);
+        Assert.Equal(pngValido, await conserva.Content.ReadAsByteArrayAsync());
+    }
+
+    // RF-07 y RNF-08: permisos de PersonalizarPortal y aislamiento entre organizaciones en el portal del panel.
+    [Fact]
+    public async Task RF_07_RNF_08_PersonalizarPortal_RespetaPermisosYAislamiento()
+    {
+        var apiPropia = await RegistrarYObtenerId("portal-propia-dc12");
+        var otraOrg = await CrearOrganizacion("Otra Organización, S.A.");
+        var apiAjena = await InsertarApi(otraOrg, "portal-ajena-dc12");
+
+        using var lectorPut = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiPropia}/portal", new
+        {
+            nombre = "Intento",
+            color = "#3B6FF0",
+            bienvenida = "Texto",
+        }, "Lector");
+        Assert.Equal(HttpStatusCode.Forbidden, lectorPut.StatusCode);
+
+        using var lectorLogo = await SubirLogoPortal(apiPropia, "logo.svg", Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"), "image/svg+xml", "Lector");
+        Assert.Equal(HttpStatusCode.Forbidden, lectorLogo.StatusCode);
+
+        using var ajenaGet = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiAjena}/portal", null);
+        await AfirmarProblema(ajenaGet, HttpStatusCode.NotFound, "api_no_encontrada");
+
+        using var ajenaPut = await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiAjena}/portal", new
+        {
+            nombre = "Intento",
+            color = "#3B6FF0",
+            bienvenida = "Texto",
+        });
+        await AfirmarProblema(ajenaPut, HttpStatusCode.NotFound, "api_no_encontrada");
+
+        using var ajenaLogo = await SubirLogoPortal(apiAjena, "logo.svg", Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"), "image/svg+xml");
+        await AfirmarProblema(ajenaLogo, HttpStatusCode.NotFound, "api_no_encontrada");
+    }
+
     private static void AfirmarConsumoConsolidado(
         ConsumoDiario consumo,
         long valor,
@@ -1255,6 +1432,20 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         var multipart = new MultipartFormDataContent();
         multipart.Add(new StringContent(contenido, Encoding.UTF8), "archivo", nombre);
         return await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/especificacion", multipart, rol);
+    }
+
+    private async Task<HttpResponseMessage> SubirLogoPortal(
+        Guid apiId,
+        string nombre,
+        byte[] contenido,
+        string contentType,
+        string rol = "Propietario")
+    {
+        var multipart = new MultipartFormDataContent();
+        var archivo = new ByteArrayContent(contenido);
+        archivo.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        multipart.Add(archivo, "archivo", nombre);
+        return await EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/portal/logo", multipart, rol);
     }
 
     private async Task<JsonElement> ObtenerRutas(Guid apiId)

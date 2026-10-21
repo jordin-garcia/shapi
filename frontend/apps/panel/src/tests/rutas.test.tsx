@@ -40,6 +40,7 @@ const implementadas: Record<string, string> = {
   'A3-4': 'Rutas expuestas',
   'A3-5': 'Configuración por ruta',
   'A3-6': 'Direcciones y dominio propio',
+  'A3-7': 'Personalización del portal',
   'A4-1': 'Planes de la API',
   'A4-2': 'Miembros y roles',
   'A2-1': 'Los planes de Shapi.',
@@ -100,6 +101,13 @@ beforeEach(() => {
       urlPortal: 'https://envios.shapi.localhost', urlApi: 'https://envios.api.shapi.localhost',
       secretoEnmascarado: 'shps_••••••••••••••••••••••••••••••••', modoSimulado: true,
       dominio: null, destinoCname: null, estado: null, motivo: null, verificadoEn: null,
+    })),
+    http.get('http://localhost/api/apis/:id/portal', ({ params }) => HttpResponse.json({
+      apiId: params.id, apiNombre: 'API de Cotización de Envíos', nombreOrganizacion: 'Envíos Xelajú, S.A.',
+      urlPortal: 'https://envios.shapi.localhost', nombre: 'Envíos Xelajú', color: '#B8322A',
+      bienvenida: 'Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.',
+      tieneLogo: false, urlLogo: null, descripcionApi: 'Consulte cobertura, calcule el costo y emita guías con seguimiento.',
+      rutas: [], planes: [],
     })),
     http.get('http://localhost/api/apis/:id/planes', () => HttpResponse.json([])),
     http.get('http://localhost/api/apis/:id/invitaciones', ({ params }) => HttpResponse.json({

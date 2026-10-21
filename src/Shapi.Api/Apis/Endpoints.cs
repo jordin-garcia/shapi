@@ -5,6 +5,7 @@ using Shapi.Api.Identidad;
 using Shapi.Aplicacion.Apis;
 using Shapi.Aplicacion.Comun;
 using Shapi.Contratos;
+using Shapi.Dominio.Apis;
 using Shapi.Dominio.Identidad;
 
 namespace Shapi.Api.Apis;
@@ -35,8 +36,84 @@ public static class Endpoints
         grupo.MapPost("/{id:guid}/dominio/verificar", VerificarDominio).RequireAuthorization(Permisos.ConfigurarDominio);
         grupo.MapDelete("/{id:guid}/dominio", EliminarDominio).RequireAuthorization(Permisos.ConfigurarDominio);
         grupo.MapPost("/{id:guid}/secreto/regenerar", RegenerarSecreto).RequireAuthorization(Permisos.VerSecretoOrigen);
+        grupo.MapGet("/{id:guid}/portal", ObtenerPortal).RequireAuthorization(Permisos.VerApis);
+        grupo.MapPut("/{id:guid}/portal", ActualizarPortal).RequireAuthorization(Permisos.PersonalizarPortal);
+        grupo.MapGet("/{id:guid}/portal/logo", ObtenerLogoPortal).RequireAuthorization(Permisos.VerApis);
+        grupo.MapPut("/{id:guid}/portal/logo", CargarLogoPortal)
+            .DisableAntiforgery()
+            .RequireAuthorization(Permisos.PersonalizarPortal);
         app.MapGet("/interno/tls/autorizar", AutorizarCertificado).AllowAnonymous();
         return app;
+    }
+
+    private static async Task<IResult> ObtenerPortal(
+        Guid id,
+        HttpContext contexto,
+        PersonalizarPortal caso,
+        CancellationToken ct)
+    {
+        var resultado = await caso.Obtener(id, OrganizacionId(contexto.User), ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> ActualizarPortal(
+        Guid id,
+        [FromBody] SolicitudPersonalizacionPortal solicitud,
+        HttpContext contexto,
+        PersonalizarPortal caso,
+        CancellationToken ct)
+    {
+        var resultado = await caso.Actualizar(id, OrganizacionId(contexto.User), solicitud, ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
+    }
+
+    private static async Task<IResult> ObtenerLogoPortal(
+        Guid id,
+        HttpContext contexto,
+        PersonalizarPortal caso,
+        CancellationToken ct)
+    {
+        var resultado = await caso.ObtenerLogo(id, OrganizacionId(contexto.User), ct);
+        if (!resultado.EsExito)
+        {
+            return Problema(resultado.Error);
+        }
+
+        contexto.Response.Headers.XContentTypeOptions = "nosniff";
+        if (resultado.Valor.Tipo == LogoTipo.Svg)
+        {
+            contexto.Response.Headers.ContentSecurityPolicy = "sandbox";
+        }
+
+        var tipoContenido = resultado.Valor.Tipo == LogoTipo.Svg ? "image/svg+xml" : "image/png";
+        return TypedResults.File(resultado.Valor.Contenido, tipoContenido);
+    }
+
+    private static async Task<IResult> CargarLogoPortal(
+        Guid id,
+        IFormFile? archivo,
+        HttpContext contexto,
+        PersonalizarPortal caso,
+        CancellationToken ct)
+    {
+        if (archivo is null || archivo.Length == 0 || archivo.Length > PersonalizarPortal.MaximoBytesLogo)
+        {
+            return Problema(new Error(
+                CodigosError.LogoInvalido,
+                "El logotipo debe ser una imagen PNG o SVG de hasta 512 KB."));
+        }
+
+        await using var flujo = archivo.OpenReadStream();
+        using var memoria = new MemoryStream();
+        await flujo.CopyToAsync(memoria, ct);
+        var resultado = await caso.CargarLogo(
+            id,
+            OrganizacionId(contexto.User),
+            memoria.ToArray(),
+            archivo.FileName,
+            archivo.ContentType,
+            ct);
+        return resultado.EsExito ? TypedResults.Ok(resultado.Valor) : Problema(resultado.Error);
     }
 
     private static async Task<IResult> ObtenerDominio(Guid id, HttpContext contexto, GestionarDominios caso, CancellationToken ct)
@@ -336,6 +413,7 @@ public static class Endpoints
                 => StatusCodes.Status422UnprocessableEntity,
             CodigosError.PlanSinDominioPropio => StatusCodes.Status422UnprocessableEntity,
             CodigosError.LimiteDelPlan => StatusCodes.Status422UnprocessableEntity,
+            CodigosError.LogoInvalido => StatusCodes.Status422UnprocessableEntity,
             _ => StatusCodes.Status500InternalServerError,
         };
         var extensiones = new Dictionary<string, object?> { ["codigo"] = error.Codigo };
