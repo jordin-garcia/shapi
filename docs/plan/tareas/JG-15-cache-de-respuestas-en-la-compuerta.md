@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P3
-estado: pendiente
+estado: hecha
 programada: 2026-10-26
 depende_de: [JG-06]
 requisitos: [RF-13]
@@ -46,3 +46,12 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Caché por consumidor
+
+## Resultado
+
+- Se implementó `FiltroCache` como filtro 7, después de límites y cuotas. Un acierto transmite desde Redis el cuerpo binario y las cabeceras del origen con `X-Shapi-Cache: HIT`, sin reenviar; sigue descontando el peso y la cuota de plataforma. Un fallo marca `MISS` y captura una copia acotada mientras YARP transmite.
+- Solo GET con caché activada guarda respuestas 200 completas de hasta 1,048,576 bytes. La llave conserva el formato de `LlavesRedis.Cache` y la transacción reemplaza cuerpo, cabeceras, estado, versión y TTL. Las respuestas mayores y los errores siguen transmitiéndose sin guardarse.
+- La versión de la API se almacena en cada entrada: al cambiar, ninguna respuesta anterior produce un acierto, incluso si terminó de guardarse después de una publicación. La invalidación es conservadora para todas las rutas de esa API y las entradas antiguas desaparecen por TTL.
+- Las cabeceras de cuota, plan y CORS se calculan por petición. No se guardan respuestas con cookies, `Cache-Control: private`, `no-store` o `no-cache`, ni con `Vary` distinto de `Origin`, porque la llave no incluye variantes por cabecera. Estas decisiones quedaron en 08 §3 y la estructura de Redis en 07 §4.
+- Pruebas: 22 casos nuevos de integración con Redis real y YARP, incluidos cuotas, consumidores distintos, cuerpo binario y tamaño límite, TTL, query y camino, versión durante un reenvío, cookies y negociación gzip. La suite de compuerta pasó sus 310 pruebas sin omisiones. La revisión independiente detectó el caso de `Vary: Accept-Encoding`; se corrigió con una regresión y la segunda revisión dio LISTO.
+- Archivos principales: `src/Shapi.Compuerta/Filtros/FiltroCache.cs`, `ContextoPeticion.cs`, `TuberiaCompuerta.cs`, `tests/Shapi.Compuerta.Tests/Tuberia/CacheRespuestasTests.cs` y la prueba del orden de filtros. No se añadieron dependencias ni endpoints.
