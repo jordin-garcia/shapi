@@ -218,6 +218,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apis/{id}/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta la personalización del portal y los datos de su vista previa */
+        get: operations["obtenerPersonalizacionPortal"];
+        /** Actualiza el nombre, el color principal y el texto de bienvenida del portal */
+        put: operations["actualizarPersonalizacionPortal"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/apis/{id}/portal/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Descarga el logotipo del portal de una API desde el panel */
+        get: operations["obtenerLogoPortalApi"];
+        /** Sube o reemplaza el logotipo del portal de una API */
+        put: operations["cargarLogoPortalApi"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -363,13 +399,57 @@ export interface components {
             rutaId: string;
             expuesta: boolean;
         };
+        PeticionPersonalizacionPortal: {
+            nombre?: string | null;
+            color: string;
+            bienvenida?: string | null;
+        };
+        RutaVistaPreviaPortal: {
+            metodo: string;
+            patron: string;
+            resumen?: string | null;
+            descripcion?: string | null;
+            /** @description Objeto */
+            ejemploPeticion?: unknown;
+            /** @description Objeto */
+            ejemploRespuesta?: unknown;
+            codigoRespuesta?: number | null;
+            pesoLlamadas: number;
+        };
+        PlanVistaPreviaPortal: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            descripcion: string;
+            precio: number;
+            esGratuito: boolean;
+            vigenciaDias: number;
+            cuotaLlamadas: number;
+            limiteMinuto: number;
+        };
+        PersonalizacionPortal: {
+            /** Format: uuid */
+            apiId: string;
+            apiNombre: string;
+            nombreOrganizacion: string;
+            /** Format: uri */
+            urlPortal: string;
+            nombre: string | null;
+            color: string;
+            bienvenida: string | null;
+            tieneLogo: boolean;
+            urlLogo: string | null;
+            descripcionApi: string | null;
+            rutas: components["schemas"]["RutaVistaPreviaPortal"][];
+            planes: components["schemas"]["PlanVistaPreviaPortal"][];
+        };
         /** @description ProblemDetails de la API de control. */
         Problema: {
             type?: string;
             title: string;
             status: number;
             /** @enum {string} */
-            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida" | "correo_no_verificado" | "publicacion_incompleta" | "plan_sin_dominio_propio";
+            codigo: "datos_invalidos" | "csrf" | "api_no_encontrada" | "subdominio_ocupado" | "origen_no_permitido" | "origen_inaccesible" | "especificacion_invalida" | "correo_no_verificado" | "publicacion_incompleta" | "plan_sin_dominio_propio" | "limite_del_plan" | "logo_invalido";
             detalle?: {
                 [key: string]: unknown;
             };
@@ -957,6 +1037,137 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    obtenerPersonalizacionPortal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Personalización actual del portal y datos para la vista previa de inicio. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizacionPortal"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermiso"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    actualizarPersonalizacionPortal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeticionPersonalizacionPortal"];
+            };
+        };
+        responses: {
+            /** @description Personalización guardada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizacionPortal"];
+                };
+            };
+            400: components["responses"]["DatosInvalidos"];
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    obtenerLogoPortalApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logotipo en PNG o SVG (`Content-Security-Policy: sandbox` para SVG). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                    "image/svg+xml": string;
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermiso"];
+            404: components["responses"]["ApiNoEncontrada"];
+        };
+    };
+    cargarLogoPortalApi: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Protección CSRF; el cliente del frontend la agrega siempre. */
+                "X-Requested-With": components["parameters"]["XRequestedWith"];
+            };
+            path: {
+                id: components["parameters"]["ApiId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Imagen PNG o SVG de hasta 512 KB.
+                     */
+                    archivo: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Logotipo guardado y personalización vigente. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalizacionPortal"];
+                };
+            };
+            401: components["responses"]["SinSesion"];
+            403: components["responses"]["SinPermisoOCsrf"];
+            404: components["responses"]["ApiNoEncontrada"];
+            /** @description Logotipo inválido (`logo_invalido`): ausente, mayor de 512 KB o con formato distinto de PNG o SVG. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
         };
     };

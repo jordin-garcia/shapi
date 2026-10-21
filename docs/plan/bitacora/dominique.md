@@ -148,3 +148,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: se conservaron sin cambios los contratos de EM-13 y se consumieron sus tipos generados; cuando B2.3 abre B2.7 con el plan vigente, la misma pantalla presenta los demás planes activos antes de mostrar la confirmación.
 - Pendiente o aviso para otros:
   - **Todos:** B2.2 y B2.7 ya consumen `GET /api/portal/pagos` y `POST /api/portal/suscripcion/cambiar`; los cambios desde un plan gratuito muestran las claves devueltas antes de volver a B2.3.
+
+## 2026-10-20 · DC-12 · Personalización del portal (A3.7)
+- Hecho: se implementaron `GET/PUT /api/apis/{id}/portal` y `GET/PUT /api/apis/{id}/portal/logo`, el contrato OpenAPI con tipos generados y la pantalla `A3-7-Portal.tsx` con carga de logotipo PNG/SVG de hasta 512 KB, validación de color `#RRGGBB` y bienvenida de hasta 280 caracteres, vista previa escalada en vivo del inicio del portal y enlace «Abrir mi portal». Se agregaron las pruebas de integración y de Vitest + MSW para RF-15.
+- Decisiones: `GET /api/apis/{id}/portal` reutiliza `IConsultorDocumentacionPortal` y los planes activos de la API para alimentar la vista previa sin requerir que la API esté publicada; el logotipo SVG del panel también se sirve con `Content-Security-Policy: sandbox` y `X-Content-Type-Options: nosniff`, y solo se muestra mediante `<img>`.
+- Pendiente o aviso para otros:
+  - **Todos:** la pantalla A3.7 (`/panel/apis/:id/portal`) ya está implementada y registrada en `rutas.test.tsx`.

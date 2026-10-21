@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 3
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-20
 depende_de: [DC-07]
 requisitos: [RF-15]
@@ -50,3 +50,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Dominio propio (DC-14)
+
+## Resultado
+- Se agregaron en `contratos/openapi/apis.yaml` los endpoints `GET /api/apis/{id}/portal`, `PUT /api/apis/{id}/portal`, `GET /api/apis/{id}/portal/logo` y `PUT /api/apis/{id}/portal/logo`, junto con los esquemas `PersonalizacionPortal`, `PeticionPersonalizacionPortal`, `RutaVistaPreviaPortal`, `PlanVistaPreviaPortal` y el código `logo_invalido`, y se regeneraron los tipos de `@shapi/api`.
+- Se implementó `PersonalizarPortal` en `Shapi.Aplicacion.Apis` y los métodos `ActualizarPortal` y `ActualizarLogoPortal` en `Api`, validando el color `#RRGGBB`, la bienvenida de hasta 280 caracteres y el logotipo PNG o SVG de hasta 512 KB (422 `logo_invalido`), y sirviendo el SVG con `Content-Security-Policy: sandbox` y `X-Content-Type-Options: nosniff`.
+- Se implementó `frontend/apps/panel/src/paginas/A3-7-Portal.tsx` según `mockups/A3/Portal.dc.html` e `InicioPortal.dc.html`, con edición de marca, carga de logotipo, vista previa escalada en vivo antes de guardar y enlace «Abrir mi portal» hacia `https://{sub}.shapi.localhost`.
+- Se agregaron las pruebas de integración en `tests/Shapi.Api.Tests/Apis/ApisTests.cs` y las pruebas de Vitest + MSW en `frontend/apps/panel/src/tests/Apis.test.tsx` y `rutas.test.tsx`.

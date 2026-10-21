@@ -50,6 +50,7 @@ public static class ApisModulo
         services.AddScoped<CambiarPublicacionApi>();
         services.AddScoped<GestionarDominios>();
         services.AddScoped<AutorizarTls>();
+        services.AddScoped<PersonalizarPortal>();
         return services;
     }
 

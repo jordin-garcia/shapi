@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Shapi.Contratos.Red;
 using Shapi.Dominio.Apis;
+using Shapi.Dominio.Planes;
 
 namespace Shapi.Aplicacion.Apis;
 
@@ -121,6 +123,44 @@ public sealed record EstadoPublicacionApi(
     EstadoApi Estado,
     DateTimeOffset? PublicadaEn);
 
+public sealed record SolicitudPersonalizacionPortal(string? Nombre, string? Color, string? Bienvenida);
+
+public sealed record RutaVistaPreviaPortal(
+    string Metodo,
+    string Patron,
+    string? Resumen,
+    string? Descripcion,
+    JsonElement? EjemploPeticion,
+    JsonElement? EjemploRespuesta,
+    int? CodigoRespuesta,
+    int PesoLlamadas);
+
+public sealed record PlanVistaPreviaPortal(
+    Guid Id,
+    string Nombre,
+    string Descripcion,
+    decimal Precio,
+    bool EsGratuito,
+    int VigenciaDias,
+    long CuotaLlamadas,
+    int LimiteMinuto);
+
+public sealed record PersonalizacionPortal(
+    Guid ApiId,
+    string ApiNombre,
+    string NombreOrganizacion,
+    string UrlPortal,
+    string? Nombre,
+    string Color,
+    string? Bienvenida,
+    bool TieneLogo,
+    string? UrlLogo,
+    string? DescripcionApi,
+    IReadOnlyList<RutaVistaPreviaPortal> Rutas,
+    IReadOnlyList<PlanVistaPreviaPortal> Planes);
+
+public sealed record LogoPortalDescargado(byte[] Contenido, LogoTipo Tipo);
+
 public interface ILectorEspecificacionOpenApi
 {
     Task<ResultadoLecturaEspecificacion> Leer(
@@ -163,6 +203,10 @@ public interface IRepositorioApis
     Task<ListaApis> Listar(Guid organizacionId, CancellationToken cancelacion = default);
 
     Task<string?> ObtenerNombreUsuario(Guid usuarioId, CancellationToken cancelacion = default);
+
+    Task<string?> ObtenerNombreOrganizacion(Guid organizacionId, CancellationToken cancelacion = default);
+
+    Task<List<PlanApi>> ObtenerPlanesActivos(Guid apiId, CancellationToken cancelacion = default);
 
     Task<bool> CorreoVerificado(Guid usuarioId, CancellationToken cancelacion = default);
 

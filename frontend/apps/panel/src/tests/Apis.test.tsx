@@ -11,6 +11,7 @@ import PaginaA33Especificacion from '../paginas/A3-3-Especificacion';
 import PaginaA34Rutas from '../paginas/A3-4-Rutas';
 import PaginaA35ConfigRutas from '../paginas/A3-5-ConfigRutas';
 import PaginaA36Dominio from '../paginas/A3-6-Dominio';
+import PaginaA37Portal from '../paginas/A3-7-Portal';
 
 const API = 'http://localhost/api/apis';
 let cliente: QueryClient;
@@ -481,5 +482,166 @@ describe('RF-13 · A3.5 Configuración por ruta', () => {
       cacheSegundos: ruta.metodo === 'GET' ? ruta.cacheSegundos : 0,
       pesoLlamadas: ruta.patron === '/cotizaciones' ? 5 : ruta.pesoLlamadas,
     })));
+  });
+});
+
+describe('RF-15 · A3.7 Personalización del portal', () => {
+  const DATOS_PORTAL = {
+    apiId: API_ID,
+    apiNombre: 'API de Cotización de Envíos',
+    nombreOrganizacion: 'Envíos Xelajú, S.A.',
+    urlPortal: 'https://envios.shapi.localhost',
+    nombre: 'Envíos Xelajú',
+    color: '#B8322A',
+    bienvenida: 'Cotice y genere guías de envío a todo Guatemala desde su tienda en línea.',
+    tieneLogo: false,
+    urlLogo: null as string | null,
+    descripcionApi: 'Consulte cobertura, calcule el costo según peso y destino y emita guías con número de seguimiento.',
+    rutas: [
+      {
+        metodo: 'POST',
+        patron: '/cotizaciones',
+        resumen: 'Cotizar un envío',
+        descripcion: 'Calcula el costo y el tiempo estimado de entrega entre dos departamentos.',
+        ejemploPeticion: { origen: 'Quetzaltenango', destino: 'Guatemala', pesoLb: 4.5 },
+        ejemploRespuesta: { tarifaQuetzales: 38.00, entregaEstimada: '24 horas' },
+        codigoRespuesta: 200,
+        pesoLlamadas: 1,
+      },
+      {
+        metodo: 'POST',
+        patron: '/guias',
+        resumen: 'Crear una guía',
+        descripcion: 'Genera la guía de envío y devuelve el número de rastreo.',
+        ejemploPeticion: null,
+        ejemploRespuesta: null,
+        codigoRespuesta: null,
+        pesoLlamadas: 5,
+      },
+    ],
+    planes: [
+      {
+        id: 'plan-1',
+        nombre: 'Inicial',
+        descripcion: 'Para probar la integración y hacer los primeros envíos.',
+        precio: 0,
+        esGratuito: true,
+        vigenciaDias: 30,
+        cuotaLlamadas: 500,
+        limiteMinuto: 10,
+      },
+      {
+        id: 'plan-2',
+        nombre: 'Básico',
+        descripcion: 'Para tiendas en línea con envíos diarios.',
+        precio: 150,
+        esGratuito: false,
+        vigenciaDias: 30,
+        cuotaLlamadas: 10000,
+        limiteMinuto: 60,
+      },
+    ],
+  };
+
+  it('reproduce el mockup, actualiza la vista previa en vivo antes de guardar y guarda la personalización', async () => {
+    let cuerpoGuardado: unknown;
+    let csrf: string | null = null;
+    server.use(
+      http.get(`${API}/${API_ID}/portal`, () => HttpResponse.json(DATOS_PORTAL)),
+      http.put(`${API}/${API_ID}/portal`, async ({ request }) => {
+        cuerpoGuardado = await request.json();
+        csrf = request.headers.get('X-Requested-With');
+        return HttpResponse.json({
+          ...DATOS_PORTAL,
+          nombre: 'Logística Altense',
+          color: '#1F8A5B',
+          bienvenida: 'Envíos rápidos en todo el occidente.',
+        });
+      }),
+    );
+
+    envolver(
+      <Routes><Route path="/panel/apis/:id/portal" element={<PaginaA37Portal />} /></Routes>,
+      `/panel/apis/${API_ID}/portal`,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Personalización del portal' })).toBeDefined();
+    expect(screen.getByText('Su portal lleva su logotipo, su color y sus textos. Sus consumidores no ven la marca de Shapi.')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Marca del portal' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Vista previa' })).toBeDefined();
+
+    const enlacePortal = screen.getByRole('link', { name: 'Abrir mi portal' });
+    expect(enlacePortal.getAttribute('href')).toBe('https://envios.shapi.localhost');
+
+    // En la vista previa aparecen los datos iniciales (rutas expuestas, ejemplo y planes activos)
+    expect(screen.getByText('Rutas disponibles')).toBeDefined();
+    expect(screen.getByText('Descuenta 5 llamadas de su cuota')).toBeDefined();
+    expect(screen.getByText('Q 150.00')).toBeDefined();
+    expect(screen.getByText('Envíos Xelajú, S.A.')).toBeDefined();
+
+    // Cambios sin guardar actualizan la vista previa en vivo
+    const campoNombre = screen.getByLabelText('Nombre del portal');
+    const campoColor = screen.getByLabelText('Color principal');
+    const campoBienvenida = screen.getByLabelText('Texto de bienvenida');
+
+    await userEvent.clear(campoNombre);
+    await userEvent.type(campoNombre, 'Logística Altense');
+    expect(screen.getAllByText('Logística Altense').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('LA').length).toBeGreaterThanOrEqual(1);
+
+    await userEvent.clear(campoBienvenida);
+    await userEvent.type(campoBienvenida, 'Envíos rápidos en todo el occidente.');
+    expect(screen.getAllByText('Envíos rápidos en todo el occidente.').length).toBeGreaterThanOrEqual(1);
+
+    await userEvent.clear(campoColor);
+    await userEvent.type(campoColor, '#1F8A5B');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar personalización' }));
+    expect(await screen.findByText('La personalización del portal se guardó.')).toBeDefined();
+    expect(csrf).toBe('shapi');
+    expect(cuerpoGuardado).toEqual({
+      nombre: 'Logística Altense',
+      color: '#1F8A5B',
+      bienvenida: 'Envíos rápidos en todo el occidente.',
+    });
+  });
+
+  it('sube el logotipo PNG o SVG y muestra error cuando el logotipo o los campos son inválidos', async () => {
+    server.use(
+      http.get(`${API}/${API_ID}/portal`, () => HttpResponse.json(DATOS_PORTAL)),
+      http.put(`${API}/${API_ID}/portal/logo`, () => HttpResponse.json({
+        type: 'about:blank',
+        title: 'El logotipo debe ser una imagen PNG o SVG de hasta 512 KB.',
+        status: 422,
+        codigo: 'logo_invalido',
+      }, { status: 422, headers: { 'Content-Type': 'application/problem+json' } })),
+      http.put(`${API}/${API_ID}/portal`, () => HttpResponse.json({
+        type: 'about:blank',
+        title: 'Revise los datos del portal.',
+        status: 400,
+        codigo: 'datos_invalidos',
+        errores: {
+          color: ['Use un color hexadecimal #RRGGBB.'],
+          bienvenida: ['El texto de bienvenida no puede superar 280 caracteres.'],
+        },
+      }, { status: 400, headers: { 'Content-Type': 'application/problem+json' } })),
+    );
+
+    envolver(
+      <Routes><Route path="/panel/apis/:id/portal" element={<PaginaA37Portal />} /></Routes>,
+      `/panel/apis/${API_ID}/portal`,
+    );
+    await screen.findByRole('heading', { name: 'Personalización del portal' });
+
+    vi.spyOn(FormData.prototype, 'set').mockImplementation(() => undefined);
+    await userEvent.upload(
+      screen.getByLabelText('Cambiar logotipo'),
+      new File(['<svg xmlns="http://www.w3.org/2000/svg"></svg>'], 'invalido.svg', { type: 'image/svg+xml' }),
+    );
+    expect(await screen.findByText('El logotipo debe ser una imagen PNG o SVG de hasta 512 KB.')).toBeDefined();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar personalización' }));
+    expect(await screen.findByText('Use un color hexadecimal #RRGGBB.')).toBeDefined();
+    expect(screen.getByText('El texto de bienvenida no puede superar 280 caracteres.')).toBeDefined();
   });
 });
