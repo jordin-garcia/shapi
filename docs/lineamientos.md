@@ -203,7 +203,7 @@ La solución deberá incluir:
 | Entrega de requisitos y diseño preliminar | 11 septiembre 2026 |
 | Avance funcional 1 (30%) | 25 septiembre 2026 |
 | Avance funcional 2 (50%) | 9 octubre 2026 |
-| Avance funcional 3 (80%) | 23 octubre 2026 |
+| Avance funcional 3 (80%) | ~~23 octubre 2026~~ **31 octubre 2026, 23:59** (cambio comunicado al equipo el 23 de octubre: se entrega un video de 25 minutos como máximo, en el que participan todos los integrantes y que explica a) toda la funcionalidad del proyecto y b) al menos 4 elementos del código con características de *Clean Code* y patrones de diseño) |
 | Entrega final y exposiciones | Primera semana de noviembre de 2026 |
 
 ### Desafío Profesional

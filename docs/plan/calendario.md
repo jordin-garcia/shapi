@@ -8,15 +8,13 @@
 | **Vie 25 sep** | **Avance funcional 1 (30 %)** | Demostración en vivo (guion 1) |
 | **Jue 8 oct** | Convergencia (JG-08) | Informe de brechas y tareas nuevas |
 | **Vie 9 oct** | **Avance funcional 2 (50 %)** | Demostración en vivo (guion 2) |
-| **Jue 22 oct** | Convergencia (JG-14) | Informe de brechas y tareas nuevas |
-| **Vie 23 oct** | **Avance funcional 3 (80 %)** | Demostración en vivo (guion 3) |
-| **Jue 29 oct** | Convergencia final (JG-17) | Lista de lo que queda fuera |
-| **Vie 30 oct** | **Congelamiento del código** | Después de esta fecha solo se corrigen errores |
-| **Lun 2 nov** | Documentación en PDF | Documento de requisitos, documento de diseño, manual técnico y manual de usuario (JG-16, JZ-15, JZ-16) |
-| **Mar 3 nov** | Ensayo de la exposición (las cuatro personas) | Recorrido completo del guion final |
-| **Semana del 2 al 6 de nov** | **Entrega final y exposición** | Repositorio, PDF y sistema funcionando |
+| **Jue 22 oct** | Convergencia (JG-14) | Informe de brechas y tareas nuevas (se integró el 23) |
+| **Jue 29 oct** | **Proyecto terminado** · convergencia final y congelamiento del código (JG-17) | Todas las tareas integradas, incluidos los PDF y los dos manuales. Después de esta fecha solo se corrigen errores |
+| **Vie 30 oct** | Grabación del video del Avance 3 (las cuatro personas) | Con el guion de JG-29 |
+| **Sáb 31 oct, 23:59** | **Avance funcional 3 (80 %)** | Video de 25 minutos como máximo, en el que participan las cuatro personas: a) toda la funcionalidad del proyecto terminado; b) al menos 4 elementos del código que explican características de *Clean Code* y patrones de diseño |
+| **Semana del 2 al 6 de nov** | **Entrega final y exposición** | Repositorio, PDF y sistema funcionando. La fecha exacta está por confirmar |
 
-> La docente no ha fijado el día exacto de la exposición. Si cae el lunes 2 o el martes 3, adelantar la documentación al viernes 30 y el ensayo al sábado 31.
+> **Cambio del 23 de octubre.** El curso movió el Avance 3 del viernes 23 al sábado 31 de octubre y lo convirtió en un video. El equipo grabará el proyecto ya terminado, así que todas las tareas, incluidos los manuales técnico y de usuario, terminan el jueves 29 (convergencia JG-14, `docs/plan/convergencia/2026-10-22.md`). El ensayo de la exposición se programa cuando se conozca su fecha.
 
 ---
 
@@ -29,7 +27,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 - **Aviso diario:** a las 07:00 (Guatemala), el issue "Tablero del plan" menciona a quien tiene una tarea programada ese día o una atrasada. A quien no tiene nada, no lo menciona.
 - **Una tarea atrasada** es la que no está hecha y su fecha ya pasó. Se marca con ⏰.
 - **Reprogramar:** solo Jordin, con un PR que cambie `programada` en los archivos de las tareas y ejecute `node scripts/tareas.mjs --calendario --escribir`. La CI (`--validar`) rechaza una fecha anterior a la de una dependencia pendiente o a `no_antes_de`, y una tabla que no coincida con los archivos.
-- Los días de convergencia (jueves 8 y 22) los demás ensayan el guion y corrigen errores; los días de entrega son los del cuadro de arriba.
+- Los días de convergencia (jueves 8, 22 y 29) los demás ensayan el guion y corrigen errores; los días de entrega son los del cuadro de arriba.
 - Las tablas de cada avance, más abajo, dicen a qué entrega pertenece cada tarea. El día exacto, incluidas las que se adelantan a un avance anterior para repartir la carga (JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14), es el de esta tabla.
 
 <!-- calendario:inicio (lo genera node scripts/tareas.mjs --calendario --escribir; no lo edites a mano) -->
@@ -59,10 +57,13 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Lun 19 oct | — | **EM-21** Disponibilidad del proveedor en la cuenta del consumidor | — | — |
 | Mar 20 oct | — | — | **DC-12** Personalización del portal (A3.7) | — |
 | Jue 22 oct | **JG-14** Convergencia del Avance 3 | — | — | — |
-| Sáb 24 oct | **JG-16** Generador de PDF y documentos de requisitos y de diseño | **EM-16** Pruebas de aislamiento entre organizaciones y de permisos | **DC-16** Revisión visual contra los mockups | **JZ-13** Pruebas E2E de los flujos principales |
-| Lun 26 oct | **JG-15** Caché de respuestas en la compuerta | — | — | **JZ-15** Manual técnico |
-| Mar 27 oct | — | — | — | **JZ-16** Manual de usuario |
-| Jue 29 oct | **JG-17** Convergencia final y congelamiento del código | — | — | — |
+| Vie 23 oct | **JG-21** Timeout de Redis en el reloj y en los trabajos del trabajador | — | — | — |
+| Sáb 24 oct | **JG-16** Generador de PDF y documentos de requisitos y de diseño<br>**JG-22** Modo demostración en la interfaz (reloj, fechas y bitácora) | **EM-16** Pruebas de aislamiento entre organizaciones y de permisos | **DC-16** Revisión visual contra los mockups | **JZ-13** Pruebas E2E de los flujos principales |
+| Dom 25 oct | **JG-23** Correcciones de cobros y suscripciones (gracia por reversión, aviso de la Prueba, cambio programado y cierre de ciclo)<br>**JG-24** Correcciones del portal y del dominio propio (A3.6, consola y marca) | — | — | **JZ-19** Elemento de código para el video del Avance 3 (Clean Code y patrón de diseño) |
+| Lun 26 oct | **JG-15** Caché de respuestas en la compuerta<br>**JG-25** Correcciones de soporte, bitácora y miembros | **EM-22** Elemento de código para el video del Avance 3 (Clean Code y patrón de diseño) | **DC-18** Elemento de código para el video del Avance 3 (Clean Code y patrón de diseño) | **JZ-15** Manual técnico |
+| Mar 27 oct | **JG-26** Correcciones de pantallas del panel y del portal (fechas, tablas, permisos y estilos)<br>**JG-27** Correcciones de la siembra, el ambiente y la CI | — | — | **JZ-16** Manual de usuario |
+| Mié 28 oct | **JG-28** Pendientes de la auditoría del 3 de octubre (identidad, planes, contratación y compuerta) | — | — | — |
+| Jue 29 oct | **JG-17** Convergencia final y congelamiento del código<br>**JG-29** Guion del video del Avance 3 y elemento de código de Jordin | — | — | — |
 
 <!-- calendario:fin -->
 
@@ -123,6 +124,8 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Dominique | DC-09 (contratación en el portal), DC-10 (consola de pruebas), DC-11 (suscripción y claves del consumidor), DC-12 (personalización del portal), DC-13 (pagos y cambio de plan del consumidor), DC-14 (dominio propio), DC-15 (inicio de Shapi), DC-17 (barra lateral en planes y pago) |
 | José Pablo | JZ-08 (organizaciones), JZ-09 (cuentas de plataforma), JZ-10 (casos de soporte), JZ-11 (plantillas de correo), JZ-12 (estado de los componentes), JZ-18 (levantar y sembrar con un comando) |
 
+El video del Avance 3 se prepara con EM-22, DC-18, JZ-19 y JG-29 (`avance: 3`). Se hacen en la semana final y aparecen también en su tabla.
+
 **Guion de demostración 3:**
 1. María José contrata el plan Comercio con la tarjeta 4242…, recibe sus claves una sola vez, prueba la consola, consume la API y ve su consumo por ruta.
 2. Rota una clave: la anterior sigue funcionando.
@@ -130,18 +133,22 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 4. Modo demostración: se adelanta el reloj 30 días. Con la tarjeta 4000 0000 0000 0341 → gracia → suspensión → la compuerta responde 403 → se paga → se reactiva.
 5. El administrador suspende una organización y revierte un pago. El soporte atiende un caso. Se revisan la bitácora y el estado de los componentes.
 
+El guion 3 se recorrió el 23 de octubre en la convergencia (`docs/plan/convergencia/2026-10-22.md`). Ya no hay demostración en vivo: el Avance 3 es el video del sábado 31, que muestra el proyecto terminado.
+
 ---
 
-## Semana final · 24 al 30 de octubre · "Pulir, probar y documentar"
+## Semana final · 23 al 29 de octubre · "Terminar, corregir, documentar y preparar el video"
 
 | Persona | Tareas |
 |---|---|
-| Jordin | JG-15 (caché, P3), JG-16 (PDF de requisitos y diseño), JG-17 (convergencia final y congelamiento, jueves 29) |
-| Emilio | EM-16 (pruebas de aislamiento y permisos) |
-| Dominique | DC-16 (revisión visual contra los mockups) |
-| José Pablo | JZ-13 (E2E de los flujos principales), JZ-14 (pruebas de carga), JZ-15 (manual técnico), JZ-16 (manual de usuario) |
+| Jordin | JG-21 (*timeout* de Redis, P1), JG-16 (PDF de requisitos y diseño), JG-22 (modo demostración en la interfaz, P1), JG-23 a JG-28 (correcciones de los hallazgos de la convergencia y de las auditorías anteriores), JG-29 (guion del video), JG-17 (convergencia final y congelamiento, jueves 29). JG-15 ya está hecha |
+| Emilio | EM-16 (pruebas de aislamiento y permisos), EM-22 (elemento de código para el video) |
+| Dominique | DC-16 (revisión visual contra los mockups), DC-18 (elemento de código para el video) |
+| José Pablo | JZ-13 (E2E de los flujos principales), JZ-19 (elemento de código para el video), JZ-15 (manual técnico), JZ-16 (manual de usuario). JZ-14 ya está hecha |
 
-**Guion final (exposición):** el guion 3 completo, más un arranque limpio del ambiente productivo simulado, las pruebas E2E en verde, el resultado de las pruebas de carga (RNF-01 y RNF-03) y la defensa de la arquitectura con `docs/specs/12-decisiones.md`.
+**Video del Avance 3 (grabación el viernes 30, entrega el sábado 31):** con el guion de JG-29, recorre toda la funcionalidad por la interfaz (los guiones 1, 2 y 3, con el reloj de demostración de JG-22) y explica al menos 4 elementos del código, uno por persona (EM-22, DC-18, JZ-19 y JG-29), con sus características de *Clean Code* y sus patrones de diseño. Dura 25 minutos como máximo y participan las cuatro personas.
+
+**Guion final (exposición):** el guion del video, más un arranque limpio del ambiente productivo simulado, las pruebas E2E en verde, el resultado de las pruebas de carga (RNF-01 y RNF-03) y la defensa de la arquitectura con `docs/specs/12-decisiones.md`.
 
 ---
 
