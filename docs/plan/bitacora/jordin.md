@@ -951,3 +951,23 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: la versión se guarda en el hash y un cambio invalida de forma conservadora todas las respuestas de esa API. Cuota, plan y CORS se recalculan por petición. Se omiten cookies, respuestas privadas o que requieren revalidación y variantes por cabecera distintas de Origin; se precisó en 08 §3 y 07 §4. Sin dependencias ni endpoints nuevos.
 - Verificación: fase roja confirmada contra la compilación anterior; 22 pruebas nuevas y las 310 pruebas de compuerta aprobadas, sin omisiones y con un hilo por la memoria disponible. Compilación completa con cero errores y advertencias, formato sin cambios y plan válido. Docker estaba detenido al comenzar; tras iniciarlo, la prueba roja falló por la ausencia de caché y luego la implementación pasó. La revisión independiente detectó la reutilización de gzip pese a Vary; corregida con una regresión, la segunda revisión dio LISTO.
 - Pendiente o aviso para otros: ninguno.
+
+## 2026-10-23 · JG-14 · Convergencia del Avance 3
+- Hecho:
+  - Informe en `docs/plan/convergencia/2026-10-22.md`: 46 requisitos (27 ✅, 19 ⚠️, ningún ❌), el guion 3 recorrido en el ambiente productivo simulado y 35 hallazgos (H-C01 a H-C35).
+  - Doce tareas nuevas: JG-21 a JG-29, EM-22, DC-18 y JZ-19.
+  - Fechas nuevas en `calendario.md`, `lineamientos.md` §9, `01-vision-y-alcance.md` y JG-17.
+- Decisiones de Jordin (23 oct):
+  - El Avance 3 es un video que se entrega el sábado 31 a las 23:59. Todo termina el jueves 29, incluidos los manuales, y se graba el viernes 30.
+  - No hay más auditorías completas: Jordin corrige todos los hallazgos (JG-21 a JG-28).
+  - Un elemento de código por persona para el video, hecho por su agente.
+- Verificación: `node scripts/tareas.mjs --validar` (plan válido) y `node infra/verificar.mjs --demo` (pasa, salvo la comprobación que depende del volumen de Caddy, H-C31).
+- Pendiente o aviso para otros:
+  - **Todos:** el Avance 3 ya no es el viernes 23. Es un video de 25 minutos como máximo, el sábado 31 a las 23:59, en el que cada uno narra su parte. Todas las tareas deben estar integradas el jueves 29, y el viernes 30 grabamos.
+  - **EM-22:** documenta en `docs/video/elementos/emilio.md` un patrón de diseño y dos características de *Clean Code* de tu código, con el texto que vas a narrar. La hace tu agente. EM-16 sigue el sábado 24.
+  - **DC-18:** lo mismo, en `docs/video/elementos/dominique.md`. DC-16 sigue el sábado 24.
+  - **JZ-19:** lo mismo, en `docs/video/elementos/jose-pablo.md`, el domingo 25. JG-25 y JG-27 cambian después parte de tu código; JG-29 vuelve a comprobar las líneas citadas el jueves 29.
+  - **JZ-15 y JZ-16:** deben terminar el jueves 29. JG-22 a JG-26 cambian pantallas hasta el martes 27, así que toma las capturas del manual de usuario al final. JG-27 (martes 27) precisa `docs/manual-tecnico.md` sobre la siembra y el calentamiento: agrégalo encima de lo que deje JZ-15, sin reescribirlo.
+  - **José Pablo:** JG-22 cambia `B3-1-Estado.tsx` y `B3-2-Bitacora.tsx` (sáb 24). JG-25 cambia Soporte, la bitácora y A7.1 (lun 26). JG-26 cambia `A6-2-Organizaciones.tsx` (mar 27). JG-27 cambia `Siembra/Demo/`, `infra/`, `tests/carga/`, los *workflows* y el manual técnico (mar 27). Actualiza tu rama desde `main` antes de tocar esos archivos.
+  - **Emilio:** JG-21 cambia `RelojSistema.cs` (vie 23). JG-22 cambia `Sesion.cs`, `RelojDemoApi.cs` y `A2-2` (sáb 24). JG-23 cambia Suscripciones, Pagos, `CierreCiclo.cs` y B1.4 (dom 25). JG-25 cambia `MiembrosApi.cs` y `A4-2` (lun 26). JG-26 cambia `A4-1` (mar 27). Actualiza tu rama desde `main` antes de tocar esos archivos. Si hace falta repartir la carga de Jordin, JG-23 se te puede reasignar.
+  - **Dominique:** JG-22 cambia `A5-6`, `B2-4` y `B2-7` (sáb 24). JG-23 cambia B2.3 (dom 25). JG-24 cambia A3.6, la consola, `A5-6`, `B2-3` y `GestionarDominios.cs` (dom 25). JG-26 cambia `A3-3`, `A3-4` y `MarcaPortal.tsx` (mar 27). Actualiza tu rama desde `main` antes de tocar esos archivos. Si hace falta repartir la carga de Jordin, JG-24 se te puede reasignar.
