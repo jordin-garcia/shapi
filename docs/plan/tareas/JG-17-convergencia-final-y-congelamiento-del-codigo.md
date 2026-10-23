@@ -7,7 +7,7 @@ avance: final
 prioridad: P1
 estado: pendiente
 programada: 2026-10-29
-depende_de: [JG-16]
+depende_de: [JG-16, JG-21, JG-22, JZ-13, JZ-15, JZ-16]
 no_antes_de: 2026-10-29
 requisitos: []
 pantallas: []
@@ -15,10 +15,10 @@ pantallas: []
 
 # JG-17 · Convergencia final y congelamiento del código
 
-**Responsable:** Jordin García · **Avance:** final · **Prioridad:** P1 · **Depende de:** JG-16 · **No antes del:** 2026-10-29
+**Responsable:** Jordin García · **Avance:** final · **Prioridad:** P1 · **Depende de:** JG-16, JG-21, JG-22, JZ-13, JZ-15 y JZ-16 · **No antes del:** 2026-10-29
 
 ## Objetivo
-Hacer la última revisión de brechas, congelar el código el 30 de octubre, marcar la versión entregable y regenerar los cuatro PDF.
+Hacer la última revisión de brechas, congelar el código el jueves 29 de octubre (el viernes 30 se graba el video del Avance 3), marcar la versión entregable y regenerar los cuatro PDF.
 
 ## Contexto que debes leer
 - `docs/plan/prompts/convergencia.md`

@@ -147,7 +147,7 @@ La cuota de plataforma se cuenta en **peticiones** y no en llamadas, para que el
 
 - El presupuesto es **Q 0.00**: no se compran dominios, servidores ni servicios.
 - El stack es el que permiten los lineamientos: .NET 10 (ASP.NET Core), React y PostgreSQL. También se usan Redis, YARP y Caddy.
-- Las entregas son el Avance 1 (30 %) el 25 de septiembre, el Avance 2 (50 %) el 9 de octubre, el Avance 3 (80 %) el 23 de octubre y la entrega final en la primera semana de noviembre de 2026.
+- Las entregas son el Avance 1 (30 %) el 25 de septiembre, el Avance 2 (50 %) el 9 de octubre, el Avance 3 (80 %) el 31 de octubre, como video (la fecha original era el 23 de octubre), y la entrega final en la primera semana de noviembre de 2026.
 - El desarrollo es **dirigido por especificaciones** y lo ejecutan agentes de IA. Estas especificaciones son el contrato que deben respetar.
 
 [RF-08]: 03-requisitos.md#rf-08

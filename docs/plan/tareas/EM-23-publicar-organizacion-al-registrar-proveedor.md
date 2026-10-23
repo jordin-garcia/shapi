@@ -1,5 +1,5 @@
 ---
-id: EM-22
+id: EM-23
 titulo: Publicar la organización al registrar un proveedor
 persona: emilio
 responsable: Emilio Méndez
@@ -12,7 +12,7 @@ requisitos: [RF-01, RF-11, RNF-04]
 pantallas: []
 ---
 
-# EM-22 · Publicar la organización al registrar un proveedor
+# EM-23 · Publicar la organización al registrar un proveedor
 
 **Responsable:** Emilio Méndez · **Avance:** final · **Prioridad:** P1
 
@@ -62,4 +62,4 @@ node scripts/tareas.mjs --validar
 - Las pruebas existentes de autenticación y recuperación aíslan el publicador con NSubstitute, conservando sus aserciones; la regresión específica y las E2E comprueban la publicación real.
 - Pasaron las 268 pruebas dirigidas de Identidad, la compilación completa y las 14 E2E, sin omisiones. La primera petición de la API de un proveedor nuevo funciona dentro de diez segundos sin contratar plataforma ni forzar la resincronización.
 - Revisión independiente: LISTO, sin hallazgos de corrección. La precisión sobre el registro se agregó a `docs/specs/07-modelo-de-datos.md` §3.1.
-- El formato completo pasó sin cambios y el plan de 77 tareas es válido.
+- El formato completo pasó sin cambios y el plan de 89 tareas es válido.
