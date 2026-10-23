@@ -59,6 +59,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Lun 19 oct | — | **EM-21** Disponibilidad del proveedor en la cuenta del consumidor | — | — |
 | Mar 20 oct | — | — | **DC-12** Personalización del portal (A3.7) | — |
 | Jue 22 oct | **JG-14** Convergencia del Avance 3 | — | — | — |
+| Vie 23 oct | — | **EM-22** Publicar la organización al registrar un proveedor | — | — |
 | Sáb 24 oct | **JG-16** Generador de PDF y documentos de requisitos y de diseño | **EM-16** Pruebas de aislamiento entre organizaciones y de permisos | **DC-16** Revisión visual contra los mockups | **JZ-13** Pruebas E2E de los flujos principales |
 | Lun 26 oct | **JG-15** Caché de respuestas en la compuerta | — | — | **JZ-15** Manual técnico |
 | Mar 27 oct | — | — | — | **JZ-16** Manual de usuario |
