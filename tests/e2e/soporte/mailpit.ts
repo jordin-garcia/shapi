@@ -1,5 +1,6 @@
 import http from 'node:http';
 import https from 'node:https';
+import type { LookupFunction } from 'node:net';
 
 interface OpcionesEsperaCorreo {
   baseUrl?: string;
@@ -24,13 +25,13 @@ interface DetalleMensaje {
 
 const esperar = (milisegundos: number) => new Promise((resolver) => setTimeout(resolver, milisegundos));
 
-function resolverLocal(_host: string, opciones: { all?: boolean }, callback: (...argumentos: unknown[]) => void) {
+const resolverLocal: LookupFunction = (_host, opciones, callback) => {
   if (opciones.all) {
     callback(null, [{ address: '127.0.0.1', family: 4 }]);
     return;
   }
   callback(null, '127.0.0.1', 4);
-}
+};
 
 function leerJson<T>(url: URL): Promise<T> {
   const cliente = url.protocol === 'https:' ? https : http;
