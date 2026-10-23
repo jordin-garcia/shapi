@@ -59,6 +59,7 @@ public static class Endpoints
         [FromServices] IPasswordHasher<Usuario> hasher,
         [FromServices] IColaCorreo colaCorreo,
         [FromServices] IReloj reloj,
+        [FromServices] IPublicadorCache publicador,
         CancellationToken cancelacion)
     {
         var validacion = await validador.ValidateAsync(peticion, cancelacion);
@@ -103,6 +104,8 @@ public static class Endpoints
             return CorreoYaRegistrado();
         }
 
+        // La compuerta necesita org:{id} incluso durante el plan Prueba. Se publica después del commit.
+        await publicador.PublicarOrganizacion(organizacion.Id, cancelacion);
         return TypedResults.Ok();
     }
 
