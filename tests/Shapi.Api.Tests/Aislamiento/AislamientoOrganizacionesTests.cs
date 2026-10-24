@@ -152,6 +152,7 @@ public sealed class AislamientoOrganizacionesTests(PostgresPersistencia postgres
         await NuevaMembresia(propietario, organizacion, "propietario");
         var editor = await NuevoUsuario();
         await NuevaMembresia(editor, organizacion, "editor");
+        await PrepararSuscripcionPlataforma(organizacion);
         var api = await NuevaApi(organizacion);
         using var cliente = Fabrica.CreateClient();
 
@@ -294,6 +295,7 @@ public sealed class AislamientoOrganizacionesTests(PostgresPersistencia postgres
         {
             await NuevaMembresia(usuario, organizacion, rol.ToLowerInvariant());
         }
+        await PrepararSuscripcionPlataforma(organizacion);
         using var cliente = Fabrica.CreateClient();
 
         using var respuesta = await Enviar(cliente, new HttpMethod(metodo), ruta, organizacion, usuario,
@@ -349,6 +351,13 @@ public sealed class AislamientoOrganizacionesTests(PostgresPersistencia postgres
         return ruta.EndsWith("/invitaciones", StringComparison.Ordinal)
             ? new { correo = "aislamiento@ejemplo.com" }
             : new { };
+    }
+
+    private async Task PrepararSuscripcionPlataforma(Guid organizacion)
+    {
+        var plan = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET max_apis = 5, max_miembros = 10 WHERE id = '{plan}'");
+        await NuevaSuscripcionPlataforma(organizacion, plan);
     }
 
     private Task<Guid> CrearClave(Guid api, Guid consumidor, Guid plan) => Escalar<Guid>($"""
