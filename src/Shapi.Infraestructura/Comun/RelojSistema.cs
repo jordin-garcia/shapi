@@ -26,6 +26,11 @@ public sealed class RelojSistema(
     // Los suscriptores solo encolan trabajo; la hora ya está actualizada cuando reciben el aviso.
     public event Action? DesplazamientoActualizado;
 
+    /// <summary>Carga la hora antes de la siembra, que también se ejecuta sin arrancar el host.</summary>
+    public Task InicializarAsync(CancellationToken cancelacion = default) => _modoDemo
+        ? SincronizarSeguroAsync(cancelacion, suscribir: false)
+        : Task.CompletedTask;
+
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
         if (_modoDemo)
@@ -97,11 +102,11 @@ public sealed class RelojSistema(
         }
     }
 
-    private async Task SincronizarSeguroAsync(CancellationToken ct)
+    private async Task SincronizarSeguroAsync(CancellationToken ct, bool suscribir = true)
     {
         try
         {
-            if (!_suscrito)
+            if (suscribir && !_suscrito)
             {
                 await redis!.GetSubscriber().SubscribeAsync(
                     RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), Recibir).WaitAsync(ct);

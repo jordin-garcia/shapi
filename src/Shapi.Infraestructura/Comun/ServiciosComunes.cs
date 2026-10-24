@@ -25,7 +25,10 @@ public static class ServiciosComunes
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<RelojSistema>();
         services.AddSingleton<IReloj>(sp => sp.GetRequiredService<RelojSistema>());
-        services.AddHostedService(sp => sp.GetRequiredService<RelojSistema>());
+        if (string.Equals(configuration["SHAPI_MODO_DEMO"], "true", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHostedService(sp => sp.GetRequiredService<RelojSistema>());
+        }
 
         // Cola de correo y bitácora reales (Scoped porque dependen del DbContext)
         services.AddScoped<IColaCorreo, ColaCorreoBaseDatos>();

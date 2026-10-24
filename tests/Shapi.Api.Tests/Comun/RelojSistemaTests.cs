@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NSubstitute;
 using Shapi.Contratos.Redis;
 using Shapi.Infraestructura.Comun;
@@ -9,6 +11,22 @@ namespace Shapi.Api.Tests.Comun;
 public sealed class RelojSistemaTests
 {
     private static readonly DateTimeOffset Ahora = new(2026, 10, 12, 18, 0, 0, TimeSpan.Zero);
+
+    // RNF-06: fuera de demo no se agregan conexiones al arrancar servicios con un reloj reemplazado.
+    [Fact]
+    public void Servicios_ModoDemoDesactivado_NoArrancanSincronizacionNiResuelvenRedis()
+    {
+        var servicios = new ServiceCollection();
+        var configuracion = new ConfigurationBuilder().Build();
+        servicios.AddSingleton<IConfiguration>(configuracion);
+        servicios.AddLogging();
+        servicios.AgregarServiciosComunes(configuracion);
+        servicios.AddSingleton<IConnectionMultiplexer>(_ => throw new InvalidOperationException("No debe resolver Redis"));
+        servicios.AddSingleton<Shapi.Aplicacion.Comun.IReloj>(Substitute.For<Shapi.Aplicacion.Comun.IReloj>());
+        using var proveedor = servicios.BuildServiceProvider();
+
+        proveedor.GetServices<IHostedService>().Should().NotContain(s => s is RelojSistema);
+    }
 
     // RNF-06, RF-22: un GET pendiente o atrasado no bloquea Ahora ni deshace un mensaje nuevo.
     [Fact]

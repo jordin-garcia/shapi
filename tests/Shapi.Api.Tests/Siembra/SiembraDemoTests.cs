@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
+using Shapi.Contratos.Redis;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Bitacora;
 using Shapi.Dominio.Claves;
@@ -14,8 +17,12 @@ using Shapi.Dominio.Planes;
 using Shapi.Dominio.Soporte;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Apis;
+using Shapi.Infraestructura.Cache;
+using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Infraestructura.Siembra.Demo;
+using Shapi.Trabajador.Siembra;
+using StackExchange.Redis;
 using ApiDominio = Shapi.Dominio.Apis.Api;
 using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 
@@ -25,6 +32,47 @@ namespace Shapi.Api.Tests.Siembra;
 [Collection(nameof(PostgresPersistencia))]
 public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
+    // RNF-06, RF-22: sembrar-demo no arranca el host, pero siembra y resincroniza con la hora compartida.
+    [Fact]
+    public async Task RNF_14_ComandoSinArrancarHost_UsaDesplazamientoPreexistente()
+    {
+        var configuracion = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["SHAPI_MODO_DEMO"] = "true",
+        }).Build();
+        var redis = Substitute.For<IConnectionMultiplexer>();
+        var database = Substitute.For<IDatabase>();
+        redis.GetDatabase().ReturnsForAnyArgs(database);
+        database.StringGetAsync(LlavesRedis.DemoRelojDesplazamiento, CommandFlags.None).Returns((RedisValue)(30L * 86400));
+        using var reloj = new RelojSistema(TimeProvider.System, configuracion, redis);
+        await using var db = CrearDb();
+        var siembra = new SiembraDemo(db, reloj, new ProtectorPrueba(), NullLogger<SiembraDemo>.Instance);
+        DateTimeOffset? horaResincronizacion = null;
+        string? hashRotada = null;
+        IReadOnlyList<ClaveCache>? clavesVigentes = null;
+
+        await ComandoSembrarDemo.EjecutarAsync(["sembrar-demo"], configuracion, false,
+            async (modo, reiniciar, envios, agro, secretoEnvios, secretoAgro) =>
+                await siembra.EjecutarAsync(modo, reiniciar, envios, agro, secretoEnvios, secretoAgro),
+            async () =>
+            {
+                horaResincronizacion = reloj.Ahora;
+                var clave = await db.Set<Clave>().IgnoreQueryFilters().FirstAsync(c => c.Estado == EstadoClave.Activa);
+                hashRotada = clave.HashSha256;
+                clave.Rotar(DateTimeOffset.UtcNow);
+                await db.SaveChangesAsync();
+                var lector = new LectorCacheBaseDatos(db, new ProtectorPrueba(), configuracion, reloj, NullLogger<LectorCacheBaseDatos>.Instance);
+                clavesVigentes = await lector.ClavesVigentesAsync(CancellationToken.None);
+            });
+
+        var ana = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Correo == "ana.morales@enviosxelaju.com");
+        ana.CorreoVerificadoEn.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(30), TimeSpan.FromSeconds(30));
+        horaResincronizacion.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(30), TimeSpan.FromSeconds(30));
+        clavesVigentes.Should().NotContain(c => c.Hash == hashRotada, "la resincronización no debe republicar una clave vencida en la hora de demostración");
+        await database.Received(1).StringGetAsync(LlavesRedis.DemoRelojDesplazamiento, CommandFlags.None);
+        redis.DidNotReceive().GetSubscriber(Arg.Any<object?>());
+    }
+
     [Fact]
     public void RNF_14_UsaUrlsLocalesEnDesarrolloYDeServicioEnProduccion()
     {
