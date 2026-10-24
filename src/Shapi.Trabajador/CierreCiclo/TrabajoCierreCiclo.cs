@@ -1,37 +1,52 @@
+using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Shapi.Contratos.Redis;
+using Shapi.Infraestructura.Comun;
 using StackExchange.Redis;
 
 namespace Shapi.Trabajador.CierreCiclo;
 
 public sealed class TrabajoCierreCiclo(
     IServiceScopeFactory alcances,
-    IConnectionMultiplexer redis,
+    RelojSistema reloj,
     OpcionesCierreCiclo opciones,
     ILogger<TrabajoCierreCiclo> registro) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var cola = await redis.GetSubscriber().SubscribeAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento));
-        cola.OnMessage(async _ => await EjecutarSeguroAsync(stoppingToken));
-
-        using var temporizador = new PeriodicTimer(opciones.Intervalo);
+        var solicitudes = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropWrite,
+            SingleReader = true,
+        });
+        void Solicitar() => solicitudes.Writer.TryWrite(true);
+        reloj.DesplazamientoActualizado += Solicitar;
         try
         {
             do
             {
                 await EjecutarSeguroAsync(stoppingToken);
+                using var espera = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                espera.CancelAfter(opciones.Intervalo);
+                try
+                {
+                    await solicitudes.Reader.ReadAsync(espera.Token);
+                }
+                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+                {
+                    // Sin mensajes, se cierra el ciclo en el intervalo normal.
+                }
             }
-            while (await temporizador.WaitForNextTickAsync(stoppingToken));
+            while (!stoppingToken.IsCancellationRequested);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
         }
         finally
         {
-            await cola.UnsubscribeAsync();
+            reloj.DesplazamientoActualizado -= Solicitar;
+            solicitudes.Writer.TryComplete();
         }
     }
 
@@ -41,6 +56,10 @@ public sealed class TrabajoCierreCiclo(
         {
             await using var alcance = alcances.CreateAsyncScope();
             await alcance.ServiceProvider.GetRequiredService<CerrarCiclo>().EjecutarAsync(ct);
+        }
+        catch (Exception excepcion) when (excepcion is RedisException or RedisTimeoutException)
+        {
+            registro.LogWarning("No se pudo cerrar el ciclo; se reintenta en el siguiente intervalo: {Tipo}", excepcion.GetType().Name);
         }
         catch (Exception excepcion) when (excepcion is not OperationCanceledException)
         {
