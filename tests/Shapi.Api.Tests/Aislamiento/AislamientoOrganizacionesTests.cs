@@ -60,6 +60,13 @@ public sealed class AislamientoOrganizacionesTests(PostgresPersistencia postgres
         await NuevaMembresia(usuario, organizacionPropia, "propietario");
         var organizacionAjena = await NuevaOrganizacion();
         var apiAjena = await NuevaApi(organizacionAjena);
+        var dominioAjeno = $"api-{Guid.NewGuid():N}.ejemplo.com";
+        await Ejecutar($"""
+            INSERT INTO dominio_propio (id, api_id, dominio, destino_cname, estado, creado_en, actualizado_en)
+            VALUES (gen_random_uuid(), '{apiAjena}', '{dominioAjeno}', '{apiAjena}.api.shapi.localhost', 'pendiente',
+                    '{Reloj.Ahora:O}', '{Reloj.Ahora:O}')
+            """);
+        await Ejecutar($"UPDATE api SET portal_logo = decode('89504E470D0A1A0A', 'hex'), portal_logo_tipo = 'image/png' WHERE id = '{apiAjena}'");
         var planAjeno = await NuevoPlanApi(apiAjena);
         var consumidorAjeno = await NuevoConsumidor(organizacionAjena);
         var claveAjena = await CrearClave(apiAjena, consumidorAjeno, planAjeno);
@@ -228,7 +235,17 @@ public sealed class AislamientoOrganizacionesTests(PostgresPersistencia postgres
         var claveOtroPortal = await CrearClave(otraApi, otroConsumidor, planOtro);
         var rutasAdmin = new (HttpMethod Metodo, string Ruta, object? Cuerpo)[]
         {
-            (HttpMethod.Put, $"/api/admin/planes-plataforma/{idInexistente}", new { }),
+            (HttpMethod.Put, $"/api/admin/planes-plataforma/{idInexistente}", new
+            {
+                nombre = "Plan de prueba",
+                descripcion = "Plan válido para comprobar la búsqueda por identificador.",
+                precio = 10m,
+                vigenciaDias = 30,
+                maxApis = 5,
+                maxMiembros = 10,
+                cuotaPeticiones = 1000L,
+                dominioPropio = false,
+            }),
             (HttpMethod.Post, $"/api/admin/planes-plataforma/{idInexistente}/desactivar", null),
             (HttpMethod.Post, $"/api/admin/cuentas/{idInexistente}/desactivar", null),
             (HttpMethod.Post, $"/api/admin/cuentas/{idInexistente}/activar", null),
@@ -321,9 +338,18 @@ public sealed class AislamientoOrganizacionesTests(PostgresPersistencia postgres
         return cliente.SendAsync(solicitud);
     }
 
-    private static object CuerpoPara(string ruta) => ruta.EndsWith("/invitaciones", StringComparison.Ordinal)
-        ? new { correo = "aislamiento@ejemplo.com" }
-        : new { };
+    private static object CuerpoPara(string ruta)
+    {
+        if (ruta.EndsWith("/rutas/exposicion", StringComparison.Ordinal)
+            || ruta.EndsWith("/configuracion-rutas", StringComparison.Ordinal))
+        {
+            return Array.Empty<object>();
+        }
+
+        return ruta.EndsWith("/invitaciones", StringComparison.Ordinal)
+            ? new { correo = "aislamiento@ejemplo.com" }
+            : new { };
+    }
 
     private Task<Guid> CrearClave(Guid api, Guid consumidor, Guid plan) => Escalar<Guid>($"""
         WITH suscripcion AS (

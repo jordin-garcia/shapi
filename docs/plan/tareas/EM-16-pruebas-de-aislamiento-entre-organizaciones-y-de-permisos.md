@@ -52,4 +52,5 @@ dotnet format Shapi.slnx --verify-no-changes
 - Se agregó una prueba parametrizada de integración que comprueba 28 rutas HTTP de APIs con identificador y dos operaciones de miembros; las solicitudes de una organización distinta deben recibir 404.
 - Se agregó una matriz HTTP para propietario, editor, lector, administrador, soporte y consumidor, con casos permitidos y denegados basados en 04 §3.
 - Se agregaron comprobaciones 404 para recursos administrativos globales inexistentes, claves pertenecientes a otro consumidor/organización y casos de soporte pertenecientes a otra organización. No se modificó código de otros módulos.
+- Las pruebas cruzadas de simulación/verificación de dominio y descarga de logotipo preparan esos recursos para que el 404 no se deba a que falten.
 - `dotnet build Shapi.slnx`, `dotnet format Shapi.slnx --verify-no-changes`, `node scripts/tareas.mjs --validar` y `git diff --check` pasan. Las pruebas de integración compilan, pero su ejecución local requiere Docker para Testcontainers; CI debe confirmarlas.
