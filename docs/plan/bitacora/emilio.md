@@ -155,6 +155,6 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Hecho: agregué cobertura de integración para las rutas de APIs y miembros, los casos de soporte de otra organización, recursos administrativos inexistentes y claves del portal; también cubrí permisos HTTP de los seis roles de 04 §3.
 - Decisiones: las rutas de administración operan sobre recursos globales, por lo que se comprueba 404 para identificadores inexistentes; las rutas con datos de organización comprueban el aislamiento de la organización de la sesión.
 - Verificación: `dotnet build Shapi.slnx`, `dotnet format Shapi.slnx --verify-no-changes`, `node scripts/tareas.mjs --validar` (88 tareas válidas) y `git diff --check` pasan. Las pruebas nuevas compilan; la ejecución dirigida de `Shapi.Api.Tests.Aislamiento` no pudo iniciar porque Docker no está disponible para Testcontainers (`/var/run/docker.sock`).
-- Revisión en contexto limpio: se corrigieron los cuerpos de las dos rutas que reciben arreglos y se agregaron un dominio y logotipo existentes para que los 404 comprueben aislamiento; pendiente confirmar las correcciones con CI.
+- Revisión en contexto limpio: LISTO. Se corrigieron los cuerpos de las dos rutas que reciben arreglos y se prepararon un dominio y logotipo existentes para que los 404 comprueben aislamiento; CI confirma la ejecución de los casos.
 - Pendiente o aviso para otros:
   - **Jordin:** confirmar en CI las pruebas de integración nuevas; el entorno local no tiene Docker.

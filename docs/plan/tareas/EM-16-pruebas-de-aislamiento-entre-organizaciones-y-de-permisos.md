@@ -54,3 +54,4 @@ dotnet format Shapi.slnx --verify-no-changes
 - Se agregaron comprobaciones 404 para recursos administrativos globales inexistentes, claves pertenecientes a otro consumidor/organización y casos de soporte pertenecientes a otra organización. No se modificó código de otros módulos.
 - Las pruebas cruzadas de simulación/verificación de dominio y descarga de logotipo preparan esos recursos para que el 404 no se deba a que falten.
 - `dotnet build Shapi.slnx`, `dotnet format Shapi.slnx --verify-no-changes`, `node scripts/tareas.mjs --validar` y `git diff --check` pasan. Las pruebas de integración compilan, pero su ejecución local requiere Docker para Testcontainers; CI debe confirmarlas.
+- La revisión independiente en contexto limpio quedó **LISTO**; la corrida de CI del commit corregido sigue en curso.
