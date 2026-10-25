@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-23
 depende_de: []
 requisitos: [RNF-06, RF-22, RF-34]
@@ -63,3 +63,13 @@ Además, en el ambiente productivo simulado (`docker compose --env-file .env -f 
 ## Fuera de alcance
 - Cambiar `SyncTimeout` o `AsyncTimeout` de la conexión (JG-04): siguen en 1 s.
 - La compuerta: no usa `IReloj` y no tuvo *timeouts*.
+
+## Resultado
+
+- `RelojSistema` conserva el desplazamiento en memoria: `Ahora` no hace llamadas a Redis. El servicio carga y relee la llave de forma asíncrona cada cinco segundos, reintenta la suscripción y conserva la última hora conocida ante errores, incluidos los *timeouts*.
+- El canal publica el desplazamiento total en segundos. La API actualiza primero su reloj y el trabajador recibe el cambio antes de disparar el cierre de ciclo; los mensajes duplicados, atrasados o inválidos no alteran incorrectamente la hora. La siembra inicializa el reloj antes del arranque del host, también en el comando de demostración. Fuera del modo demostración no se registra el servicio de sincronización.
+- Todos los servicios de fondo del trabajador atrapan tanto `RedisException` como `RedisTimeoutException`, registran una advertencia con el tipo de excepción y continúan en su siguiente intervalo. No se cambiaron los límites de tiempo, los contratos HTTP ni las dependencias de la aplicación.
+- Se precisó el protocolo del reloj en `09-cobros-y-suscripciones.md` §9 y `07-modelo-de-datos.md` §4. Archivos principales: `Comun/RelojSistema.cs`, `Comun/ServiciosComunes.cs`, `Suscripciones/RelojDemoApi.cs`, `Siembra/Base/SiembraBase.cs`, los trabajos de `Shapi.Trabajador` y sus pruebas de reloj, suscripciones, siembra y resincronización.
+- Verificación: compilación completa con **0 errores y 0 advertencias**; formato sin cambios; **1.012 pruebas de `Shapi.Api.Tests` aprobadas, sin fallos ni omisiones**, con dos hilos por la memoria disponible. Incluye Redis real, propagación entre API y trabajador en **76 ms**, los seis trabajos ante desconexiones y *timeouts*, y las regresiones de autorización, siembra y cierre de ciclo. La prueba previa de resincronización exigía nivel Error; se ajustó a la advertencia requerida por el criterio 3 y se reforzó para exigir dos intentos, el tipo de excepción y que el trabajo siga vivo.
+- Ambiente productivo simulado reconstruido con el comando de la tarea: ensayo de **627 segundos**, navegador abierto, **90 respuestas HTTP 200 y ningún fallo**. Redis estuvo pausado 12 segundos; el portal siguió respondiendo, el latido se recuperó, el trabajador terminó con **0 reinicios** y la API con **0 errores de Redis sin atrapar**. Evidencia local en `.shapi/jg21/` (registros, TRX, resumen y captura del portal).
+- Revisión independiente: se corrigió la carga del reloj antes de la siembra y se verificó que no abre Redis fuera del modo demostración. Segunda revisión del código: **LISTO**, sin hallazgos pendientes.
