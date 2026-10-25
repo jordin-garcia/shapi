@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-24
 depende_de: [EM-14, EM-12]
 no_antes_de: 2026-10-24
@@ -47,3 +47,11 @@ dotnet format Shapi.slnx --verify-no-changes
 
 ## Fuera de alcance
 - Corregir el código de otros
+
+## Resultado
+- Se agregó una prueba parametrizada de integración que comprueba 28 rutas HTTP de APIs con identificador y dos operaciones de miembros; las solicitudes de una organización distinta deben recibir 404.
+- Se agregó una matriz HTTP para propietario, editor, lector, administrador, soporte y consumidor, con casos permitidos y denegados basados en 04 §3.
+- Se agregaron comprobaciones 404 para recursos administrativos globales inexistentes, claves pertenecientes a otro consumidor/organización y casos de soporte pertenecientes a otra organización. No se modificó código de otros módulos.
+- Las pruebas cruzadas de simulación/verificación de dominio y descarga de logotipo preparan esos recursos para que el 404 no se deba a que falten.
+- `dotnet build Shapi.slnx`, `dotnet format Shapi.slnx --verify-no-changes`, `node scripts/tareas.mjs --validar` y `git diff --check` pasan. Las pruebas de integración compilan, pero su ejecución local requiere Docker para Testcontainers; CI debe confirmarlas.
+- La revisión independiente en contexto limpio quedó **LISTO** para las correcciones de rutas y recursos. La primera CI ejecutó 1032 pruebas y encontró cuatro fallos en escenarios permitidos sin suscripción de plataforma; se agregó la suscripción a esos escenarios y la nueva corrida de CI sigue en curso.
