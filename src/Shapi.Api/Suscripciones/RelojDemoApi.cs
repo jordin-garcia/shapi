@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Configuration;
 using Shapi.Contratos.Redis;
+using Shapi.Infraestructura.Comun;
 using StackExchange.Redis;
 
 namespace Shapi.Api.Suscripciones;
 
 public sealed record PeticionRelojDemo(int AdelantarDias);
 
-public sealed class RelojDemoApi(IConfiguration configuracion, IConnectionMultiplexer redis)
+public sealed class RelojDemoApi(IConfiguration configuracion, IConnectionMultiplexer redis, RelojSistema reloj)
 {
     public async Task<IResult> Adelantar(PeticionRelojDemo peticion, CancellationToken cancelacion)
     {
@@ -22,8 +23,9 @@ public sealed class RelojDemoApi(IConfiguration configuracion, IConnectionMultip
 
         var segundos = checked((long)peticion.AdelantarDias * 24 * 60 * 60);
         var db = redis.GetDatabase();
-        await db.StringIncrementAsync(LlavesRedis.DemoRelojDesplazamiento, segundos);
-        await redis.GetSubscriber().PublishAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), peticion.AdelantarDias.ToString());
+        var total = await db.StringIncrementAsync(LlavesRedis.DemoRelojDesplazamiento, segundos);
+        reloj.AplicarDesplazamiento(total);
+        await redis.GetSubscriber().PublishAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), total);
         return TypedResults.NoContent();
     }
 }

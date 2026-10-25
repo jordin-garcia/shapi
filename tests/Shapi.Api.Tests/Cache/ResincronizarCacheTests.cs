@@ -151,9 +151,9 @@ public sealed class ResincronizarCacheTests(PostgresPersistencia postgres, Redis
     }
 
     [Fact]
-    public async Task RNF_05_TrabajoResincronizacion_RedisNoDisponible_RegistraElErrorYSigue()
+    public async Task RNF_05_TrabajoResincronizacion_RedisNoDisponible_RegistraAdvertenciaYSigue()
     {
-        // RNF-05: una falla no detiene el trabajo; se vuelve a intentar en el siguiente intervalo.
+        // RNF-05 y RNF-06 (JG-21): una falla registra su tipo como advertencia y se reintenta sin detenerse.
         await SembrarAsync();
         await using var servicios = CrearServicios("127.0.0.1:1,connectTimeout=200", s =>
         {
@@ -164,13 +164,24 @@ public sealed class ResincronizarCacheTests(PostgresPersistencia postgres, Redis
 
         await trabajo.StartAsync(CancellationToken.None);
         var limite = DateTime.UtcNow.AddSeconds(15);
-        while (Registros.Entradas.Count(e => e.Nivel == LogLevel.Error) < 2 && DateTime.UtcNow < limite)
+        int ReintentosRegistrados() => Registros.Entradas.Count(e => e.Nivel == LogLevel.Warning
+            && e.Texto.Contains("No se pudo resincronizar la caché", StringComparison.Ordinal)
+            && (e.Texto.Contains(nameof(RedisConnectionException), StringComparison.Ordinal)
+                || e.Texto.Contains(nameof(RedisTimeoutException), StringComparison.Ordinal)));
+        while (ReintentosRegistrados() < 2 && DateTime.UtcNow < limite)
         {
             await Task.Delay(50);
         }
 
-        await trabajo.StopAsync(CancellationToken.None);
-        Registros.Entradas.Count(e => e.Nivel == LogLevel.Error).Should().BeGreaterThanOrEqualTo(2);
+        try
+        {
+            trabajo.ExecuteTask!.IsCompleted.Should().BeFalse();
+            ReintentosRegistrados().Should().BeGreaterThanOrEqualTo(2);
+        }
+        finally
+        {
+            await trabajo.StopAsync(CancellationToken.None);
+        }
     }
 
     [Fact]

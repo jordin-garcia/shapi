@@ -26,6 +26,10 @@ public sealed class TrabajoConsolidacion(
                     await using var alcance = alcances.CreateAsyncScope();
                     await alcance.ServiceProvider.GetRequiredService<ConsolidarConsumo>().EjecutarAsync(stoppingToken);
                 }
+                catch (Exception excepcion) when (excepcion is RedisException or RedisTimeoutException)
+                {
+                    registro.LogWarning("No se pudo consolidar el consumo; se reintenta en el siguiente intervalo: {Tipo}", excepcion.GetType().Name);
+                }
                 catch (Exception excepcion) when (excepcion is not OperationCanceledException)
                 {
                     registro.LogError(excepcion, "No se pudo consolidar el consumo; el lote se recuperará en el siguiente intervalo");
@@ -59,7 +63,7 @@ public sealed class LatidoTrabajador(
                 {
                     await EscribirAsync(stoppingToken);
                 }
-                catch (RedisException excepcion)
+                catch (Exception excepcion) when (excepcion is RedisException or RedisTimeoutException)
                 {
                     registro.LogWarning("No se pudo escribir el latido del trabajador: {Tipo}", excepcion.GetType().Name);
                 }

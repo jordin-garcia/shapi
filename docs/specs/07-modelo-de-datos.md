@@ -724,7 +724,7 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 | `met:lote:{lote_id}:{llave}` | hash | Una instantánea que se está consolidando | Trabajador | Trabajador |
 | `salud:compuerta:{instancia}` y `salud:trabajador` | string | Marca de tiempo. TTL 30 s | Compuerta y trabajador | API |
 | `salud:latencia-compuerta:{minuto_unix}` | hash | Contadores por `segundo_unix:rango` del histograma de latencia añadida; minuto y segundo del reloj real. TTL 65 min | Compuerta | API (ventana móvil de la última hora, RF-39) |
-| `demo:reloj:desplazamiento` | string | Desplazamiento del reloj del modo demostración ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostracion)) | API de control | API y trabajador |
+| `demo:reloj:desplazamiento` | string | Desplazamiento total en segundos del reloj del modo demostración; el canal del mismo nombre publica ese total ([09 §9](09-cobros-y-suscripciones.md#9-modo-demostracion)) | API de control | API y trabajador |
 
 **Normalización de las llaves:** los UUID van en minúsculas con guiones, el `{host}` en minúsculas y el `{sha256}` de la clave en hex minúsculas. En `cache:`, el hash se calcula sobre el método en mayúsculas seguido del camino y de la query tal como llega (con su `?` inicial), en UTF-8. Las fechas `{aaaammdd}` son el día en la zona America/Guatemala, el mismo que se guarda en `consumo_diario.fecha`.
 

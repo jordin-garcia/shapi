@@ -32,6 +32,10 @@ public sealed class TrabajoResincronizacion(
         catch (OperationCanceledException) when (cancelacion.IsCancellationRequested)
         {
         }
+        catch (Exception excepcion) when (excepcion is StackExchange.Redis.RedisException or StackExchange.Redis.RedisTimeoutException)
+        {
+            registro.LogWarning("No se pudo resincronizar la caché; se reintenta en {Intervalo}: {Tipo}", opciones.Intervalo, excepcion.GetType().Name);
+        }
         catch (Exception excepcion)
         {
             // Si Redis o PostgreSQL no responden, se vuelve a intentar en el siguiente intervalo.

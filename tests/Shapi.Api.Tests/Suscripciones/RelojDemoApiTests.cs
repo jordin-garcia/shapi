@@ -13,6 +13,7 @@ using Shapi.Api.Tests.Persistencia;
 using Shapi.Contratos.Redis;
 using Shapi.Dominio.Organizaciones;
 using Shapi.Infraestructura.Cache;
+using Shapi.Infraestructura.Comun;
 using StackExchange.Redis;
 
 namespace Shapi.Api.Tests.Suscripciones;
@@ -32,13 +33,17 @@ public sealed class RelojDemoApiTests
         var subscriber = Substitute.For<ISubscriber>();
         redis.GetDatabase(Arg.Any<int>(), Arg.Any<object?>()).Returns(database);
         redis.GetSubscriber(Arg.Any<object?>()).Returns(subscriber);
-        var api = new RelojDemoApi(configuracion, redis);
+        database.StringIncrementAsync(LlavesRedis.DemoRelojDesplazamiento, 30L * 24 * 60 * 60, CommandFlags.None)
+            .Returns(60L * 24 * 60 * 60);
+        using var reloj = new RelojSistema(TimeProvider.System, configuracion, redis);
+        var api = new RelojDemoApi(configuracion, redis, reloj);
 
         var respuesta = await api.Adelantar(new PeticionRelojDemo(30), CancellationToken.None);
 
         respuesta.Should().BeOfType<Microsoft.AspNetCore.Http.HttpResults.NoContent>();
         await database.Received(1).StringIncrementAsync(LlavesRedis.DemoRelojDesplazamiento, 30L * 24 * 60 * 60, CommandFlags.None);
-        await subscriber.Received(1).PublishAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), "30", CommandFlags.None);
+        await subscriber.Received(1).PublishAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), 60L * 24 * 60 * 60, CommandFlags.None);
+        reloj.Ahora.Should().BeCloseTo(DateTimeOffset.UtcNow.AddDays(60), TimeSpan.FromSeconds(1));
     }
 
     // RF-44: el endpoint no existe cuando se desactiva el modo demo.
@@ -50,7 +55,8 @@ public sealed class RelojDemoApiTests
             ["SHAPI_MODO_DEMO"] = "false",
         }).Build();
         var redis = Substitute.For<IConnectionMultiplexer>();
-        var api = new RelojDemoApi(configuracion, redis);
+        using var reloj = new RelojSistema(TimeProvider.System, configuracion, redis);
+        var api = new RelojDemoApi(configuracion, redis, reloj);
 
         var respuesta = await api.Adelantar(new PeticionRelojDemo(30), CancellationToken.None);
 
@@ -62,6 +68,29 @@ public sealed class RelojDemoApiTests
 [Collection(nameof(PostgresPersistencia))]
 public sealed class RelojDemoEndpointTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
+    // RNF-06: este endpoint lee IReloj antes de consultar las credenciales; Redis no produce un 500.
+    [Fact]
+    public async Task Entrar_TimeoutRedisAlSincronizarReloj_ConservaRespuestaHttp()
+    {
+        var redis = CrearRedisFalso();
+        var database = redis.GetDatabase();
+        var fallo = new RedisTimeoutException(CommandFlags.None, "Timeout simulado", CommandStatus.Sent);
+        database.StringGet(Arg.Any<RedisKey>()).ReturnsForAnyArgs(_ => throw fallo);
+        database.StringGetAsync(Arg.Any<RedisKey>()).ReturnsForAnyArgs(Task.FromException<RedisValue>(fallo));
+        using var fabrica = CrearFabrica("true", redis);
+        using var cliente = fabrica.CreateClient();
+        using var peticion = new HttpRequestMessage(HttpMethod.Post, "/api/auth/entrar")
+        {
+            Content = JsonContent.Create(new { correo = "inexistente@ejemplo.com", contrasena = "Invalida123!" }),
+        };
+        peticion.Headers.Add("X-Requested-With", "shapi");
+
+        using var respuesta = await cliente.SendAsync(peticion);
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        database.DidNotReceive().StringGet(Arg.Any<RedisKey>(), Arg.Any<CommandFlags>());
+    }
+
     // RF-44: la ruta permite al administrador solo en modo demo, devuelve 404 al desactivarlo y rechaza otros roles.
     [Fact]
     public async Task EndpointAdelantar_AutorizaSoloAdministradorEnModoDemo()
@@ -89,7 +118,7 @@ public sealed class RelojDemoEndpointTests(PostgresPersistencia postgres) : Base
         }
 
         await redis.GetDatabase().Received(1).StringIncrementAsync(LlavesRedis.DemoRelojDesplazamiento, 86400L, CommandFlags.None);
-        await redis.GetSubscriber().Received(1).PublishAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), "1", CommandFlags.None);
+        await redis.GetSubscriber().Received(1).PublishAsync(RedisChannel.Literal(LlavesRedis.DemoRelojDesplazamiento), 86400L, CommandFlags.None);
     }
 
     private WebApplicationFactory<Program> CrearFabrica(string modoDemo, IConnectionMultiplexer redis) =>
@@ -128,6 +157,7 @@ public sealed class RelojDemoEndpointTests(PostgresPersistencia postgres) : Base
         var redis = Substitute.For<IConnectionMultiplexer>();
         redis.GetDatabase(Arg.Any<int>(), Arg.Any<object?>()).Returns(Substitute.For<IDatabase>());
         redis.GetSubscriber(Arg.Any<object?>()).Returns(Substitute.For<ISubscriber>());
+        redis.GetDatabase().StringIncrementAsync(LlavesRedis.DemoRelojDesplazamiento, 86400L, CommandFlags.None).Returns(86400L);
         return redis;
     }
 }

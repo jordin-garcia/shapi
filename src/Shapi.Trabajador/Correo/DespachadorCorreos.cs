@@ -21,6 +21,10 @@ public sealed class DespachadorCorreos(
             {
                 break;
             }
+            catch (Exception excepcion) when (excepcion is StackExchange.Redis.RedisException or StackExchange.Redis.RedisTimeoutException)
+            {
+                registro.LogWarning("No se pudo procesar la bandeja de salida; se reintenta en el siguiente intervalo: {Tipo}", excepcion.GetType().Name);
+            }
             catch (Exception excepcion)
             {
                 registro.LogError(excepcion, "No se pudo procesar la bandeja de salida");
