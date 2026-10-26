@@ -27,9 +27,11 @@ using Xunit;
 
 namespace Shapi.Api.Tests.Identidad;
 
-public class RelojFalso : IReloj
+public class RelojFalso : TimeProvider, IReloj
 {
     public DateTimeOffset Ahora { get; set; } = new(2026, 8, 24, 21, 30, 0, TimeSpan.Zero); // 15:30 en Guatemala
+
+    public override DateTimeOffset GetUtcNow() => Ahora;
 
     public void Avanzar(TimeSpan tiempo) => Ahora += tiempo;
 }
@@ -43,6 +45,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     private const string CorreoAdmin = "admin@shapi.test";
 
     private readonly RelojFalso _reloj = new();
+    private readonly RelojFalso _tiempo = new();
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
     private string _cadena = null!;
@@ -61,7 +64,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
             builder.UseSetting("SHAPI_ADMIN_CORREO", CorreoAdmin);
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "SuperSecreto123!");
-            builder.ConfigureTestServices(services => services.AddSingleton<IReloj>(_reloj));
+            builder.ConfigureTestServices(services => { services.AddSingleton<IReloj>(_reloj); services.AddSingleton<TimeProvider>(_tiempo); });
         });
         // Las cookies se manejan a mano: la cookie es Secure y el servidor de prueba usa http.
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
@@ -265,7 +268,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         using var _ = scope;
         var sesion = await db.Set<Sesion>().IgnoreQueryFilters().SingleAsync(s => s.HashIdentificador == SeguridadTokens.HashearToken(valor));
         Assert.Equal(AmbitoSesion.Personal, sesion.Ambito);
-        Assert.Equal(_reloj.Ahora.AddDays(7), sesion.ExpiraEn);
+        Assert.Equal(_tiempo.Ahora.AddDays(7), sesion.ExpiraEn);
     }
 
     [Fact]
@@ -333,11 +336,11 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         await Registrar("ana@enviosxelaju.com");
         var cookie = CookieDeSesion(await Entrar("ana@enviosxelaju.com", ContrasenaValida));
 
-        _reloj.Avanzar(TimeSpan.FromHours(7));
+        _tiempo.Avanzar(TimeSpan.FromHours(7));
         Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie)).StatusCode);
-        _reloj.Avanzar(TimeSpan.FromHours(7)); // 14 h desde el inicio, 7 h desde el último uso
+        _tiempo.Avanzar(TimeSpan.FromHours(7)); // 14 h desde el inicio, 7 h desde el último uso
         Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie)).StatusCode);
-        _reloj.Avanzar(TimeSpan.FromHours(8));
+        _tiempo.Avanzar(TimeSpan.FromHours(8));
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie)).StatusCode);
     }
@@ -350,15 +353,40 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
 
         for (var i = 0; i < 23; i++) // 161 h, siempre con menos de 8 h entre usos
         {
-            _reloj.Avanzar(TimeSpan.FromHours(7));
+            _tiempo.Avanzar(TimeSpan.FromHours(7));
             Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie)).StatusCode);
         }
-        _reloj.Avanzar(TimeSpan.FromHours(7)); // 168 h = 7 días
+        _tiempo.Avanzar(TimeSpan.FromHours(7)); // 168 h = 7 días
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie)).StatusCode);
     }
 
     // ---------- RF-04 y 10 §1 · Datos de la sesión y destino por rol ----------
+
+    [Fact]
+    public async Task RF_04_Sesion_HoraReal_NoVenceAlAdelantarFechaDeNegocio()
+    {
+        using var fabrica = _fabrica.WithWebHostBuilder(builder => builder.ConfigureTestServices(
+            services => services.AddSingleton(TimeProvider.System)));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        using var entrada = await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/entrar", new { correo = CorreoAdmin, contrasena = "SuperSecreto123!" }));
+        entrada.StatusCode.Should().Be(HttpStatusCode.OK);
+        var cookie = CookieDeSesion(entrada);
+        var antes = DateTimeOffset.UtcNow;
+        _reloj.Avanzar(TimeSpan.FromDays(37));
+
+        using var respuesta = await cliente.SendAsync(Peticion(HttpMethod.Get, "/api/auth/sesion", cookie: cookie));
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var fecha = await cliente.SendAsync(Peticion(HttpMethod.Get, "/api/reloj", cookie: cookie));
+        fecha.StatusCode.Should().Be(HttpStatusCode.OK);
+        var datos = await fecha.Content.ReadFromJsonAsync<JsonElement>();
+        datos.GetProperty("ahora").GetDateTimeOffset().Should().Be(_reloj.Ahora);
+        datos.GetProperty("inicioCiclo").GetDateTimeOffset().Should().Be(Suscripcion.InicioDeCiclo(_reloj.Ahora));
+        using var scope = fabrica.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var sesion = await db.Set<Sesion>().IgnoreQueryFilters().SingleAsync();
+        sesion.ExpiraEn.Should().BeCloseTo(antes.AddDays(7), TimeSpan.FromSeconds(5));
+    }
 
     [Theory]
     [InlineData(Rol.Propietario, "propietario", "/panel/apis")]
@@ -739,9 +767,9 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
         var cookie = CookieDeSesion(await cliente.SendAsync(Peticion(HttpMethod.Post, "/api/auth/entrar",
             new { correo = "ana@enviosxelaju.com", contrasena = ContrasenaValida })));
 
-        _reloj.Avanzar(TimeSpan.FromMinutes(119));
+        _tiempo.Avanzar(TimeSpan.FromMinutes(119));
         Assert.Equal(HttpStatusCode.OK, (await cliente.SendAsync(Peticion(HttpMethod.Get, "/api/auth/sesion", cookie: cookie))).StatusCode);
-        _reloj.Avanzar(TimeSpan.FromHours(2));
+        _tiempo.Avanzar(TimeSpan.FromHours(2));
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await cliente.SendAsync(Peticion(HttpMethod.Get, "/api/auth/sesion", cookie: cookie))).StatusCode);
     }
@@ -750,15 +778,15 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     public async Task RF_04_Sesion_UltimoUsoSeActualizaComoMaximoUnaVezPorMinuto()
     {
         await Registrar("ana@enviosxelaju.com");
-        var inicio = _reloj.Ahora;
+        var inicio = _tiempo.Ahora;
         var cookie = CookieDeSesion(await Entrar("ana@enviosxelaju.com", ContrasenaValida));
         var hash = SeguridadTokens.HashearToken(cookie["shapi_sesion=".Length..]);
 
-        _reloj.Avanzar(TimeSpan.FromSeconds(59));
+        _tiempo.Avanzar(TimeSpan.FromSeconds(59));
         await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie);
         Assert.Equal(inicio, await UltimoUso(hash));
 
-        _reloj.Avanzar(TimeSpan.FromSeconds(1));
+        _tiempo.Avanzar(TimeSpan.FromSeconds(1));
         await Enviar(HttpMethod.Get, "/api/auth/sesion", cookie: cookie);
         Assert.Equal(inicio.AddMinutes(1), await UltimoUso(hash));
     }
@@ -768,7 +796,7 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
     {
         await Registrar("ana@enviosxelaju.com");
         var cookie = CookieDeSesion(await Entrar("ana@enviosxelaju.com", ContrasenaValida));
-        _reloj.Avanzar(TimeSpan.FromDays(8));
+        _tiempo.Avanzar(TimeSpan.FromDays(8));
 
         var sinCookie = await Enviar(HttpMethod.Post, "/api/auth/salir");
         var vencida = await Enviar(HttpMethod.Post, "/api/auth/salir", cookie: cookie);

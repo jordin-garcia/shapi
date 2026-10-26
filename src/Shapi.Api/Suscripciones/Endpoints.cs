@@ -8,6 +8,12 @@ public static class Endpoints
 {
     public static IEndpointRouteBuilder MapearEndpointsSuscripciones(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/admin/demo/reloj", (RelojDemoApi caso) => caso.Consultar())
+            .RequireAuthorization(Permisos.GestionarPlanesPlataforma);
+        app.MapGet("/api/reloj", (Shapi.Aplicacion.Comun.IReloj reloj) => RelojDemoApi.ConsultarFecha(reloj))
+            .RequireAuthorization();
+        app.MapGet("/api/portal/reloj", (Shapi.Aplicacion.Comun.IReloj reloj) => RelojDemoApi.ConsultarFecha(reloj))
+            .RequireAuthorization(Permisos.ConsumidorVerCuenta);
         app.MapPost("/api/admin/demo/reloj", (RelojDemoApi caso, PeticionRelojDemo peticion, CancellationToken ct) => caso.Adelantar(peticion, ct))
             .RequireAuthorization(Permisos.GestionarPlanesPlataforma);
         var portal = app.MapGroup("/api/portal");

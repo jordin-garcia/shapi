@@ -198,7 +198,7 @@ public sealed class OrganizacionesAdministracionTests(PostgresPersistencia postg
     {
         var valor = Convert.ToHexString(Guid.NewGuid().ToByteArray()).ToLowerInvariant();
         await using var db = CrearDb();
-        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valor), usuarioId, "localhost", null, null, Reloj.Ahora));
+        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valor), usuarioId, "localhost", null, null, DateTimeOffset.UtcNow));
         await db.SaveChangesAsync();
         return $"shapi_sesion={valor}";
     }

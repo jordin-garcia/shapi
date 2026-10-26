@@ -79,6 +79,8 @@ beforeEach(() => {
   rol = 'propietario';
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   server.use(
+    http.get('http://localhost/api/reloj', () => HttpResponse.json({ ahora: '2026-09-11T18:00:00Z' })),
+    http.get('http://localhost/api/admin/demo/reloj', () => new HttpResponse(null, { status: 404 })),
     http.get('http://localhost/api/auth/sesion', () => HttpResponse.json(respuestaSesion())),
     http.get('http://localhost/api/apis', () => HttpResponse.json({
       elementos: [

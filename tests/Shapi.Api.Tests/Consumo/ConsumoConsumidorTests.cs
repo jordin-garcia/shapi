@@ -229,7 +229,7 @@ public sealed class ConsumoConsumidorTests(PostgresPersistencia postgres, RedisC
         await using (var db = CrearDb())
         {
             db.Add(Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(token), _consumidor,
-                "envios.shapi.localhost", null, null, Reloj.Ahora));
+                "envios.shapi.localhost", null, null, DateTimeOffset.UtcNow));
             await db.SaveChangesAsync();
         }
         await using var fabricaReal = _fabrica!.WithWebHostBuilder(web => web.ConfigureTestServices(servicios =>

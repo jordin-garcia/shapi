@@ -149,7 +149,7 @@ public static class Endpoints
             return CuentaDesactivada();
         }
 
-        await IniciarSesionPersonal(db, contexto, usuario, ahora, cancelacion);
+        await IniciarSesionPersonal(db, contexto, usuario, cancelacion);
         await transaccion.CommitAsync(cancelacion);
         return TypedResults.Ok();
     }
@@ -250,7 +250,7 @@ public static class Endpoints
         }
 
         usuario.RegistrarInicioExitoso();
-        await IniciarSesionPersonal(db, contexto, usuario, ahora, cancelacion);
+        await IniciarSesionPersonal(db, contexto, usuario, cancelacion);
         return TypedResults.Ok();
     }
 
@@ -319,8 +319,10 @@ public static class Endpoints
         _ => "/panel/apis",
     };
 
-    private static async Task IniciarSesionPersonal(ShapiDbContext db, HttpContext contexto, Usuario usuario, DateTimeOffset ahora, CancellationToken cancelacion)
+    private static async Task IniciarSesionPersonal(ShapiDbContext db, HttpContext contexto, Usuario usuario, CancellationToken cancelacion)
     {
+        // RF-04: la seguridad usa hora real; el reloj de demostración solo adelanta el negocio.
+        var ahora = contexto.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
         var valorCookie = SeguridadTokens.GenerarToken();
         var sesion = Sesion.IniciarPersonal(
             SeguridadTokens.HashearToken(valorCookie),
@@ -408,7 +410,7 @@ public static class Endpoints
         }
 
         var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == resultado.UsuarioId, cancelacion);
-        await IniciarSesionPersonal(db, contexto, usuario, reloj.Ahora, cancelacion);
+        await IniciarSesionPersonal(db, contexto, usuario, cancelacion);
         return TypedResults.Ok();
     }
 

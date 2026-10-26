@@ -15,6 +15,7 @@ function mostrar() {
 
 beforeEach(() => {
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  server.use(http.get('http://localhost/api/reloj', () => HttpResponse.json({ ahora: '2026-09-12T05:30:00Z' })));
 });
 
 afterEach(() => {
@@ -70,6 +71,7 @@ describe('RF-41 · B3.2 Bitácora de acciones sensibles', () => {
   it('permite elegir un periodo y lo vuelve a consultar', async () => {
     // RF-41 · CA2: selector de fechas.
     const consultas: URL[] = [];
+    server.use(http.get('http://localhost/api/reloj', () => HttpResponse.json({ ahora: '2026-10-25T18:00:00Z' })));
     server.use(http.get(API, ({ request }) => {
       consultas.push(new URL(request.url));
       return HttpResponse.json({ total: 0, elementos: [] });
@@ -183,4 +185,20 @@ describe('RF-41 · B3.2 Bitácora de acciones sensibles', () => {
     expect(await screen.findByRole('heading', { name: 'Todavía no hay acciones registradas' })).toBeDefined();
     expect(screen.getByText('En este periodo nadie suspendió una organización, revirtió un cobro, cambió una cuenta de plataforma ni rotó una clave. Cuando ocurra, aquí aparecerá quién lo hizo, qué hizo y cuándo.')).toBeDefined();
   });
+});
+
+it('RF-41 · usa el periodo del servidor aunque el navegador tenga otra fecha', async () => {
+  let periodo: string[] = [];
+  server.use(
+    http.get('http://localhost/api/reloj', () => HttpResponse.json({ ahora: '2027-01-04T05:30:00Z' })),
+    http.get(API, ({ request }) => {
+      const parametros = new URL(request.url).searchParams;
+      periodo = [parametros.get('desde')!, parametros.get('hasta')!];
+      return HttpResponse.json({ elementos: [entrada(1)], total: 1 });
+    }),
+  );
+  mostrar();
+  expect(await screen.findByText('Persona 1')).toBeDefined();
+  expect(periodo).toEqual(['2026-12-28', '2027-01-03']);
+  expect(screen.getByRole('button', { name: 'Seleccionar periodo' }).textContent).toContain('Del 28 de diciembre de 2026 al 3 de enero de 2027');
 });

@@ -6,6 +6,7 @@ import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link, useNavigate, useParams } from 'react-router';
 import { claveSuscripcionConsumidor, useSuscripcionConsumidor, type SuscripcionActual, type Tarjeta } from '../modulos/claves/claves';
 import { dinero, numero, usePlanesPortal, type PlanApi } from '../modulos/suscripcion/planes';
+import { useFechaServidor } from '../modulos/reloj/reloj';
 import ClaveNueva from './B2-5-ClaveNueva';
 
 const cliente = crearCliente<paths>(window.location.origin);
@@ -47,13 +48,13 @@ export default function CambioPlan() {
   const [error, setError] = useState<string>();
   const [tarjeta, setTarjeta] = useState<Tarjeta>({ numero: '', titular: '', mesVencimiento: '', anioVencimiento: '', cvv: '' });
   const [clavesNuevas, setClavesNuevas] = useState<components['schemas']['ClaveEmitida'][]>([]);
-  const [ahora] = useState(() => Date.now());
+  const reloj = useFechaServidor();
+  const ahora = reloj.data ? new Date(reloj.data.ahora).getTime() : 0;
   const destino = planes.data?.find(plan => plan.id === planId);
   const actual = suscripcion.data;
-  const inicio = actual ? new Date(actual.periodo.inicio) : new Date();
-  const renovacion = actual ? new Date(actual.proximaRenovacion) : new Date();
-  const vigenciaActual = Math.max(1, Math.round((renovacion.getTime() - inicio.getTime()) / DIA));
-  const dias = actual ? Math.max(0, Math.ceil((renovacion.getTime() - ahora) / DIA)) : 0;
+  const renovacion = actual ? new Date(actual.proximaRenovacion).getTime() : 0;
+  const vigenciaActual = actual ? Math.max(1, Math.round((renovacion - new Date(actual.periodo.inicio).getTime()) / DIA)) : 1;
+  const dias = actual ? Math.max(0, Math.ceil((renovacion - ahora) / DIA)) : 0;
   const desdeGratuito = Boolean(actual && actual.plan.precio <= 0);
   const bajada = Boolean(actual && destino && destino.precio / destino.vigenciaDias <= actual.plan.precio / vigenciaActual);
   const credito = actual && !desdeGratuito ? redondear(actual.plan.precio * dias / vigenciaActual) : 0;
@@ -86,8 +87,8 @@ export default function CambioPlan() {
     onError: causa => setError(causa instanceof ErrorApi ? causa.titulo : 'No se pudo cambiar el plan.'),
   });
 
-  if (planes.isPending || suscripcion.isPending) return <EstadoCargando />;
-  if (planes.isError || suscripcion.isError) return <EstadoError mensaje="No se pudo cargar la información del cambio de plan." reintentar={() => { void planes.refetch(); void suscripcion.refetch(); }} />;
+  if (planes.isPending || suscripcion.isPending || reloj.isPending) return <EstadoCargando />;
+  if (planes.isError || suscripcion.isError || reloj.isError) return <EstadoError mensaje="No se pudo cargar la información del cambio de plan." reintentar={() => { void planes.refetch(); void suscripcion.refetch(); void reloj.refetch(); }} />;
   if (!actual) return <Aviso estado="error">No tiene una suscripción vigente para cambiar de plan.</Aviso>;
   if (clavesNuevas[0]) return <ClaveNueva key={clavesNuevas[0].id} clave={clavesNuevas[0]} terminar={() => {
     if (clavesNuevas.length > 1) setClavesNuevas(clavesNuevas.slice(1));

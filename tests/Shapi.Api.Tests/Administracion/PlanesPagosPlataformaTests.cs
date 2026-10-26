@@ -262,7 +262,7 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         await NuevaMembresia(usuario, organizacion, rol.ToString().ToLowerInvariant());
         var token = Convert.ToHexString(Guid.NewGuid().ToByteArray()).ToLowerInvariant();
         await using var db = CrearDb();
-        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(token), usuario, "localhost", null, null, Reloj.Ahora));
+        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(token), usuario, "localhost", null, null, DateTimeOffset.UtcNow));
         await db.SaveChangesAsync();
         return $"shapi_sesion={token}";
     }

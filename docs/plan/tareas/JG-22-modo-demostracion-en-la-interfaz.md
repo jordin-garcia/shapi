@@ -25,9 +25,9 @@ Hallazgos de la convergencia del 23 oct (`docs/plan/convergencia/2026-10-22.md` 
 - **H-C03:** B3.2 calcula su periodo por omisión con la fecha del navegador (`B3-2-Bitacora.tsx:23-24` y `:82-83`), pero las acciones se guardan con `IReloj`. Después de adelantar el reloj, la suspensión, la reversión y el cierre del caso no aparecían.
 - Lo mismo pasa con otras fechas que el navegador calcula con `new Date()`: el periodo que se activa en A2.2 y A5.6, el fin de la clave anterior en B2.4 y las fechas de B2.7.
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **Dónde va el control del reloj.** No hay mockup. Recomiendo una tarjeta «Modo demostración» al final de B3.1 (Estado de los componentes), visible solo para el administrador y solo con `SHAPI_MODO_DEMO=true`. Mostraría la fecha actual de la demostración, los botones «Adelantar 30 días» y «Adelantar 7 días» y un campo de días. La otra opción es una página propia en la barra de la administración.
-2. **Sesiones al adelantar el reloj.** (2a, recomendada) Que el vencimiento de las sesiones (RF-04: inactividad y 7 días) use la **hora real** y no `IReloj`, porque es seguridad y no negocio. Así nadie queda fuera al adelantar el reloj. (2b) La otra opción es aceptar que se cierren y avisarlo en la tarjeta («Al adelantar el reloj se cierran todas las sesiones»).
+## Decisiones aprobadas por Jordin (2026-10-25)
+1. **Dónde va el control del reloj.** Aprobada la tarjeta al final de B3.1. No hay mockup. Recomiendo una tarjeta «Modo demostración» al final de B3.1 (Estado de los componentes), visible solo para el administrador y solo con `SHAPI_MODO_DEMO=true`. Mostraría la fecha actual de la demostración, los botones «Adelantar 30 días» y «Adelantar 7 días» y un campo de días. La otra opción es una página propia en la barra de la administración.
+2. **Sesiones al adelantar el reloj.** Aprobada la opción 2a. (2a, recomendada) Que el vencimiento de las sesiones (RF-04: inactividad y 7 días) use la **hora real** y no `IReloj`, porque es seguridad y no negocio. Así nadie queda fuera al adelantar el reloj. (2b) La otra opción es aceptar que se cierren y avisarlo en la tarjeta («Al adelantar el reloj se cierran todas las sesiones»).
 
 ## Contexto que debes leer
 - `docs/specs/09-cobros-y-suscripciones.md` §9 (modo demostración)
@@ -71,6 +71,12 @@ dotnet format Shapi.slnx --verify-no-changes
 dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.Suscripciones|FullyQualifiedName~Shapi.Api.Tests.Identidad"
 cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
+Ensayo automatizado aislado (adelanta el reloj global del ambiente):
+```
+cd tests/e2e
+pnpm exec playwright test --config playwright.demo.config.ts
+```
+
 Además, recorrer el paso 4 del guion 3 en el ambiente productivo simulado solo con la interfaz (protocolo B8) y comparar B3.1 y B3.2 con sus mockups.
 
 ## Fuera de alcance

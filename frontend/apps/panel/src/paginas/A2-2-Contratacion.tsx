@@ -11,12 +11,6 @@ import Rechazo from './A2-4-Rechazo';
 const cliente = crearCliente<paths>(window.location.origin);
 const clientePlanes = crearCliente<pathsPlanes>(window.location.origin);
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
-const inicioCicloDeHoy = () => {
-  const partes = Object.fromEntries(new Intl.DateTimeFormat('en', {
-    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Guatemala',
-  }).formatToParts(new Date()).map(parte => [parte.type, parte.value]));
-  return new Date(Date.UTC(Number(partes.year), Number(partes.month) - 1, Number(partes.day), 6));
-};
 const fecha = (valor: string) => new Intl.DateTimeFormat('es-GT', {
   day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala',
 }).format(new Date(valor));
@@ -94,7 +88,7 @@ export default function PaginaA22Contratacion() {
     setUsarRegistrada(false);
     contratar.reset();
   }} />;
-  const inicio = plan.inicioCicloPrevisto ? new Date(plan.inicioCicloPrevisto) : inicioCicloDeHoy();
+  const inicio = new Date(plan.inicioCicloPrevisto);
   const fin = new Date(inicio.getTime() + (plan.vigenciaDias - 1) * 86_400_000);
   return <main className="mx-auto max-w-[760px] rounded-base border border-borde bg-panel p-8 md:p-10">
     <h1 className="font-display text-[32px] leading-tight">Contratación de un plan superior</h1>

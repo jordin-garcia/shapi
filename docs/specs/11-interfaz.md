@@ -280,3 +280,12 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **A5.8 con el enlace inválido:** muestra el estado de enlace vencido y permite pedir uno nuevo con el correo.
 - **A5.9, después de enviar:** el rótulo «Recuperación · revise su correo», el título «Revise su correo» y, una sola vez, la respuesta neutral «Si el correo tiene una cuenta en este portal, recibirá el enlace.», en el recuadro con el vencimiento de 60 minutos.
 - **A5.10:** «Defina una contraseña nueva para su cuenta en el portal de {nombrePortal}.» (sin el correo, como A1.4b). Con el enlace vencido o usado, muestra «El enlace ya no sirve» y «Solicitar un enlace nuevo».
+
+
+### Fechas de negocio y modo demostración (JG-22)
+
+Todas las fechas de negocio proceden del servidor: A2.2 usa `inicioCicloPrevisto` del plan de plataforma; A5.6 usa `inicioCiclo` de la consulta de fecha del portal; B2.4 muestra `finClaveAnteriorPrevisto`, confirmado después con la fecha de la rotación; B2.7 calcula los días y el prorrateo con `ahora` del servidor. B2.3 muestra los días restantes que calcula el servidor. Se conserva ADR-30 para el último día con servicio. No se calcula «hoy» con la fecha del navegador, ni se usa esa fecha si falla la consulta.
+
+B3.2 obtiene `ahora` del servidor antes de su primera consulta y abre con el día de Guatemala correspondiente y sus seis días anteriores, inclusivos. Al volver después de adelantar el reloj se consultan y muestran las acciones del periodo nuevo. El selector, la paginación y las variantes con datos y vacía conservan los textos y la estructura de sus mockups.
+
+B3.1 agrega al final una tarjeta «Modo demostración», aprobada por Jordin el 25 de octubre de 2026, solo para administrador y con `SHAPI_MODO_DEMO=true`. Muestra fecha y hora en Guatemala, botones «Adelantar 30 días» y «Adelantar 7 días», y el campo «Días que desea adelantar» con «Adelantar días». Explica que ejecuta los procesos de negocio, que no se puede deshacer y que las sesiones conservan su duración real. Los controles se bloquean durante el avance y la fecha se vuelve a consultar al terminar. La tabla, latencia y estados normal, degradado y de soporte conservan el contenido y estructura de los mockups de B3.

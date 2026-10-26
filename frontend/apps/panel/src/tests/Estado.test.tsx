@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Routes, Route } from 'react-router';
@@ -15,7 +15,13 @@ function datos(degradado = false) {
       incidenciaDesde: degradado && id === 'correo' ? '2026-09-11T15:20:00Z' : null })) };
 }
 function mostrar() { render(<QueryClientProvider client={cliente}><PaginaB31Estado /></QueryClientProvider>); }
-beforeEach(() => { cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } }); });
+beforeEach(() => {
+  cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  server.use(
+    http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ usuario: { nombre: 'Admin' }, organizacion: { id: 'plataforma' }, rol: 'administrador' })),
+    http.get('http://localhost/api/admin/demo/reloj', () => new HttpResponse(null, { status: 404 })),
+  );
+});
 afterEach(() => { cleanup(); cliente.clear(); });
 
 describe('RF-39 · B3.1', () => {
@@ -90,5 +96,54 @@ describe('RF-39 · B3.1', () => {
     server.use(http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())));
     screen.getByRole('button', { name: /reintentar/i }).click();
     expect(await screen.findByText('11 ms')).toBeDefined();
+  });
+});
+
+describe('JG-22 · RF-22 · control del reloj', () => {
+  it('adelanta 30 y 7 días y permite una cantidad personalizada, mostrando la nueva fecha', async () => {
+    let ahora = '2026-10-25T18:00:00Z';
+    const dias: number[] = [];
+    server.use(
+      http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())),
+      http.get('http://localhost/api/admin/demo/reloj', () => HttpResponse.json({ ahora })),
+      http.post('http://localhost/api/admin/demo/reloj', async ({ request }) => {
+        const cuerpo = await request.json() as { adelantarDias: number };
+        dias.push(cuerpo.adelantarDias);
+        ahora = new Date(new Date(ahora).getTime() + cuerpo.adelantarDias * 86400000).toISOString();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    mostrar();
+    const boton30 = await screen.findByRole('button', { name: 'Adelantar 30 días' });
+    fireEvent.click(boton30);
+    expect(await screen.findByText(/24 de noviembre de 2026/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Adelantar 7 días' }));
+    expect(await screen.findByText(/1 de diciembre de 2026/)).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Días que desea adelantar'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Adelantar días' }));
+    expect(await screen.findByText(/3 de diciembre de 2026/)).toBeDefined();
+    expect(dias).toEqual([30, 7, 2]);
+  });
+
+  it('oculta el control al soporte y no consulta el endpoint de demostración', async () => {
+    let peticiones = 0;
+    server.use(
+      http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())),
+      http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ usuario: { nombre: 'Soporte' }, organizacion: { id: 'plataforma' }, rol: 'soporte' })),
+      http.get('http://localhost/api/admin/demo/reloj', () => { peticiones++; return HttpResponse.json({ ahora: '2026-10-25T18:00:00Z' }); }),
+    );
+    mostrar();
+    expect(await screen.findByText('11 ms')).toBeDefined();
+    await waitFor(() => expect(cliente.getQueryData(['sesion'])).toBeDefined());
+    expect(screen.queryByRole('heading', { name: 'Modo demostración' })).toBeNull();
+    expect(peticiones).toBe(0);
+  });
+
+  it('oculta el control fuera de demostración', async () => {
+    server.use(http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())));
+    mostrar();
+    expect(await screen.findByText('11 ms')).toBeDefined();
+    await waitFor(() => expect(cliente.getQueryState(['reloj-demo'])?.status).toBe('success'));
+    expect(screen.queryByRole('heading', { name: 'Modo demostración' })).toBeNull();
   });
 });

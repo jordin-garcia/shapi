@@ -9,7 +9,7 @@ import Contratacion from '../paginas/A2-2-Contratacion';
 import Cambio from '../paginas/A2-5-CambioPlan';
 import Suscripcion from '../paginas/B1-4-Suscripcion';
 
-const plan = { id: 'p1', nombre: 'Lanzamiento', precio: 199, vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, esPrueba: false };
+const plan = { id: 'p1', nombre: 'Lanzamiento', precio: 199, inicioCicloPrevisto: '2026-09-01T06:00:00Z', vigenciaDias: 30, maxApis: 3, maxMiembros: 3, cuotaPeticiones: 250000, esPrueba: false };
 const actual = { plan, estado: 'en_gracia', periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-30T06:00:00Z' }, proximaRenovacion: '2026-10-01T06:00:00Z', diasRestantesCiclo: 15, tarjetaEnmascarada: null };
 let cache: QueryClient;
 beforeEach(() => {
