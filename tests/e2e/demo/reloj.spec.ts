@@ -13,10 +13,12 @@ async function entrar(page: Page, correo: string) {
 }
 
 async function comprobarCompuerta(page: Page, clave: string, estado: number) {
-  await page.goto(`${portal}/consola`);
+  if (new URL(page.url()).pathname !== '/consola') await page.goto(`${portal}/consola`);
   await page.getByLabel('Ruta', { exact: true }).selectOption({ label: 'GET /cobertura' });
   await page.getByLabel('Su clave de pruebas').fill(clave);
+  const respuesta = page.waitForResponse(r => new URL(r.url()).hostname === 'envios.api.shapi.localhost' && new URL(r.url()).pathname === '/cobertura');
   await page.getByRole('button', { name: 'Enviar petición', exact: true }).click();
+  expect((await respuesta).status()).toBe(estado);
   await expect(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Respuesta', exact: true }) }).last().getByText(String(estado), { exact: true })).toBeVisible();
 }
 
@@ -24,6 +26,8 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
   const contexto = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 } });
   const admin = await contexto.newPage();
   const consumidor = await contexto.newPage();
+  const consola = await contexto.newPage();
+  for (const pagina of [admin, consumidor, consola]) pagina.setDefaultTimeout(15_000);
   try {
     await entrar(admin, 'rodrigo.alvarado@shapi.localhost');
     await admin.goto(`${panel}/admin/estado`);
@@ -35,6 +39,7 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
     // RF-04: otra sesión del personal abierta antes de adelantar la demostración.
     const contextoProveedor = await browser.newContext({ ignoreHTTPSErrors: true });
     const proveedorReal = await contextoProveedor.newPage();
+    proveedorReal.setDefaultTimeout(15_000);
     await entrar(proveedorReal, 'ana.morales@enviosxelaju.com');
     await proveedorReal.goto(`${panel}/panel/suscripcion`);
     await expect(proveedorReal.getByRole('heading', { name: 'Suscripción de plataforma', exact: true })).toBeVisible();
@@ -49,8 +54,10 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
     await consumidor.getByRole('button', { name: 'Crear cuenta', exact: true }).click();
     await expect(consumidor).toHaveURL(/verificar-correo/);
     await consumidor.goto(await esperarEnlaceCorreo(correo, { contiene: '/verificar-correo?token=' }));
-    await consumidor.goto(`${portal}/planes`);
+    await expect(consumidor).toHaveURL(`${portal}/planes`);
+    await expect(consumidor.getByRole('heading', { name: 'Planes de la API', exact: true })).toBeVisible();
     await consumidor.getByRole('article').filter({ has: consumidor.getByRole('heading', { name: 'Básico', exact: true }) }).getByRole('button', { name: 'Contratar', exact: true }).click();
+    await expect(consumidor.getByRole('heading', { name: 'Contratación de un plan', exact: true })).toBeVisible();
     await consumidor.screenshot({ path: info.outputPath('A5-6-fecha-servidor.png'), fullPage: true });
     await consumidor.getByLabel('Número de tarjeta').fill('4000000000000341');
     await consumidor.getByLabel('Nombre del titular').fill('Consumidor Reloj');
@@ -68,7 +75,7 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
     await consumidor.getByRole('button', { name: 'Elegir Comercio', exact: true }).click();
     await expect(consumidor.getByRole('heading', { name: 'Diferencia prorrateada', exact: true })).toBeVisible();
     await consumidor.screenshot({ path: info.outputPath('B2-7-fecha-servidor.png'), fullPage: true });
-    await comprobarCompuerta(consumidor, clave, 200);
+    await comprobarCompuerta(consola, clave, 200);
 
     // Desde el POST del reloj hasta que la interfaz ve la transición: menos de 10 s.
     const iniciado = Date.now();
@@ -76,25 +83,31 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
     await expect(admin.getByRole('button', { name: 'Adelantar 30 días', exact: true })).toBeEnabled();
     await expect(async () => {
       await consumidor.goto(`${portal}/cuenta/suscripcion`);
-      await expect(consumidor.getByRole('heading', { name: /Quedan .* días antes/ })).toBeVisible({ timeout: 500 });
+      await expect(consumidor.getByRole('heading', { name: 'Suscripción y claves', exact: true })).toBeVisible();
+      expect(await consumidor.getByRole('heading', { name: /Quedan .* días antes/ }).isVisible()).toBe(true);
     }).toPass({ timeout: 10_000, intervals: [200, 400] });
     await proveedorReal.reload();
     await expect(proveedorReal.getByText('Renovación automática', { exact: true }).locator('..')).not.toHaveText(renovacionAnterior);
-    expect(Date.now() - iniciado).toBeLessThan(10_000);
+    await comprobarCompuerta(consola, clave, 200);
+    const tiempoGracia = Date.now() - iniciado;
+    expect(tiempoGracia).toBeLessThan(10_000);
+    console.info(`Renovación de plataforma, gracia y compuerta visibles en ${tiempoGracia} ms.`);
     await consumidor.screenshot({ path: info.outputPath('B2-3-gracia.png'), fullPage: true });
-    await comprobarCompuerta(consumidor, clave, 200);
 
     const suspension = Date.now();
     await admin.getByRole('button', { name: 'Adelantar 7 días', exact: true }).click();
     await expect(admin.getByRole('button', { name: 'Adelantar 7 días', exact: true })).toBeEnabled();
     await expect(async () => {
       await consumidor.goto(`${portal}/cuenta/suscripcion`);
-      await expect(consumidor.getByRole('button', { name: 'Pagar con otra tarjeta', exact: true })).toBeVisible({ timeout: 500 });
-      await expect(consumidor.getByText('Suspendida', { exact: true }).first()).toBeVisible({ timeout: 500 });
+      await expect(consumidor.getByRole('heading', { name: 'Suscripción y claves', exact: true })).toBeVisible();
+      expect(await consumidor.getByText('Suspendida', { exact: true }).first().isVisible()).toBe(true);
+      expect(await consumidor.getByRole('button', { name: 'Pagar con otra tarjeta', exact: true }).isVisible()).toBe(true);
     }).toPass({ timeout: 10_000, intervals: [200, 400] });
-    expect(Date.now() - suspension).toBeLessThan(10_000);
+    await comprobarCompuerta(consola, clave, 403);
+    const tiempoSuspension = Date.now() - suspension;
+    expect(tiempoSuspension).toBeLessThan(10_000);
+    console.info(`Suspensión y compuerta con 403 visibles en ${tiempoSuspension} ms.`);
     await consumidor.screenshot({ path: info.outputPath('B2-3-suspendida.png'), fullPage: true });
-    await comprobarCompuerta(consumidor, clave, 403);
 
     await consumidor.goto(`${portal}/cuenta/suscripcion`);
     await consumidor.getByRole('button', { name: 'Pagar con otra tarjeta', exact: true }).click();
@@ -102,9 +115,12 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
     await consumidor.getByLabel('Nombre del titular').fill('Consumidor Reloj');
     await consumidor.getByLabel('Vencimiento', { exact: true }).fill('12 / 30');
     await consumidor.getByLabel('Código de seguridad').fill('123');
+    const pago = consumidor.waitForResponse(r => new URL(r.url()).pathname === '/api/portal/suscripcion/pagar' && r.request().method() === 'POST');
     await consumidor.getByRole('button', { name: /Pagar .* y reactivar/ }).click();
-    await expect(consumidor.getByText('Activa', { exact: true }).first()).toBeVisible();
-    await comprobarCompuerta(consumidor, clave, 200);
+    expect((await pago).status()).toBe(200);
+    await expect(consumidor.getByRole('heading', { name: 'Su suscripción está suspendida', exact: true })).toHaveCount(0);
+    await expect(consumidor.getByRole('button', { name: /Pagar .* y reactivar/ })).toHaveCount(0);
+    await comprobarCompuerta(consola, clave, 200);
     await proveedorReal.reload();
     await expect(proveedorReal.getByRole('heading', { name: 'Suscripción de plataforma', exact: true })).toBeVisible();
     await proveedorReal.screenshot({ path: info.outputPath('B1-4-renovada.png'), fullPage: true });
@@ -127,6 +143,6 @@ test('RF-04, RF-22 y RF-23 · guion 3 paso 4 solo con la interfaz', async ({ bro
     await admin.screenshot({ path: info.outputPath('B3-1-soporte.png'), fullPage: true });
     await contextoProveedor.close();
   } finally {
-    await contexto.close();
+    if (contexto.pages().length > 0) await contexto.close();
   }
 });
