@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-25
 depende_de: [JG-21]
 requisitos: [RF-17, RF-20, RF-22, RF-23, RF-24, RF-25, RF-44]
@@ -89,3 +89,16 @@ El ensayo automatizado de JG-23 se ejecuta desde `tests/e2e/` con `pnpm exec pla
 
 ## Fuera de alcance
 - Reembolsos de pagos de API.
+
+## Resultado
+
+- Se corrigieron H-C04 a H-C10. B1.4 distingue la reversión del rechazo, muestra la fecha y el monto del pago que abrió la gracia y conserva el periodo vigente y el rango de días con servicio. Otra reversión del mismo ciclo no sustituye esos datos.
+- La consulta calcula el aviso de la Prueba con `IReloj`; solo el propietario lo ve durante los últimos siete días, en B1.4 y en la parte superior de las demás páginas del panel, sin duplicarlo.
+- La suscripción del consumidor devuelve el plan siguiente. El nuevo `DELETE /api/portal/suscripcion/cambio-programado` cancela su bajada con sesión, CSRF, bloqueo y aislamiento por consumidor, organización y API. B2.3 actualiza el aviso sin recargar y permite reintentar ante errores.
+- El cierre confirma cada renovación en una transacción propia, comprueba de nuevo el vencimiento bajo bloqueo y publica después del commit. Un fallo conserva los ciclos y pagos ya confirmados de otras suscripciones. Si falla el guardado del cobro autorizado de esa renovación, se reembolsa; esta compensación no agrega una operación de reversión de pagos de API para el usuario.
+- La contratación gratuita no prepara tarjeta ni llama a la pasarela; A2.2 y A2.3 activan y confirman sin tarjeta ni cobro. Editar la cuota de plataforma publica de inmediato cada organización con una suscripción no finalizada; el precio editado se comprueba en la siguiente renovación sin cambiar el ciclo vigente.
+- Se actualizó `contratos/openapi/suscripciones.yaml`, se regeneraron los tipos y se precisaron 09 y 11. No se agregaron dependencias ni migraciones ni se modificaron ADR.
+- Verificación local: compilación completa con 0 errores y 0 advertencias, formato sin cambios, 189 pruebas de integración de los módulos afectados aprobadas (0 fallos y 0 omisiones), plan válido (88 tareas), lint sin errores (11 advertencias previas del portal), typecheck y builds correctos y 481 pruebas de frontend aprobadas en 41 archivos. La suite completa del backend corresponde al check de CI.
+- Fase roja comprobada para los defectos nuevos; la regresión del precio editado ya pasaba, como indicaba H-C10. La teoría de dos reversiones falló en gracia y suspensión antes de corregirse. Una ejecución inicial del frontend agotó dos esperas de pantallas ajenas y señaló ajustes de MSW en las pruebas nuevas; corregidos los ajustes, la suite completa pasó sola, sin cambiar tiempos ni aislamiento.
+- Ensayo productivo: `pnpm exec playwright test --config playwright.suscripciones.config.ts`, aprobado en 53,4 s, con los servicios reales en el proyecto aislado `shapi-jg23` y una siembra nueva. Comprueba bajada y cancelación, reversión real de Q 173,34, periodo vigente, gracia por rechazo, aviso de la Prueba al adelantar siete días y suspensión por reversión. Nueve capturas comparadas con los mockups de B1 y B2, incluidas vistas de 1440 × 900 y 1366 × 650, en `.shapi/jg23/`.
+- Revisión independiente: se corrigieron la selección de la reversión que abrió la gracia y el aislamiento del ensayo respecto al de JG-22. La revisión final del código, cierre y capturas dio LISTO, sin hallazgos de corrección ni opcionales.

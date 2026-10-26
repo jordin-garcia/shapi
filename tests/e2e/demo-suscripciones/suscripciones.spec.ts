@@ -13,10 +13,10 @@ async function entrar(page: Page, origen: string, correo: string) {
 
 // RF-24, RF-25, RF-44: ejecutar solo en un ambiente demo aislado; avanza su reloj global.
 test('JG-23 · reversión del guion 3, bajada cancelada y aviso de la Prueba desde la interfaz', async ({ browser }, info) => {
-  const contextos = await Promise.all(Array.from({ length: 4 }, () => browser.newContext({
+  const contextos = await Promise.all(Array.from({ length: 5 }, () => browser.newContext({
     ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 },
   })));
-  const [admin, proveedor, consumidor, prueba] = await Promise.all(contextos.map(contexto => contexto.newPage()));
+  const [admin, proveedor, consumidor, prueba, rechazada] = await Promise.all(contextos.map(contexto => contexto.newPage()));
   try {
     await entrar(consumidor, portal, 'mariajose@mercaditoantigua.com');
     await consumidor.goto(`${portal}/cuenta/suscripcion`);
@@ -49,6 +49,12 @@ test('JG-23 · reversión del guion 3, bajada cancelada y aviso de la Prueba des
     await proveedor.screenshot({ path: info.outputPath('B1-4-gracia-reversion.png'), fullPage: true });
     await proveedor.setViewportSize({ width: 1366, height: 650 });
     await proveedor.screenshot({ path: info.outputPath('B1-4-reversion-1366.png'), fullPage: true });
+
+    await entrar(rechazada, panel, 'mario.pop@transportespeten.com');
+    await rechazada.goto(`${panel}/panel/suscripcion`);
+    await expect(rechazada.getByText('Cobro rechazado', { exact: true })).toBeVisible();
+    await expect(rechazada.getByText('Periodo vencido', { exact: true })).toBeVisible();
+    await rechazada.screenshot({ path: info.outputPath('B1-4-gracia-rechazo.png'), fullPage: true });
 
     await entrar(prueba, panel, 'lucia.cotom@cafetaleraaltiplano.com');
     await prueba.goto(`${panel}/panel/apis`);
