@@ -57,9 +57,11 @@ node scripts/tareas.mjs --validar
 
 ## Resultado
 
+- El coordinador Jordin García asumió y terminó esta corrección junto con JZ-13 a partir del PR #119, según protocolo §E4 y con aviso previo a José Pablo confirmado el 26 de octubre. La integración se realiza desde un PR del coordinador, al que se aplica la autorización de §E1 y la revisión de §E5; se conserva el trabajo original de José Pablo.
 - José Pablo corrigió la falla durante JZ-13, con autorización expresa: `POST /api/auth/registro` llama a `IPublicadorCache.PublicarOrganizacion` después de guardar el registro, sin cambiar su contrato HTTP ni esperar al trabajador.
 - `RegistroCacheTests` verifica en PostgreSQL y Redis reales el estado activo, la cuota y los extremos del ciclo del plan Prueba antes de que termine el registro. La prueba falló por contexto nulo antes de la corrección y pasó después.
 - Las pruebas existentes de autenticación y recuperación aíslan el publicador con NSubstitute, conservando sus aserciones; la regresión específica y las E2E comprueban la publicación real.
 - Pasaron las 268 pruebas dirigidas de Identidad, la compilación completa y las 14 E2E, sin omisiones. La primera petición de la API de un proveedor nuevo funciona dentro de diez segundos sin contratar plataforma ni forzar la resincronización.
 - Revisión independiente: LISTO, sin hallazgos de corrección. La precisión sobre el registro se agregó a `docs/specs/07-modelo-de-datos.md` §3.1.
 - El formato completo pasó sin cambios y el plan de 89 tareas es válido.
+- Verificación actual del coordinador (26 de octubre, con `main` incorporado): 270 pruebas de Identidad y 14 E2E correctas en el ambiente productivo aislado, sin fallos ni omisiones; las E2E no necesitaron reintentos. Compilación completa con 0 errores y 0 advertencias, formato correcto, comprobación estricta de TypeScript y plan de 89 tareas válidos. Las 268 pruebas citadas antes corresponden a la ejecución histórica del PR #119. Revisión independiente de código y cierre: LISTO, sin correcciones obligatorias.

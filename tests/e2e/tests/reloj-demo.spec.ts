@@ -6,7 +6,7 @@ import {
 } from '../soporte/flujos';
 
 // RNF-15, RF-22, RF-23, RF-25 y RF-44. Este proyecto depende de todos los demás:
-// el reloj es global y las sesiones caducan al avanzar más de siete días.
+// el reloj de negocio es global; la vigencia de las sesiones usa hora real (JG-22).
 test('RNF-15 · prorrateo, tarjeta 0341, gracia, suspensión, 403 y pago que reactiva', async ({ browser, page }) => {
   test.setTimeout(300_000);
   const proveedor = await registrarProveedor(page);
@@ -51,7 +51,7 @@ test('RNF-15 · prorrateo, tarjeta 0341, gracia, suspensión, 403 y pago que rea
     await entrar(admin, panel, 'rodrigo.alvarado@shapi.localhost');
 
     async function adelantar(dias: number) {
-      // Reautentica por la API pública: el reloj puede haber vencido la sesión anterior.
+      // Acceso por la API pública para mantener explícitos los actores de cada avance.
       await consultar(admin, '/api/auth/entrar', 'POST', { correo: 'rodrigo.alvarado@shapi.localhost', contrasena: contrasenaDemo });
       await consultar(admin, '/api/admin/demo/reloj', 'POST', { adelantarDias: dias });
       await consultar(page, '/api/auth/entrar', 'POST', { correo: proveedor.correo, contrasena });
