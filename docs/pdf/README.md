@@ -4,7 +4,9 @@ El generador usa las especificaciones y los manuales Markdown como fuentes, sin 
 La carátula obtiene los cuatro nombres y carnés de `docs/specs/01-vision-y-alcance.md`.
 Incluye índice con enlaces, marcadores del PDF, encabezado, numeración y tablas con
 encabezados repetidos. Los diagramas son SVG; los grandes usan páginas A3 horizontales
-dentro del mismo documento A4 para conservar su resolución.
+dentro del mismo documento A4 para conservar su resolución. Los UML y MER extensos
+incluyen una vista general y páginas de detalle solapadas, identificadas por fila y
+columna, para poder leer sus etiquetas también al imprimir.
 
 ## Preparación (Windows y Linux)
 
@@ -56,6 +58,8 @@ node scripts/tareas.mjs --validar
 ```
 
 La primera prueba no requiere instalaciones; la segunda usa Markdown, una tabla de 90
-filas y Mermaid reales, genera un PDF y revisa el HTML con Chromium. El workflow `pdf`
-ejecuta ambas en Linux. Al cambiar las fuentes, generar los dos entregables y revisar
+filas y Mermaid reales, genera un PDF y revisa el HTML con Chromium; después genera
+ambos documentos completos a partir de las doce especificaciones. El workflow `pdf`
+ejecuta ambas en Linux. Mermaid se procesa en lotes de dos para limitar la memoria.
+Al cambiar las fuentes, generar los dos entregables y revisar
 visualmente páginas con diagramas y tablas, además de la carátula y el índice.

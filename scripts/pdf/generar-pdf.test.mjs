@@ -14,8 +14,8 @@ test("JG-16 CA1-4: Markdown, Mermaid SVG, índice, tablas y paginación producen
     const entrada = join(temporal, "entrada con espacios.md");
     const salida = join(temporal, "Manual_Tecnico.pdf");
     await writeFile(entrada, "# Manual técnico\n\n## Instalación\n\n**Texto en negrita** y <script>throw 1</script>.\n\n| Requisito | Resultado |\n|---|---|\n" +
-      Array.from({ length: 90 }, (_, i) => `| RF-${i} | Fila ${i} completa, sin recortes |`).join("\n") +
-      "\n\n## Diagrama\n\n```mermaid\nflowchart LR\n A[Proveedor] --> B[Compuerta]\n```\n\n## Fin\n\nÚltima sección.\n");
+      Array.from({ length: 90 }, (_, i) => `| <a id="rf-${i}"></a>RF-${i} | Fila ${i} completa, sin recortes [RF-0] |`).join("\n") +
+      "\n\n## Diagrama\n\n```mermaid\nflowchart LR\n A[Proveedor] --> B[Compuerta]\n```\n\n## Fin\n\nÚltima sección. [Ver RF-0](#rf-0).\n\n[RF-0]: #rf-0\n");
     const resultado = await generarPdf(salida, [entrada], { conservarHtml: true, fecha: new Date("2026-10-25T18:00:00Z") });
     const pdf = await readFile(salida);
     assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
@@ -39,6 +39,9 @@ test("JG-16 CA1-4: Markdown, Mermaid SVG, índice, tablas y paginación producen
       assert.equal(await pagina.locator("script").count(), 0);
       assert.equal(await pagina.locator(".indice a").count(), 4);
       assert.equal(await pagina.locator(".indice a").evaluateAll((links) => links.every((a) => document.getElementById(a.hash.slice(1)) !== null)), true);
+      assert.equal(await pagina.locator('tbody a[href="#capitulo-0-rf-0"]').count(), 90);
+      assert.equal(await pagina.locator('main a[href="#capitulo-0-rf-0"]').count(), 91);
+      assert.equal(await pagina.locator("a[href^='#']").evaluateAll((links) => links.every((a) => document.getElementById(a.hash.slice(1)) !== null)), true);
       assert.equal(await pagina.locator("img").evaluateAll((imgs) => imgs.every((img) => img.complete && img.naturalWidth > 0)), true);
       assert.equal(await pagina.locator("table").evaluateAll((tablas) => tablas.every((t) => t.scrollWidth <= t.clientWidth + 1)), true);
       assert.equal(await pagina.locator("tr").first().evaluate((fila) => getComputedStyle(fila).breakInside), "avoid");
@@ -70,6 +73,7 @@ test("JG-16 CA3: los entregables incluyen las doce especificaciones completas y 
         assert.ok(resultado.html.includes(fuente.match(/^# (.+)$/m)[1]), "Falta el título de una especificación");
       }
       for (const contenido of grupo.contenidos) assert.ok(resultado.html.includes(contenido), `Falta contenido obligatorio de ${grupo.salida}: ${contenido}`);
+      if (grupo.salida.includes("Diseno")) assert.ok(resultado.html.includes("Detalle 1 de"), "El UML y el MER deben tener detalles legibles al imprimir");
       const pdf = await readFile(join(temporal, grupo.salida));
       assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
       assert.ok(pdf.length > 100_000);

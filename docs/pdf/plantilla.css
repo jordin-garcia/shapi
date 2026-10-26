@@ -44,4 +44,4 @@ img { max-width: 100%; height: auto; }
 .diagrama figcaption { color: #52616b; font-size: 9pt; text-align: left; margin-bottom: 3mm; }
 .diagrama img { width: auto; max-width: 174mm; max-height: 210mm; }
 .diagrama.grande { page: diagrama; break-before: page; break-after: page; margin: 0; }
-.diagrama.grande img { max-width: 384mm; max-height: 240mm; }
+.diagrama.grande img { max-width: 384mm; max-height: 220mm; }

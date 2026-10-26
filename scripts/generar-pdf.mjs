@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // JG-16. Markdown de las especificaciones y los manuales -> HTML -> PDF, sin LaTeX.
 // Reutiliza React/React Markdown del frontend y Playwright de tests/e2e/.
-import { existsSync, realpathSync, readFileSync } from "node:fs";
+import { existsSync, realpathSync, readFileSync, writeFileSync } from "node:fs";
 import { readFile, writeFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { dirname, basename, resolve, join, delimiter, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -102,17 +102,38 @@ async function dependencias() {
 }
 
 async function convertirMermaid(documentos, temporal, chromium) {
-  const combinado = documentos.map((d, i) => `\n\nSHAPI_CAPITULO_${i}\n\n${d.texto}`).join("\n");
-  if (!/^\s*```mermaid\s*$/m.test(combinado)) return documentos;
-  await writeFile(join(temporal, "fuentes.md"), combinado);
+  const patron = /^```mermaid[^\S\n]*\n([\s\S]*?)^```[^\S\n]*$/gm;
+  const bloques = documentos.flatMap((d) => [...d.texto.matchAll(patron)]);
+  const total = bloques.length;
+  if (!total) return documentos;
   await writeFile(join(temporal, "puppeteer.json"), JSON.stringify({ executablePath: chromium.executablePath() }));
   await writeFile(join(temporal, "mermaid.json"), JSON.stringify({ theme: "neutral", securityLevel: "strict", htmlLabels: false,
     flowchart: { htmlLabels: false }, themeVariables: { fontFamily: "Arial, sans-serif", fontSize: "18px" }, maxTextSize: 200000 }));
   console.log(`Convirtiendo diagramas con ${MERMAID}…`);
-  await ejecutar(process.execPath, [npxCli(), "--yes", MERMAID, "-i", "fuentes.md", "-o", "diagramas.md", "-p", "puppeteer.json", "-c", "mermaid.json", "-b", "transparent"],
-    { cwd: temporal, env: { ...process.env, PUPPETEER_SKIP_DOWNLOAD: "true", npm_config_fetch_retries: "0", npm_config_fetch_timeout: "15000" } });
-  const convertido = await readFile(join(temporal, "diagramas.md"), "utf8");
-  return documentos.map((documento, i) => ({ ...documento, texto: convertido.split(`SHAPI_CAPITULO_${i}\n`)[1].split(/SHAPI_CAPITULO_\d+\n/)[0].trim() }));
+  for (let inicio = 0; inicio < total; inicio += 2) {
+    const lote = bloques.slice(inicio, inicio + 2).map((bloque) => bloque[0]).join("\n\n");
+    await writeFile(join(temporal, "lote.md"), lote);
+    await ejecutar(process.execPath, [npxCli(), "--yes", MERMAID, "-i", "lote.md", "-o", `diagramas-${inicio}.md`, "-p", "puppeteer.json", "-c", "mermaid.json", "-b", "transparent"],
+      { cwd: temporal, env: { ...process.env, PUPPETEER_SKIP_DOWNLOAD: "true", npm_config_fetch_retries: "0", npm_config_fetch_timeout: "15000" } });
+    console.log(`Diagramas ${inicio + 1}–${Math.min(inicio + 2, total)}/${total} convertidos.`);
+  }
+  const convertidos = [];
+  let numero = 0;
+  // mmdc procesa los bloques de un Markdown con Promise.all. Lotes de dos evitan
+  // abrir decenas de páginas a la vez y amortizan el arranque de Chromium.
+  for (const documento of documentos) {
+    let texto = "";
+    let posicion = 0;
+    for (const bloque of documento.texto.matchAll(patron)) {
+      const lote = Math.floor(numero / 2) * 2;
+      const posicionEnLote = numero % 2 + 1;
+      numero++;
+      texto += documento.texto.slice(posicion, bloque.index) + `![Diagrama ${numero}](./diagramas-${lote}-${posicionEnLote}.svg)`;
+      posicion = bloque.index + bloque[0].length;
+    }
+    convertidos.push({ ...documento, texto: texto + documento.texto.slice(posicion) });
+  }
+  return convertidos;
 }
 
 async function crearHtml(documentos, temporal, salida, fecha, deps) {
@@ -126,6 +147,9 @@ async function crearHtml(documentos, temporal, salida, fecha, deps) {
   const capitulos = [];
   for (const [i, documento] of documentos.entries()) {
     const namespace = `capitulo-${i}`;
+    // Las referencias de Markdown pertenecen al documento, también cuando una
+    // tabla se renderiza por celdas. Las fuentes usan definiciones de una línea.
+    const referencias = (documento.texto.match(/^ {0,3}\[[^\]\n]+\]:[^\n]+$/gm) ?? []).join("\n");
     const usados = new Map();
     const componentes = { p: ({ children }) => h("div", { className: "parrafo" }, children) };
     for (let nivel = 1; nivel <= 6; nivel++) componentes[`h${nivel}`] = ({ children }) => {
@@ -138,6 +162,7 @@ async function crearHtml(documentos, temporal, salida, fecha, deps) {
       return h(`h${nivel}`, { id }, children);
     };
     componentes.a = ({ href, children }) => {
+      if (href?.startsWith("#shapi-ancla-")) return h("span", { id: `${namespace}-${slug(href.slice("#shapi-ancla-".length))}` });
       if (href && !/^[a-z][\w+.-]*:/i.test(href)) {
         const [ruta, ancla] = href.split("#");
         const destino = ruta ? resolve(dirname(documento.archivo), decodeURIComponent(ruta)) : documento.archivo;
@@ -149,23 +174,48 @@ async function crearHtml(documentos, temporal, salida, fecha, deps) {
     };
     componentes.img = ({ src, alt }) => {
       if (!src || /^[a-z][\w+.-]*:/i.test(src)) throw new Error(`La imagen debe ser local: ${src}`);
-      const esDiagrama = /^\.\/diagramas-\d+\.svg$/.test(src);
+      const esDiagrama = /^\.\/diagramas-\d+-\d+\.svg$/.test(src);
       if (esDiagrama) diagramas++;
       const archivo = resolve(esDiagrama ? temporal : dirname(documento.archivo), decodeURIComponent(src));
       if (!existsSync(archivo)) throw new Error(`No existe la imagen ${archivo}`);
-      const caja = esDiagrama ? readFileSync(archivo, "utf8").match(/viewBox="([^\"]+)"/)?.[1].split(/\s+/).map(Number) : null;
-      return h(esDiagrama ? "figure" : "span", { className: esDiagrama ? "diagrama" : "imagen" },
-        esDiagrama ? h("figcaption", null, `Diagrama ${diagramas} · ${alt === "diagram" ? "Shapi" : alt}`) : null,
-        h("img", { src: pathToFileURL(archivo).href, alt: alt ?? "", width: caja?.[2], height: caja?.[3],
-          "data-ancho": caja?.[2], "data-alto": caja?.[3] }));
+      const svg = esDiagrama ? readFileSync(archivo, "utf8") : null;
+      const caja = svg?.match(/viewBox="([^\"]+)"/)?.[1].split(/\s+/).map(Number);
+      const imagen = (ruta, ancho, alto) => h("img", { src: pathToFileURL(ruta).href, alt: alt ?? "", width: ancho, height: alto,
+        "data-ancho": ancho, "data-alto": alto });
+      if (!esDiagrama) return h("span", { className: "imagen" }, imagen(archivo));
+      const figuras = [h("figure", { className: "diagrama" }, h("figcaption", null, `Diagrama ${diagramas} · Vista general`), imagen(archivo, caja?.[2], caja?.[3]))];
+      if (caja && Math.min(1450 / caja[2], 830 / caja[3]) < 0.60) {
+        // Además de la vista general vectorial, detalles con solapamiento para
+        // que los UML y MER extensos se puedan leer también al imprimirlos.
+        const ancho = Math.min(1800, caja[2]);
+        const alto = Math.min(1000, caja[3]);
+        const columnas = Math.ceil((caja[2] - 100) / (ancho - 100));
+        const filas = Math.ceil((caja[3] - 100) / (alto - 100));
+        for (let fila = 0; fila < filas; fila++) for (let col = 0; col < columnas; col++) {
+          const x = caja[0] + Math.min(col * (ancho - 100), caja[2] - ancho);
+          const y = caja[1] + Math.min(fila * (alto - 100), caja[3] - alto);
+          const detalle = archivo.replace(/\.svg$/, `-detalle-${fila}-${col}.svg`);
+          writeFileSync(detalle, svg.replace(/viewBox="[^\"]+"/, `viewBox="${x} ${y} ${ancho} ${alto}"`));
+          figuras.push(h("figure", { className: "diagrama grande detalle" },
+            h("figcaption", null, `Diagrama ${diagramas} · Detalle ${fila * columnas + col + 1} de ${filas * columnas} · Fila ${fila + 1}, columna ${col + 1}`),
+            imagen(detalle, ancho, alto)));
+        }
+      }
+      return h(Fragment, null, ...figuras);
     };
     const md = (texto, enCelda = false) => h(Markdown, {
       components: enCelda ? { ...componentes, p: ({ children }) => h(Fragment, null, children) } : componentes,
       urlTransform: (url) => urlSegura(url),
-    }, texto);
-    const bloques = separarTablas(documento.texto).map((bloque) => bloque.tipo === "markdown" ? md(bloque.texto) :
-      h("table", null, h("thead", null, h("tr", null, ...bloque.filas[0].map((celda) => h("th", null, md(celda, true))))),
-        h("tbody", null, ...bloque.filas.slice(1).map((fila) => h("tr", null, ...bloque.filas[0].map((_, col) => h("td", null, md(fila[col] ?? "", true))))))));
+    }, `${texto.replace(/<a\s+id=(["'])([\w-]+)\1\s*><\/a>/g, (_, _comilla, id) => `[ ](#shapi-ancla-${id})`)}\n\n${referencias}`);
+    const bloques = separarTablas(documento.texto).map((bloque) => {
+      if (bloque.tipo === "markdown") return md(bloque.texto);
+      const pesos = bloque.filas[0].map((cabecera, col) => Math.max(2, Math.sqrt(cabecera.length) * 1.25, Math.min(10,
+        Math.sqrt(bloque.filas.reduce((suma, fila) => suma + (fila[col] ?? "").replace(/<[^>]*>/g, "").length, 0) / bloque.filas.length))));
+      const total = pesos.reduce((suma, peso) => suma + peso, 0);
+      return h("table", null, h("colgroup", null, ...pesos.map((peso) => h("col", { style: { width: `${peso / total * 100}%` } }))),
+        h("thead", null, h("tr", null, ...bloque.filas[0].map((celda) => h("th", null, md(celda, true))))),
+        h("tbody", null, ...bloque.filas.slice(1).map((fila) => h("tr", null, ...bloque.filas[0].map((_, col) => h("td", null, md(fila[col] ?? "", true)))))));
+    });
     capitulos.push(`<section class="capitulo" id="${namespace}">${render(h(Fragment, null, ...bloques))}</section>`);
   }
   const fechaTexto = new Intl.DateTimeFormat("es-GT", { dateStyle: "long", timeZone: "America/Guatemala" }).format(fecha);
@@ -203,7 +253,11 @@ export async function generarPdf(salida, archivos, { conservarHtml = false, fech
     if (imagenes.some((img) => !img.ok)) throw new Error(`No se pudo cargar una imagen: ${imagenes.find((img) => !img.ok).src}`);
     await pagina.locator(".diagrama").evaluateAll((figuras) => figuras.forEach((figura) => {
       const img = figura.querySelector("img");
-      if (Number(img.dataset.ancho) > 1050 || Number(img.dataset.alto) > 800) figura.classList.add("grande");
+      if (Number(img.dataset.ancho) > 1050 || Number(img.dataset.alto) > 800) {
+        figura.classList.add("grande");
+        const anterior = figura.parentElement.previousElementSibling;
+        if (anterior && /^H[1-6]$/.test(anterior.tagName)) figura.prepend(anterior);
+      }
     }));
     // Guardar también la clasificación de los diagramas en el HTML de revisión.
     await writeFile(join(temporal, "documento.html"), `<!doctype html>\n${await pagina.content()}`);
