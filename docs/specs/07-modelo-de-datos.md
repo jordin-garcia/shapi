@@ -426,6 +426,8 @@ También hay tablas auxiliares que no aparecen en el diagrama: `correo_saliente`
 
 > El **estado efectivo** de una organización es `suspendida` si `estado_admin = 'suspendida'` **o** si su suscripción de plataforma no finalizada está `suspendida`. En cualquier otro caso es `activa`. Ese valor se calcula en la aplicación y se publica en Redis (`org:{id}`).
 
+Al registrar un proveedor se publica `org:{id}` con su estado efectivo, cuota y ciclo del plan Prueba, después de confirmar el registro en PostgreSQL. Su primera API no debe esperar la resincronización del trabajador para recibir tráfico (RF-01 y RF-11).
+
 **`usuario`**
 | Columna | Tipo | Restricciones |
 |---|---|---|

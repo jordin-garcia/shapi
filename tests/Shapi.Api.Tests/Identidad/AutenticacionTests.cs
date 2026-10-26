@@ -64,7 +64,13 @@ public class AutenticacionTests(ContenedorPostgres postgres) : IClassFixture<Con
             builder.UseSetting("SHAPI_ADMIN_CORREO", CorreoAdmin);
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "SuperSecreto123!");
-            builder.ConfigureTestServices(services => { services.AddSingleton<IReloj>(_reloj); services.AddSingleton<TimeProvider>(_tiempo); });
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddSingleton<IReloj>(_reloj);
+                services.AddSingleton<TimeProvider>(_tiempo);
+                // La publicación real en Redis se comprueba por separado en RegistroCacheTests.
+                services.AddSingleton(NSubstitute.Substitute.For<IPublicadorCache>());
+            });
         });
         // Las cookies se manejan a mano: la cookie es Secure y el servidor de prueba usa http.
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });

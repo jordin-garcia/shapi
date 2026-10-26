@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { esperarEnlaceCorreo } from '../soporte/mailpit';
+import { autenticarPorInterfaz } from '../soporte/flujos';
 
 async function entrar(page: Page, host: string, correo: string) {
   await page.goto(`${host}/entrar`);
@@ -9,7 +10,8 @@ async function entrar(page: Page, host: string, correo: string) {
   await ojo.click();
   await expect(page.getByLabel('Contraseña', { exact: true })).toHaveAttribute('type', 'text');
   await page.getByRole('button', { name: 'Ocultar contraseña' }).click();
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  const ruta = host === 'https://shapi.localhost' ? '/api/auth/entrar' : '/api/portal/auth/entrar';
+  await autenticarPorInterfaz(page, ruta, () => page.getByRole('button', { name: 'Entrar', exact: true }).click());
   await expect(page).not.toHaveURL(/\/entrar$/, { timeout: 30_000 });
 }
 
@@ -113,9 +115,10 @@ test('RF-20 y RNF-12 · registro, tarjeta rechazada, reintento vacío y tarjeta 
   await page.getByLabel('Contraseña', { exact: true }).fill('PruebaDeTarjeta2026!');
   await page.getByRole('button', { name: 'Mostrar contraseña' }).click();
   await expect(page.getByLabel('Contraseña', { exact: true })).toHaveAttribute('type', 'text');
-  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await autenticarPorInterfaz(page, '/api/auth/registro', () => page.getByRole('button', { name: 'Crear cuenta' }).click());
   await expect(page.getByRole('heading', { name: 'Revise su correo' })).toBeVisible({ timeout: 30_000 });
-  await page.goto(await esperarEnlaceCorreo(correo, { contiene: '/verificar-correo?token=', tiempoLimiteMs: 30_000 }));
+  const enlace = await esperarEnlaceCorreo(correo, { contiene: '/verificar-correo?token=', tiempoLimiteMs: 30_000 });
+  await autenticarPorInterfaz(page, '/api/auth/verificar-correo', () => page.goto(enlace));
   await expect(page).toHaveURL(/\/panel\/apis$/, { timeout: 30_000 });
   await page.goto('/panel/suscripcion/planes');
   await page.getByRole('link', { name: 'Contratar', exact: true }).first().click();

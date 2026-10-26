@@ -42,7 +42,12 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
             builder.UseSetting("SHAPI_ADMIN_CORREO", "admin@shapi.test");
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "SuperSecreto123!");
-            builder.ConfigureTestServices(services => services.AddSingleton<IReloj>(_reloj));
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddSingleton<IReloj>(_reloj);
+                // Estas pruebas cubren recuperación; RegistroCacheTests usa PostgreSQL y Redis reales.
+                services.AddSingleton(NSubstitute.Substitute.For<IPublicadorCache>());
+            });
         });
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
         return Task.CompletedTask;
