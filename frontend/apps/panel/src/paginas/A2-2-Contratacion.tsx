@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/suscripciones';
@@ -19,6 +19,7 @@ type ResultadoContratacion = components['schemas']['ResultadoContratacionPlatafo
 type Resultado = { tipo: 'exito'; datos: ResultadoContratacion } | { tipo: 'rechazo'; tarjeta: string };
 
 export default function PaginaA22Contratacion() {
+  const cache = useQueryClient();
   const { plan: planId } = useParams();
   const [numero, setNumero] = useState('');
   const [mes, setMes] = useState('');
@@ -55,14 +56,18 @@ export default function PaginaA22Contratacion() {
     mutationFn: async () => {
       if (!plan) throw new Error('No se encontró el plan.');
       const { data, response } = await cliente.POST('/api/suscripcion/contratar', {
-        body: usarRegistrada && suscripcion.data?.tarjetaEnmascarada
+        body: plan.precio === 0 ? { planId: plan.id, usarRegistrada: false } : usarRegistrada && suscripcion.data?.tarjetaEnmascarada
           ? { planId: plan.id, usarRegistrada: true }
           : { planId: plan.id, usarRegistrada: false, tarjeta: { numero, mesVencimiento: mes, anioVencimiento: anio, cvv, titular } },
       });
       if (!response.ok || !data) throw new Error('No se pudo contratar el plan.');
       return data;
     },
-    onSuccess: datos => { limpiarTarjeta(); setResultado({ tipo: 'exito', datos }); },
+    onSuccess: async datos => {
+      limpiarTarjeta();
+      setResultado({ tipo: 'exito', datos });
+      await cache.invalidateQueries({ queryKey: ['suscripcion-plataforma'] });
+    },
     onError: error => {
       if (error instanceof ErrorApi && error.estado === 402 && error.codigo === 'pago_rechazado') {
         setResultado({ tipo: 'rechazo', tarjeta: tarjetaEnmascarada() });
@@ -92,7 +97,7 @@ export default function PaginaA22Contratacion() {
   const fin = new Date(inicio.getTime() + (plan.vigenciaDias - 1) * 86_400_000);
   return <main className="mx-auto max-w-[760px] rounded-base border border-borde bg-panel p-8 md:p-10">
     <h1 className="font-display text-[32px] leading-tight">Contratación de un plan superior</h1>
-    <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">El cobro se autoriza en el momento y el plan queda activo de inmediato.</p>
+    <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">{plan.precio === 0 ? 'El plan gratuito queda activo de inmediato, sin tarjeta ni cobro.' : 'El cobro se autoriza en el momento y el plan queda activo de inmediato.'}</p>
     <section className="mt-8 border-y border-borde py-5">
       <div className="flex items-start justify-between gap-4"><h2 className="font-display text-[22px]">{plan.nombre}</h2><span className="text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Plan elegido</span></div>
       <p className="mt-1 text-sm text-tinta-suave">{plan.descripcion}</p>
@@ -105,7 +110,7 @@ export default function PaginaA22Contratacion() {
     </section>
     <form className="mt-6 space-y-4" onSubmit={event => { event.preventDefault(); setErrorContratacion(undefined); contratar.mutate(); }}>
       {errorContratacion && <Aviso estado="error">{errorContratacion}</Aviso>}
-      <h2 className="font-display text-[21px]">Datos de la tarjeta</h2>
+      {plan.precio > 0 && <><h2 className="font-display text-[21px]">Datos de la tarjeta</h2>
       <p className="text-sm leading-relaxed text-tinta-suave">Shapi no guarda el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.</p>
       {suscripcion.data?.tarjetaEnmascarada && <fieldset className="space-y-3 text-sm">
         <legend className="mb-3 font-medium">Forma de pago</legend>
@@ -120,10 +125,10 @@ export default function PaginaA22Contratacion() {
         </div>
         <Campo etiqueta="Código de seguridad" autoComplete="cc-csc" inputMode="numeric" value={cvv} onChange={event => setCvv(event.target.value)} required />
         <Campo etiqueta="Titular de la tarjeta" autoComplete="cc-name" value={titular} onChange={event => setTitular(event.target.value)} required />
-      </>}
+      </>}</>}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borde pt-5">
         <p className="text-sm text-tinta-suave">Total a pagar hoy <strong className="ml-3 font-display text-[26px] text-tinta">{dinero(plan.precio)}</strong></p>
-        <Boton type="submit" deshabilitado={contratar.isPending}>{contratar.isPending ? 'Procesando…' : 'Pagar ' + dinero(plan.precio) + ' y activar el plan'}</Boton>
+        <Boton type="submit" deshabilitado={contratar.isPending}>{contratar.isPending ? 'Procesando…' : plan.precio === 0 ? 'Activar plan gratuito' : 'Pagar ' + dinero(plan.precio) + ' y activar el plan'}</Boton>
       </div>
     </form>
     <Link className="mt-5 inline-block text-sm font-medium text-principal" to="/panel/suscripcion/planes">Elegir otro plan</Link>

@@ -22,6 +22,8 @@ public static class Endpoints
             .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapGet("/suscripcion", (ContratacionApi caso, HttpContext http, CancellationToken ct) => caso.Consultar(http, ct))
             .RequireAuthorization(Permisos.ConsumidorVerCuenta);
+        portal.MapDelete("/suscripcion/cambio-programado", (ContratacionApi caso, HttpContext http, CancellationToken ct) => caso.CancelarCambio(http, ct))
+            .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapPost("/suscripcion/pagar", (ContratacionApi caso, HttpContext http, PeticionPagarSuscripcionApi cuerpo, CancellationToken ct) => caso.Pagar(http, cuerpo, ct))
             .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapPost("/suscripcion/cambiar", (ContratacionApi caso, HttpContext http, PeticionCambiarPlanApi cuerpo, CancellationToken ct) => caso.CambiarPlan(http, cuerpo, ct))

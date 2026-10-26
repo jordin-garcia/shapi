@@ -69,6 +69,47 @@ afterEach(() => {
 });
 
 describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
+  it('RF-25 · muestra la bajada programada y permite cancelarla sin recargar', async () => {
+    let cancelado = false;
+    server.use(
+      http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, cambioProgramado: cancelado ? null : {
+        planId: 'plan-inicio', nombre: 'Inicio', efectivoDesde: suscripcion.proximaRenovacion,
+      } })),
+      http.delete(`${API}/suscripcion/cambio-programado`, ({ request }) => {
+        expect(request.headers.get('X-Requested-With')).toBe('shapi');
+        cancelado = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    montar();
+    expect(await screen.findByText('A partir del 1 oct 2026 su plan será Inicio.')).toBeDefined();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar cambio programado' }));
+    await waitFor(() => expect(screen.queryByText(/su plan será Inicio/)).toBeNull());
+    expect(cancelado).toBe(true);
+  });
+
+  it('RF-25 · un error al cancelar conserva el aviso y permite reintentar', async () => {
+    let intentos = 0;
+    let cancelado = false;
+    server.use(
+      http.get(`${API}/suscripcion`, () => HttpResponse.json({ ...suscripcion, cambioProgramado: cancelado ? null : {
+        planId: 'plan-inicio', nombre: 'Inicio', efectivoDesde: suscripcion.proximaRenovacion,
+      } })),
+      http.delete(`${API}/suscripcion/cambio-programado`, () => {
+        if (++intentos === 1) return HttpResponse.json({ title: 'No se pudo cancelar el cambio programado.', codigo: 'servicio_no_disponible' }, { status: 503, headers: { 'Content-Type': 'application/problem+json' } });
+        cancelado = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    montar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar cambio programado' }));
+    expect(await screen.findByText('No se pudo cancelar el cambio programado.')).toBeDefined();
+    expect(screen.getByText(/su plan será Inicio/)).toBeDefined();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar cambio programado' }));
+    await waitFor(() => expect(screen.queryByText(/su plan será Inicio/)).toBeNull());
+    expect(intentos).toBe(2);
+  });
+
   it('RF-22 y RF-26 · B2.3 muestra la suscripción vigente, la tarjeta y solamente las claves enmascaradas', async () => {
     montar();
 

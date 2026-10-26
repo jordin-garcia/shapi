@@ -32,6 +32,7 @@ public sealed class CerrarCiclo(
     OpcionesCierreCiclo opciones)
 {
     private readonly List<Guid> _publicarDespuesDelCommit = [];
+    private string? _cobroPendiente;
 
     public async Task EjecutarAsync(CancellationToken cancelacion = default)
     {
@@ -45,57 +46,62 @@ public sealed class CerrarCiclo(
 
     private async Task RenovarPlataformaAsync(CancellationToken ct)
     {
-        await using var transaccion = await db.Database.BeginTransactionAsync(ct);
         var ahora = reloj.Ahora;
-        var suscripciones = await db.Set<SuscripcionPlataforma>()
-            .FromSqlInterpolated($"SELECT * FROM suscripcion_plataforma WHERE estado = 'activa' AND fin <= {ahora} FOR UPDATE SKIP LOCKED")
-            .IgnoreQueryFilters().ToListAsync(ct);
-
-        foreach (var suscripcion in suscripciones)
+        var ids = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters().AsNoTracking()
+            .Where(s => s.Estado == EstadoSuscripcion.Activa && s.Fin <= ahora)
+            .OrderBy(s => s.Fin).ThenBy(s => s.Id).Select(s => s.Id).ToListAsync(ct);
+        foreach (var id in ids)
         {
-            if (suscripcion.PlanSiguienteId is Guid siguiente)
+            await ConfirmarRenovacionAsync(async () =>
             {
-                var planSiguiente = await db.Set<PlanPlataforma>().IgnoreQueryFilters().SingleAsync(x => x.Id == siguiente, ct);
-                suscripcion.AplicarPlanProgramado(siguiente, ahora);
-                if (planSiguiente.EsPrueba)
+                var suscripcion = await db.Set<SuscripcionPlataforma>()
+                    .FromSqlInterpolated($"SELECT * FROM suscripcion_plataforma WHERE id = {id} AND estado = 'activa' AND fin <= {ahora} FOR UPDATE SKIP LOCKED")
+                    .IgnoreQueryFilters().SingleOrDefaultAsync(ct);
+                if (suscripcion is null)
+                {
+                    return;
+                }
+
+                if (suscripcion.PlanSiguienteId is Guid siguiente)
+                {
+                    var planSiguiente = await db.Set<PlanPlataforma>().IgnoreQueryFilters().SingleAsync(x => x.Id == siguiente, ct);
+                    suscripcion.AplicarPlanProgramado(siguiente, ahora);
+                    if (planSiguiente.EsPrueba)
+                    {
+                        suscripcion.EntrarEnGracia(opciones.DiasGracia, ahora);
+                        await EncolarCorreoPlataformaAsync(suscripcion, "suscripcion_en_gracia", planSiguiente.Nombre, ct);
+                        _publicarDespuesDelCommit.Add(suscripcion.Id);
+                    }
+                    else if (planSiguiente.Precio <= 0)
+                    {
+                        suscripcion.Renovar(planSiguiente.VigenciaDias, ahora);
+                        _publicarDespuesDelCommit.Add(suscripcion.Id);
+                    }
+                    else
+                    {
+                        await CobrarPlataformaAsync(suscripcion, planSiguiente, ahora, ct);
+                    }
+                    return;
+                }
+
+                var plan = await db.Set<PlanPlataforma>().IgnoreQueryFilters().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
+                if (plan.EsPrueba)
                 {
                     suscripcion.EntrarEnGracia(opciones.DiasGracia, ahora);
-                    await EncolarCorreoPlataformaAsync(suscripcion, "suscripcion_en_gracia", planSiguiente.Nombre, ct);
+                    await EncolarCorreoPlataformaAsync(suscripcion, "suscripcion_en_gracia", plan.Nombre, ct);
                     _publicarDespuesDelCommit.Add(suscripcion.Id);
                 }
-                else if (planSiguiente.Precio <= 0)
+                else if (plan.Precio <= 0)
                 {
-                    suscripcion.Renovar(planSiguiente.VigenciaDias, ahora);
+                    suscripcion.Renovar(plan.VigenciaDias, ahora);
                     _publicarDespuesDelCommit.Add(suscripcion.Id);
                 }
                 else
                 {
-                    await CobrarPlataformaAsync(suscripcion, planSiguiente, ahora, ct);
+                    await CobrarPlataformaAsync(suscripcion, plan, ahora, ct);
                 }
-                continue;
-            }
-
-            var plan = await db.Set<PlanPlataforma>().IgnoreQueryFilters().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
-            if (plan.EsPrueba)
-            {
-                suscripcion.EntrarEnGracia(opciones.DiasGracia, ahora);
-                await EncolarCorreoPlataformaAsync(suscripcion, "suscripcion_en_gracia", plan.Nombre, ct);
-                _publicarDespuesDelCommit.Add(suscripcion.Id);
-            }
-            else if (plan.Precio <= 0)
-            {
-                suscripcion.Renovar(plan.VigenciaDias, ahora);
-                _publicarDespuesDelCommit.Add(suscripcion.Id);
-            }
-            else
-            {
-                await CobrarPlataformaAsync(suscripcion, plan, ahora, ct);
-            }
+            }, ct);
         }
-
-        await db.SaveChangesAsync(ct);
-        await transaccion.CommitAsync(ct);
-        await PublicarCambiosAsync(ct);
     }
 
     private async Task CobrarPlataformaAsync(SuscripcionPlataforma suscripcion, PlanPlataforma plan, DateTimeOffset ahora, CancellationToken ct)
@@ -118,6 +124,7 @@ public sealed class CerrarCiclo(
         var resultado = await pasarela.CobrarAsync(medio.TokenPasarela, plan.Precio, referencia, esRenovacion: true);
         if (resultado.Exitoso)
         {
+            _cobroPendiente = resultado.Referencia;
             db.Add(Pago.PlataformaAutorizado(suscripcion.Id, medio.Id, ConceptoPago.Renovacion, plan.Precio,
                 $"Renovación · {plan.Nombre}", resultado.Referencia!, finAnterior, finNuevo));
             suscripcion.Renovar(plan.VigenciaDias, ahora);
@@ -136,34 +143,39 @@ public sealed class CerrarCiclo(
 
     private async Task RenovarApiAsync(CancellationToken ct)
     {
-        await using var transaccion = await db.Database.BeginTransactionAsync(ct);
         var ahora = reloj.Ahora;
-        var suscripciones = await db.Set<SuscripcionApi>()
-            .FromSqlInterpolated($"SELECT * FROM suscripcion_api WHERE estado = 'activa' AND fin <= {ahora} FOR UPDATE SKIP LOCKED")
-            .IgnoreQueryFilters().ToListAsync(ct);
-
-        foreach (var suscripcion in suscripciones)
+        var ids = await db.Set<SuscripcionApi>().IgnoreQueryFilters().AsNoTracking()
+            .Where(s => s.Estado == EstadoSuscripcion.Activa && s.Fin <= ahora)
+            .OrderBy(s => s.Fin).ThenBy(s => s.Id).Select(s => s.Id).ToListAsync(ct);
+        foreach (var id in ids)
         {
-            if (suscripcion.PlanSiguienteId is Guid siguiente)
+            await ConfirmarRenovacionAsync(async () =>
             {
-                suscripcion.AplicarPlanProgramado(siguiente, ahora);
-            }
+                var suscripcion = await db.Set<SuscripcionApi>()
+                    .FromSqlInterpolated($"SELECT * FROM suscripcion_api WHERE id = {id} AND estado = 'activa' AND fin <= {ahora} FOR UPDATE SKIP LOCKED")
+                    .IgnoreQueryFilters().SingleOrDefaultAsync(ct);
+                if (suscripcion is null)
+                {
+                    return;
+                }
 
-            var plan = await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
-            if (plan.EsGratuito || plan.Precio <= 0)
-            {
-                suscripcion.Renovar(plan.VigenciaDias, ahora);
-                _publicarDespuesDelCommit.Add(suscripcion.Id);
-            }
-            else
-            {
-                await CobrarApiAsync(suscripcion, plan, ahora, ct);
-            }
+                if (suscripcion.PlanSiguienteId is Guid siguiente)
+                {
+                    suscripcion.AplicarPlanProgramado(siguiente, ahora);
+                }
+
+                var plan = await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
+                if (plan.EsGratuito || plan.Precio <= 0)
+                {
+                    suscripcion.Renovar(plan.VigenciaDias, ahora);
+                    _publicarDespuesDelCommit.Add(suscripcion.Id);
+                }
+                else
+                {
+                    await CobrarApiAsync(suscripcion, plan, ahora, ct);
+                }
+            }, ct);
         }
-
-        await db.SaveChangesAsync(ct);
-        await transaccion.CommitAsync(ct);
-        await PublicarCambiosAsync(ct);
     }
 
     private async Task CobrarApiAsync(SuscripcionApi suscripcion, PlanApi plan, DateTimeOffset ahora, CancellationToken ct)
@@ -186,6 +198,7 @@ public sealed class CerrarCiclo(
         var resultado = await pasarela.CobrarAsync(medio.TokenPasarela, plan.Precio, referencia, esRenovacion: true);
         if (resultado.Exitoso)
         {
+            _cobroPendiente = resultado.Referencia;
             db.Add(Pago.ApiAutorizado(suscripcion.Id, medio.Id, ConceptoPago.Renovacion, plan.Precio,
                 $"Renovación · {plan.Nombre}", resultado.Referencia!, finAnterior, finNuevo));
             suscripcion.Renovar(plan.VigenciaDias, ahora);
@@ -200,6 +213,35 @@ public sealed class CerrarCiclo(
         }
 
         _publicarDespuesDelCommit.Add(suscripcion.Id);
+    }
+
+    private async Task ConfirmarRenovacionAsync(Func<Task> renovar, CancellationToken ct)
+    {
+        await using var transaccion = await db.Database.BeginTransactionAsync(ct);
+        _cobroPendiente = null;
+        try
+        {
+            await renovar();
+            await db.SaveChangesAsync(ct);
+            await transaccion.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaccion.RollbackAsync(CancellationToken.None);
+            if (_cobroPendiente is not null)
+            {
+                await pasarela.ReembolsarAsync(_cobroPendiente);
+            }
+
+            _publicarDespuesDelCommit.Clear();
+            throw;
+        }
+        finally
+        {
+            _cobroPendiente = null;
+            db.ChangeTracker.Clear();
+        }
+        await PublicarCambiosAsync(ct);
     }
 
     private async Task SuspenderPlataformaAsync(CancellationToken ct)

@@ -13,6 +13,108 @@ namespace Shapi.Api.Tests.Suscripciones;
 [Collection(nameof(PostgresPersistencia))]
 public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
+    // RF-22: el fallo de la segunda renovación no deshace ni repite el primer cobro, en ambos niveles.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RF_22_FallaSegundaSuscripcion_ConservaPrimeraYNoRepiteCobro(bool api)
+    {
+        var org = await NuevaOrganizacion();
+        var apiId = await NuevaApi(org);
+        var consumidor = await NuevoConsumidor(org);
+        var consumidor2 = await NuevoConsumidor(org);
+        var org2 = await NuevaOrganizacion();
+        var plan = api ? await NuevoPlanApi(apiId) : await NuevoPlanPlataforma();
+        var medio = await NuevoMedioPago(api ? null : org, api ? consumidor : null);
+        var medio2 = await NuevoMedioPago(api ? null : org2, api ? consumidor2 : null);
+        var primera = api ? await NuevaSuscripcionApi(consumidor, apiId, plan) : await NuevaSuscripcionPlataforma(org, plan);
+        var segunda = api ? await NuevaSuscripcionApi(consumidor2, apiId, plan) : await NuevaSuscripcionPlataforma(org2, plan);
+        var tabla = api ? "suscripcion_api" : "suscripcion_plataforma";
+        var columna = api ? "suscripcion_api_id" : "suscripcion_plataforma_id";
+        var fin = Reloj.Ahora.AddDays(-1);
+        await Ejecutar($"UPDATE {tabla} SET medio_pago_id = '{medio}', inicio = '{fin.AddDays(-30):O}', fin = '{fin:O}' WHERE id = '{primera}'");
+        await Ejecutar($"UPDATE {tabla} SET medio_pago_id = '{medio2}', inicio = '{fin.AddHours(1).AddDays(-30):O}', fin = '{fin.AddHours(1):O}' WHERE id = '{segunda}'");
+        var pasarela = Substitute.For<IPasarelaPagos>();
+        var referencias = new List<string>();
+        pasarela.CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true).Returns(llamada =>
+        {
+            var referencia = llamada.ArgAt<string>(2);
+            referencias.Add(referencia);
+            if (referencia.Contains(segunda.ToString()))
+            {
+                throw new InvalidOperationException("Fallo de la segunda suscripción");
+            }
+
+            return new ResultadoCobro { Exitoso = true, Referencia = "ch-primera" };
+        });
+        var publicador = Substitute.For<IPublicadorCache>();
+        for (var intento = 0; intento < 2; intento++)
+        {
+            await using var db = CrearDb();
+            var trabajo = new CerrarCiclo(db, Reloj, pasarela, publicador, Substitute.For<IColaCorreo>(), Substitute.For<IBitacora>(), new OpcionesCierreCiclo());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => trabajo.EjecutarAsync());
+            (await Escalar<long>($"SELECT count(*) FROM pago WHERE {columna} = '{primera}' AND estado = 'autorizado'")).Should().Be(1);
+            (await Escalar<DateTime>($"SELECT inicio FROM {tabla} WHERE id = '{primera}'")).Should().Be(fin.UtcDateTime);
+        }
+        referencias.Count(x => x.Contains(primera.ToString())).Should().Be(1);
+        await publicador.Received(1).PublicarSuscripcion(primera, Arg.Any<CancellationToken>());
+    }
+
+    // RF-22: si la pasarela autoriza pero PostgreSQL rechaza el pago, se reembolsa y no se publica.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RF_22_FallaGuardarPago_ReembolsaYConservaCiclo(bool api)
+    {
+        var org = await NuevaOrganizacion();
+        var apiId = await NuevaApi(org);
+        var consumidor = await NuevoConsumidor(org);
+        var plan = api ? await NuevoPlanApi(apiId) : await NuevoPlanPlataforma();
+        var medio = await NuevoMedioPago(api ? null : org, api ? consumidor : null);
+        var suscripcion = api ? await NuevaSuscripcionApi(consumidor, apiId, plan) : await NuevaSuscripcionPlataforma(org, plan);
+        var tabla = api ? "suscripcion_api" : "suscripcion_plataforma";
+        var fin = Reloj.Ahora.AddDays(-1);
+        await Ejecutar($"UPDATE {tabla} SET medio_pago_id = '{medio}', inicio = '{fin.AddDays(-30):O}', fin = '{fin:O}' WHERE id = '{suscripcion}'");
+        await Ejecutar("ALTER TABLE pago ADD CONSTRAINT fallo_pago_jg23 CHECK (referencia_pasarela <> 'ch-falla-guardar') NOT VALID");
+        var pasarela = Substitute.For<IPasarelaPagos>();
+        pasarela.CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true)
+            .Returns(new ResultadoCobro { Exitoso = true, Referencia = "ch-falla-guardar" });
+        pasarela.ReembolsarAsync("ch-falla-guardar").Returns(new ResultadoReembolso { Exitoso = true, Referencia = "re-falla-guardar" });
+        var publicador = Substitute.For<IPublicadorCache>();
+        await using var db = CrearDb();
+        var trabajo = new CerrarCiclo(db, Reloj, pasarela, publicador, Substitute.For<IColaCorreo>(), Substitute.For<IBitacora>(), new OpcionesCierreCiclo());
+        await Assert.ThrowsAsync<Microsoft.EntityFrameworkCore.DbUpdateException>(() => trabajo.EjecutarAsync());
+        await pasarela.Received(1).ReembolsarAsync("ch-falla-guardar");
+        await publicador.DidNotReceive().PublicarSuscripcion(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        (await Escalar<DateTime>($"SELECT fin FROM {tabla} WHERE id = '{suscripcion}'")).Should().Be(fin.UtcDateTime);
+        (await Escalar<long>("SELECT count(*) FROM pago WHERE referencia_pasarela = 'ch-falla-guardar'")).Should().Be(0);
+    }
+
+    // RF-17: editar el precio no modifica el ciclo vigente y se cobra al renovar.
+    [Fact]
+    public async Task RF_17_PrecioEditado_SeCobraEnLaSiguienteRenovacion()
+    {
+        var org = await NuevaOrganizacion();
+        var plan = await NuevoPlanPlataforma();
+        var medio = await NuevoMedioPago(org, null);
+        var suscripcion = await NuevaSuscripcionPlataforma(org, plan);
+        var fin = Reloj.Ahora.AddDays(1);
+        await Ejecutar($"UPDATE suscripcion_plataforma SET medio_pago_id = '{medio}', inicio = '{fin.AddDays(-30):O}', fin = '{fin:O}' WHERE id = '{suscripcion}'");
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 299 WHERE id = '{plan}'");
+        var pasarela = Substitute.For<IPasarelaPagos>();
+        pasarela.CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true)
+            .Returns(new ResultadoCobro { Exitoso = true, Referencia = "ch-precio-editado" });
+        await using var db = CrearDb();
+        var trabajo = new CerrarCiclo(db, Reloj, pasarela, Substitute.For<IPublicadorCache>(), Substitute.For<IColaCorreo>(), Substitute.For<IBitacora>(), new OpcionesCierreCiclo());
+        await trabajo.EjecutarAsync();
+        await pasarela.DidNotReceive().CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true);
+        (await Escalar<DateTime>($"SELECT fin FROM suscripcion_plataforma WHERE id = '{suscripcion}'")).Should().Be(fin.UtcDateTime);
+        Reloj.Ahora = fin;
+        await trabajo.EjecutarAsync();
+        await pasarela.Received(1).CobrarAsync(Arg.Any<string>(), 299, Arg.Any<string>(), true);
+        (await Escalar<decimal>($"SELECT monto FROM pago WHERE suscripcion_plataforma_id = '{suscripcion}'")).Should().Be(299);
+    }
+
     // RF-22: el trabajador renueva el ciclo de pago y procesa una suscripción una sola vez.
     [Fact]
     public async Task RF_22_EjecutarDosVeces_NoCobraDosVeces()

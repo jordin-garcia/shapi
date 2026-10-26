@@ -187,6 +187,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/suscripcion/cambio-programado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancela la bajada programada del consumidor en esta API */
+        delete: operations["cancelarCambioProgramadoApi"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/portal/suscripcion/pagar": {
         parameters: {
             query?: never;
@@ -264,7 +281,7 @@ export interface components {
             };
             /** Format: date-time */
             proximaRenovacion: string;
-            tarjetaEnmascarada: string;
+            tarjetaEnmascarada: string | null;
         };
         ResultadoCambioProrrateado: {
             /** @constant */
@@ -359,6 +376,19 @@ export interface components {
             tarjetaEnmascarada?: string | null;
             /** Format: date-time */
             graciaHasta?: string | null;
+            /** Format: date-time */
+            graciaDesde?: string | null;
+            periodoVigente?: boolean;
+            pagoRevertido?: {
+                /** Format: date-time */
+                fecha: string;
+                monto: number;
+            } | null;
+            /** @description Solo durante los siete días anteriores al fin de una Prueba activa, según IReloj */
+            avisoPrueba?: {
+                /** Format: date-time */
+                venceEn: string;
+            } | null;
             diasRestantesCiclo?: number;
             diasRestantes?: number;
             /** Format: date-time */
@@ -449,6 +479,13 @@ export interface components {
             /** Format: date-time */
             ultimoRechazoEn: string | null;
             diasRestantes: number;
+            cambioProgramado?: {
+                /** Format: uuid */
+                planId: string;
+                nombre: string;
+                /** Format: date-time */
+                efectivoDesde: string;
+            } | null;
         };
         Problema: {
             type?: string;
@@ -1024,6 +1061,45 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
+            };
+        };
+    };
+    cancelarCambioProgramadoApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cambio cancelado; también si no había un cambio programado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin sesión de consumidor */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o falta la cabecera X-Requested-With */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Portal, consumidor o suscripción vigente no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

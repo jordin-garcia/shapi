@@ -43,6 +43,48 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); server.resetHandlers(); cambioSolicitado = false; });
 
 describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
+  it('RF-20 · A2.2 activa un plan gratuito sin pedir tarjeta', async () => {
+    const gratis = { ...lanzamiento, precio: 0 };
+    server.use(
+      http.get(API + '/planes-plataforma', () => HttpResponse.json([gratis])),
+      http.get(API + '/suscripcion', () => HttpResponse.json(suscripcionPrueba)),
+      http.post(API + '/suscripcion/contratar', async ({ request }) => {
+        expect(await request.json()).toEqual({ planId: gratis.id, usarRegistrada: false });
+        return HttpResponse.json({ id: 's-gratis', plan: gratis, estado: 'activa', periodo: suscripcion.periodo, proximaRenovacion: suscripcion.proximaRenovacion, tarjetaEnmascarada: null }, { status: 201 });
+      }),
+    );
+    renderizar('/panel/suscripcion/contratar/plan-1', <Routes><Route path="/panel/suscripcion/contratar/:plan" element={<PaginaA22Contratacion />} /></Routes>);
+    await screen.findByRole('heading', { name: 'Lanzamiento' });
+    expect(screen.queryByLabelText('Número de tarjeta')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Activar plan gratuito' }));
+    expect(await screen.findByRole('heading', { name: 'Plan activado' })).toBeDefined();
+    expect(screen.getByText('Sin tarjeta requerida')).toBeDefined();
+    expect(screen.queryByText(/El cobro fue autorizado/)).toBeNull();
+  });
+
+  it('RF-24 · B1.4 distingue la reversión y conserva el periodo vigente y la gracia real', async () => {
+    server.use(http.get(API + '/suscripcion', () => HttpResponse.json({
+      ...suscripcion, estado: 'en_gracia', periodoVigente: true, diasRestantes: 7,
+      graciaDesde: '2026-09-10T06:00:00Z', graciaHasta: '2026-09-17T06:00:00Z',
+      pagoRevertido: { fecha: '2026-09-10T06:00:00Z', monto: 199 },
+    })));
+    renderizar('/panel/suscripcion', <PaginaB14Suscripcion />);
+    expect(await screen.findByText(/El pago de Q 199.00 fue revertido/)).toBeDefined();
+    expect(screen.getByText('Periodo activo')).toBeDefined();
+    expect(screen.queryByText('Periodo vencido')).toBeNull();
+    expect(screen.queryByText('Cobro rechazado')).toBeNull();
+    expect(screen.getByText(/10 sept? 2026 – 16 sept? 2026/)).toBeDefined();
+  });
+
+  it('RF-44 · B1.4 muestra el aviso de la Prueba con la fecha del servidor y enlace a planes', async () => {
+    server.use(http.get(API + '/suscripcion', () => HttpResponse.json({
+      ...suscripcionPrueba, avisoPrueba: { venceEn: '2026-09-23T06:00:00Z' },
+    })));
+    renderizar('/panel/suscripcion', <PaginaB14Suscripcion />);
+    expect(await screen.findByText(/Su Prueba vence el/)).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Ver planes de pago' }).getAttribute('href')).toBe('/panel/suscripcion/planes');
+  });
+
   it('A2.1 muestra los planes, precios y límites de plataforma', async () => {
     server.use(
       http.get(API + '/planes-plataforma', () => HttpResponse.json([prueba, lanzamiento, producto])),

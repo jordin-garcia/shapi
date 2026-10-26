@@ -4,6 +4,7 @@ using Shapi.Aplicacion.Comun;
 using Shapi.Contratos;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Planes;
+using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Api.Planes;
@@ -33,7 +34,7 @@ public sealed record RespuestaPlanPlataforma(
     bool Activo,
     int Orden);
 
-public sealed class AdministrarPlanesPlataforma(ShapiDbContext db, IBitacora bitacora, IReloj reloj)
+public sealed class AdministrarPlanesPlataforma(ShapiDbContext db, IBitacora bitacora, IReloj reloj, IPublicadorCache publicador)
 {
     public async Task<IReadOnlyList<RespuestaPlanPlataforma>> Listar(CancellationToken ct)
     {
@@ -97,6 +98,7 @@ public sealed class AdministrarPlanesPlataforma(ShapiDbContext db, IBitacora bit
             return new Error(CodigosError.PlanDuplicado, "Ya existe un plan de plataforma con ese nombre.");
         }
 
+        var cuotaAnterior = plan.CuotaPeticiones;
         plan.Editar(solicitud.Nombre!, solicitud.Descripcion!, solicitud.Precio, solicitud.VigenciaDias,
             solicitud.MaxApis, solicitud.MaxMiembros, solicitud.CuotaPeticiones, solicitud.DominioPropio, reloj.Ahora);
         try
@@ -108,6 +110,17 @@ public sealed class AdministrarPlanesPlataforma(ShapiDbContext db, IBitacora bit
         catch (DbUpdateException e) when (EsNombreDuplicado(e))
         {
             return new Error(CodigosError.PlanDuplicado, "Ya existe un plan de plataforma con ese nombre.");
+        }
+
+        if (cuotaAnterior != plan.CuotaPeticiones)
+        {
+            var organizaciones = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters().AsNoTracking()
+                .Where(s => s.PlanId == id && s.Estado != EstadoSuscripcion.Finalizada)
+                .Select(s => s.OrganizacionId).Distinct().ToListAsync(ct);
+            foreach (var organizacion in organizaciones)
+            {
+                await publicador.PublicarOrganizacion(organizacion, ct);
+            }
         }
 
         return plan;

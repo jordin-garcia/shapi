@@ -181,6 +181,8 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 
 **Precisión de B2.3:** en `SuscripcionGracia.dc.html` el rango visual termina el 8 de octubre, igual que la fecha de suspensión. La implementación sigue la convención temporal de [12 §ADR-30](12-decisiones.md#adr-30--ciclos-exactos-de-30-días-y-cómo-se-muestran-las-fechas): muestra como periodo de gracia los días con servicio (1–7 oct) y la suspensión aparte (8 oct). Los días restantes los calcula el servidor con `IReloj`, no el navegador, para respetar el reloj de demostración.
 
+**Precisiones de JG-23 (26 oct):** B1.4 muestra «El pago de {monto} fue revertido el {fecha}» en la gracia por reversión, y «Pago revertido» en el detalle. El periodo sigue activo hasta su fin y la gracia empieza en la reversión, con el último día con servicio según ADR-30. En los últimos siete días de una Prueba activa, solo el propietario ve «Su Prueba vence el {fecha}.» y «Ver planes de pago», tanto en B1.4 como arriba del contenido del panel; la fecha y el umbral proceden del servidor. B2.3 muestra «A partir del {fin} su plan será {X}.» y el botón «Cancelar cambio programado», con estado de espera y error recuperable; al cancelar actualiza la suscripción sin recargar la página.
+
 ### B3 · Salidas del administrador y del soporte (`b3-salidas-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
