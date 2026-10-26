@@ -550,7 +550,7 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
         using (var alcance = Fabrica.Services.CreateScope())
         {
             var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
-            db.Add(Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(valor), e.ConsumidorId, HostPortal, null, null, Reloj.Ahora));
+            db.Add(Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(valor), e.ConsumidorId, HostPortal, null, null, DateTimeOffset.UtcNow));
             await db.SaveChangesAsync();
         }
 
@@ -756,7 +756,7 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
         var valor = Guid.NewGuid().ToString("N");
         using var alcance = Fabrica.Services.CreateScope();
         var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
-        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valor), usuario, "localhost", null, null, Reloj.Ahora));
+        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valor), usuario, "localhost", null, null, DateTimeOffset.UtcNow));
         await db.SaveChangesAsync();
         return $"shapi_sesion={valor}";
     }

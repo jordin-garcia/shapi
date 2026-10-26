@@ -29,7 +29,7 @@ public sealed class ConsumidorAutenticacionHandler(
     ILoggerFactory logger,
     UrlEncoder encoder,
     ShapiDbContext db,
-    IReloj reloj,
+    TimeProvider tiempo,
     IResolutorPortal resolutor,
     IConfiguration configuracion)
     : AuthenticationHandler<ConsumidorAutenticacionOpciones>(options, logger, encoder)
@@ -48,7 +48,7 @@ public sealed class ConsumidorAutenticacionHandler(
         }
 
         var hash = SeguridadTokens.HashearToken(valor);
-        var ahora = reloj.Ahora;
+        var ahora = tiempo.GetUtcNow();
         var inactividad = TimeSpan.FromHours(configuracion.GetValue<int?>("Sesion:InactividadHoras") ?? 8);
         var sesion = await db.Set<Sesion>().IgnoreQueryFilters().FirstOrDefaultAsync(s =>
             s.HashIdentificador == hash && s.Ambito == AmbitoSesion.Consumidor && s.ConsumidorId != null && s.Host == Request.Host.Host);

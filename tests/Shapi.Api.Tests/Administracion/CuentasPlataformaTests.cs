@@ -11,6 +11,7 @@ using Shapi.Dominio.Correo;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
 using Shapi.Infraestructura.Identidad;
+using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Api.Tests.Administracion;
 
@@ -23,6 +24,7 @@ public sealed class CuentasPlataformaTests(CuentasPostgres postgres) : IAsyncLif
         Database = $"prueba_{Guid.NewGuid():N}",
     }.ConnectionString;
     private readonly RelojFijo _reloj = new(DateTimeOffset.Parse("2026-10-12T18:00:00Z"));
+    private readonly Shapi.Api.Tests.Identidad.RelojFalso _tiempo = new() { Ahora = DateTimeOffset.Parse("2026-10-12T18:00:00Z") };
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
     private const string Contrasena = "NuevaContrasena123!";
@@ -36,7 +38,7 @@ public sealed class CuentasPlataformaTests(CuentasPostgres postgres) : IAsyncLif
             builder.UseSetting("SHAPI_ADMIN_CORREO", "admin@shapi.test");
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Rodrigo Alvarado");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", Contrasena);
-            builder.ConfigureTestServices(s => s.AddSingleton<IReloj>(_reloj));
+            builder.ConfigureTestServices(s => { s.AddSingleton<IReloj>(_reloj); s.AddSingleton<TimeProvider>(_tiempo); });
         });
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -129,6 +131,26 @@ public sealed class CuentasPlataformaTests(CuentasPostgres postgres) : IAsyncLif
         Assert.Equal(HttpStatusCode.UnprocessableEntity, (await Enviar("/api/auth/definir-contrasena", new { token = cuenta.Token, contrasena = "OtraContrasena123!" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await Enviar("/api/auth/entrar", new { correo = "lucia@shapi.test", contrasena = Contrasena })).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await Enviar("/api/admin/cuentas", new { nombre = "Otra", correo = " LUCIA@shapi.test ", rol }, admin)).StatusCode);
+    }
+
+    [Fact]
+    public async Task RF_04_DefinirContrasena_ConNegocioAdelantado_CreaSesionYCookieConHoraReal()
+    {
+        var admin = await Admin();
+        _reloj.Ahora = _reloj.Ahora.AddDays(37);
+        var cuenta = await Crear(admin);
+        var respuesta = await Enviar("/api/auth/definir-contrasena", new { token = cuenta.Token, contrasena = Contrasena });
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var scope = _fabrica.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var sesion = await db.Set<Sesion>().IgnoreQueryFilters().SingleAsync(s => s.UsuarioId == cuenta.Id);
+        sesion.CreadaEn.Should().Be(_tiempo.Ahora);
+        sesion.UltimoUsoEn.Should().Be(_tiempo.Ahora);
+        sesion.ExpiraEn.Should().Be(_tiempo.Ahora.AddDays(7));
+        respuesta.Headers.GetValues("Set-Cookie").Single().Should().Contain("expires=" + _tiempo.Ahora.AddDays(7).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+        (await Enviar("/api/auth/sesion", cookie: Cookie(respuesta))).StatusCode.Should().Be(HttpStatusCode.OK);
+        _tiempo.Avanzar(TimeSpan.FromHours(8));
+        (await Enviar("/api/auth/sesion", cookie: Cookie(respuesta))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]

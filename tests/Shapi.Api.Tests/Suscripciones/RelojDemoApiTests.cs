@@ -20,6 +20,24 @@ namespace Shapi.Api.Tests.Suscripciones;
 
 public sealed class RelojDemoApiTests
 {
+    // RF-44: validar antes de modificar el reloj compartido, sin desbordar la fecha.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(366)]
+    [InlineData(int.MaxValue)]
+    public async Task RF_44_Adelantar_DiasInvalidos_NoModificaRedis(int dias)
+    {
+        var configuracion = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["SHAPI_MODO_DEMO"] = "true" }).Build();
+        var redis = Substitute.For<IConnectionMultiplexer>();
+        using var reloj = new RelojSistema(TimeProvider.System, configuracion, redis);
+        var api = new RelojDemoApi(configuracion, redis, reloj);
+        var respuesta = await api.Adelantar(new PeticionRelojDemo(dias), CancellationToken.None);
+        respuesta.Should().BeOfType<Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult>()
+            .Which.StatusCode.Should().Be(400);
+        redis.DidNotReceive().GetDatabase(Arg.Any<int>(), Arg.Any<object?>());
+    }
+
     // RF-44: el administrador adelanta el reloj compartido y solicita de inmediato el cierre del ciclo.
     [Fact]
     public async Task Adelantar_ModoDemo_ActualizaDesplazamientoYPublicaSolicitud()
@@ -68,6 +86,28 @@ public sealed class RelojDemoApiTests
 [Collection(nameof(PostgresPersistencia))]
 public sealed class RelojDemoEndpointTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
+    // RF-44: solo el administrador puede consultar el control de demostración.
+    [Theory]
+    [InlineData("true", "Administrador", HttpStatusCode.OK)]
+    [InlineData("true", "Soporte", HttpStatusCode.Forbidden)]
+    [InlineData("true", "Propietario", HttpStatusCode.Forbidden)]
+    [InlineData("false", "Administrador", HttpStatusCode.NotFound)]
+    public async Task RF_44_ConsultarReloj_RespetaModoDemoYPermiso(string modo, string rol, HttpStatusCode esperado)
+    {
+        using var fabrica = CrearFabrica(modo, CrearRedisFalso());
+        using var cliente = fabrica.CreateClient();
+        using var peticion = new HttpRequestMessage(HttpMethod.Get, "/api/admin/demo/reloj");
+        peticion.Headers.Add("X-Prueba-Organizacion", Guid.NewGuid().ToString());
+        peticion.Headers.Add("X-Prueba-Rol", rol);
+        using var respuesta = await cliente.SendAsync(peticion);
+        respuesta.StatusCode.Should().Be(esperado);
+        if (esperado == HttpStatusCode.OK)
+        {
+            var datos = await respuesta.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            datos.GetProperty("ahora").GetDateTimeOffset().Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        }
+    }
+
     // RNF-06: este endpoint lee IReloj antes de consultar las credenciales; Redis no produce un 500.
     [Fact]
     public async Task Entrar_TimeoutRedisAlSincronizarReloj_ConservaRespuestaHttp()

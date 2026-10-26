@@ -49,7 +49,6 @@ export default function Suscripcion() {
   const [nueva, setNueva] = useState<{ clave: ClaveEmitida; anterior?: Clave }>();
   const [error, setError] = useState<string>();
   const [mostrarPago, setMostrarPago] = useState(false);
-  const [ahora] = useState(() => Date.now());
 
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.error instanceof ApiProveedorNoDisponible) return <NoDisponible nombreApi={marca.nombreApi} />;
@@ -91,7 +90,7 @@ export default function Suscripcion() {
     ? new Date(suscripcion.graciaHasta)
     : new Date(new Date(suscripcion.proximaRenovacion).getTime() + 7 * DIA);
   const finGracia = new Date(suspension.getTime() - DIA);
-  const diasRestantes = suscripcion.diasRestantes ?? Math.max(0, Math.ceil((suspension.getTime() - ahora) / DIA));
+  const diasRestantes = suscripcion.diasRestantes;
   const vigencia = Math.max(1, Math.round((new Date(suscripcion.periodo.fin).getTime() - new Date(suscripcion.periodo.inicio).getTime()) / DIA) + 1);
 
   async function emitirNueva(clave: Clave) {

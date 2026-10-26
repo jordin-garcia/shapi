@@ -15,7 +15,7 @@ namespace Shapi.Api.Administracion;
 /// <summary>Administración entre organizaciones: los filtros se omiten solo al buscar membresías de plataforma.</summary>
 public sealed class RepositorioCuentasPlataforma(
     ShapiDbContext db, IReloj reloj, IColaCorreo correo, IBitacora bitacora,
-    IPasswordHasher<Usuario> hasher) : IRepositorioCuentasPlataforma
+    IPasswordHasher<Usuario> hasher, TimeProvider tiempo) : IRepositorioCuentasPlataforma
 {
     private IQueryable<Membresia> Membresias =>
         from m in db.Set<Membresia>().IgnoreQueryFilters()
@@ -150,7 +150,7 @@ public sealed class RepositorioCuentasPlataforma(
         usuario.RegistrarInicioExitoso();
         var cookie = SeguridadTokens.GenerarToken();
         db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(cookie), usuario.Id, host,
-            IPAddress.TryParse(ip, out var direccion) ? direccion : null, agente, ahora));
+            IPAddress.TryParse(ip, out var direccion) ? direccion : null, agente, tiempo.GetUtcNow()));
         await db.SaveChangesAsync(cancelacion);
         await transaccion.CommitAsync(cancelacion);
         return cookie;

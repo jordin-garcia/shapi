@@ -49,7 +49,7 @@ public static class EndpointsCuentas
     }
 
     private static async Task<IResult> Definir(DefinicionContrasena solicitud, DefinirContrasenaPlataforma caso,
-        HttpContext http, IReloj reloj, CancellationToken ct)
+        HttpContext http, TimeProvider tiempo, CancellationToken ct)
     {
         var resultado = await caso.Ejecutar(solicitud, http.Request.Host.Host, http.Connection.RemoteIpAddress?.ToString(), http.Request.Headers.UserAgent.ToString(), ct);
         if (!resultado.EsExito)
@@ -64,7 +64,7 @@ public static class EndpointsCuentas
             Secure = true,
             SameSite = SameSiteMode.Lax,
             Path = "/",
-            Expires = reloj.Ahora + Sesion.DuracionMaxima,
+            Expires = tiempo.GetUtcNow() + Sesion.DuracionMaxima,
         });
         return TypedResults.Ok();
     }

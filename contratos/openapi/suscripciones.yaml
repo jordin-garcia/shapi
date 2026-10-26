@@ -4,6 +4,21 @@ info:
   version: 1.0.0
 paths:
   /api/admin/demo/reloj:
+    get:
+      summary: Consulta la fecha de demostración (solo administrador)
+      operationId: consultarRelojDemo
+      responses:
+        "200":
+          description: Fecha actual del servidor, con el desplazamiento aplicado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FechaServidor" }
+        "401":
+          description: Sin sesión del personal
+        "403":
+          description: Requiere el rol administrador
+        "404":
+          description: Solo está disponible con `SHAPI_MODO_DEMO=true`
     post:
       summary: Adelanta el reloj de demostración y dispara el cierre de ciclo
       operationId: adelantarRelojDemo
@@ -16,12 +31,36 @@ paths:
         "204":
           description: Reloj adelantado y cierre de ciclo solicitado
         "400":
-          description: Los días deben ser mayores que cero (`datos_invalidos`)
+          description: La cantidad debe estar entre 1 y 365 días (`datos_invalidos`)
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
         "404":
           description: Solo está disponible con `SHAPI_MODO_DEMO=true`
+  /api/reloj:
+    get:
+      summary: Consulta la hora de negocio para las pantallas del personal
+      operationId: consultarFechaServidor
+      responses:
+        "200":
+          description: Hora de IReloj e inicio del día de negocio en Guatemala
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FechaServidor" }
+        "401":
+          description: Sin sesión del personal
+  /api/portal/reloj:
+    get:
+      summary: Consulta la hora de negocio para el consumidor del portal
+      operationId: consultarFechaPortal
+      responses:
+        "200":
+          description: Hora de IReloj e inicio del día de negocio en Guatemala
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FechaServidor" }
+        "401":
+          description: Sin sesión de consumidor válida para este portal
   /api/suscripcion:
     get:
       summary: Consulta la suscripción de plataforma de la organización
@@ -373,11 +412,24 @@ paths:
               schema: { $ref: "#/components/schemas/Problema" }
 components:
   schemas:
+    FechaServidor:
+      type: object
+      required: [ahora, inicioCiclo, finClaveAnteriorPrevisto]
+      properties:
+        ahora: { type: string, format: date-time }
+        inicioCiclo:
+          type: string
+          format: date-time
+          description: Inicio del día actual en America/Guatemala, según IReloj
+        finClaveAnteriorPrevisto:
+          type: string
+          format: date-time
+          description: Previsión de ahora más 24 horas; la rotación confirma la fecha definitiva
     PeticionRelojDemo:
       type: object
       required: [adelantarDias]
       properties:
-        adelantarDias: { type: integer, minimum: 1 }
+        adelantarDias: { type: integer, minimum: 1, maximum: 365 }
     ResultadoContratacionPlataforma:
       type: object
       required: [id, plan, estado, periodo, proximaRenovacion, tarjetaEnmascarada]

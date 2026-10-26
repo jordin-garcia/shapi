@@ -37,6 +37,7 @@ function montar(ruta: string) {
 beforeEach(() => {
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   server.use(
+    http.get(`${API}/reloj`, () => HttpResponse.json({ ahora: '2026-09-18T06:00:00Z', inicioCiclo: '2026-09-18T06:00:00Z', finClaveAnteriorPrevisto: '2026-09-18T06:00:00Z' })),
     http.get(`${API}/configuracion`, () => HttpResponse.json(configuracion)),
     http.get(`${API}/auth/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'María José Quiñónez', nombreEmpresa: 'Mercadito Antigua' }, correoVerificado: true })),
     http.get(`${API}/suscripcion`, () => HttpResponse.json(suscripcion)),
@@ -91,7 +92,7 @@ describe('DC-13 · RF-21 · historial de pagos', () => {
 
 describe('DC-13 · RF-25 · cambio de plan', () => {
   it('permite elegir el destino al llegar desde la suscripción vigente', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-18T06:00:00Z').getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('1999-01-01T00:00:00Z').getTime());
     const enrutador = montar('/cuenta/suscripcion');
 
     await userEvent.click(await screen.findByRole('link', { name: 'Cambiar de plan' }));
@@ -107,7 +108,7 @@ describe('DC-13 · RF-25 · cambio de plan', () => {
   });
 
   it('B2.7 calcula el prorrateo del mockup y confirma una subida con la tarjeta registrada', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-18T06:00:00Z').getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('1999-01-01T00:00:00Z').getTime());
     let cuerpo: unknown;
     server.use(http.post(`${API}/suscripcion/cambiar`, async ({ request }) => {
       cuerpo = await request.json();

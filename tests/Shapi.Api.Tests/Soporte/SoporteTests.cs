@@ -324,7 +324,7 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
         var valor = Convert.ToHexString(Guid.NewGuid().ToByteArray()).ToLowerInvariant();
         await using var db = Db(out var scope);
         using var _ = scope;
-        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valor), usuarioId, "localhost", null, null, _reloj.Ahora));
+        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(valor), usuarioId, "localhost", null, null, DateTimeOffset.UtcNow));
         await db.SaveChangesAsync();
         return $"shapi_sesion={valor}";
     }

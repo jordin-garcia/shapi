@@ -22,6 +22,7 @@ public sealed class ContenedorPostgresConsumidor : PostgresDePrueba;
 public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres) : IClassFixture<ContenedorPostgresConsumidor>, IAsyncLifetime
 {
     private readonly RelojFalso _reloj = new();
+    private readonly RelojFalso _tiempo = new();
     private string _cadena = null!;
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
@@ -38,7 +39,7 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
             builder.UseSetting("SHAPI_ADMIN_NOMBRE", "Admin");
             builder.UseSetting("SHAPI_ADMIN_CONTRASENA", "AdminSuperSecreto123!");
             builder.UseSetting("Sesion:InactividadHoras", "2");
-            builder.ConfigureTestServices(services => services.AddSingleton<IReloj>(_reloj));
+            builder.ConfigureTestServices(services => { services.AddSingleton<IReloj>(_reloj); services.AddSingleton<TimeProvider>(_tiempo); });
         });
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false, AllowAutoRedirect = false });
         return Task.CompletedTask;
@@ -176,12 +177,28 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     }
 
     [Fact]
+    public async Task RF_04_SesionDelConsumidor_ConservaVigenciaAlAdelantarNegocio37Dias()
+    {
+        await InsertarApi("reloj-demo");
+        var (cookie, _) = await ConsumidorConSesion("ana@reloj.test", "reloj-demo.shapi.localhost");
+        _reloj.Avanzar(TimeSpan.FromDays(37));
+        var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "reloj-demo.shapi.localhost", cookie: cookie);
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        var fecha = await Enviar(HttpMethod.Get, "/api/portal/reloj", "reloj-demo.shapi.localhost", cookie: cookie);
+        fecha.StatusCode.Should().Be(HttpStatusCode.OK);
+        var datos = await fecha.Content.ReadFromJsonAsync<JsonElement>();
+        datos.GetProperty("ahora").GetDateTimeOffset().Should().Be(_reloj.Ahora);
+        var otroHost = await Enviar(HttpMethod.Get, "/api/portal/reloj", "otro.shapi.localhost", cookie: cookie);
+        otroHost.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task RF_04_SesionDelConsumidor_ExpiraTrasLaInactividadConfigurada()
     {
         await InsertarApi("sesion-inactiva");
         var (cookie, _) = await ConsumidorConSesion("ana@inactiva.test", "sesion-inactiva.shapi.localhost");
 
-        _reloj.Avanzar(TimeSpan.FromHours(2) + TimeSpan.FromMinutes(1));
+        _tiempo.Avanzar(TimeSpan.FromHours(2) + TimeSpan.FromMinutes(1));
         var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-inactiva.shapi.localhost", cookie: cookie);
 
         Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
@@ -195,12 +212,12 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
 
         for (var hora = 0; hora < 167; hora++)
         {
-            _reloj.Avanzar(TimeSpan.FromHours(1));
+            _tiempo.Avanzar(TimeSpan.FromHours(1));
             var vigente = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie);
             Assert.Equal(HttpStatusCode.OK, vigente.StatusCode);
         }
 
-        _reloj.Avanzar(TimeSpan.FromHours(1));
+        _tiempo.Avanzar(TimeSpan.FromHours(1));
         var respuesta = await Enviar(HttpMethod.Get, "/api/portal/auth/sesion", "sesion-maxima.shapi.localhost", cookie: cookie);
 
         Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);

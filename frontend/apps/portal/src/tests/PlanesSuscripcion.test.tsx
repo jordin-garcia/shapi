@@ -39,6 +39,7 @@ function montar(ruta: string) {
 
 function responderPlanes(datos = planes) {
   server.use(
+    http.get(`${API}/reloj`, () => HttpResponse.json({ ahora: '2026-10-07T18:00:00Z', inicioCiclo: '2026-10-07T06:00:00Z', finClaveAnteriorPrevisto: '2026-10-07T18:00:00Z' })),
     http.get(`${API}/configuracion`, () => HttpResponse.json(configuracion)),
     http.get(`${API}/documentacion`, () => HttpResponse.json({ rutas: [] })),
     http.get(`${API}/planes`, () => HttpResponse.json(datos)),
@@ -176,4 +177,15 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
     expect(await screen.findByRole('heading', { name: 'Plan contratado' })).toBeDefined();
     expect(screen.queryByText('Medio de pago')).toBeNull();
   });
+});
+
+it('RF-23 · A5.6 muestra el periodo previsto por el servidor aunque el navegador tenga otra fecha', async () => {
+  server.use(
+    http.get(`${API}/auth/sesion`, () => HttpResponse.json({ consumidor: { nombre: 'Ana', nombreEmpresa: 'Tienda' }, correoVerificado: true })),
+    http.get(`${API}/reloj`, () => HttpResponse.json({ ahora: '2027-01-03T05:30:00Z', inicioCiclo: '2027-01-02T06:00:00Z', finClaveAnteriorPrevisto: '2027-01-04T05:30:00Z' })),
+  );
+  montar('/contratar/comercio');
+  const titulo = await screen.findByRole('heading', { name: 'Contratación de un plan' });
+  expect(titulo).toBeDefined();
+  expect(screen.getByText(/2 ene 2027.*31 ene 2027/)).toBeDefined();
 });

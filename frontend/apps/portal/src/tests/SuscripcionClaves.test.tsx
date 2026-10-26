@@ -45,6 +45,7 @@ function montar() {
 
 function responderBase() {
   server.use(
+    http.get(`${API}/reloj`, () => HttpResponse.json({ ahora: '2026-10-12T16:42:00Z', inicioCiclo: '2026-10-12T06:00:00Z', finClaveAnteriorPrevisto: '2026-10-13T16:42:00Z' })),
     http.get(`${API}/configuracion`, () => HttpResponse.json(configuracion)),
     http.get(`${API}/auth/sesion`, () => HttpResponse.json(sesion)),
     http.get(`${API}/suscripcion`, () => HttpResponse.json(suscripcion)),
@@ -192,7 +193,7 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
   });
 
   it('RF-27 rota una clave y muestra la nueva completa solamente hasta que se confirma que fue guardada', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-12T16:42:00Z').getTime());
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('1999-01-01T00:00:00Z').getTime());
     server.use(http.post(`${API}/claves/prod-1/rotar`, () => HttpResponse.json({
       id: 'prod-2', tipo: 'produccion', clave: 'shp_prod_9Hk2wQ7rTz4Lb8Nc1Vx6Pm3Ds0',
       claveEnmascarada: 'shp_prod_••••Ds0', estado: 'activa',

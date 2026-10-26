@@ -28,7 +28,7 @@ public class PersonalAutenticacionHandler(
     ILoggerFactory logger,
     UrlEncoder encoder,
     ShapiDbContext db,
-    IReloj reloj,
+    TimeProvider tiempo,
     IConfiguration configuracion)
     : AuthenticationHandler<PersonalAutenticacionOpciones>(options, logger, encoder)
 {
@@ -40,7 +40,7 @@ public class PersonalAutenticacionHandler(
         }
 
         var hash = SeguridadTokens.HashearToken(valorCookie);
-        var ahora = reloj.Ahora;
+        var ahora = tiempo.GetUtcNow();
         var inactividad = TimeSpan.FromHours(configuracion.GetValue<int?>("Sesion:InactividadHoras") ?? 8);
 
         // La sesión, el usuario y la membresía no dependen de la organización de la petición: son los que la definen.
