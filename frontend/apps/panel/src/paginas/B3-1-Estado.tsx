@@ -95,8 +95,10 @@ function ControlReloj() {
     queryKey: ['reloj-demo'],
     queryFn: async ({ signal }) => {
       try {
-        const { data } = await api.GET('/api/admin/demo/reloj', { signal });
-        return data ?? null;
+        const { data, response } = await api.GET('/api/admin/demo/reloj', { signal });
+        if (response.status === 404) return null;
+        if (!response.ok || !data) throw new Error('No se pudo consultar la fecha de demostración.');
+        return data;
       } catch (error) {
         if (error instanceof ErrorApi && error.estado === 404) return null;
         throw error;
@@ -106,7 +108,8 @@ function ControlReloj() {
   });
   const avance = useMutation({
     mutationFn: async (adelantarDias: number) => {
-      await api.POST('/api/admin/demo/reloj', { body: { adelantarDias } });
+      const { response } = await api.POST('/api/admin/demo/reloj', { body: { adelantarDias } });
+      if (!response.ok) throw new Error('No se pudo adelantar el reloj.');
     },
     onSettled: async () => { await cache.invalidateQueries(); },
   });

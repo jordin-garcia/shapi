@@ -100,6 +100,34 @@ describe('RF-39 · B3.1', () => {
 });
 
 describe('JG-22 · RF-22 · control del reloj', () => {
+  it('muestra y permite reintentar un fallo 502 sin ProblemDetails al consultar el reloj', async () => {
+    server.use(
+      http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())),
+      http.get('http://localhost/api/admin/demo/reloj', () => new HttpResponse(null, { status: 502 })),
+    );
+    mostrar();
+    expect(await screen.findByText('No se pudo consultar el modo demostración.')).toBeDefined();
+    server.use(http.get('http://localhost/api/admin/demo/reloj', () => HttpResponse.json({ ahora: '2026-10-25T18:00:00Z' })));
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByRole('heading', { name: 'Modo demostración' })).toBeDefined();
+  });
+
+  it('avisa de un fallo 502 al adelantar y consulta la fecha aunque falle después del incremento', async () => {
+    let ahora = '2026-10-25T18:00:00Z';
+    server.use(
+      http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())),
+      http.get('http://localhost/api/admin/demo/reloj', () => HttpResponse.json({ ahora })),
+      http.post('http://localhost/api/admin/demo/reloj', () => {
+        ahora = '2026-11-24T18:00:00Z';
+        return new HttpResponse(null, { status: 502 });
+      }),
+    );
+    mostrar();
+    fireEvent.click(await screen.findByRole('button', { name: 'Adelantar 30 días' }));
+    expect(await screen.findByText(/No se pudo adelantar el reloj/)).toBeDefined();
+    expect(await screen.findByText(/24 de noviembre de 2026/)).toBeDefined();
+  });
+
   it('adelanta 30 y 7 días y permite una cantidad personalizada, mostrando la nueva fecha', async () => {
     let ahora = '2026-10-25T18:00:00Z';
     const dias: number[] = [];

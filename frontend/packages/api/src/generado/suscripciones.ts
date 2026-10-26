@@ -531,7 +531,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Los días deben ser mayores que cero (`datos_invalidos`) */
+            /** @description La cantidad debe estar entre 1 y 365 días (`datos_invalidos`) */
             400: {
                 headers: {
                     [name: string]: unknown;
