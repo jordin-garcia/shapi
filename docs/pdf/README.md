@@ -19,6 +19,16 @@ pnpm --dir tests/e2e exec playwright install chromium
 ```
 
 En Linux, si faltan las bibliotecas del navegador, usar `playwright install --with-deps chromium`.
+En Ubuntu con restricciones de AppArmor, Puppeteer puede responder `No usable sandbox`.
+Si Google Chrome ya está instalado, se puede reutilizar su helper SUID antes de generar:
+
+```sh
+export CHROME_DEVEL_SANDBOX=/opt/google/chrome/chrome-sandbox
+```
+
+El workflow configura ese helper del runner, siguiendo la [recomendación de Chromium](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md#option-3_the-safest-way).
+Se conserva el sandbox y no se cambian las restricciones globales del sistema.
+
 El primer diagrama descarga con `npx` `@mermaid-js/mermaid-cli@11.12.0`, indicado por
 JG-16. Se reutiliza el Chromium de Playwright, sin instalar otro navegador ni agregar
 dependencias al frontend. Esa primera ejecución requiere acceso al registro de npm.

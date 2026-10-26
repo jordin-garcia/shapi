@@ -26,6 +26,8 @@ con Node.js 24, React Markdown, Mermaid CLI 11.12.0 y el Chromium de Playwright.
   general reducida como si fuera una página de detalle.
 
 La prueba de integración se ejecuta también en Linux mediante el workflow `PDF`.
+El runner reutiliza el helper SUID de Google Chrome para conservar el sandbox de
+Chromium ante las restricciones de AppArmor de Ubuntu.
 La evidencia de esa plataforma es su check `pdf` en el PR de JG-16.
 
 ## Inspección visual
