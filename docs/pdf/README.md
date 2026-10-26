@@ -26,8 +26,10 @@ Si Google Chrome ya está instalado, se puede reutilizar su helper SUID antes de
 export CHROME_DEVEL_SANDBOX=/opt/google/chrome/chrome-sandbox
 ```
 
-El workflow configura ese helper del runner, siguiendo la [recomendación de Chromium](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md#option-3_the-safest-way).
-Se conserva el sandbox y no se cambian las restricciones globales del sistema.
+El runner no incluye ese helper. El workflow instala un perfil AppArmor limitado a
+la ruta exacta del Chromium de Playwright, para permitir sus namespaces y conservar
+el sandbox. Ambas alternativas están en la [documentación de Chromium](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md).
+No se desactivan AppArmor ni las restricciones globales del sistema.
 
 El primer diagrama descarga con `npx` `@mermaid-js/mermaid-cli@11.12.0`, indicado por
 JG-16. Se reutiliza el Chromium de Playwright, sin instalar otro navegador ni agregar
