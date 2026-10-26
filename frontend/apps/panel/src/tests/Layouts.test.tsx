@@ -11,7 +11,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('../modulos/sesion/useSesion');
 
-beforeEach(() => server.use(http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'Envíos Xelajú' }], total: 1 }))));
+beforeEach(() => server.use(
+  http.get('http://localhost/api/apis', () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'Envíos Xelajú' }], total: 1 })),
+  http.get('http://localhost/api/suscripcion', () => HttpResponse.json({ avisoPrueba: null })),
+));
 afterEach(cleanup);
 
 const renderWithLayout = (Layout: React.ComponentType) => {

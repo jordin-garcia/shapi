@@ -34,9 +34,9 @@ Corregir los hallazgos de cobros y suscripciones de la convergencia del 23 oct (
 - **H-C09 (baja, EM-14):** al editar la cuota de un plan de plataforma, `AdministrarPlanesPlataforma.cs:100` no vuelve a publicar `org:{id}`. La compuerta sigue con la cuota anterior hasta la resincronización.
 - **H-C10 (baja, EM-14, RF-17):** ninguna prueba comprueba que un precio editado se cobra en la siguiente renovación sin tocar el ciclo vigente. El código ya lo hace (`CierreCiclo.cs:118`).
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **Cuota de un plan de plataforma editado (H-C09).** Recomiendo que el cambio llegue a la compuerta de inmediato, como en los planes de API (RF-18), y precisarlo en 09. La otra opción es que aplique desde la siguiente renovación, como el precio.
-2. **Dónde va el aviso de la Prueba (H-C05).** No hay mockup. Recomiendo un `Aviso` de advertencia en B1.4 y en la parte superior del panel, para el propietario, durante los 7 días anteriores al fin de la Prueba, con la fecha y un enlace a los planes.
+## Decisiones aprobadas por Jordin (2026-10-26)
+1. **Cuota de un plan de plataforma editado (H-C09).** El cambio llega a la compuerta de inmediato, como en los planes de API (RF-18). El precio aplica desde la siguiente renovación.
+2. **Dónde va el aviso de la Prueba (H-C05).** Un aviso de advertencia en B1.4 y en la parte superior del panel, para el propietario, durante los 7 días anteriores al fin de la Prueba, con la fecha y un enlace a los planes.
 
 ## Contexto que debes leer
 - `docs/specs/09-cobros-y-suscripciones.md` §3 a §5 y §8
@@ -52,6 +52,7 @@ Corregir los hallazgos de cobros y suscripciones de la convergencia del 23 oct (
 - `src/Shapi.Api/Planes/AdministrarPlanesPlataforma.cs` (modificar)
 - `contratos/openapi/suscripciones.yaml` (modificar) y `frontend/packages/api/src/generado/*` (regenerar)
 - `frontend/apps/panel/src/paginas/B1-4-Suscripcion.tsx` y el layout del panel, si el aviso va arriba (modificar)
+- `frontend/apps/panel/src/paginas/A2-2-Contratacion.tsx` y `A2-3-Confirmacion.tsx` (contratar y confirmar un plan gratuito sin tarjeta ni cobro)
 - `frontend/apps/portal/src/paginas/B2-3-Suscripcion.tsx` (modificar)
 - Pruebas del backend y del frontend (crear o modificar)
 - `docs/specs/09-cobros-y-suscripciones.md` y `11-interfaz.md` (precisar lo que se decida)
@@ -83,6 +84,8 @@ dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.S
 cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 Además, recorrer en el ambiente productivo simulado la reversión del guion 3, paso 5, y ver B1.4 (protocolo B8).
+
+El ensayo automatizado de JG-23 se ejecuta desde `tests/e2e/` con `pnpm exec playwright test --config playwright.suscripciones.config.ts`, sobre un ambiente de demostración recién sembrado y aislado. También comprueba la bajada y cancelación del consumidor y el aviso de la Prueba; adelanta el reloj global siete días. Su configuración está separada del ensayo del reloj de JG-22 para que cada uno parta de sus propios datos iniciales.
 
 ## Fuera de alcance
 - Reembolsos de pagos de API.

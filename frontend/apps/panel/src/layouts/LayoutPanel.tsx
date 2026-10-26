@@ -1,16 +1,18 @@
-import { useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 import { useSesion } from '../modulos/sesion/useSesion';
 import { SelectorApi } from '../modulos/apis/SelectorApi';
+import { AvisoPruebaPanel } from '../modulos/suscripciones/AvisoPrueba';
 import { EnlaceNavegacion, EstructuraConBarras, GrupoNavegacion, ListaEnlaces } from './Navegacion';
 
 // N.1 · Barra lateral del proveedor (mockups/Navegacion/Main.dc.html).
 export function LayoutPanel() {
   const { data } = useSesion();
   const { id } = useParams();
+  const { pathname } = useLocation();
   const api = id ? `/panel/apis/${id}` : null;
 
   return (
-    <EstructuraConBarras textoSuperior={data?.nombreOrganizacion || 'Panel del proveedor'} perfil="/panel/perfil" nombre={data?.nombre} rol={data?.rol}>
+    <EstructuraConBarras textoSuperior={data?.nombreOrganizacion || 'Panel del proveedor'} perfil="/panel/perfil" nombre={data?.nombre} rol={data?.rol} aviso={data?.rol === 'propietario' && pathname !== '/panel/suscripcion' ? <AvisoPruebaPanel /> : undefined}>
       <GrupoNavegacion titulo="Publicación">
         <EnlaceNavegacion a="/panel/apis" exacto>APIs</EnlaceNavegacion>
       </GrupoNavegacion>

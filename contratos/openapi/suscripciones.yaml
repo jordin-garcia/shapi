@@ -322,6 +322,19 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problema"
+  /api/portal/suscripcion/cambio-programado:
+    delete:
+      summary: Cancela la bajada programada del consumidor en esta API
+      operationId: cancelarCambioProgramadoApi
+      responses:
+        "204":
+          description: Cambio cancelado; también si no había un cambio programado
+        "401":
+          description: Sin sesión de consumidor
+        "403":
+          description: Sin permiso o falta la cabecera X-Requested-With
+        "404":
+          description: Portal, consumidor o suscripción vigente no encontrado
   /api/portal/suscripcion/pagar:
     post:
       summary: Reactiva la suscripción API del consumidor en gracia o suspendida
@@ -452,7 +465,7 @@ components:
             inicio: { type: string, format: date-time }
             fin: { type: string, format: date-time }
         proximaRenovacion: { type: string, format: date-time }
-        tarjetaEnmascarada: { type: string }
+        tarjetaEnmascarada: { type: [string, "null"] }
     ResultadoCambioProrrateado:
       type: object
       required: [estado, credito, cargo, aPagar, inicio, fin]
@@ -550,6 +563,24 @@ components:
         proximaRenovacion: { type: string, format: date-time }
         tarjetaEnmascarada: { type: [string, "null"] }
         graciaHasta: { type: [string, "null"], format: date-time }
+        graciaDesde: { type: [string, "null"], format: date-time }
+        periodoVigente: { type: boolean }
+        pagoRevertido:
+          oneOf:
+            - type: object
+              required: [fecha, monto]
+              properties:
+                fecha: { type: string, format: date-time }
+                monto: { type: number }
+            - type: "null"
+        avisoPrueba:
+          description: Solo durante los siete días anteriores al fin de una Prueba activa, según IReloj
+          oneOf:
+            - type: object
+              required: [venceEn]
+              properties:
+                venceEn: { type: string, format: date-time }
+            - type: "null"
         diasRestantesCiclo: { type: integer }
         diasRestantes: { type: integer }
         ultimoRechazoEn: { type: [string, "null"], format: date-time }
@@ -650,6 +681,15 @@ components:
         graciaHasta: { type: [string, "null"], format: date-time }
         ultimoRechazoEn: { type: [string, "null"], format: date-time }
         diasRestantes: { type: integer }
+        cambioProgramado:
+          oneOf:
+            - type: object
+              required: [planId, nombre, efectivoDesde]
+              properties:
+                planId: { type: string, format: uuid }
+                nombre: { type: string }
+                efectivoDesde: { type: string, format: date-time }
+            - type: "null"
     Problema:
       type: object
       properties:

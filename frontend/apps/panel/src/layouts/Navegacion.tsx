@@ -50,12 +50,13 @@ const nombresDeRol: Record<string, string> = {
  * Estructura del panel y de la administración: barra superior de 76 px, barra lateral de 272 px con el pie fijo y el
  * contenido con 44 px de margen, que es lo único que se desplaza (11 §1).
  */
-export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, children }: {
+export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, children, aviso }: {
   textoSuperior: string;
   perfil: string;
   nombre?: string;
   rol?: string;
   children: ReactNode;
+  aviso?: ReactNode;
 }) {
   return (
     <div className="h-screen bg-fondo flex flex-col overflow-hidden">
@@ -75,6 +76,7 @@ export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, childr
           </div>
         </nav>
         <main className="flex-1 min-w-0 p-11 overflow-auto">
+          {aviso}
           <Outlet />
         </main>
       </div>

@@ -69,6 +69,7 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
     private int _demoraPagosMs;
     private string? _llaveCuotaEsperada;
     private bool _redisNoDisponible;
+    private IPasarelaPagos? _pasarela;
     private PublicadorSuscripcionFalso Publicador => _factory!.Services.GetRequiredService<PublicadorSuscripcionFalso>();
     private WebApplicationFactory<Program> Factory => _factory ??= new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
     {
@@ -77,6 +78,11 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         builder.UseSetting("Pagos:DemoraMs", _demoraPagosMs.ToString());
         builder.ConfigureTestServices(services =>
         {
+            if (_pasarela is not null)
+            {
+                services.RemoveAll<IPasarelaPagos>();
+                services.AddSingleton(_pasarela);
+            }
             var redisDb = Substitute.For<IDatabase>();
             redisDb.StringGetAsync(Arg.Any<RedisKey>(), CommandFlags.None).Returns(call =>
             {
@@ -668,6 +674,89 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         }
         (await Escalar<string>($"SELECT estado FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be("activa");
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{sub}' AND concepto = 'reactivacion' AND estado = 'autorizado'")).Should().Be(1);
+    }
+
+    // RF-20: un plan gratuito no tokeniza, no cobra y no conserva una tarjeta enviada por error.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RF_20_ContratarGratuito_NoRequiereTarjetaNiPasarela(bool conTarjeta)
+    {
+        _pasarela = Substitute.For<IPasarelaPagos>();
+        var e = await Escenario();
+        var plan = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 0 WHERE id = '{plan}'");
+        using var client = Factory.CreateClient();
+        using var respuesta = await Enviar(client, HttpMethod.Post, "/api/suscripcion/contratar", e.Organizacion, e.Usuario,
+            new { planId = plan, tarjeta = conTarjeta ? Tarjeta("4242424242424242") : null });
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Created, await respuesta.Content.ReadAsStringAsync());
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        json.GetProperty("tarjetaEnmascarada").ValueKind.Should().Be(JsonValueKind.Null);
+        var id = json.GetProperty("id").GetGuid();
+        (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_plataforma_id = '{id}'")).Should().Be(0);
+        (await Escalar<long>($"SELECT count(*) FROM medio_pago WHERE organizacion_id = '{e.Organizacion}'")).Should().Be(0);
+        Publicador.Publicadas.Should().Contain(id);
+        await _pasarela.DidNotReceive().TokenizarAsync(Arg.Any<DatosTarjeta>());
+        await _pasarela.DidNotReceive().CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<bool>());
+    }
+
+    // RF-44: el servidor calcula el umbral exacto con IReloj.
+    [Theory]
+    [InlineData(7, true)]
+    [InlineData(8, false)]
+    [InlineData(0, false)]
+    public async Task RF_44_ConsultarPrueba_AvisaSoloEnUltimosSieteDias(int dias, bool aviso)
+    {
+        var e = await Escenario();
+        var fin = Reloj.Ahora.AddDays(dias);
+        await Ejecutar($"UPDATE suscripcion_plataforma SET inicio = '{fin.AddDays(-30):O}', fin = '{fin:O}' WHERE id = '{e.Prueba}'");
+        using var client = Factory.CreateClient();
+        using var respuesta = await Enviar(client, HttpMethod.Get, "/api/suscripcion", e.Organizacion, e.Usuario, null);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        (json.GetProperty("avisoPrueba").ValueKind != JsonValueKind.Null).Should().Be(aviso);
+        if (aviso)
+        {
+            json.GetProperty("avisoPrueba").GetProperty("venceEn").GetDateTimeOffset().Should().Be(fin);
+        }
+    }
+
+    // RF-24: una reversión conserva el ciclo vigente y la gracia empieza en la fecha del reembolso.
+    [Fact]
+    public async Task RF_24_ConsultarGraciaPorReversion_DevuelveFechaMontoYPeriodoVigente()
+    {
+        var e = await Escenario();
+        var pago = await NuevoPago(e.Prueba, null);
+        await Ejecutar($"UPDATE suscripcion_plataforma SET plan_id = '{e.Pago}', estado = 'en_gracia', gracia_hasta = '{Reloj.Ahora.AddDays(7):O}' WHERE id = '{e.Prueba}'");
+        await Ejecutar($"UPDATE pago SET estado = 'revertido', revertido_en = '{Reloj.Ahora:O}', monto = 199, periodo_inicio = '{Reloj.Ahora.AddDays(-10):O}', periodo_fin = '{Reloj.Ahora.AddDays(20):O}' WHERE id = '{pago}'");
+        using var client = Factory.CreateClient();
+        using var respuesta = await Enviar(client, HttpMethod.Get, "/api/suscripcion", e.Organizacion, e.Usuario, null);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        json.GetProperty("periodoVigente").GetBoolean().Should().BeTrue();
+        json.GetProperty("graciaDesde").GetDateTimeOffset().Should().Be(Reloj.Ahora);
+        json.GetProperty("pagoRevertido").GetProperty("fecha").GetDateTimeOffset().Should().Be(Reloj.Ahora);
+        json.GetProperty("pagoRevertido").GetProperty("monto").GetDecimal().Should().Be(199);
+        json.GetProperty("avisoPrueba").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    // RF-24: otros reembolsos del mismo ciclo no cambian el origen de la gracia.
+    [Theory]
+    [InlineData("en_gracia")]
+    [InlineData("suspendida")]
+    public async Task RF_24_SegundaReversion_ConservaFechaYMontoQueAbrieronGracia(string estado)
+    {
+        var e = await Escenario();
+        var primero = await NuevoPago(e.Prueba, null);
+        var segundo = await NuevoPago(e.Prueba, null);
+        var reversion = Reloj.Ahora.AddDays(-8);
+        await Ejecutar($"UPDATE suscripcion_plataforma SET plan_id = '{e.Pago}', estado = '{estado}', gracia_hasta = '{reversion.AddDays(7):O}' WHERE id = '{e.Prueba}'");
+        await Ejecutar($"UPDATE pago SET estado = 'revertido', revertido_en = '{reversion:O}', monto = 199, periodo_inicio = '{Reloj.Ahora.AddDays(-10):O}', periodo_fin = '{Reloj.Ahora.AddDays(20):O}' WHERE id = '{primero}'");
+        await Ejecutar($"UPDATE pago SET estado = 'revertido', revertido_en = '{Reloj.Ahora:O}', monto = 50, periodo_inicio = '{Reloj.Ahora.AddDays(-10):O}', periodo_fin = '{Reloj.Ahora.AddDays(20):O}' WHERE id = '{segundo}'");
+        using var client = Factory.CreateClient();
+        using var respuesta = await Enviar(client, HttpMethod.Get, "/api/suscripcion", e.Organizacion, e.Usuario, null);
+        var json = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        json.GetProperty("graciaDesde").GetDateTimeOffset().Should().Be(reversion);
+        json.GetProperty("pagoRevertido").GetProperty("fecha").GetDateTimeOffset().Should().Be(reversion);
+        json.GetProperty("pagoRevertido").GetProperty("monto").GetDecimal().Should().Be(199);
     }
 
     private async Task<(Guid Organizacion, Guid Usuario, Guid Prueba, Guid Pago)> Escenario()

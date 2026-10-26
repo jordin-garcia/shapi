@@ -75,6 +75,21 @@ async function abrir(ruta: string) {
   render(<QueryClientProvider client={cliente}><RouterProvider router={router} /></QueryClientProvider>);
 }
 
+it.each(['propietario', 'editor', 'lector'] as const)('RF-44 · el aviso superior de la Prueba corresponde al propietario (%s)', async (papel) => {
+  rol = papel;
+  server.use(http.get('http://localhost/api/suscripcion', () => HttpResponse.json({
+    plan: { esPrueba: true }, avisoPrueba: { venceEn: '2026-09-23T06:00:00Z' },
+  })));
+  await abrir('/panel/apis');
+  await esperarPantalla('A3-1');
+  if (papel === 'propietario') {
+    expect(await screen.findByText(/Su Prueba vence el/)).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Ver planes de pago' }).getAttribute('href')).toBe('/panel/suscripcion/planes');
+  } else {
+    expect(screen.queryByText(/Su Prueba vence el/)).toBeNull();
+  }
+});
+
 beforeEach(() => {
   rol = 'propietario';
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
