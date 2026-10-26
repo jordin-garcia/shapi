@@ -25,6 +25,7 @@ namespace Shapi.Api.Tests.Administracion;
 
 public sealed class PublicadorCacheAdministracionFalso : IPublicadorCache
 {
+    public List<Guid> OrganizacionesPublicadas { get; } = [];
     public List<Guid> SuscripcionesPublicadas { get; } = [];
     public Task PublicarApi(Guid apiId, CancellationToken cancelacion = default) => Task.CompletedTask;
     public Task EliminarHost(string host, Guid apiId, CancellationToken cancelacion = default) => Task.CompletedTask;
@@ -36,7 +37,11 @@ public sealed class PublicadorCacheAdministracionFalso : IPublicadorCache
         SuscripcionesPublicadas.Add(suscripcionId);
         return Task.CompletedTask;
     }
-    public Task PublicarOrganizacion(Guid organizacionId, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public Task PublicarOrganizacion(Guid organizacionId, CancellationToken cancelacion = default)
+    {
+        OrganizacionesPublicadas.Add(organizacionId);
+        return Task.CompletedTask;
+    }
 }
 
 [Collection(nameof(PostgresPersistencia))]
@@ -77,6 +82,27 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         _cliente.Dispose();
         await _fabrica.DisposeAsync();
         await base.DisposeAsync();
+    }
+
+    // RF-17: la cuota llega a todas las organizaciones con suscripción vigente, también en gracia.
+    [Fact]
+    public async Task RF_17_EditarCuota_PublicaOrganizacionesSinModificarCiclos()
+    {
+        var admin = await Admin();
+        var plan = await NuevoPlanPlataforma();
+        var org = await NuevaOrganizacion();
+        var orgGracia = await NuevaOrganizacion();
+        var orgFinalizada = await NuevaOrganizacion();
+        var s = await NuevaSuscripcionPlataforma(org, plan);
+        await NuevaSuscripcionPlataforma(orgGracia, plan, "en_gracia");
+        await NuevaSuscripcionPlataforma(orgFinalizada, plan, "finalizada");
+        var fin = await Escalar<DateTime>($"SELECT fin FROM suscripcion_plataforma WHERE id = '{s}'");
+        using var respuesta = await Enviar(HttpMethod.Put, $"/api/admin/planes-plataforma/{plan}", admin,
+            new { nombre = "Plan cuota JG23", descripcion = "Cuota editada", precio = 299m, vigenciaDias = 30, maxApis = 5, maxMiembros = 5, cuotaPeticiones = 98765, dominioPropio = false });
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK, await respuesta.Content.ReadAsStringAsync());
+        var publicadas = _fabrica.Services.GetRequiredService<PublicadorCacheAdministracionFalso>().OrganizacionesPublicadas;
+        publicadas.Should().BeEquivalentTo([org, orgGracia]);
+        (await Escalar<DateTime>($"SELECT fin FROM suscripcion_plataforma WHERE id = '{s}'")).Should().Be(fin);
     }
 
     // RF-17: solo el administrador administra planes; desactivar conserva los planes asociados a suscripciones.
@@ -262,7 +288,7 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         await NuevaMembresia(usuario, organizacion, rol.ToString().ToLowerInvariant());
         var token = Convert.ToHexString(Guid.NewGuid().ToByteArray()).ToLowerInvariant();
         await using var db = CrearDb();
-        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(token), usuario, "localhost", null, null, Reloj.Ahora));
+        db.Add(Sesion.IniciarPersonal(SeguridadTokens.HashearToken(token), usuario, "localhost", null, null, DateTimeOffset.UtcNow));
         await db.SaveChangesAsync();
         return $"shapi_sesion={token}";
     }

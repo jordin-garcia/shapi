@@ -71,6 +71,13 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         var medio = s.MedioPagoId is null ? null : await db.Set<MedioPago>().SingleOrDefaultAsync(x => x.Id == s.MedioPagoId, ct);
         var ultimoRechazo = await db.Set<Pago>().IgnoreQueryFilters().Where(x => x.SuscripcionPlataformaId == s.Id && x.Estado == EstadoPago.Rechazado)
             .OrderByDescending(x => x.CreadoEn).Select(x => (DateTimeOffset?)x.CreadoEn).FirstOrDefaultAsync(ct);
+        var ahora = reloj.Ahora;
+        var inicioGraciaPorReversion = s.GraciaHasta?.AddDays(-7);
+        var revertido = s.GraciaHasta is null ? null : await db.Set<Pago>().AsNoTracking()
+            .Where(x => x.SuscripcionPlataformaId == s.Id && x.Estado == EstadoPago.Revertido
+                && x.PeriodoInicio == s.Inicio && x.PeriodoFin == s.Fin
+                && x.RevertidoEn == inicioGraciaPorReversion)
+            .OrderByDescending(x => x.RevertidoEn).FirstOrDefaultAsync(ct);
         var suscripcionesApi = db.Set<SuscripcionApi>().IgnoreQueryFilters().Where(x => x.Estado != EstadoSuscripcion.Finalizada);
         var consumidoresAfectados = await db.Set<Shapi.Dominio.Identidad.Consumidor>().IgnoreQueryFilters()
             .Where(c => c.OrganizacionId == orgId && suscripcionesApi.Any(api => api.ConsumidorId == c.Id)).CountAsync(ct);
@@ -95,6 +102,11 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             proximaRenovacion = s.Fin,
             tarjetaEnmascarada = medio is null ? null : $"{NombreMarca(medio.Marca)} •••• {medio.Ultimos4}",
             graciaHasta = s.GraciaHasta,
+            graciaDesde = s.GraciaHasta is null ? (DateTimeOffset?)null : revertido?.RevertidoEn ?? s.Fin,
+            periodoVigente = s.Inicio <= ahora && ahora < s.Fin,
+            pagoRevertido = revertido is null ? null : new { fecha = revertido.RevertidoEn, monto = revertido.Monto },
+            avisoPrueba = plan.EsPrueba && s.Estado == EstadoSuscripcion.Activa && ahora < s.Fin && s.Fin <= ahora.AddDays(7)
+                ? new { venceEn = s.Fin } : null,
             diasRestantesCiclo = Math.Max(0, (int)Math.Ceiling((s.Fin - reloj.Ahora).TotalDays)),
             diasRestantes = s.Estado == EstadoSuscripcion.EnGracia && s.GraciaHasta is not null
                 ? Math.Max(0, (int)Math.Ceiling((s.GraciaHasta.Value - reloj.Ahora).TotalDays)) : 0,
@@ -125,15 +137,17 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 return Error(409, "suscripcion_existente", "Use el flujo de cambio de plan.");
             }
         }
-        var prep = await PrepararMedio(org, anterior, p.Tarjeta, p.UsarRegistrada, ct);
+        var prep = plan.Precio > 0
+            ? await PrepararMedio(org, anterior, p.Tarjeta, p.UsarRegistrada, ct)
+            : (Medio: (MedioPago?)null, EsNueva: false, Error: (IResult?)null);
         if (prep.Error is not null)
         {
             return prep.Error;
         }
 
-        var medio = prep.Medio!;
-        var cobro = await pasarela.CobrarAsync(medio.TokenPasarela, plan.Precio, $"plataforma:{org}:{Guid.NewGuid():N}", false);
-        if (!cobro.Exitoso)
+        var medio = prep.Medio;
+        var cobro = medio is null ? null : await pasarela.CobrarAsync(medio.TokenPasarela, plan.Precio, $"plataforma:{org}:{Guid.NewGuid():N}", false);
+        if (cobro is not null && !cobro.Exitoso)
         {
             if (anterior is not null && cobro.Error != CodigosError.PasarelaNoDisponible)
             {
@@ -150,24 +164,31 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
         }
 
         var ahora = reloj.Ahora;
-        var nueva = SuscripcionPlataforma.Contratar(org, plan, medio.Id, ahora);
+        var nueva = SuscripcionPlataforma.Contratar(org, plan, medio?.Id, ahora);
         try
         {
-            if (prep.EsNueva)
+            if (prep.EsNueva && medio is not null)
             {
                 db.Add(medio);
             }
 
             anterior?.Finalizar(ahora);
             db.Add(nueva);
-            db.Add(Pago.PlataformaAutorizado(nueva.Id, medio.Id, ConceptoPago.Contratacion, plan.Precio,
-                $"Contratación del plan {plan.Nombre}", cobro.Referencia!, nueva.Inicio, nueva.Fin));
+            if (medio is not null && cobro is not null)
+            {
+                db.Add(Pago.PlataformaAutorizado(nueva.Id, medio.Id, ConceptoPago.Contratacion, plan.Precio,
+                    $"Contratación del plan {plan.Nombre}", cobro.Referencia!, nueva.Inicio, nueva.Fin));
+            }
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         }
         catch
         {
-            await pasarela.ReembolsarAsync(cobro.Referencia!);
+            if (cobro?.Referencia is not null)
+            {
+                await pasarela.ReembolsarAsync(cobro.Referencia);
+            }
+
             throw;
         }
         await publicador.PublicarSuscripcion(nueva.Id, ct);
@@ -179,7 +200,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             estado = "activa",
             periodo = new { inicio = nueva.Inicio, fin = nueva.Fin.AddDays(-1) },
             proximaRenovacion = nueva.Fin,
-            tarjetaEnmascarada = $"{NombreMarca(medio.Marca)} •••• {medio.Ultimos4}"
+            tarjetaEnmascarada = medio is null ? null : $"{NombreMarca(medio.Marca)} •••• {medio.Ultimos4}"
         });
     }
 

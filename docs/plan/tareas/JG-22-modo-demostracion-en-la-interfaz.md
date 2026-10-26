@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-24
 depende_de: [JG-21]
 requisitos: [RF-04, RF-22, RF-23, RF-41, RF-44]
@@ -25,9 +25,9 @@ Hallazgos de la convergencia del 23 oct (`docs/plan/convergencia/2026-10-22.md` 
 - **H-C03:** B3.2 calcula su periodo por omisión con la fecha del navegador (`B3-2-Bitacora.tsx:23-24` y `:82-83`), pero las acciones se guardan con `IReloj`. Después de adelantar el reloj, la suspensión, la reversión y el cierre del caso no aparecían.
 - Lo mismo pasa con otras fechas que el navegador calcula con `new Date()`: el periodo que se activa en A2.2 y A5.6, el fin de la clave anterior en B2.4 y las fechas de B2.7.
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **Dónde va el control del reloj.** No hay mockup. Recomiendo una tarjeta «Modo demostración» al final de B3.1 (Estado de los componentes), visible solo para el administrador y solo con `SHAPI_MODO_DEMO=true`. Mostraría la fecha actual de la demostración, los botones «Adelantar 30 días» y «Adelantar 7 días» y un campo de días. La otra opción es una página propia en la barra de la administración.
-2. **Sesiones al adelantar el reloj.** (2a, recomendada) Que el vencimiento de las sesiones (RF-04: inactividad y 7 días) use la **hora real** y no `IReloj`, porque es seguridad y no negocio. Así nadie queda fuera al adelantar el reloj. (2b) La otra opción es aceptar que se cierren y avisarlo en la tarjeta («Al adelantar el reloj se cierran todas las sesiones»).
+## Decisiones aprobadas por Jordin (2026-10-25)
+1. **Control del reloj:** tarjeta «Modo demostración» al final de B3.1, visible solo para administrador con `SHAPI_MODO_DEMO=true`. Muestra fecha y hora de Guatemala, avances de 30 y 7 días y una cantidad personalizada.
+2. **Sesiones:** creación, vigencia, último uso y expiración de sus cookies con hora real (`TimeProvider`), independiente de `IReloj`. Se conservan los límites de inactividad configurables (8 h por defecto) y de 7 días máximos, tanto para personal como para consumidores.
 
 ## Contexto que debes leer
 - `docs/specs/09-cobros-y-suscripciones.md` §9 (modo demostración)
@@ -71,8 +71,31 @@ dotnet format Shapi.slnx --verify-no-changes
 dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.Suscripciones|FullyQualifiedName~Shapi.Api.Tests.Identidad"
 cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
+Ensayo automatizado aislado (adelanta el reloj global del ambiente):
+```
+cd tests/e2e
+pnpm exec playwright test --config playwright.demo.config.ts
+```
+
 Además, recorrer el paso 4 del guion 3 en el ambiente productivo simulado solo con la interfaz (protocolo B8) y comparar B3.1 y B3.2 con sus mockups.
 
 ## Fuera de alcance
 - Retroceder el reloj.
 - El modo demostración fuera del ambiente simulado.
+
+
+## Resultado
+
+Integrada la tarjeta de demostración en B3.1 y la consulta de fecha del servidor en el panel y el portal. B3.2 abre con los siete días correspondientes a esa fecha. A2.2, A5.6, B2.4 y B2.7 muestran fechas del servidor; B2.3 usa los días restantes de su contrato. La respuesta de rotación confirma la expiración definitiva de la clave anterior.
+
+Los tres caminos de creación de sesiones (personal, consumidor y definición de contraseña inicial de cuentas de plataforma), sus cookies y los dos manejadores de autenticación usan hora real. Las pruebas conservan los límites de 8 horas y 7 días con un proveedor de tiempo controlado separado del reloj de negocio.
+
+El contrato `suscripciones.yaml` documenta las consultas del reloj y los tipos se regeneraron. Los avances aceptan de 1 a 365 días, se bloquean mientras se procesa la solicitud y muestran los errores, incluidos los HTTP sin ProblemDetails. Al terminar, incluso si la publicación falla después del incremento, se vuelve a consultar la fecha. Las precisiones están en 09 §9, 10 §1, 11 y convenciones §6.
+
+### Verificación (2026-10-25 y 2026-10-26)
+- Compilación completa sin errores ni advertencias; formato verificado sin cambios pendientes; plan válido (88 tareas).
+- 344 pruebas de Suscripciones e Identidad aprobadas; otra ejecución de 110 regresiones de los módulos afectados aprobada, sin fallos ni omisiones. Se confirmó la fase roja de consulta, sesión tras el avance y sesión inicial creada con fecha de negocio.
+- Lint sin errores (11 advertencias previas del portal), tipos y builds correctos. 473 pruebas del frontend en 41 archivos aprobadas con un solo hilo, aislamiento conservado y Docker detenido; las primeras ejecuciones con contención de recursos agotaron esperas y el arranque de un proceso, sin cambiar pruebas ni límites.
+- Todas las imágenes del ambiente productivo simulado reconstruidas con el código actual. Ensayo aislado de Playwright aprobado en 34,1 s: contratación con 0341, avance de 30 días, gracia y renovación de plataforma en 6.600 ms; avance de 7 días, suspensión y 403 en 2.745 ms; pago con otra tarjeta y 200. Las sesiones del administrador, proveedor y consumidor permanecieron vigentes, y el soporte no vio el control.
+- Once capturas del flujo real y comparación de B3.1 normal, degradada y soporte, y B3.2 con datos y vacía, con los datos de sus cinco mockups. Evidencia local en `.shapi/jg22/`. Las esperas del ensayo se ajustaron a la finalización de verificación, carga y pago; se mantuvo el límite global de diez segundos por transición.
+- Revisión independiente: corregidas la sesión/cookie del acceso inicial de cuentas de plataforma y la detección de HTTP 502 sin ProblemDetails. Segunda revisión: LISTO, sin hallazgos pendientes.

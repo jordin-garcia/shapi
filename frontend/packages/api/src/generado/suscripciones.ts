@@ -6,10 +6,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Consulta la fecha de demostración (solo administrador) */
+        get: operations["consultarRelojDemo"];
         put?: never;
         /** Adelanta el reloj de demostración y dispara el cierre de ciclo */
         post: operations["adelantarRelojDemo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reloj": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta la hora de negocio para las pantallas del personal */
+        get: operations["consultarFechaServidor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/reloj": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Consulta la hora de negocio para el consumidor del portal */
+        get: operations["consultarFechaPortal"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -152,6 +187,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/suscripcion/cambio-programado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancela la bajada programada del consumidor en esta API */
+        delete: operations["cancelarCambioProgramadoApi"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/portal/suscripcion/pagar": {
         parameters: {
             query?: never;
@@ -190,6 +242,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        FechaServidor: {
+            /** Format: date-time */
+            ahora: string;
+            /**
+             * Format: date-time
+             * @description Inicio del día actual en America/Guatemala, según IReloj
+             */
+            inicioCiclo: string;
+            /**
+             * Format: date-time
+             * @description Previsión de ahora más 24 horas; la rotación confirma la fecha definitiva
+             */
+            finClaveAnteriorPrevisto: string;
+        };
         PeticionRelojDemo: {
             adelantarDias: number;
         };
@@ -215,7 +281,7 @@ export interface components {
             };
             /** Format: date-time */
             proximaRenovacion: string;
-            tarjetaEnmascarada: string;
+            tarjetaEnmascarada: string | null;
         };
         ResultadoCambioProrrateado: {
             /** @constant */
@@ -310,6 +376,19 @@ export interface components {
             tarjetaEnmascarada?: string | null;
             /** Format: date-time */
             graciaHasta?: string | null;
+            /** Format: date-time */
+            graciaDesde?: string | null;
+            periodoVigente?: boolean;
+            pagoRevertido?: {
+                /** Format: date-time */
+                fecha: string;
+                monto: number;
+            } | null;
+            /** @description Solo durante los siete días anteriores al fin de una Prueba activa, según IReloj */
+            avisoPrueba?: {
+                /** Format: date-time */
+                venceEn: string;
+            } | null;
             diasRestantesCiclo?: number;
             diasRestantes?: number;
             /** Format: date-time */
@@ -400,6 +479,13 @@ export interface components {
             /** Format: date-time */
             ultimoRechazoEn: string | null;
             diasRestantes: number;
+            cambioProgramado?: {
+                /** Format: uuid */
+                planId: string;
+                nombre: string;
+                /** Format: date-time */
+                efectivoDesde: string;
+            } | null;
         };
         Problema: {
             type?: string;
@@ -421,6 +507,47 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    consultarRelojDemo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fecha actual del servidor, con el desplazamiento aplicado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FechaServidor"];
+                };
+            };
+            /** @description Sin sesión del personal */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requiere el rol administrador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solo está disponible con `SHAPI_MODO_DEMO=true` */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     adelantarRelojDemo: {
         parameters: {
             query?: never;
@@ -441,7 +568,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Los días deben ser mayores que cero (`datos_invalidos`) */
+            /** @description La cantidad debe estar entre 1 y 365 días (`datos_invalidos`) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -452,6 +579,60 @@ export interface operations {
             };
             /** @description Solo está disponible con `SHAPI_MODO_DEMO=true` */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    consultarFechaServidor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hora de IReloj e inicio del día de negocio en Guatemala */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FechaServidor"];
+                };
+            };
+            /** @description Sin sesión del personal */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    consultarFechaPortal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Hora de IReloj e inicio del día de negocio en Guatemala */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FechaServidor"];
+                };
+            };
+            /** @description Sin sesión de consumidor válida para este portal */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -880,6 +1061,45 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
+            };
+        };
+    };
+    cancelarCambioProgramadoApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cambio cancelado; también si no había un cambio programado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin sesión de consumidor */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o falta la cabecera X-Requested-With */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Portal, consumidor o suscripción vigente no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

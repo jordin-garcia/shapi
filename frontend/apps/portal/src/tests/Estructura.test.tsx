@@ -41,6 +41,7 @@ beforeEach(() => {
   sesionCerrada = false;
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   server.use(
+    http.get('http://localhost/api/portal/reloj', () => HttpResponse.json({ ahora: '2026-09-18T18:00:00Z', inicioCiclo: '2026-09-18T06:00:00Z', finClaveAnteriorPrevisto: '2026-09-19T18:00:00Z' })),
     http.get('http://localhost/api/portal/configuracion', () => HttpResponse.json(configuracion)),
     http.get('http://localhost/api/portal/documentacion', () => HttpResponse.json({ rutas: [{
       metodo: 'GET', patron: '/cotizaciones', resumen: 'Cotizar', descripcion: 'Cotiza envíos.', parametros: [],

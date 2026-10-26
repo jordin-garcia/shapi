@@ -110,7 +110,7 @@ public static class EndpointsPortal
         await db.SaveChangesAsync(ct);
         if (consumidor.Estado == EstadoCuenta.Activo)
         {
-            await CrearSesion(db, consumidor, http, ahora, ct);
+            await CrearSesion(db, consumidor, http, ct);
         }
 
         await tx.CommitAsync(ct);
@@ -199,7 +199,7 @@ public static class EndpointsPortal
         }
 
         consumidor.RegistrarInicioExitoso();
-        await CrearSesion(db, consumidor, http, ahora, ct);
+        await CrearSesion(db, consumidor, http, ct);
         return TypedResults.Ok();
     }
 
@@ -278,7 +278,7 @@ public static class EndpointsPortal
         }
 
         var consumidor = await db.Set<Consumidor>().IgnoreQueryFilters().SingleAsync(c => c.Id == consumidorId, ct);
-        await CrearSesion(db, consumidor, http, reloj.Ahora, ct);
+        await CrearSesion(db, consumidor, http, ct);
         return TypedResults.Ok();
     }
 
@@ -346,7 +346,7 @@ public static class EndpointsPortal
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, TableName: "consumidor" })
         { return Problemas.Crear(409, CodigosError.CorreoYaRegistrado, "Ya existe una cuenta con ese correo."); }
-        await CrearSesion(db, consumidor, http, ahora, ct);
+        await CrearSesion(db, consumidor, http, ct);
         await tx.CommitAsync(ct);
         return TypedResults.Ok();
     }
@@ -358,8 +358,10 @@ public static class EndpointsPortal
 
     private static async Task<PortalResuelto?> Resolver(IResolutorPortal resolver, HttpContext http, CancellationToken ct) => await resolver.Resolver(http.Request.Host.Host, ct);
 
-    private static async Task CrearSesion(ShapiDbContext db, Consumidor consumidor, HttpContext http, DateTimeOffset ahora, CancellationToken ct)
+    private static async Task CrearSesion(ShapiDbContext db, Consumidor consumidor, HttpContext http, CancellationToken ct)
     {
+        // RF-04: la seguridad usa hora real; el reloj de demostración solo adelanta el negocio.
+        var ahora = http.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
         var valor = SeguridadTokens.GenerarToken();
         var sesion = Sesion.IniciarConsumidor(SeguridadTokens.HashearToken(valor), consumidor.Id, http.Request.Host.Host,
             http.Connection.RemoteIpAddress, http.Request.Headers.UserAgent.ToString() is { Length: > 0 } ua ? ua : null, ahora);

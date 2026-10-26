@@ -5,6 +5,7 @@ import type { paths } from '@shapi/api/suscripciones';
 import { Aviso, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 import { Link } from 'react-router';
 import { useSesion } from '../modulos/sesion/useSesion';
+import { AvisoPrueba } from '../modulos/suscripciones/AvisoPrueba';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const fecha = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala' }).format(new Date(value));
@@ -61,14 +62,16 @@ export default function PaginaB14Suscripcion() {
   const gracia = s.estado === 'en_gracia';
   const suspendida = s.estado === 'suspendida';
   const estado = gracia ? 'En gracia' : suspendida ? 'Suspendida' : 'Activa';
+  const revertido = s.pagoRevertido;
   return <main className="mx-auto max-w-[880px]">
     <h1 className="font-display text-[32px]">Suscripción de plataforma</h1>
     <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">Su plan de Shapi, su vigencia y la tarjeta con la que se renueva.</p>
+    {puedeGestionar && s.avisoPrueba && <div className="mt-6"><AvisoPrueba venceEn={s.avisoPrueba.venceEn} /></div>}
     {gracia && <section className="mt-6 rounded-base border border-[#D9A42E] bg-[#FFF9E8] p-5">
       <h2 className="font-display text-[22px]">Quedan {s.diasRestantes || 0} días antes de que sus APIs dejen de responder</h2>
       <p className="mt-3 text-sm leading-relaxed">{gratuito
         ? 'Su plan gratuito o de Prueba venció. Contrate un plan de pago antes de que termine el periodo de gracia para que sus APIs sigan respondiendo.'
-        : 'El cobro de la renovación fue rechazado' + (s.ultimoRechazoEn ? ' el ' + fecha(s.ultimoRechazoEn) : '') + '. Si el ' + (s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)) + ' no hay un cobro autorizado, su suscripción se suspende y la compuerta empieza a rechazar las peticiones de sus consumidores. Mientras dure el periodo de gracia sus APIs siguen respondiendo con normalidad.'}</p>
+        : (revertido ? 'El pago de ' + dinero(revertido.monto) + ' fue revertido el ' + fecha(revertido.fecha) : 'El cobro de la renovación fue rechazado' + (s.ultimoRechazoEn ? ' el ' + fecha(s.ultimoRechazoEn) : '')) + '. Si el ' + (s.graciaHasta ? fecha(s.graciaHasta) : fecha(s.proximaRenovacion)) + ' no hay un cobro autorizado, su suscripción se suspende y la compuerta empieza a rechazar las peticiones de sus consumidores. Mientras dure el periodo de gracia sus APIs siguen respondiendo con normalidad.'}</p>
     </section>}
     {suspendida && <section className="mt-6 rounded-base border border-[#D66B62] bg-[#FFF2F0] p-5">
       <h2 className="font-display text-[22px]">Su tráfico está detenido</h2>
@@ -84,7 +87,7 @@ export default function PaginaB14Suscripcion() {
         </div>
         <div className="text-right"><p className="font-display text-[25px]">{dinero(s.plan.precio)}</p><p className="text-sm text-tinta-suave">Vigencia de {s.plan.vigenciaDias} días</p></div>
       </div>
-      <p className="mt-5 text-sm">{gracia || suspendida ? 'Periodo vencido' : 'Periodo activo'}</p>
+      <p className="mt-5 text-sm">{s.periodoVigente ?? !(gracia || suspendida) ? 'Periodo activo' : 'Periodo vencido'}</p>
       <p className="mt-1 text-[15px]">{fecha(s.periodo.inicio || s.proximaRenovacion)} – {fecha(s.periodo.fin || s.proximaRenovacion)}</p>
       <div className="mt-5 grid gap-4 border-t border-borde pt-5 sm:grid-cols-2">
         <div><p className="text-sm text-tinta-suave">{gratuito ? 'Fin del periodo' : 'Renovación automática'}</p><p className="mt-1">{fecha(s.proximaRenovacion)}</p></div>
@@ -92,8 +95,8 @@ export default function PaginaB14Suscripcion() {
       </div>
       {gracia && <p className="mt-5 text-sm">Periodo de gracia hasta {s.graciaHasta ? fecha(s.graciaHasta) : '—'} · {s.diasRestantes || 0} días restantes</p>}
       {(gracia || suspendida) && <div className="mt-5 grid gap-3 border-t border-borde pt-5 text-sm sm:grid-cols-2">
-        {!gratuito && <p><span className="text-tinta-suave">Cobro rechazado</span><br />{s.ultimoRechazoEn ? fecha(s.ultimoRechazoEn) : '—'}</p>}
-        <p><span className="text-tinta-suave">Periodo de gracia</span><br />{fecha(s.proximaRenovacion)} – {s.graciaHasta ? fecha(new Date(new Date(s.graciaHasta).getTime() - 86400000).toISOString()) : '—'}</p>
+        {!gratuito && <p><span className="text-tinta-suave">{revertido ? 'Pago revertido' : 'Cobro rechazado'}</span><br />{revertido ? `${fecha(revertido.fecha)} · ${dinero(revertido.monto)}` : s.ultimoRechazoEn ? fecha(s.ultimoRechazoEn) : '—'}</p>}
+        <p><span className="text-tinta-suave">Periodo de gracia</span><br />{fecha(s.graciaDesde ?? s.proximaRenovacion)} – {s.graciaHasta ? fecha(new Date(new Date(s.graciaHasta).getTime() - 86400000).toISOString()) : '—'}</p>
         {suspendida && <p><span className="text-tinta-suave">Suspendida desde</span><br />{s.graciaHasta ? fecha(s.graciaHasta) : '—'}</p>}
         {suspendida && <p><span className="text-tinta-suave">Consumidores afectados</span><br />{s.consumidoresAfectados ?? 0} consumidores</p>}
       </div>}

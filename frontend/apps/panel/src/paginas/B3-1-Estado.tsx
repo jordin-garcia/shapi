@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { crearCliente } from '@shapi/api';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { crearCliente, ErrorApi } from '@shapi/api';
+import type { paths as rutasSuscripciones } from '@shapi/api/suscripciones';
+import { useSesion } from '../modulos/sesion/useSesion';
 import type { components, paths } from '@shapi/api/sistema';
-import { EstadoCargando, EstadoError } from '@shapi/ui';
+import { Aviso as AvisoMensaje, Boton, Campo, EstadoCargando, EstadoError } from '@shapi/ui';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type Componente = components['schemas']['EstadoComponente'];
@@ -34,6 +37,7 @@ function Aviso({ componente, compuertaSana }: { componente: Componente; compuert
 }
 
 export default function PaginaB31Estado() {
+  const sesion = useSesion();
   const consulta = useQuery({
     queryKey: ['estado-componentes'],
     queryFn: async ({ signal }) => {
@@ -79,5 +83,52 @@ export default function PaginaB31Estado() {
         </table></div>
       </section>
     </>}
+    {sesion.data?.rol === 'administrador' && <ControlReloj />}
   </main>;
+}
+
+function ControlReloj() {
+  const api = crearCliente<rutasSuscripciones>(window.location.origin);
+  const cache = useQueryClient();
+  const [dias, setDias] = useState('1');
+  const consulta = useQuery({
+    queryKey: ['reloj-demo'],
+    queryFn: async ({ signal }) => {
+      try {
+        const { data, response } = await api.GET('/api/admin/demo/reloj', { signal });
+        if (response.status === 404) return null;
+        if (!response.ok || !data) throw new Error('No se pudo consultar la fecha de demostración.');
+        return data;
+      } catch (error) {
+        if (error instanceof ErrorApi && error.estado === 404) return null;
+        throw error;
+      }
+    },
+    retry: false,
+  });
+  const avance = useMutation({
+    mutationFn: async (adelantarDias: number) => {
+      const { response } = await api.POST('/api/admin/demo/reloj', { body: { adelantarDias } });
+      if (!response.ok) throw new Error('No se pudo adelantar el reloj.');
+    },
+    onSettled: async () => { await cache.invalidateQueries(); },
+  });
+  if (consulta.isError) return <div className="mt-5"><EstadoError mensaje="No se pudo consultar el modo demostración." reintentar={() => void consulta.refetch()} /></div>;
+  if (!consulta.data) return null;
+  const fecha = fechaHora(consulta.data.ahora);
+  const cantidad = Number(dias);
+  return <section aria-label="Modo demostración" className="mt-5 rounded-base border border-borde bg-panel p-5">
+    <h2 className="font-display text-[21px]">Modo demostración</h2>
+    <p className="mt-3 text-[15px] text-tinta-suave" aria-live="polite">Fecha de la demostración: {fecha.fecha}, {fecha.hora} (Guatemala).</p>
+    <p className="mt-2 text-[14px] text-tinta-suave">Adelante la fecha para ejecutar renovaciones, gracia y suspensión. Las sesiones conservan su duración real. Esta acción no se puede deshacer.</p>
+    {avance.isError && <div className="mt-4"><AvisoMensaje estado="error">{avance.error instanceof ErrorApi ? avance.error.titulo : 'No se pudo adelantar el reloj. Consulte la fecha actual antes de volver a intentarlo.'}</AvisoMensaje></div>}
+    <div className="mt-5 flex flex-wrap gap-3">
+      <Boton deshabilitado={avance.isPending} onClick={() => avance.mutate(30)}>Adelantar 30 días</Boton>
+      <Boton deshabilitado={avance.isPending} onClick={() => avance.mutate(7)}>Adelantar 7 días</Boton>
+    </div>
+    <form className="mt-5 flex flex-wrap items-end gap-3" onSubmit={evento => { evento.preventDefault(); if (Number.isSafeInteger(cantidad) && cantidad > 0) avance.mutate(cantidad); }}>
+      <Campo etiqueta="Días que desea adelantar" type="number" min="1" max="365" step="1" value={dias} onChange={evento => setDias(evento.target.value)} />
+      <Boton type="submit" deshabilitado={avance.isPending || !Number.isSafeInteger(cantidad) || cantidad < 1 || cantidad > 365}>Adelantar días</Boton>
+    </form>
+  </section>;
 }

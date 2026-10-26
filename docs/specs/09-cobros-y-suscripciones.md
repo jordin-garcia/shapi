@@ -71,12 +71,16 @@ stateDiagram-v2
 
 **Parámetros** (en `appsettings`, en la sección `Cobros`): `DiasGracia = 7`, `AvisoVencimientoPruebaDias = 7`, `ReintentosRenovacion = 0`. No hay reintentos automáticos: durante la gracia paga el usuario.
 
+Durante los siete días anteriores al fin de una Prueba activa, el propietario ve un aviso en B1.4 y en la parte superior del panel, con su fecha de vencimiento y un enlace a los planes. La consulta de suscripción calcula el aviso con `IReloj`; no aparece antes del umbral ni una vez vencida la Prueba.
+
 ## 4. Ciclos
 
 - `inicio` es el momento de la contratación, redondeado al **inicio del día en America/Guatemala**. `fin = inicio + vigencia_dias`.
 - En pantalla se muestra `inicio – (fin − 1 día)` y "Próxima renovación: `fin`". Por ejemplo, un plan de 30 días contratado el 24 de agosto de 2026 se muestra como **24 ago 2026 – 22 sep 2026** y se renueva el **23 de septiembre de 2026**.
 - Al renovarse, el ciclo nuevo empieza en el `fin` anterior. Al reactivarse después de gracia o suspensión, **empieza el día del pago**.
 - La cuota (`cuota:susc:*` y `cuota:org:*`) se identifica por el `inicio` del ciclo, así que se reinicia sola cuando empieza un ciclo nuevo.
+- Cada renovación de plataforma o API se confirma en su propia transacción, bloqueando la suscripción y comprobando de nuevo su estado y vencimiento. El fallo de otra suscripción no revierte pagos ni ciclos ya confirmados. Si se autorizó un cobro pero falla su confirmación, se reembolsa antes de propagar el error. La publicación en Redis ocurre después de confirmar.
+- Editar la cuota de un plan de plataforma la aplica de inmediato: se vuelve a publicar cada organización con una suscripción no finalizada a ese plan. No cambia el ciclo vigente; un precio editado se cobra desde la siguiente renovación.
 
 ## 5. Cambio de plan
 
@@ -134,6 +138,8 @@ El proveedor no puede convertir un plan gratuito en uno de pago, ni al revés, m
 2. Se llama a `ReembolsarAsync`, el pago queda `revertido` con `revertido_en` y `revertido_por`, y se registra en la bitácora.
 3. Si ese pago cubría el ciclo vigente (`periodo_inicio ≤ ahora < periodo_fin`), la suscripción pasa a `en_gracia` con `gracia_hasta = ahora + 7 días`.
 
+B1.4 distingue esta gracia de un rechazo: indica que el pago fue revertido, con fecha y monto, conserva el periodo como vigente mientras no llegue `fin` y muestra la gracia desde la reversión hasta `gracia_hasta − 1 día` (ADR-30).
+
 ## 8. Quién paga a quién
 
 - Los pagos de plataforma son ingresos de Shapi.
@@ -147,4 +153,17 @@ La facturación suma los pagos de API autorizados cuyo inicio y fin de periodo c
 
 ## 9. Modo demostración
 
-Con `SHAPI_MODO_DEMO=true` se habilita el endpoint `POST /api/admin/demo/reloj` (`{ "adelantarDias": 30 }`), que solo puede usar el administrador. Adelanta el `IReloj` de la API y del trabajador (los dos lo leen de `demo:reloj:desplazamiento` en Redis) y dispara el cierre de ciclo. Así se pueden mostrar en vivo la renovación, la gracia y la suspensión sin esperar 30 días. **Nunca está habilitado cuando `SHAPI_MODO_DEMO=false`.**
+Con `SHAPI_MODO_DEMO=true` se habilita el endpoint `POST /api/admin/demo/reloj` (`{ "adelantarDias": 30 }`), que solo puede usar el administrador. Adelanta el `IReloj` de la API y del trabajador y dispara el cierre de ciclo. Así se pueden mostrar en vivo la renovación, la gracia y la suspensión sin esperar 30 días. **Nunca está habilitado cuando `SHAPI_MODO_DEMO=false`.**
+
+El desplazamiento total se guarda en segundos en `demo:reloj:desplazamiento`. El endpoint incrementa la llave atómicamente, aplica el total devuelto al reloj de su proceso y publica **ese total en segundos**, no el incremento en días, en el canal del mismo nombre. Cada proceso mantiene el desplazamiento en memoria: leer `IReloj.Ahora` no hace operaciones de red. Al arrancar se suscribe y lee la llave; cada cinco segundos vuelve a leerla como respaldo y reintenta la suscripción si falló. Los mensajes actualizan la hora en menos de un segundo con Redis disponible, sin volver a consultar la llave. Los duplicados y los mensajes anteriores no suman de nuevo ni hacen retroceder el reloj; una lectura iniciada antes de un mensaje no sobrescribe el desplazamiento nuevo. La lectura periódica también recoge el borrado de la llave al reiniciar la demostración.
+
+La siembra base inicializa el reloj mediante una lectura asíncrona antes de usarlo, sin abrir suscripciones ni iniciar el bucle: tanto el arranque de la API como `sembrar-demo` ejecutan esa siembra antes de arrancar el host. Así, las fechas y la resincronización posterior del comando respetan un desplazamiento ya guardado, incluidas las expiraciones de las claves rotadas.
+
+El trabajador recibe el aviso de cierre **después** de actualizar su reloj en memoria y procesa los cierres en serie. Si hay varios avisos mientras cierra un ciclo, conserva una solicitud pendiente para volver a comprobar la hora más reciente. Un fallo de Redis, incluido un timeout o una cancelación ajena a la detención del servicio, conserva el último desplazamiento conocido (cero hasta la primera sincronización) y registra una advertencia con el tipo de excepción; se reintenta en el siguiente intervalo. Fuera del modo demostración se usa la hora UTC real sin suscripciones ni lecturas del desplazamiento, y no se registra el servicio de sincronización.
+
+
+### Control desde la interfaz (JG-22)
+
+En B3.1, solo el administrador ve la tarjeta «Modo demostración» al final de la página. Consulta `GET /api/admin/demo/reloj`, muestra la fecha y hora de Guatemala y permite adelantar 30 días, 7 días o una cantidad entera de 1 a 365 días por operación. Un valor fuera de ese intervalo responde `400 datos_invalidos` sin incrementar Redis. La acción es irreversible y los controles quedan deshabilitados mientras se procesa. Un error se muestra con opción de volver a intentarlo; se vuelve a consultar la fecha incluso si falla la publicación después de incrementar el desplazamiento. Tanto la consulta como el avance exigen administrador, y con modo demostración desactivado responden 404. El soporte no consulta el endpoint de demostración.
+
+`GET /api/reloj` exige sesión del personal y `GET /api/portal/reloj` exige sesión de consumidor válida para el portal. Ambos devuelven `ahora` de `IReloj`, `inicioCiclo` (inicio del día en Guatemala) y `finClaveAnteriorPrevisto` (ahora más 24 horas). Consultar la fecha no permite modificarla. Las pantallas esperan esta respuesta y muestran carga, error y reintento; no usan el reloj del navegador como respaldo. La previsión anterior a rotar una clave se confirma con la fecha definitiva de la respuesta de rotación. El vencimiento de las sesiones y de sus cookies usa hora real (10 §1), independiente del desplazamiento de negocio.

@@ -255,6 +255,9 @@ public sealed class ContratacionApi(
         var diasRestantes = graciaHasta is not null
             ? Math.Max(0, (int)Math.Ceiling((graciaHasta.Value - reloj.Ahora).TotalDays))
             : 0;
+        var siguiente = fila.Suscripcion.PlanSiguienteId is Guid siguienteId
+            ? await db.Set<PlanApi>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == siguienteId && x.ApiId == portal.ApiId, cancelacion)
+            : null;
 
         return TypedResults.Ok(new
         {
@@ -270,7 +273,44 @@ public sealed class ContratacionApi(
             graciaHasta,
             ultimoRechazoEn,
             diasRestantes,
+            cambioProgramado = siguiente is null ? null : new { planId = siguiente.Id, nombre = siguiente.Nombre, efectivoDesde = fila.Suscripcion.Fin },
         });
+    }
+
+    public async Task<IResult> CancelarCambio(HttpContext http, CancellationToken ct)
+    {
+        var portal = await resolutor.Resolver(http.Request.Host.Host, ct);
+        if (portal is null
+            || !Guid.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var consumidorId)
+            || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
+            || organizacionId != portal.OrganizacionId)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        if (!await BloquearConsumidor(consumidorId, ct))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var suscripcion = await db.Set<SuscripcionApi>()
+            .FromSqlInterpolated($"SELECT * FROM suscripcion_api WHERE consumidor_id = {consumidorId} AND api_id = {portal.ApiId} AND estado <> 'finalizada' FOR UPDATE")
+            .SingleOrDefaultAsync(ct);
+        if (suscripcion is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (suscripcion.PlanSiguienteId is null)
+        {
+            return TypedResults.NoContent();
+        }
+
+        suscripcion.CancelarCambio(reloj.Ahora);
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return TypedResults.NoContent();
     }
 
     public async Task<IResult> Pagar(HttpContext http, [FromBody] PeticionPagarSuscripcionApi peticion, CancellationToken ct)

@@ -181,6 +181,8 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 
 **Precisión de B2.3:** en `SuscripcionGracia.dc.html` el rango visual termina el 8 de octubre, igual que la fecha de suspensión. La implementación sigue la convención temporal de [12 §ADR-30](12-decisiones.md#adr-30--ciclos-exactos-de-30-días-y-cómo-se-muestran-las-fechas): muestra como periodo de gracia los días con servicio (1–7 oct) y la suspensión aparte (8 oct). Los días restantes los calcula el servidor con `IReloj`, no el navegador, para respetar el reloj de demostración.
 
+**Precisiones de JG-23 (26 oct):** B1.4 muestra «El pago de {monto} fue revertido el {fecha}» en la gracia por reversión, y «Pago revertido» en el detalle. El periodo sigue activo hasta su fin y la gracia empieza en la reversión, con el último día con servicio según ADR-30. En los últimos siete días de una Prueba activa, solo el propietario ve «Su Prueba vence el {fecha}.» y «Ver planes de pago», tanto en B1.4 como arriba del contenido del panel; la fecha y el umbral proceden del servidor. B2.3 muestra «A partir del {fin} su plan será {X}.» y el botón «Cancelar cambio programado», con estado de espera y error recuperable; al cancelar actualiza la suscripción sin recargar la página.
+
 ### B3 · Salidas del administrador y del soporte (`b3-salidas-administracion-soporte.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
@@ -280,3 +282,12 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **A5.8 con el enlace inválido:** muestra el estado de enlace vencido y permite pedir uno nuevo con el correo.
 - **A5.9, después de enviar:** el rótulo «Recuperación · revise su correo», el título «Revise su correo» y, una sola vez, la respuesta neutral «Si el correo tiene una cuenta en este portal, recibirá el enlace.», en el recuadro con el vencimiento de 60 minutos.
 - **A5.10:** «Defina una contraseña nueva para su cuenta en el portal de {nombrePortal}.» (sin el correo, como A1.4b). Con el enlace vencido o usado, muestra «El enlace ya no sirve» y «Solicitar un enlace nuevo».
+
+
+### Fechas de negocio y modo demostración (JG-22)
+
+Todas las fechas de negocio proceden del servidor: A2.2 usa `inicioCicloPrevisto` del plan de plataforma; A5.6 usa `inicioCiclo` de la consulta de fecha del portal; B2.4 muestra `finClaveAnteriorPrevisto`, confirmado después con la fecha de la rotación; B2.7 calcula los días y el prorrateo con `ahora` del servidor. B2.3 muestra los días restantes que calcula el servidor. Se conserva ADR-30 para el último día con servicio. No se calcula «hoy» con la fecha del navegador, ni se usa esa fecha si falla la consulta.
+
+B3.2 obtiene `ahora` del servidor antes de su primera consulta y abre con el día de Guatemala correspondiente y sus seis días anteriores, inclusivos. Al volver después de adelantar el reloj se consultan y muestran las acciones del periodo nuevo. El selector, la paginación y las variantes con datos y vacía conservan los textos y la estructura de sus mockups.
+
+B3.1 agrega al final una tarjeta «Modo demostración», aprobada por Jordin el 25 de octubre de 2026, solo para administrador y con `SHAPI_MODO_DEMO=true`. Muestra fecha y hora en Guatemala, botones «Adelantar 30 días» y «Adelantar 7 días», y el campo «Días que desea adelantar» con «Adelantar días». Explica que ejecuta los procesos de negocio, que no se puede deshacer y que las sesiones conservan su duración real. Los controles se bloquean durante el avance y la fecha se vuelve a consultar al terminar. La tabla, latencia y estados normal, degradado y de soporte conservan el contenido y estructura de los mockups de B3.

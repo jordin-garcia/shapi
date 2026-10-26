@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Shapi.Dominio.Identidad;
 using Shapi.Dominio.Organizaciones;
 using Shapi.Dominio.Planes;
+using Shapi.Infraestructura.Comun;
 using Shapi.Infraestructura.Persistencia;
 
 namespace Shapi.Infraestructura.Siembra.Base;
@@ -11,6 +12,11 @@ public static class SiembraBase
 {
     public static async Task EjecutarAsync(ShapiDbContext db, string? adminCorreo, string? adminNombre, string? adminContrasena, Shapi.Aplicacion.Comun.IReloj reloj, Microsoft.AspNetCore.Identity.IPasswordHasher<Usuario> hasher, Microsoft.Extensions.Logging.ILogger logger)
     {
+        // La API siembra antes de Run; sembrar-demo ni siquiera arranca el host (JG-21).
+        if (reloj is RelojSistema relojSistema)
+        {
+            await relojSistema.InicializarAsync();
+        }
         await db.Database.MigrateAsync();
 
         var orgPlataforma = await db.Set<Organizacion>().IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Tipo == TipoOrganizacion.Plataforma);

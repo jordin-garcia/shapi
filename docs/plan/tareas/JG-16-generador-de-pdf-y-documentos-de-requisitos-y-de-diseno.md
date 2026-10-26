@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-24
 depende_de: []
 no_antes_de: 2026-10-24
@@ -50,3 +50,32 @@ node scripts/generar-pdf.mjs docs/pdf/Documento_de_Requisitos.pdf docs/specs/01-
 
 ## Notas
 - JG-17 vuelve a generar todos los PDF al congelar el código, por si cambiaron las especificaciones.
+
+## Resultado
+
+- Se creó `scripts/generar-pdf.mjs`: el comando indicado convierte una o varias
+  fuentes Markdown en PDF con React Markdown, SVG de Mermaid CLI por `npx` y
+  Chromium de Playwright, sin LaTeX. Reutiliza las dependencias existentes del
+  frontend y las E2E, sin agregar paquetes a sus manifiestos o lockfiles.
+- `docs/pdf/plantilla.css` da carátula con los datos de 01, índice navegable,
+  marcadores, encabezado, numeración, tablas con encabezados repetidos y columnas
+  proporcionales. Conserva anclas RF/RNF y referencias Markdown entre capítulos.
+- Se generaron y versionaron `Documento_de_Requisitos.pdf` (37 páginas, fuentes
+  01–05 y 3 diagramas) y `Documento_de_Diseno.pdf` (109 páginas, fuentes 06–12 y
+  18 diagramas). Los diagramas grandes usan A3 horizontal y los más extensos
+  incluyen vista general y detalles solapados para su lectura impresa.
+- Decisiones: fecha de carátula en Guatemala; títulos derivados del nombre de
+  salida; Mermaid CLI fijado en 11.12.0, en lotes de dos para limitar la memoria;
+  imágenes locales relativas al Markdown y enlaces externos del repositorio a
+  GitHub. Los temporales se eliminan tanto al terminar como ante un error.
+- Verificación: 108 pruebas de scripts y 2 de integración real aprobadas, sin
+  omisiones; los dos comandos de generación y el validador del plan correctos.
+  Se comprobaron contenido, numeración y límites de página con PyMuPDF y se
+  revisaron visualmente carátulas, tablas, diagramas y tres páginas aleatorias
+  de cada documento. Evidencia y seis capturas en `docs/pdf/VERIFICACION.md`.
+- La revisión independiente corrigió la pérdida de anclas y referencias en las
+  tablas y dio `LISTO` en la segunda pasada. El workflow `.github/workflows/pdf.yml`
+  ejecuta la generación y las pruebas reales en Linux.
+- `docs/pdf/README.md` documenta preparación, comandos y reutilización para JZ-15
+  y JZ-16. Los manuales quedan fuera de este cambio; JG-17 regenerará los PDF al
+  congelar el código.

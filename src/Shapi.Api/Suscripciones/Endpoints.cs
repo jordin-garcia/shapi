@@ -8,6 +8,12 @@ public static class Endpoints
 {
     public static IEndpointRouteBuilder MapearEndpointsSuscripciones(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/admin/demo/reloj", (RelojDemoApi caso) => caso.Consultar())
+            .RequireAuthorization(Permisos.GestionarPlanesPlataforma);
+        app.MapGet("/api/reloj", (Shapi.Aplicacion.Comun.IReloj reloj) => RelojDemoApi.ConsultarFecha(reloj))
+            .RequireAuthorization();
+        app.MapGet("/api/portal/reloj", (Shapi.Aplicacion.Comun.IReloj reloj) => RelojDemoApi.ConsultarFecha(reloj))
+            .RequireAuthorization(Permisos.ConsumidorVerCuenta);
         app.MapPost("/api/admin/demo/reloj", (RelojDemoApi caso, PeticionRelojDemo peticion, CancellationToken ct) => caso.Adelantar(peticion, ct))
             .RequireAuthorization(Permisos.GestionarPlanesPlataforma);
         var portal = app.MapGroup("/api/portal");
@@ -16,6 +22,8 @@ public static class Endpoints
             .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapGet("/suscripcion", (ContratacionApi caso, HttpContext http, CancellationToken ct) => caso.Consultar(http, ct))
             .RequireAuthorization(Permisos.ConsumidorVerCuenta);
+        portal.MapDelete("/suscripcion/cambio-programado", (ContratacionApi caso, HttpContext http, CancellationToken ct) => caso.CancelarCambio(http, ct))
+            .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapPost("/suscripcion/pagar", (ContratacionApi caso, HttpContext http, PeticionPagarSuscripcionApi cuerpo, CancellationToken ct) => caso.Pagar(http, cuerpo, ct))
             .RequireAuthorization(Permisos.ConsumidorContratarPlan);
         portal.MapPost("/suscripcion/cambiar", (ContratacionApi caso, HttpContext http, PeticionCambiarPlanApi cuerpo, CancellationToken ct) => caso.CambiarPlan(http, cuerpo, ct))

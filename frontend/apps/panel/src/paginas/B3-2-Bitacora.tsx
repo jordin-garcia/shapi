@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { crearCliente } from '@shapi/api';
 import type { components, paths } from '@shapi/api/sistema';
 import { Boton, EstadoCargando, EstadoError } from '@shapi/ui';
+import { useFechaServidor } from '../modulos/reloj/reloj';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -20,8 +21,8 @@ function partesGuatemala(fecha: Date) {
   return { ano: Number(valor('year')), mes: Number(valor('month')), dia: Number(valor('day')), hora: valor('hour'), minuto: valor('minute') };
 }
 
-function hoyGuatemala() {
-  const { ano, mes, dia } = partesGuatemala(new Date());
+function diaGuatemala(ahora: string) {
+  const { ano, mes, dia } = partesGuatemala(new Date(ahora));
   return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 }
 
@@ -79,7 +80,14 @@ function Paginador({ pagina, total, cambiar }: { pagina: number; total: number; 
 }
 
 export default function PaginaB32Bitacora() {
-  const hastaInicial = hoyGuatemala();
+  const fecha = useFechaServidor();
+  if (fecha.isPending) return <EstadoCargando />;
+  if (fecha.isError) return <EstadoError mensaje="No se pudo consultar la fecha del servidor." reintentar={() => void fecha.refetch()} />;
+  const dia = diaGuatemala(fecha.data.ahora);
+  return <Bitacora key={dia} hastaInicial={dia} />;
+}
+
+function Bitacora({ hastaInicial }: { hastaInicial: string }) {
   const desdeInicial = sumarDias(hastaInicial, -6);
   const [periodo, setPeriodo] = useState({ desde: desdeInicial, hasta: hastaInicial });
   const [pagina, setPagina] = useState(1);

@@ -15,6 +15,10 @@ public sealed class TrabajoVerificacionDominios(
                 await alcance.ServiceProvider.GetRequiredService<VerificarDominiosPendientes>().EjecutarAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+            catch (Exception ex) when (ex is StackExchange.Redis.RedisException or StackExchange.Redis.RedisTimeoutException)
+            {
+                registro.LogWarning("No se pudieron verificar los dominios; se reintenta en {Intervalo}: {Tipo}", opciones.Intervalo, ex.GetType().Name);
+            }
             catch (Exception ex)
             {
                 registro.LogError(ex, "No se pudieron verificar los dominios pendientes; se reintenta en {Intervalo}", opciones.Intervalo);

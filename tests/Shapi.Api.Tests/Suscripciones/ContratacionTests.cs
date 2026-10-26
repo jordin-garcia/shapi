@@ -712,6 +712,50 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM clave")).Should().Be(0);
     }
 
+    // RF-25 y RNF-08: consulta, cancela solo su cambio y permite repetir sin efectos.
+    [Fact]
+    public async Task RF_25_CambioProgramado_ConsultaCancelaYAislaConsumidorYPortal()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var s = await NuevaSuscripcionApi(e.ConsumidorId, e.ApiId, e.PlanId);
+        var siguiente = await NuevoPlanApi(e.ApiId);
+        await Ejecutar($"UPDATE suscripcion_api SET plan_siguiente_id = '{siguiente}' WHERE id = '{s}'");
+        using var consulta = await Portal(HttpMethod.Get, "/api/portal/suscripcion", e);
+        var json = await consulta.Content.ReadFromJsonAsync<JsonElement>();
+        json.GetProperty("cambioProgramado").GetProperty("planId").GetGuid().Should().Be(siguiente);
+        json.GetProperty("cambioProgramado").GetProperty("efectivoDesde").GetDateTimeOffset()
+            .Should().Be(json.GetProperty("proximaRenovacion").GetDateTimeOffset());
+        var otroConsumidor = await NuevoConsumidor(e.OrganizacionId);
+        using var ajeno = await Portal(HttpMethod.Delete, "/api/portal/suscripcion/cambio-programado", e with { ConsumidorId = otroConsumidor });
+        ajeno.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var intruso = await CrearEscenario(verificado: true, subdominio: "agro");
+        using var otroPortal = await Portal(HttpMethod.Delete, "/api/portal/suscripcion/cambio-programado", intruso);
+        otroPortal.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await Escalar<Guid>($"SELECT plan_siguiente_id FROM suscripcion_api WHERE id = '{s}'")).Should().Be(siguiente);
+        for (var i = 0; i < 2; i++)
+        {
+            using var cancelada = await Portal(HttpMethod.Delete, "/api/portal/suscripcion/cambio-programado", e);
+            cancelada.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        }
+        (await Escalar<long>($"SELECT count(*) FROM suscripcion_api WHERE id = '{s}' AND plan_siguiente_id IS NULL AND plan_id = '{e.PlanId}'")).Should().Be(1);
+    }
+
+    // RF-25 y RNF-07: la nueva acción exige una sesión del consumidor y protección CSRF.
+    [Fact]
+    public async Task RF_25_CancelarCambio_ExigeSesionYCsrf()
+    {
+        var e = await CrearEscenario(verificado: true);
+        using var sinSesion = new HttpRequestMessage(HttpMethod.Delete, "/api/portal/suscripcion/cambio-programado");
+        sinSesion.Headers.Host = HostPortal;
+        sinSesion.Headers.Add("X-Requested-With", "shapi");
+        using var anonima = await Cliente.SendAsync(sinSesion);
+        anonima.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        using var sinCsrf = Peticion(HttpMethod.Delete, "/api/portal/suscripcion/cambio-programado", e);
+        sinCsrf.Headers.Remove("X-Requested-With");
+        using var respuesta = await Cliente.SendAsync(sinCsrf);
+        respuesta.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private sealed record Escenario(Guid OrganizacionId, Guid ApiId, Guid ConsumidorId, Guid PlanId);
     private sealed record DatosTarjetaPrueba(string Numero, string MesVencimiento, string AnioVencimiento, string Cvv, string Titular);
     private static readonly DatosTarjetaPrueba Tarjeta = new("4242424242424242", "12", "2030", "123", "María Quiñónez");

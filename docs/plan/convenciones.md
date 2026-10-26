@@ -102,7 +102,7 @@ Las restricciones de quién puede tocar cada archivo ("Solo José Pablo", "Solo 
 
 - **Casos de uso:** una clase por caso de uso, en `Shapi.Aplicacion/<Modulo>/` (por ejemplo `RegistrarProveedor`), con un validador de FluentValidation y un resultado `Resultado<T>` (éxito o error con un `codigo`). Los endpoints solo traducen HTTP a caso de uso.
 - **Dominio:** las reglas y las transiciones de estado viven en las entidades (`Suscripcion.EntrarEnGracia()`), no en los endpoints.
-- **Tiempo:** siempre con `IReloj`, nunca `DateTime.UtcNow` directo, para poder probar y para el modo demostración.
+- **Tiempo:** las fechas de negocio siempre con `IReloj`, nunca `DateTime.UtcNow` directo, para poder probar y para el modo demostración. La creación, vigencia y último uso de sesiones y la expiración de sus cookies usan `TimeProvider.GetUtcNow()` (hora real, 10 §1); se prueba inyectando otro `TimeProvider`.
 - **Correo:** siempre con `IColaCorreo.Encolar(plantilla, destinatario, datos)`, que escribe en `correo_saliente`. Nunca se envía por SMTP desde la API.
 - **Bitácora:** `IBitacora.Registrar(...)` en toda acción de la lista de `docs/specs/10-identidad-y-seguridad.md` §7.
 - **Redis:** solo a través de `IPublicadorCache`, en el plano de control, y de `LlavesRedis`, en `Shapi.Contratos`. Nunca se escriben llaves "a mano".

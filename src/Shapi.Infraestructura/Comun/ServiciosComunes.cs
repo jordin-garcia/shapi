@@ -23,7 +23,12 @@ public static class ServiciosComunes
     public static IServiceCollection AgregarServiciosComunes(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton<IReloj, RelojSistema>();
+        services.AddSingleton<RelojSistema>();
+        services.AddSingleton<IReloj>(sp => sp.GetRequiredService<RelojSistema>());
+        if (string.Equals(configuration["SHAPI_MODO_DEMO"], "true", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHostedService(sp => sp.GetRequiredService<RelojSistema>());
+        }
 
         // Cola de correo y bitácora reales (Scoped porque dependen del DbContext)
         services.AddScoped<IColaCorreo, ColaCorreoBaseDatos>();

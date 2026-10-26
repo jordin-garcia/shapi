@@ -6,6 +6,7 @@ import {
   ApiProveedorNoDisponible,
   mensajeError,
   useClavesConsumidor,
+  useCancelarCambioProgramado,
   useEmitirClave,
   usePagarSuscripcion,
   useRevocarClave,
@@ -45,11 +46,11 @@ export default function Suscripcion() {
   const revocar = useRevocarClave();
   const emitir = useEmitirClave();
   const pagar = usePagarSuscripcion();
+  const cancelarCambio = useCancelarCambioProgramado();
   const [paso, setPaso] = useState<Paso>();
   const [nueva, setNueva] = useState<{ clave: ClaveEmitida; anterior?: Clave }>();
   const [error, setError] = useState<string>();
   const [mostrarPago, setMostrarPago] = useState(false);
-  const [ahora] = useState(() => Date.now());
 
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.error instanceof ApiProveedorNoDisponible) return <NoDisponible nombreApi={marca.nombreApi} />;
@@ -91,7 +92,7 @@ export default function Suscripcion() {
     ? new Date(suscripcion.graciaHasta)
     : new Date(new Date(suscripcion.proximaRenovacion).getTime() + 7 * DIA);
   const finGracia = new Date(suspension.getTime() - DIA);
-  const diasRestantes = suscripcion.diasRestantes ?? Math.max(0, Math.ceil((suspension.getTime() - ahora) / DIA));
+  const diasRestantes = suscripcion.diasRestantes;
   const vigencia = Math.max(1, Math.round((new Date(suscripcion.periodo.fin).getTime() - new Date(suscripcion.periodo.inicio).getTime()) / DIA) + 1);
 
   async function emitirNueva(clave: Clave) {
@@ -112,6 +113,13 @@ export default function Suscripcion() {
         : <Link className="inline-flex h-[46px] items-center rounded-base border border-borde-campo bg-panel px-6 text-[15px] font-medium text-tinta" to={`/cuenta/cambiar-plan/${suscripcion.plan.id}`}>Cambiar de plan</Link>)}
     </header>
 
+    {suscripcion.cambioProgramado && <div className="mt-6"><Aviso estado="neutro">
+      <span>A partir del {fecha(suscripcion.cambioProgramado.efectivoDesde)} su plan será {suscripcion.cambioProgramado.nombre}.</span>
+      <Boton principal={false} deshabilitado={cancelarCambio.isPending} onClick={() => {
+        setError(undefined);
+        cancelarCambio.mutate(undefined, { onError: causa => setError(mensajeError(causa, 'No se pudo cancelar el cambio programado. Intente de nuevo.')) });
+      }}>{cancelarCambio.isPending ? 'Cancelando…' : 'Cancelar cambio programado'}</Boton>
+    </Aviso></div>}
     {apiNoDisponible && <AvisoApiNoDisponible nombreApi={marca.nombreApi} />}
     {!apiNoDisponible && enGracia && <section className="mt-8 rounded-base border border-alerta-borde bg-alerta-fondo p-5">
       <h2 className="font-display text-[21px] leading-[1.3] text-alerta">Quedan {diasRestantes} días antes de que sus claves dejen de responder</h2>

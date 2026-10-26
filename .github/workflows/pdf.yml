@@ -1,0 +1,63 @@
+name: PDF
+
+on:
+  pull_request:
+    paths:
+      - "scripts/generar-pdf*"
+      - "scripts/pdf/**"
+      - "docs/pdf/**"
+      - "docs/specs/**"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - "tests/e2e/package.json"
+      - "tests/e2e/pnpm-lock.yaml"
+      - ".github/workflows/pdf.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/generar-pdf*"
+      - "scripts/pdf/**"
+      - "docs/pdf/**"
+      - "docs/specs/**"
+      - ".github/workflows/pdf.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Instalar pnpm del proyecto
+        run: npm install --global pnpm@11.0.0
+      - name: Instalar herramientas existentes
+        run: |
+          pnpm --dir frontend install --frozen-lockfile
+          pnpm --dir tests/e2e install --frozen-lockfile
+          pnpm --dir tests/e2e exec playwright install --with-deps chromium
+      - name: Preparar Mermaid CLI sin descargar otro navegador
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+        run: npx --yes @mermaid-js/mermaid-cli@11.12.0 --version
+      # Perfil limitado a la ruta exacta del Chromium instalado por Playwright.
+      # Permite su sandbox sin desactivar AppArmor ni las restricciones globales.
+      - name: Configurar el sandbox de Chromium en Ubuntu
+        run: |
+          chromium=$(node -e 'const {createRequire}=require("node:module"); console.log(createRequire(process.cwd()+"/tests/e2e/package.json")("@playwright/test").chromium.executablePath())')
+          sudo tee /etc/apparmor.d/shapi-pdf-chromium >/dev/null <<PERFIL
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile shapi-pdf-chromium "$chromium" flags=(unconfined) {
+            userns,
+          }
+          PERFIL
+          sudo apparmor_parser -r /etc/apparmor.d/shapi-pdf-chromium
+      - name: Pruebas del generador y del PDF con Chromium y Mermaid
+        run: |
+          node --test scripts/generar-pdf.test.mjs
+          node --test scripts/pdf/generar-pdf.test.mjs

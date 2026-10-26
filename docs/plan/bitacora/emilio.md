@@ -150,3 +150,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: los campos de gracia corresponden solo a la suscripción API del consumidor y son nulos fuera de `en_gracia`; la gracia de plataforma del proveedor mantiene `apiDisponible`, sin exponer sus fechas de cobro. Una organización sin suscripción de plataforma vigente se considera disponible si no está suspendida administrativamente.
 - Verificación: `dotnet build Shapi.slnx` y `dotnet format Shapi.slnx --verify-no-changes` pasan; 70 pruebas de `Shapi.Api.Tests.Suscripciones` pasan. `pnpm generar:api`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (457 pruebas) y `pnpm build` pasan. Una primera corrida de Vitest tuvo un timeout intermitente preexistente en A8.1; la prueba aislada y la repetición completa pasaron.
 - Pendiente o aviso para otros: ninguno.
+
+## 2026-10-24 · EM-16 · Pruebas de aislamiento entre organizaciones y de permisos
+- Hecho: agregué cobertura de integración para las rutas de APIs y miembros, los casos de soporte de otra organización, recursos administrativos inexistentes y claves del portal; también cubrí permisos HTTP de los seis roles de 04 §3.
+- Decisiones: las rutas de administración operan sobre recursos globales, por lo que se comprueba 404 para identificadores inexistentes; las rutas con datos de organización comprueban el aislamiento de la organización de la sesión.
+- Verificación: `dotnet build Shapi.slnx`, `dotnet format Shapi.slnx --verify-no-changes`, `node scripts/tareas.mjs --validar` (88 tareas válidas) y `git diff --check` pasan. Las pruebas nuevas compilan; la ejecución dirigida de `Shapi.Api.Tests.Aislamiento` no pudo iniciar porque Docker no está disponible para Testcontainers (`/var/run/docker.sock`).
+- Verificación de integración: la primera ejecución de backend en CI corrió 1032 pruebas y encontró cuatro fallos en escenarios de permiso permitido por falta de suscripción de plataforma; ya se agregó ese dato a los escenarios. La suite local no puede arrancar sin Docker para Testcontainers, y la CI del commit corregido debe confirmar el resultado.
+- Revisión en contexto limpio: LISTO para las correcciones de cuerpos y recursos extranjeros; la corrección de los datos de suscripción está bajo revisión independiente.
+- Pendiente o aviso para otros:
+  - **Jordin:** confirmar en CI las pruebas de integración nuevas; el entorno local no tiene Docker.

@@ -71,6 +71,17 @@ export function usePagarSuscripcion() {
   });
 }
 
+export function useCancelarCambioProgramado() {
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { response } = await clienteSuscripciones.DELETE('/api/portal/suscripcion/cambio-programado');
+      if (!response.ok) throw new Error('No se pudo cancelar el cambio programado.');
+    },
+    onSuccess: async () => cache.invalidateQueries({ queryKey: claveSuscripcionConsumidor }),
+  });
+}
+
 export function useRotarClave() {
   const cache = useQueryClient();
   return useMutation({
