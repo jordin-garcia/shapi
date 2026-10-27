@@ -64,7 +64,8 @@ Finalmente, esta prueba ejecuta los dos cobros: confirma que el primero es exito
 | Planes de cada API y administración de miembros y permisos | A4.1, A4.2 y A8.2 (aceptación de invitación) |
 | Invitaciones a consumidores e historial de pagos del proveedor | B1.5 y B1.3 |
 | Planes de plataforma y reversión de pagos por administración | A6.1, A6.3 y A6.3b |
-| Identidad del consumidor, contratación de un plan de API, claves iniciales, cambio de plan e historial de pagos | A5.1 a A5.4b, A5.8 a A5.10, B2.2, B2.3 y B2.7; las pantallas del portal son de Dominique y usan los endpoints de Emilio |
+| Identidad del consumidor: registro, invitación, acceso, verificación y recuperación | A5.3, A5.3b, A5.7, A5.8, A5.9 y A5.10; las pantallas del portal son de Dominique y usan los endpoints de Emilio |
+| Contratación de un plan de API, respuesta con claves iniciales y medio de pago, cambio de plan e historial de pagos del consumidor | A5.4, A5.6, A5.4b, B2.3, B2.7 y B2.2; las pantallas del portal son de Dominique y usan los endpoints de Emilio |
 | Renovación automática, gracia, suspensión y reactivación de las suscripciones de plataforma y de API, con reloj de demostración | B1.4 y B2.3; mostrar el cobro y el cambio de estado después de adelantar el reloj |
 
 La persistencia, los controles de aislamiento entre organizaciones y la pasarela simulada sustentan esos flujos, pero se explican con el código y las pruebas, no con una pantalla adicional.

@@ -159,3 +159,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Revisión en contexto limpio: LISTO para las correcciones de cuerpos y recursos extranjeros; la corrección de los datos de suscripción está bajo revisión independiente.
 - Pendiente o aviso para otros:
   - **Jordin:** confirmar en CI las pruebas de integración nuevas; el entorno local no tiene Docker.
+
+## 2026-10-27 · EM-22 · Elemento de código para el video del Avance 3
+- Hecho: preparé `docs/video/elementos/emilio.md` con el patrón de puertos y adaptadores de pagos, ejemplos concretos de Clean Code, fragmento verificado contra `main`, dos pruebas de referencia, narración y orden de pantalla, más los flujos que aporté a la demostración.
+- Decisiones: elegí `IPasarelaPagos` y `PasarelaSimulada` por ADR-12 y separé explícitamente mis endpoints de las pantallas del portal hechas por Dominique.
+- Verificación: `node scripts/tareas.mjs --validar` pasa (89 tareas); el fragmento de 21 líneas coincide con `origin/main`; las pruebas de tarjeta 0341 y token entre instancias pasan (1 y 3 casos). La revisión independiente detectó una atribución de pantallas imprecisa y se corrigió.
+- Pendiente o aviso para otros:
+  - **JG-29:** use este elemento para mi intervención de 2 a 3 minutos y los flujos de la tabla para repartir la narración; compruebe las líneas citadas contra `main` antes de grabar, como pide su criterio 7.
