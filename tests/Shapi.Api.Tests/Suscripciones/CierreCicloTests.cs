@@ -1,14 +1,14 @@
+using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
+using Shapi.Dominio.Apis;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Bitacora;
 using Shapi.Infraestructura.Correo;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.CierreCiclo;
-using Microsoft.EntityFrameworkCore;
-using Shapi.Dominio.Apis;
 
 namespace Shapi.Api.Tests.Suscripciones;
 

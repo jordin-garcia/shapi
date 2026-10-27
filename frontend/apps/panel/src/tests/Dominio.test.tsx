@@ -71,9 +71,9 @@ describe('JG-24 · RF-12 · configuración del dominio', () => {
   });
 
   it.each([
-    ['pendiente', 'Pendiente de verificación', 'text-advertencia', 'Pendiente de verificación'],
-    ['verificado', 'Verificado', 'text-exito', 'Se emite con la primera petición'],
-    ['fallido', 'Verificación fallida', 'text-alerta', 'No disponible'],
+    ['pendiente', 'Pendiente de verificación', 'eti-n', 'Pendiente de verificación'],
+    ['verificado', 'Verificado', 'eti-c', 'Se emite con la primera petición'],
+    ['fallido', 'Verificación fallida', 'eti-a', 'No disponible'],
   ])('RF-12 distingue DNS y TLS para un dominio %s', async (estado, etiqueta, color, tls) => {
     montar({ ...base, estado });
     await screen.findByLabelText('Dominio');

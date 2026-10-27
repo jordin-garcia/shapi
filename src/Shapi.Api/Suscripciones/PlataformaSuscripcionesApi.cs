@@ -4,12 +4,12 @@ using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
 using Shapi.Contratos;
 using Shapi.Contratos.Redis;
+using Shapi.Dominio.Apis;
 using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
-using Shapi.Infraestructura.Persistencia;
 using Shapi.Infraestructura.Apis;
-using Shapi.Dominio.Apis;
+using Shapi.Infraestructura.Persistencia;
 using StackExchange.Redis;
 
 namespace Shapi.Api.Suscripciones;

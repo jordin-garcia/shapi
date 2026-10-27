@@ -16,7 +16,7 @@ async function entrar(page: Page, origen: string, correo: string) {
 // RF-12, RF-15, RF-16, RF-25, RF-43 y RF-47: navegador y servicios reales, sin interceptar respuestas.
 test('JG-24 · dominio, documentación, consola y desconexión al renovar la bajada', async ({ browser }, info) => {
   const contextos = await Promise.all(Array.from({ length: 4 }, () => browser.newContext({
-    ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 },
+    ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 }, colorScheme: 'light',
   })));
   const [proveedor, agro, consumidor, admin] = await Promise.all(contextos.map(c => c.newPage()));
   try {
@@ -47,6 +47,7 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
     await expect(proveedor.getByText('El registro DNS simulado se creó.')).toBeVisible();
     await proveedor.getByRole('button', { name: 'Verificar registro DNS' }).click();
     await expect(proveedor.getByText('Verificado', { exact: true })).toBeVisible();
+    await expect(proveedor.getByText('Verificado', { exact: true })).toHaveCSS('color', 'rgb(20, 101, 66)');
     await expect(proveedor.getByLabel('Certificado TLS del dominio propio')).toHaveText('Se emite con la primera petición');
     await proveedor.screenshot({ path: info.outputPath('A3-6-envios-verificado.png'), fullPage: true });
 
@@ -76,6 +77,9 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
     await expect(proveedor.getByText(/Al aplicar el cambio, se desconectarán los dominios propios/)).toBeVisible();
     await proveedor.screenshot({ path: info.outputPath('A2-5-aviso-desconexion.png'), fullPage: true });
     await proveedor.getByRole('button', { name: 'Programar cambio de plan' }).click();
+    await expect(proveedor).toHaveURL(`${panel}/panel/suscripcion`);
+    await expect(proveedor.getByRole('heading', { name: 'Suscripción de plataforma', exact: true })).toBeVisible();
+    await expect(proveedor.getByText(/A partir del .* su plan será Lanzamiento\./)).toBeVisible();
     await expect(proveedor.getByText(/Al aplicar el cambio, se desconectarán los dominios propios/)).toBeVisible();
     await proveedor.screenshot({ path: info.outputPath('B1-4-aviso-desconexion.png'), fullPage: true });
     const antes = await proveedor.request.post(`https://${dominio}/cotizaciones`, {
@@ -93,8 +97,15 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
       expect(estado.dominio).toBeNull();
       expect(estado.dominioPropioPermitido).toBe(false);
     }).toPass({ timeout: 15_000, intervals: [300, 600] });
-    const despues = await proveedor.request.post(`https://${dominio}/cotizaciones`, { headers: { 'X-Api-Key': claveDemo }, data: {} });
-    expect(despues.status()).toBe(404);
+    await expect(async () => {
+      const despues = await proveedor.request.post(`https://${dominio}/cotizaciones`, { headers: { 'X-Api-Key': claveDemo }, data: {} });
+      expect(despues.status()).toBe(404);
+      expect((await despues.json()).error.codigo).toBe('api_no_encontrada');
+    }).toPass({ timeout: 10_000, intervals: [200, 400] });
+    const subdominio = await proveedor.request.post('https://envios.api.shapi.localhost/cotizaciones', {
+      headers: { 'X-Api-Key': claveDemo }, data: { origen: '0901', destino: '0301', peso_kg: 2.5, tipo_servicio: 'normal' },
+    });
+    expect(subdominio.status()).toBe(200);
     await proveedor.goto(`${panel}/panel/apis/${api.id}/dominios`);
     await expect(proveedor.getByText(/Su plan Lanzamiento no incluye dominio propio/)).toBeVisible();
     await proveedor.screenshot({ path: info.outputPath('A3-6-despues-bajada.png'), fullPage: true });

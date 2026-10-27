@@ -8,8 +8,8 @@ using Shapi.Dominio.Organizaciones;
 using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
-using Shapi.Infraestructura.Persistencia;
 using Shapi.Infraestructura.Apis;
+using Shapi.Infraestructura.Persistencia;
 using AplicacionEntradaBitacora = Shapi.Aplicacion.Comun.EntradaBitacora;
 
 namespace Shapi.Trabajador.CierreCiclo;
