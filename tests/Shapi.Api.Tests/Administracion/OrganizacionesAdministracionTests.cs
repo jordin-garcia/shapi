@@ -118,7 +118,7 @@ public sealed class OrganizacionesAdministracionTests(PostgresPersistencia postg
             organizacion.EstadoAdmin.Should().Be(EstadoAdmin.Suspendida);
             organizacion.MotivoSuspension.Should().Be("Revision administrativa");
             (await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().SingleAsync(e => e.Accion == "organizacion.suspendida"))
-                .Descripcion.Should().Be("Suspendió la organización Organización de prueba");
+                .Descripcion.Should().Be("Suspendió la organización Organización de prueba.");
             var correo = await db.Set<CorreoSaliente>().SingleAsync(c => c.Plantilla == "organizacion_suspendida");
             correo.Destinatario.Should().Be(datos.PropietarioCorreo);
             correo.Datos.Should().Contain("Revision administrativa");
@@ -150,7 +150,7 @@ public sealed class OrganizacionesAdministracionTests(PostgresPersistencia postg
         organizacion.EstadoAdmin.Should().Be(EstadoAdmin.Activa);
         organizacion.MotivoSuspension.Should().BeNull();
         (await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().SingleAsync(e => e.Accion == "organizacion.reactivada"))
-            .Descripcion.Should().Be("Reactivó la organización Organización de prueba");
+            .Descripcion.Should().Be("Reactivó la organización Organización de prueba.");
         (await Redis.HashGetAsync(LlavesRedis.Organizacion(datos.OrganizacionId), ContextoOrganizacion.CampoEstadoEfectivo))
             .ToString().Should().Be("suspendida");
     }

@@ -1,5 +1,8 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Comun;
+using Shapi.Dominio.Identidad;
+using Shapi.Dominio.Organizaciones;
 using Shapi.Infraestructura.Persistencia;
 using AplicacionEntry = Shapi.Aplicacion.Comun.EntradaBitacora;
 using DominioActorTipo = Shapi.Dominio.Bitacora.ActorTipo;
@@ -32,16 +35,26 @@ public class BitacoraBaseDatos(ShapiDbContext db, IReloj reloj) : IBitacora
             reloj.Ahora,
             actorTipo,
             entrada.ActorId,
-            entrada.ActorNombre,
+            await NombreActor(entrada, cancelacion),
             entrada.OrganizacionId,
             entrada.Accion,
             entrada.ObjetivoTipo,
             entrada.ObjetivoId,
-            entrada.Descripcion,
+            entrada.Descripcion.TrimEnd().TrimEnd('.') + ".",
             detalle,
             ip);
 
         db.Add(entidad);
         await db.SaveChangesAsync(cancelacion);
     }
+
+    private Task<string> NombreActor(AplicacionEntry entrada, CancellationToken cancelacion) => entrada.ActorTipo switch
+    {
+        TipoActor.Usuario => db.Set<Usuario>().IgnoreQueryFilters().AsNoTracking()
+            .Where(u => u.Id == entrada.ActorId).Select(u => u.Nombre).SingleAsync(cancelacion),
+        TipoActor.Consumidor => db.Set<Consumidor>().IgnoreQueryFilters().AsNoTracking()
+            .Where(c => c.Id == entrada.ActorId).Select(c => c.Nombre).SingleAsync(cancelacion),
+        TipoActor.Sistema => Task.FromResult("Sistema"),
+        _ => throw new ArgumentOutOfRangeException(nameof(entrada.ActorTipo)),
+    };
 }

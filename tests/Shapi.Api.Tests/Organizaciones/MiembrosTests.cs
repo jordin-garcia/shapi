@@ -285,7 +285,7 @@ public sealed class MiembrosTests(PostgresPersistencia postgres) : BaseDePrueba(
         quitar.StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion IN ('miembro.rol_cambiado','miembro.quitado')")).Should().Be(2);
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion IN ('miembro.rol_cambiado','miembro.quitado') AND actor_nombre = 'Ana'")).Should().Be(2);
-        (await Escalar<string>($"SELECT descripcion FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion = 'miembro.rol_cambiado'")).Should().Be($"Cambió el rol de {correoMiembro} de lector a editor");
+        (await Escalar<string>($"SELECT descripcion FROM bitacora WHERE organizacion_id = '{organizacion}' AND accion = 'miembro.rol_cambiado'")).Should().Be($"Cambió el rol de {correoMiembro} de lector a editor.");
 
         var otraOrganizacion = await NuevaOrganizacion();
         var otroUsuario = await NuevoUsuario();

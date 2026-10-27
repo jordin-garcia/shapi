@@ -239,7 +239,7 @@ public sealed class ActualizarExposicionRutas(
                 nombreActor,
                 organizacionId,
                 cambio.Expuesta ? AccionesBitacora.RutaExpuesta : AccionesBitacora.RutaOcultada,
-                $"{verbo} la ruta {ruta.Metodo.ToString().ToUpperInvariant()} {ruta.Patron} de la API {api.Nombre}.")
+                $"{verbo} la ruta {ruta.Metodo.ToString().ToUpperInvariant()} {ruta.Patron} de {TextoBitacora.LaApi(api.Nombre)}.")
             {
                 ObjetivoTipo = "ruta",
                 ObjetivoId = ruta.Id,

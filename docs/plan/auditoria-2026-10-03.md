@@ -326,7 +326,7 @@ Resultados:
 3. **Medición y 502 (JG-09).** Con la decisión del paso 1, un 502 puede haber descontado la cuota o no. Recomiendo que `ReenvioOrigen` deje un indicador en `ContextoPeticion` y avisar a JG-09.
 4. **El consumidor corta mientras se abre la conexión (JG-05).** La cuota queda descontada aunque la petición no llegó al origen, y 08 §3 no lo define. Recomiendo devolverla también en ese caso y precisarlo en 08 §3.
 5. **Formato del vencimiento (EM-08, H-103).** Un mes o un año mal escritos, ¿son 400 `datos_invalidos` o 422 `tarjeta_vencida`? Recomiendo 400 por campo, como convenciones §5.
-6. **Punto final en la bitácora (H-104).** Recomiendo escribir las descripciones sin punto final, como 10 §7 y el mockup B3.2.
+6. **Punto final en la bitácora (H-104). Decidido (2026-10-27, JG-25):** Jordin eligió que todas las descripciones nuevas lleven punto final. Se precisa en 10 §7; se conservan las filas históricas sin modificarlas.
 7. **Carrera de `EliminarHost` (07 §4).** Un `PublicarApi` simultáneo, que leyó la base antes del *commit*, puede volver a escribir el host. Recomiendo (a), nombrar esta ventana en 07 §4. La otra opción, (b), es que DC-14 llame a `EliminarHost` también después de su `PublicarApi`.
 8. **Carrera de `PublicarClave` al rotar (07 §4).** Si la clave nueva se revoca en milisegundos, puede quedar en Redis hasta la resincronización. Recomiendo documentarla en 07 §4.
 9. **Controles de escritura para el lector (H-113).** Recomiendo ocultarlos en todo el panel y que lo verifique DC-16. La otra opción es aceptar el 403 y precisarlo en 04 §3.

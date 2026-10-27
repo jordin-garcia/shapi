@@ -1,0 +1,8 @@
+Nuevo caso
+
+Hola, {{nombre}}.
+
+Se abrió un nuevo caso de soporte para que usted lo revise: {{numeroCaso}}.
+Asunto: {{asunto}}
+
+Ver caso: {{enlace}}

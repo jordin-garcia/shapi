@@ -103,10 +103,12 @@ public static class Endpoints
     }
 
     private static async Task<IResult> Asignar(
-        int numero, HttpContext http, AsignarCaso casoUso, CancellationToken cancelacion) =>
-        await casoUso.Ejecutar(numero, UsuarioId(http.User), cancelacion)
-            ? TypedResults.NoContent()
-            : NoEncontrado();
+        int numero, HttpContext http, AsignarCaso casoUso, CancellationToken cancelacion)
+    {
+        var resultado = await casoUso.Ejecutar(numero, UsuarioId(http.User), cancelacion);
+        return !resultado.EsExito ? Problema(resultado.Error)
+            : resultado.Valor ? TypedResults.NoContent() : NoEncontrado();
+    }
 
     private static async Task<IResult> ResponderAdministracion(
         int numero,
@@ -151,7 +153,7 @@ public static class Endpoints
     }
 
     private static IResult NoEncontrado() =>
-        Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.CasoNoEncontrado, "No se encontro el caso.");
+        Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.CasoNoEncontrado, "No se encontró el caso.");
 
     private static Guid OrganizacionId(ClaimsPrincipal usuario) =>
         Guid.Parse(usuario.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion)!);

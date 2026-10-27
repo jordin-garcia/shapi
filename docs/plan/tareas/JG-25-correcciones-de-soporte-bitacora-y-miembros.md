@@ -43,9 +43,9 @@ Que la bitácora muestre el nombre de quien hizo cada acción con textos correct
   - el error de :34 es fijo y no distingue `limite_del_plan` de `correo_en_otra_organizacion`;
   - `MiembrosApi.cs:117`, `:282`, `:301` y `:338` escriben los códigos a mano en vez de usar `CodigosError`.
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **A quién avisar al abrir un caso sin asignar (H-C23).** Recomiendo enviar un correo «Nuevo caso» a todas las cuentas de soporte activas, y ninguno a los administradores. Si el caso ya tiene asignado, solo a esa persona. La otra opción es no avisar hasta que alguien se lo asigne.
-2. **Punto final en la bitácora (H-104, duda 6 del 3 oct).** Recomiendo escribir todas las descripciones sin punto final, como 10 §7 y el mockup B3.2.
+## Decisiones de Jordin (27 oct 2026)
+1. **A quién avisar al abrir un caso sin asignar (H-C23).** Enviar un correo «Nuevo caso» a todas las cuentas de soporte activas, y ninguno a los administradores. Si el caso ya tiene asignado, solo a esa persona activa.
+2. **Punto final en la bitácora (H-104, duda 6 del 3 oct).** Todas las descripciones llevan punto final. Se precisa en 10 §7; esta decisión prevalece sobre los ejemplos anteriores y el mockup B3.2.
 
 ## Contexto que debes leer
 - `docs/specs/10-identidad-y-seguridad.md` §6 (correos) y §7 (bitácora)

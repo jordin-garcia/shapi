@@ -85,7 +85,8 @@ public interface IRepositorioSoporte
     Task<ResumenOrganizacionCaso?> ResumenOrganizacion(int numero, CancellationToken cancelacion);
     Task<MensajeCaso> PresentarMensaje(CasoMensaje mensaje, Guid organizacionCasoId, CancellationToken cancelacion);
     Task<DestinatarioCaso?> DestinatarioProveedor(Caso caso, CancellationToken cancelacion);
-    Task<DestinatarioCaso?> DestinatarioPlataforma(Guid? asignadoA, CancellationToken cancelacion);
+    Task<IReadOnlyList<DestinatarioCaso>> DestinatariosPlataforma(Guid? asignadoA, CancellationToken cancelacion);
+    Task<string> NombreOrganizacion(Guid organizacionId, CancellationToken cancelacion);
     string EnlaceCaso(bool plataforma, int numero);
     Task<ITransaccionSoporte> IniciarTransaccion(CancellationToken cancelacion);
 }

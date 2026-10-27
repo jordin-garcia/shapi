@@ -562,17 +562,17 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
             .ToListAsync();
         bitacora.Should().BeEquivalentTo(new[]
         {
-            new { ActorNombre = "Boutique Cayalá", Descripcion = "Rotó su clave de producción en la API de Cotización de Envíos" },
+            new { ActorNombre = "Isabel Herrera", Descripcion = "Rotó su clave de producción en la API de Cotización de Envíos." },
             new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Suspendió la organización Datos Chapines, S.A." },
             new { ActorNombre = "Sofía Menchú Cojtí", Descripcion = "Abrió el caso CAS-104 de Envíos Xelajú, S.A." },
-            new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Desactivó la cuenta de plataforma de Julio Estrada Ixcot" },
+            new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Desactivó la cuenta de plataforma de Julio Estrada Ixcot." },
             new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A." },
-            new { ActorNombre = "Ana Lucía Morales", Descripcion = "Cambió su suscripción de plataforma de Lanzamiento a Producto" },
-            new { ActorNombre = "Ana Lucía Morales", Descripcion = "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos" },
-            new { ActorNombre = "Diego Us Pérez", Descripcion = "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos" },
-            new { ActorNombre = "Ana Lucía Morales", Descripcion = "Invitó a karla.batres@enviosxelaju.com con el rol de lector" },
+            new { ActorNombre = "Ana Lucía Morales", Descripcion = "Cambió su suscripción de plataforma de Lanzamiento a Producto." },
+            new { ActorNombre = "Ana Lucía Morales", Descripcion = "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos." },
+            new { ActorNombre = "Diego Us Pérez", Descripcion = "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos." },
+            new { ActorNombre = "Ana Lucía Morales", Descripcion = "Invitó a karla.batres@enviosxelaju.com con el rol de lector." },
             new { ActorNombre = "Sofía Menchú Cojtí", Descripcion = "Cerró el caso CAS-101 de Cafetalera del Altiplano, S.A." },
-            new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador" },
+            new { ActorNombre = "Rodrigo Alvarado", Descripcion = "Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador." },
         }, opciones => opciones.WithStrictOrdering());
 
         var eventos = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().ToDictionaryAsync(e => e.Accion);

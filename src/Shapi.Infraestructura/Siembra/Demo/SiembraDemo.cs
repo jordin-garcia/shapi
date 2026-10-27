@@ -316,12 +316,13 @@ public sealed class SiembraDemo(
             envios.Id, cafetalera.Id, datos.Id).ToList();
         // La bitácora es solo de inserción (07 §3.6): tampoco al reiniciar se repiten las entradas que ya existen
         // (auditoría 2026-10-03, decisión del paso 4).
-        var descripcionesDemo = entradasBitacora.Select(e => e.Descripcion).ToArray();
+        var descripcionesDemo = entradasBitacora.SelectMany(e => new[] { e.Descripcion, e.Descripcion.TrimEnd('.') }).ToArray();
         var descripcionesExistentes = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters()
             .Where(e => descripcionesDemo.Contains(e.Descripcion))
             .Select(e => e.Descripcion)
-            .ToHashSetAsync(cancelacion);
-        db.AddRange(entradasBitacora.Where(e => !descripcionesExistentes.Contains(e.Descripcion)));
+            .ToListAsync(cancelacion);
+        var descripcionesNormalizadas = descripcionesExistentes.Select(d => d.TrimEnd('.')).ToHashSet();
+        db.AddRange(entradasBitacora.Where(e => !descripcionesNormalizadas.Contains(e.Descripcion.TrimEnd('.'))));
         await db.SaveChangesAsync(cancelacion);
         await db.Database.ExecuteSqlRawAsync(
             $"SELECT setval('{ShapiDbContext.SecuenciaNumeroCaso}', GREATEST((SELECT COALESCE(MAX(numero), 99) FROM caso), 99), true)",
@@ -698,8 +699,8 @@ public sealed class SiembraDemo(
         yield return Entrada(ahora.AddDays(-3), personal[0], AccionesBitacora.PagoRevertido, "Revirtió el cobro de Q 199.00 de Datos Chapines, S.A.", datosId);
         yield return Entrada(ahora.AddDays(-3).AddHours(-5), propietarios[0], AccionesBitacora.SuscripcionPlataformaCambiada, "Cambió su suscripción de plataforma de Lanzamiento a Producto", enviosId);
         yield return new EntradaBitacoraDominio(ahora.AddHours(-9), ActorTipo.Consumidor, consumidores[1].Id,
-            consumidores[1].NombreEmpresa, enviosId, AccionesBitacora.ClaveRotada, null, null,
-            "Rotó su clave de producción en la API de Cotización de Envíos", null, null);
+            consumidores[1].Nombre, enviosId, AccionesBitacora.ClaveRotada, null, null,
+            "Rotó su clave de producción en la API de Cotización de Envíos.", null, null);
         yield return Entrada(ahora.AddDays(-3).AddHours(-8), propietarios[0], AccionesBitacora.ClaveRevocadaPorProveedor, "Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos", enviosId);
         yield return Entrada(ahora.AddDays(-4), diego, AccionesBitacora.RutaOcultada, "Ocultó la ruta GET /tarifas de la API de Cotización de Envíos", enviosId);
         yield return Entrada(ahora.AddDays(-5), propietarios[0], AccionesBitacora.MiembroInvitado, "Invitó a karla.batres@enviosxelaju.com con el rol de lector", enviosId);
@@ -709,7 +710,7 @@ public sealed class SiembraDemo(
         static EntradaBitacoraDominio Entrada(DateTimeOffset fecha, Usuario actor, string accion, string descripcion,
             Guid? organizacionId = null, Guid? objetivo = null) =>
             new(fecha, ActorTipo.Usuario, actor.Id, actor.Nombre, organizacionId, accion,
-                objetivo is null ? null : "caso", objetivo, descripcion, null, null);
+                objetivo is null ? null : "caso", objetivo, descripcion.TrimEnd('.') + ".", null, null);
     }
 
     private static Organizacion ObtenerOCrearOrganizacion(

@@ -85,6 +85,7 @@ Se envían desde `no-responder@{dominio_base}`. Los correos de un portal usan co
 | `prueba_por_vencer` | Propietario | 7 días antes de que termine la Prueba |
 | `aviso_cuota_plataforma` | Propietario | Al cruzar el 80 % y el 100 % de la cuota |
 | `respuesta_caso` | La otra parte del caso | Mensaje nuevo en un caso |
+| `nuevo_caso` | La otra parte del caso | Apertura de un caso; sin asignado, todo el soporte activo |
 
 Cada plantilla recibe estos datos para su contenido, además de los datos de marca del portal cuando el destinatario es un consumidor:
 
@@ -102,6 +103,9 @@ Cada plantilla recibe estos datos para su contenido, además de los datos de mar
 | `prueba_por_vencer` | `nombre`, `fechaFin`, `enlace` |
 | `aviso_cuota_plataforma` | `nombre`, `porcentaje`, `enlace` |
 | `respuesta_caso` | `nombre`, `numeroCaso` (por ejemplo, `CAS-104`), `asunto`, `enlace` |
+| `nuevo_caso` | `nombre`, `numeroCaso`, `asunto`, `enlace` |
+
+**Casos (JG-25):** al abrir un caso se envía «Nuevo caso» a todas las cuentas de soporte activas, sin avisar a los administradores. Si tiene asignado, se notifica únicamente a esa persona activa. Las respuestas del proveedor notifican al asignado activo, o al soporte activo si todavía no hay asignado; las del personal de plataforma notifican al creador activo del proveedor, o a su propietario activo si el creador ya no pertenece a la organización o está desactivado. Una cuenta desactivada nunca recibe estos correos; un asignado desactivado no se sustituye automáticamente. Al abrir desde administración se informa al proveedor mediante «Nuevo caso».
 
 Las fechas llegan ya formateadas en español y los enlaces son absolutos. El motor arma por sí mismo el `enlace` de `verificacion_correo` y `recuperacion` a partir del `token` y del ámbito de la cuenta, y el de `invitacion_consumidor` a partir del `token` y `hostPortal`. En los tres casos el token se elimina de los datos de la cola al enviar el correo o agotar los reintentos.
 
@@ -119,6 +123,8 @@ Los correos de los consumidores llevan la marca del portal: el nombre, el color 
 
 La bitácora ([RF-41](03-requisitos.md#rf-41)) registra las acciones que cambian **el acceso, el cobro o el estado** de una organización. Cada entrada guarda el actor, la organización, la acción, el objetivo, una descripción que se puede leer (la que muestra B3.2) y la IP.
 
+**JG-25 (27 oct):** las descripciones nuevas llevan punto final, sin duplicarlo si el nombre del objetivo ya termina en punto. El nombre del actor se resuelve al registrar desde la cuenta correspondiente en la base de datos; para el trabajador es «Sistema». No se sustituyen por roles ni correos ni se modifican las filas históricas. Los casos usan «Abrió/Cerró el caso CAS-<número> de <organización>.».
+
 B3.2 consulta la bitácora con permiso de administrador o soporte. `desde` y `hasta` son días calendario de `America/Guatemala`, ambos inclusivos; si se omiten, el periodo comprende el día actual y los seis anteriores. Los resultados se ordenan del más reciente al más antiguo y se paginan desde la página 1, con tamaño predeterminado de 20 y máximo de 100; B3.2 muestra un paginador («Página X de Y», «Anterior» y «Siguiente») solo si hay más de una página. Un periodo o una paginación inválidos responden `400 datos_invalidos`, con el error de cada parámetro en `errores`.
 
 Cada entrada muestra el nombre que se guardó al registrarla y, debajo, el **rol y la organización actuales** del actor, que salen de su membresía al consultar (no se guardan en la entrada):
@@ -132,17 +138,17 @@ Cada entrada muestra el nombre que se guardó al registrarla y, debajo, el **rol
 |---|---|
 | `organizacion.suspendida` / `organizacion.reactivada` | Suspendió la organización Datos Chapines, S.A. |
 | `pago.revertido` | Revirtió el cobro de Q 199.00 de Datos Chapines, S.A. |
-| `plan_plataforma.creado` / `.editado` / `.desactivado` | Editó el plan de plataforma Lanzamiento |
-| `cuenta_plataforma.creada` / `.desactivada` / `.activada` | Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador |
-| `suscripcion_plataforma.contratada` / `.cambiada` | Cambió su suscripción de plataforma de Lanzamiento a Producto |
-| `miembro.invitado` / `.rol_cambiado` / `.quitado` | Invitó a karla.batres@enviosxelaju.com con el rol de lector |
-| `api.registrada` / `.publicada` / `.despublicada` | Publicó la API de Cotización de Envíos |
-| `ruta.expuesta` / `ruta.ocultada` | Ocultó la ruta GET /tarifas de la API de Cotización de Envíos |
-| `dominio.conectado` / `.verificado` | Verificó el dominio api.enviosxelaju.localhost |
-| `secreto_origen.regenerado` | Regeneró el secreto de origen de la API de Cotización de Envíos |
-| `plan_api.creado` / `.editado` / `.desactivado` | Editó el plan Básico de la API de Cotización de Envíos |
-| `clave.revocada_por_proveedor` | Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos |
-| `clave.rotada` / `clave.revocada_por_consumidor` | Boutique Cayalá rotó su clave de producción en la API de Cotización de Envíos |
+| `plan_plataforma.creado` / `.editado` / `.desactivado` | Editó el plan de plataforma Lanzamiento. |
+| `cuenta_plataforma.creada` / `.desactivada` / `.activada` | Creó la cuenta de plataforma de Lucía Ramírez Pineda con el rol de administrador. |
+| `suscripcion_plataforma.contratada` / `.cambiada` | Cambió su suscripción de plataforma de Lanzamiento a Producto. |
+| `miembro.invitado` / `.rol_cambiado` / `.quitado` | Invitó a karla.batres@enviosxelaju.com con el rol de lector. |
+| `api.registrada` / `.publicada` / `.despublicada` | Publicó la API de Cotización de Envíos. |
+| `ruta.expuesta` / `ruta.ocultada` | Ocultó la ruta GET /tarifas de la API de Cotización de Envíos. |
+| `dominio.conectado` / `.verificado` | Verificó el dominio api.enviosxelaju.localhost. |
+| `secreto_origen.regenerado` | Regeneró el secreto de origen de la API de Cotización de Envíos. |
+| `plan_api.creado` / `.editado` / `.desactivado` | Editó el plan Básico de la API de Cotización de Envíos. |
+| `clave.revocada_por_proveedor` | Revocó la clave de pruebas de Tienda Sololá en la API de Cotización de Envíos. |
+| `clave.rotada` / `clave.revocada_por_consumidor` | Boutique Cayalá rotó su clave de producción en la API de Cotización de Envíos. |
 | `caso.abierto` / `caso.cerrado` | Abrió el caso CAS-104 de Envíos Xelajú, S.A. |
 | `suscripcion.suspendida` (actor: sistema) | Suspendió por falta de pago la suscripción de Transportes Petén, S.A. |
 
