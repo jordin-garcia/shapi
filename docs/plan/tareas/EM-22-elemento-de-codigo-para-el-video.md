@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-26
 depende_de: []
 requisitos: []
@@ -52,3 +52,9 @@ Además, ejecutar la prueba que cita el archivo (`dotnet test … --filter "Full
 
 ## Fuera de alcance
 - Cambiar el código para que se vea mejor en el video. Si el agente encuentra algo que corregir, lo anota como aviso para Jordin en la bitácora.
+
+## Resultado
+
+- `docs/video/elementos/emilio.md` explica el patrón de puertos y adaptadores de `IPasarelaPagos` y `PasarelaSimulada` (ADR-12), con dos características de Clean Code, un fragmento de 21 líneas idéntico a `main`, citas exactas, pruebas y un texto en primera persona para narrar durante 2 a 3 minutos.
+- El orden de archivos para mostrar y la tabla de funcionalidades distinguen los flujos de Emilio de las pantallas del portal implementadas por Dominique, para que JG-29 pueda repartir la narración.
+- Las pruebas citadas de la tarjeta 0341 y del token reconocido por otra instancia pasaron (1 y 3 casos, respectivamente). `node scripts/tareas.mjs --validar` y la revisión independiente pasaron. No se cambió código de aplicación.
