@@ -245,11 +245,15 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
 
     await userEvent.click(within(produccion).getByRole('button', { name: 'Rotar' }));
     expect(screen.getByRole('heading', { name: 'Rotar clave' })).toBeDefined();
+    // RF-15: B2.4 conserva la marca blanca, también fuera de las rutas principales.
+    expect(document.body.textContent).not.toMatch(/shapi/i);
     expect(screen.getByText(/sigue funcionando 24 horas/i)).toBeDefined();
     expect(screen.getByText('13 oct 2026, 10:42')).toBeDefined();
     await userEvent.click(screen.getByRole('button', { name: 'Rotar clave' }));
 
     expect(await screen.findByRole('heading', { name: 'Su clave nueva de producción' })).toBeDefined();
+    // RF-15: B2.5 no incorpora marca de plataforma al revelar la clave.
+    expect(document.body.textContent).not.toMatch(/shapi/i);
     expect(screen.getByText('shp_prod_9Hk2wQ7rTz4Lb8Nc1Vx6Pm3Ds0')).toBeDefined();
     expect(screen.getByText(/sigue funcionando hasta el 13 oct 2026 a las 10:42/i)).toBeDefined();
     expect(screen.getByText(/no se volverá a mostrar/i)).toBeDefined();
@@ -276,6 +280,8 @@ describe('DC-11 · RF-22, RF-23 y RF-26 a RF-28', () => {
 
     await userEvent.click(within(pruebas).getByRole('button', { name: 'Revocar' }));
     expect(screen.getByRole('heading', { name: 'Revocar clave' })).toBeDefined();
+    // RF-15: B2.6 conserva la marca blanca al confirmar una revocación.
+    expect(document.body.textContent).not.toMatch(/shapi/i);
     await userEvent.click(screen.getByRole('button', { name: 'Revocar clave' }));
 
     const revocada = await screen.findByTestId('clave-pruebas-revocada');

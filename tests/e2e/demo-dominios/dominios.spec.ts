@@ -13,6 +13,24 @@ async function entrar(page: Page, origen: string, correo: string) {
   await expect(page).not.toHaveURL(/\/entrar$/);
 }
 
+async function consultar<T>(pagina: Page, ruta: string): Promise<T> {
+  return pagina.evaluate(async ruta => {
+    const respuesta = await fetch(ruta);
+    if (!respuesta.ok) throw new Error(`Consulta ${ruta}: ${respuesta.status}`);
+    return respuesta.json();
+  }, ruta);
+}
+
+async function cotizar(pagina: Page) {
+  return pagina.evaluate(async clave => {
+    const respuesta = await fetch('/cotizaciones', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Api-Key': clave },
+      body: JSON.stringify({ origen: '0901', destino: '0301', peso_kg: 2.5, tipo_servicio: 'normal' }),
+    });
+    return { estado: respuesta.status, datos: await respuesta.json() };
+  }, claveDemo);
+}
+
 // RF-12, RF-15, RF-16, RF-25, RF-43 y RF-47: navegador y servicios reales, sin interceptar respuestas.
 test('JG-24 · dominio, documentación, consola y desconexión al renovar la bajada', async ({ browser }, info) => {
   const contextos = await Promise.all(Array.from({ length: 4 }, () => browser.newContext({
@@ -21,7 +39,7 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
   const [proveedor, agro, consumidor, admin] = await Promise.all(contextos.map(c => c.newPage()));
   try {
     await entrar(proveedor, panel, 'ana.morales@enviosxelaju.com');
-    const apis = (await (await proveedor.request.get(`${panel}/api/apis`)).json()).elementos as { id: string; subdominio: string }[];
+    const { elementos: apis } = await consultar<{ elementos: { id: string; subdominio: string }[] }>(proveedor, '/api/apis');
     const api = apis.find(a => a.subdominio === 'envios')!;
     await proveedor.goto(`${panel}/panel/apis/${api.id}/dominios`);
     await expect(proveedor.getByRole('heading', { name: 'Direcciones y dominio propio' })).toBeVisible();
@@ -29,7 +47,7 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
     await proveedor.screenshot({ path: info.outputPath('A3-6-envios-pendiente.png'), fullPage: true });
 
     await entrar(agro, panel, 'carlos.tzul@agroprecios.com');
-    const apisAgro = (await (await agro.request.get(`${panel}/api/apis`)).json()).elementos as { id: string; subdominio: string }[];
+    const { elementos: apisAgro } = await consultar<{ elementos: { id: string; subdominio: string }[] }>(agro, '/api/apis');
     await agro.goto(`${panel}/panel/apis/${apisAgro.find(a => a.subdominio === 'agro')!.id}/dominios`);
     await expect(agro.getByRole('heading', { name: 'Direcciones y dominio propio' })).toBeVisible();
     await expect(agro.getByText(/shps_••••/)).toBeVisible();
@@ -51,6 +69,7 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
     await expect(proveedor.getByLabel('Certificado TLS del dominio propio')).toHaveText('Se emite con la primera petición');
     await proveedor.screenshot({ path: info.outputPath('A3-6-envios-verificado.png'), fullPage: true });
 
+    await entrar(consumidor, portal, 'mariajose@mercaditoantigua.com');
     await consumidor.goto(`${portal}/documentacion`);
     await expect(consumidor.getByText(`https://${dominio}/cotizaciones`, { exact: true })).toBeVisible();
     await consumidor.screenshot({ path: info.outputPath('A5-1-documentacion-dominio.png'), fullPage: true });
@@ -62,17 +81,16 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
     await expect(consumidor.getByText('200', { exact: true })).toBeVisible();
     await consumidor.screenshot({ path: info.outputPath('A5-2-consola-dominio.png'), fullPage: true });
 
-    await entrar(consumidor, portal, 'mariajose@mercaditoantigua.com');
-    const planesPortal = await (await consumidor.request.get(`${portal}/api/portal/planes`)).json() as { id: string; esGratuito: boolean }[];
-    await consumidor.goto(`${portal}/contratar/${planesPortal.find(p => !p.esGratuito)!.id}`);
+    const planesPortal = await consultar<{ id: string; nombre: string }[]>(consumidor, '/api/portal/planes');
+    await consumidor.goto(`${portal}/contratar/${planesPortal.find(p => p.nombre === 'Comercio')!.id}`);
     await expect(consumidor.getByRole('heading', { name: 'Datos de la tarjeta' })).toBeVisible();
     await expect(consumidor.getByText(/No se guardan el número completo ni el código de seguridad:/)).toBeVisible();
     await expect(consumidor.getByText(/\bShapi\b/)).toHaveCount(0);
     await consumidor.screenshot({ path: info.outputPath('A5-6-pago-sin-marca.png'), fullPage: true });
 
     await proveedor.goto(`${panel}/panel/suscripcion`);
-    const suscripcion = await (await proveedor.request.get(`${panel}/api/suscripcion`)).json() as { proximaRenovacion: string };
-    const planes = await (await proveedor.request.get(`${panel}/api/planes-plataforma`)).json() as { id: string; nombre: string }[];
+    const suscripcion = await consultar<{ proximaRenovacion: string }>(proveedor, '/api/suscripcion');
+    const planes = await consultar<{ id: string; nombre: string }[]>(proveedor, '/api/planes-plataforma');
     await proveedor.goto(`${panel}/panel/suscripcion/cambiar/${planes.find(p => p.nombre === 'Lanzamiento')!.id}`);
     await expect(proveedor.getByText(/Al aplicar el cambio, se desconectarán los dominios propios/)).toBeVisible();
     await proveedor.screenshot({ path: info.outputPath('A2-5-aviso-desconexion.png'), fullPage: true });
@@ -82,30 +100,29 @@ test('JG-24 · dominio, documentación, consola y desconexión al renovar la baj
     await expect(proveedor.getByText(/A partir del .* su plan será Lanzamiento\./)).toBeVisible();
     await expect(proveedor.getByText(/Al aplicar el cambio, se desconectarán los dominios propios/)).toBeVisible();
     await proveedor.screenshot({ path: info.outputPath('B1-4-aviso-desconexion.png'), fullPage: true });
-    const antes = await proveedor.request.post(`https://${dominio}/cotizaciones`, {
-      headers: { 'X-Api-Key': claveDemo }, data: { origen: '0901', destino: '0301', peso_kg: 2.5, tipo_servicio: 'normal' },
-    });
-    expect(antes.status()).toBe(200);
+    // Estas páginas hacen las peticiones desde cada host; Chromium resuelve *.localhost en Windows.
+    const pruebaDominio = await contextos[0].newPage();
+    await pruebaDominio.goto(`https://${dominio}/`);
+    expect((await cotizar(pruebaDominio)).estado).toBe(200);
     await entrar(admin, panel, 'rodrigo.alvarado@shapi.localhost');
     await admin.goto(`${panel}/admin/estado`);
-    const reloj = await (await admin.request.get(`${panel}/api/admin/demo/reloj`)).json() as { ahora: string };
+    const reloj = await consultar<{ ahora: string }>(admin, '/api/admin/demo/reloj');
     const dias = Math.ceil((Date.parse(suscripcion.proximaRenovacion) - Date.parse(reloj.ahora)) / 86_400_000) + 1;
     await admin.getByLabel('Días que desea adelantar').fill(String(dias));
     await admin.getByRole('button', { name: 'Adelantar días', exact: true }).click();
     await expect(async () => {
-      const estado = await (await proveedor.request.get(`${panel}/api/apis/${api.id}/dominio`)).json();
+      const estado = await consultar<{ dominio: string | null; dominioPropioPermitido: boolean }>(proveedor, `/api/apis/${api.id}/dominio`);
       expect(estado.dominio).toBeNull();
       expect(estado.dominioPropioPermitido).toBe(false);
     }).toPass({ timeout: 15_000, intervals: [300, 600] });
     await expect(async () => {
-      const despues = await proveedor.request.post(`https://${dominio}/cotizaciones`, { headers: { 'X-Api-Key': claveDemo }, data: {} });
-      expect(despues.status()).toBe(404);
-      expect((await despues.json()).error.codigo).toBe('api_no_encontrada');
+      const despues = await cotizar(pruebaDominio);
+      expect(despues.estado).toBe(404);
+      expect(despues.datos.error.codigo).toBe('api_no_encontrada');
     }).toPass({ timeout: 10_000, intervals: [200, 400] });
-    const subdominio = await proveedor.request.post('https://envios.api.shapi.localhost/cotizaciones', {
-      headers: { 'X-Api-Key': claveDemo }, data: { origen: '0901', destino: '0301', peso_kg: 2.5, tipo_servicio: 'normal' },
-    });
-    expect(subdominio.status()).toBe(200);
+    const pruebaSubdominio = await contextos[0].newPage();
+    await pruebaSubdominio.goto('https://envios.api.shapi.localhost/');
+    expect((await cotizar(pruebaSubdominio)).estado).toBe(200);
     await proveedor.goto(`${panel}/panel/apis/${api.id}/dominios`);
     await expect(proveedor.getByText(/Su plan Lanzamiento no incluye dominio propio/)).toBeVisible();
     await proveedor.screenshot({ path: info.outputPath('A3-6-despues-bajada.png'), fullPage: true });

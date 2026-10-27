@@ -134,6 +134,8 @@ describe('RF-19, RF-20 y RF-26 · planes y contratación del portal', () => {
     await userEvent.type(screen.getByLabelText('Código de seguridad'), '123');
     await userEvent.click(screen.getByRole('button', { name: /pagar q 450\.00/i }));
     expect(await screen.findByRole('heading', { name: 'Plan contratado' })).toBeDefined();
+    // RF-15: A5.4b conserva la marca blanca en la confirmación y revelación de claves.
+    expect(document.body.textContent).not.toMatch(/shapi/i);
     // DC-17: A5.4b permanece dentro de la barra lateral del portal.
     expect(screen.getByRole('navigation', { name: 'Barra lateral del portal' })).toBeDefined();
     expect(screen.getByText(contratacion.claves[0].clave)).toBeDefined();

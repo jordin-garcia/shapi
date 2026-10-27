@@ -21,6 +21,7 @@ const configuracion = {
 };
 
 let cliente: QueryClient;
+const textoTarjeta = 'No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.';
 
 function Explota(): never {
   throw new Error('Falla de render simulada');
@@ -104,10 +105,14 @@ describe('RF-15 · marca dinámica del portal', () => {
     if (ruta === '/cuenta/suscripcion') {
       await userEvent.click(screen.getByRole('button', { name: 'Pagar con otra tarjeta' }));
       expect(await screen.findByLabelText('Número de tarjeta')).toBeDefined();
-      expect(screen.getByText('No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.')).toBeDefined();
+      expect(screen.getByText(textoTarjeta)).toBeDefined();
     }
+    if (ruta === '/contratar/basico') expect(screen.getByText(textoTarjeta)).toBeDefined();
     // Las URL del dominio base están permitidas; los textos de marca no.
-    expect(container.textContent?.replace(/https?:\/\/[^\s]+/g, '')).not.toMatch(/\bshapi\b/i);
+    const textos: string[] = [];
+    const nodos = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    while (nodos.nextNode()) textos.push(nodos.currentNode.textContent ?? '');
+    expect(textos.join(' ').replace(/https?:\/\/[^\s]+/g, '')).not.toMatch(/\bshapi\b/i);
   });
   it('aplica --marca-principal y muestra nombre e iniciales sin la marca de Shapi', async () => {
     const { container } = montar('/');

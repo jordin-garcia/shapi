@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-25
 depende_de: []
 requisitos: [RF-12, RF-15, RF-16, RF-25, RF-43, RF-47]
@@ -82,3 +82,16 @@ Además, en el ambiente productivo simulado con la siembra (protocolo B8): abrir
 
 ## Fuera de alcance
 - Cambiar la CSP de Caddy para permitir dominios propios.
+
+## Resultado
+
+Se corrigieron H-C11 a H-C16 con las decisiones aprobadas por Jordin el 26 oct. La verificación y el cierre terminaron el 27 oct.
+
+- **Secretos (RF-47):** la siembra genera secretos aleatorios cuando falta el valor configurado y respeta los proporcionados. El enmascarado admite secretos heredados vacíos o cortos sin revelar su contenido completo ni producir un 500.
+- **Consola y marca (RF-15 y RF-16):** la documentación conserva el dominio propio; la consola usa el host asignado y muestra errores de red recuperables. A5.6 y B2.3 usan el texto neutral aprobado. Las regresiones cubren las rutas del portal y las pantallas de confirmación, rotación, clave nueva y revocación.
+- **A3.6 (RF-12):** la respuesta informa el nombre y el permiso del plan vigente; las etiquetas compartidas distinguen pendiente, verificado y fallido. La pantalla permite vaciar el campo, muestra el motivo de validación y distingue verificación DNS de emisión del certificado. No afirma una vigencia TLS que el sistema no consulta. Se completó la cobertura del CNAME incorrecto y de `.localhost`, y se corrigieron los nombres RF-12.
+- **Cambio de plan (RF-25 y RF-43):** al aplicar un destino sin dominio propio se eliminan los dominios de todas las APIs de esa organización, incluidos pendientes y fallidos, en la transacción del cambio. Después del commit se retiran sus hosts de Redis y se republican las APIs. La bajada los conserva hasta renovar y cancelarla los conserva; las direcciones asignadas siguen funcionando. La conexión y verificación manual comparten el bloqueo de organización con el cierre de ciclo. A2.5 y B1.4 avisan de la desconexión.
+- **Contratos y especificaciones:** se actualizaron `apis.yaml`, `suscripciones.yaml`, sus tipos generados y 03, 09 y 11. Sin dependencias nuevas, migraciones ni cambios de ADR o CSP.
+- **Verificación local:** compilación con cero errores y advertencias; formato correcto; 1.097 pruebas de API y 66 de dominio aprobadas sin omisiones; 506 pruebas frontend en 42 archivos, lint sin errores (11 avisos previos), tipos y builds correctos. Las 62 pruebas del portal afectadas se repitieron al reforzar RF-15. Las comprobaciones previas bajo saturación se repitieron por etapas, sin cambiar tiempos, aserciones ni aislamiento; Redis de desarrollo elimina la espera de conexión de los fixtures que usan el reloj real.
+- **Ensayo real:** `playwright.dominios.config.ts`, ambiente `shapi-jg24` recién sembrado sin secretos configurados y con imágenes de esta rama: 1 aprobado en 31,5 s. Comprueba ambas A3.6, validación, DNS simulado, documentación con dominio propio, consola con 200 por el host asignado, avisos de bajada, desconexión con 404 y servicio conservado con 200 por subdominio. Las consultas auxiliares usan el navegador para resolver `*.localhost` en Windows. Diez capturas reales y dos de B2.3 con presentación de gracia controlada se compararon con los mockups y las precisiones de 11; evidencia local en `.shapi/jg24/`.
+- **Archivos principales:** `GestionarDominios.cs`, `ContratosApis.cs`, `RepositorioApis.cs`, `SiembraDemo.cs`, `DominiosDelPlan.cs`, `PlataformaSuscripcionesApi.cs`, `CierreCiclo.cs`, A3.6, A2.5, B1.4, A5.2, A5.6, B2.3, `clienteCompuerta.ts` y sus pruebas.
