@@ -120,6 +120,12 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
          where suscripcion.OrganizacionId == organizacionId && suscripcion.Estado != EstadoSuscripcion.Finalizada
          select plan.DominioPropio).FirstOrDefaultAsync(cancelacion);
 
+    public Task<PlanDominioPropio?> ObtenerPlanDominioPropio(Guid organizacionId, CancellationToken cancelacion = default) =>
+        (from suscripcion in db.Set<SuscripcionPlataforma>().IgnoreQueryFilters().AsNoTracking()
+         join plan in db.Set<PlanPlataforma>().IgnoreQueryFilters().AsNoTracking() on suscripcion.PlanId equals plan.Id
+         where suscripcion.OrganizacionId == organizacionId && suscripcion.Estado != EstadoSuscripcion.Finalizada
+         select new PlanDominioPropio(plan.Nombre, plan.DominioPropio)).FirstOrDefaultAsync(cancelacion);
+
     public Task<DominioPropio?> ObtenerDominio(Guid apiId, CancellationToken cancelacion = default) =>
         db.Set<DominioPropio>().SingleOrDefaultAsync(d => d.ApiId == apiId, cancelacion);
 

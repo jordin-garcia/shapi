@@ -701,13 +701,15 @@ components:
 
     EstadoDominioPropio:
       type: object
-      required: [apiId, apiNombre, urlPortal, urlApi, secretoEnmascarado, modoSimulado, dominio, destinoCname, estado, motivo, verificadoEn]
+      required: [apiId, apiNombre, urlPortal, urlApi, secretoEnmascarado, modoSimulado, dominio, destinoCname, estado, motivo, verificadoEn, planNombre, dominioPropioPermitido]
       properties:
         apiId: { type: string, format: uuid }
         apiNombre: { type: string }
         urlPortal: { type: string, format: uri }
         urlApi: { type: string, format: uri }
         secretoEnmascarado: { type: string }
+        planNombre: { type: [string, 'null'], description: Nombre del plan de plataforma vigente; null si no hay suscripción. }
+        dominioPropioPermitido: { type: boolean, description: Si el plan vigente permite conectar un dominio propio. }
         modoSimulado: { type: boolean }
         dominio: { type: [string, 'null'] }
         destinoCname: { type: [string, 'null'] }

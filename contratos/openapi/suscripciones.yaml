@@ -163,7 +163,7 @@ paths:
               $ref: "#/components/schemas/PeticionSuscripcionPlataforma"
       responses:
         "200":
-          description: Cambio aplicado, contratado desde plan de prueba/gratuito, sin cambios o programado
+          description: Cambio aplicado, contratado desde plan de prueba/gratuito, sin cambios o programado. Si el destino no incluye dominio propio, los dominios se desconectan al aplicar el cambio; una bajada programada los conserva hasta la renovación y cancelarla los conserva.
           content:
             application/json:
               schema:
@@ -592,6 +592,7 @@ components:
                 planId: { type: string, format: uuid }
                 nombre: { type: string }
                 efectivoDesde: { type: string, format: date-time }
+                desconectaDominios: { type: boolean, description: Al aplicar el cambio se desconectarán los dominios propios porque el plan de destino no los incluye. }
             - type: "null"
     PeticionContratarPlan:
       type: object

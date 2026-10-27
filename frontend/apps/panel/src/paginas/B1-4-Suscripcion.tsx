@@ -102,6 +102,7 @@ export default function PaginaB14Suscripcion() {
       </div>}
       {s.estado === 'activa' && <p className="mt-5 text-sm leading-relaxed text-tinta-suave">{gratuito ? 'Sus APIs responden con los límites del plan vigente.' : 'La renovación se cobra a esta misma tarjeta al cierre de cada ciclo. Sus APIs responden con normalidad.'}</p>}
       {s.cambioProgramado && <Aviso estado="neutro">A partir del {fecha(s.cambioProgramado.efectivoDesde || s.proximaRenovacion)} su plan será {s.cambioProgramado.nombre}.</Aviso>}
+      {s.cambioProgramado?.desconectaDominios && <Aviso estado="neutro">Al aplicar el cambio, se desconectarán los dominios propios de sus APIs. Sus direcciones por subdominio seguirán funcionando.</Aviso>}
       {puedeGestionar && (gracia || suspendida) && (gratuito
         ? <Link className="mt-6 inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-6 text-[15px] font-medium text-white" to="/panel/suscripcion/planes">Contratar un plan de pago</Link>
         : <Boton className="mt-6" onClick={() => { setError(''); setMostrarPago(true); }}>Pagar con otra tarjeta</Boton>)}

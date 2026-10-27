@@ -8,6 +8,8 @@ using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Persistencia;
+using Shapi.Infraestructura.Apis;
+using Shapi.Dominio.Apis;
 using StackExchange.Redis;
 
 namespace Shapi.Api.Suscripciones;
@@ -112,7 +114,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 ? Math.Max(0, (int)Math.Ceiling((s.GraciaHasta.Value - reloj.Ahora).TotalDays)) : 0,
             ultimoRechazoEn = ultimoRechazo,
             consumidoresAfectados,
-            cambioProgramado = siguiente is null ? null : new { planId = siguiente.Id, nombre = siguiente.Nombre, efectivoDesde = s.Fin }
+            cambioProgramado = siguiente is null ? null : new { planId = siguiente.Id, nombre = siguiente.Nombre, efectivoDesde = s.Fin, desconectaDominios = !siguiente.DominioPropio }
         });
     }
 
@@ -165,6 +167,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
         var ahora = reloj.Ahora;
         var nueva = SuscripcionPlataforma.Contratar(org, plan, medio?.Id, ahora);
+        List<DominioPropio> dominiosDesconectados = [];
         try
         {
             if (prep.EsNueva && medio is not null)
@@ -173,6 +176,10 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             }
 
             anterior?.Finalizar(ahora);
+            if (!plan.DominioPropio)
+            {
+                dominiosDesconectados = await DominiosDelPlan.Desconectar(db, org, ct);
+            }
             db.Add(nueva);
             if (medio is not null && cobro is not null)
             {
@@ -191,6 +198,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             throw;
         }
+        await DominiosDelPlan.Publicar(publicador, dominiosDesconectados, ct);
         await publicador.PublicarSuscripcion(nueva.Id, ct);
         await Registrar(http, org, nueva.Id, AccionesBitacora.SuscripcionPlataformaContratada, $"Contrató el plan {plan.Nombre}.", ct);
         return TypedResults.Created("/api/suscripcion", new
@@ -257,6 +265,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             var inicioCompleto = Suscripcion.InicioDeCiclo(ahora);
             var nuevaCompleta = SuscripcionPlataforma.Contratar(org, destino, medioCompleto.Id, ahora);
+            List<DominioPropio> dominiosCompletos = [];
             try
             {
                 if (prepCompleto.EsNueva)
@@ -265,6 +274,10 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 }
 
                 actual.Finalizar(ahora);
+                if (!destino.DominioPropio)
+                {
+                    dominiosCompletos = await DominiosDelPlan.Desconectar(db, org, ct);
+                }
                 db.Add(nuevaCompleta);
                 db.Add(Pago.PlataformaAutorizado(nuevaCompleta.Id, medioCompleto.Id, ConceptoPago.Contratacion,
                     destino.Precio, $"Contratación del plan {destino.Nombre}", pagoCompleto.Referencia!,
@@ -277,6 +290,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
                 await pasarela.ReembolsarAsync(pagoCompleto.Referencia!);
                 throw;
             }
+            await DominiosDelPlan.Publicar(publicador, dominiosCompletos, ct);
             await publicador.PublicarSuscripcion(nuevaCompleta.Id, ct);
             await Registrar(http, org, nuevaCompleta.Id, AccionesBitacora.SuscripcionPlataformaContratada,
                 $"Contrató el plan de plataforma {destino.Nombre}.", ct);
@@ -339,6 +353,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
             referencia = cobro.Referencia;
         }
         var medioId = prep.Medio?.Id ?? actual.MedioPagoId;
+        List<DominioPropio> dominiosCambio = [];
         try
         {
             if (prep.EsNueva)
@@ -348,6 +363,10 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             var nuevoInicio = origen.VigenciaDias == destino.VigenciaDias ? (DateTimeOffset?)null : Suscripcion.InicioDeCiclo(ahora);
             actual.CambiarPlan(destino, medioId, nuevoInicio, ahora);
+            if (!destino.DominioPropio)
+            {
+                dominiosCambio = await DominiosDelPlan.Desconectar(db, org, ct);
+            }
             if (referencia is not null)
             {
                 db.Add(Pago.PlataformaAutorizado(actual.Id, medioId!.Value, ConceptoPago.CambioPlan,
@@ -366,6 +385,7 @@ public sealed class PlataformaSuscripcionesApi(ShapiDbContext db, IReloj reloj, 
 
             throw;
         }
+        await DominiosDelPlan.Publicar(publicador, dominiosCambio, ct);
         await publicador.PublicarSuscripcion(actual.Id, ct);
         await Registrar(http, org, actual.Id, AccionesBitacora.SuscripcionPlataformaCambiada, $"Cambió el plan {origen.Nombre} por {destino.Nombre}.", ct);
         return TypedResults.Ok(new { estado = "activa", credito = valores.Credito, cargo = valores.Cargo, aPagar = valores.APagar, inicio = actual.Inicio, fin = actual.Fin });

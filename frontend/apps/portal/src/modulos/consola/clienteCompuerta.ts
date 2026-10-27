@@ -37,11 +37,11 @@ function textoParaUrl(valor: unknown): string {
   return typeof valor === 'string' ? valor : JSON.stringify(valor);
 }
 
-function prepararPeticion(ruta: RutaConsola, valores: Record<string, string>, clave: string) {
+function prepararPeticion(ruta: RutaConsola, valores: Record<string, string>, clave: string, hostApi: string) {
   const parametrosDeRuta = ruta.parametros.filter(parametro =>
     parametro.ubicacion === 'ruta' || ruta.patron.includes(`{${parametro.nombre}}`));
   const usadosEnRuta = new Set(parametrosDeRuta.map(parametro => parametro.nombre));
-  let urlTexto = ruta.urlCompleta.replace(/\{([^}]+)\}/g, (_coincidencia, nombre: string) => {
+  let urlTexto = `https://${hostApi}${ruta.patron}`.replace(/\{([^}]+)\}/g, (_coincidencia, nombre: string) => {
     return encodeURIComponent(valores[nombre] ?? '');
   });
   const metodo = ruta.metodo.toUpperCase();
@@ -94,8 +94,9 @@ export async function enviarACompuerta(
   ruta: RutaConsola,
   valores: Record<string, string>,
   clave: string,
+  hostApi: string,
 ): Promise<ResultadoCompuerta> {
-  const peticion = prepararPeticion(ruta, valores, clave);
+  const peticion = prepararPeticion(ruta, valores, clave, hostApi);
   const respuesta = await fetch(peticion.url, peticion.init);
   const texto = await respuesta.text();
   let cuerpo: unknown = texto;

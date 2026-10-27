@@ -210,6 +210,13 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **Sin permiso:** el menú oculta la opción. Si se entra directo por la URL, se muestra "No tiene permiso para ver esta página".
 - **Acción confirmada:** un aviso breve (4 s) en la esquina superior derecha.
 
+### Precisiones de JG-24 (26 oct)
+
+- **A3.6:** muestra el nombre del plan vigente y si incluye dominio propio. Las insignias distinguen pendiente (advertencia), verificado (éxito) y fallido (error). Se puede vaciar el campo y los errores de validación muestran el motivo por campo. Las direcciones asignadas indican TLS «Automático»; no se afirma «Vigente», porque el sistema no consulta los certificados de Caddy. Para el dominio propio se muestra «Pendiente de verificación», «Se emite con la primera petición» o «No disponible», según su estado DNS; verificado no significa certificado emitido.
+- **A5.1 y A5.2:** la documentación conserva la URL del dominio propio verificado. La consola usa siempre el host asignado `{sub}.api.{dominio_base}`, conforme a RF-16, y muestra un error recuperable si falla o se bloquea la petición.
+- **A5.6 y B2.3:** el texto de tarjeta es «No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.» Se corrige el texto del mockup para cumplir RF-15: ninguna página del portal muestra la marca de Shapi (se exceptúan las URL del dominio base).
+- **A2.5 y B1.4:** si el plan de destino no incluye dominio propio, muestran «Al aplicar el cambio, se desconectarán los dominios propios de sus APIs. Sus direcciones por subdominio seguirán funcionando.»
+
 ### Cuentas de plataforma (JZ-09)
 
 - A6.5 permite crear cuentas de administración y soporte, desactivarlas y activarlas. Los selectores de las cuentas existentes muestran el rol en solo lectura: RF-42 no incluye cambiar roles. La cuenta propia se identifica con «(usted)» y no ofrece desactivación.

@@ -1045,7 +1045,7 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
 
     // RF-11, RF-12: el flujo simulado conecta, crea el CNAME, verifica y autoriza TLS.
     [Fact]
-    public async Task RF_11_RF_12_DominioPropio_FlujoSimuladoCompleto()
+    public async Task RF_12_DominioPropio_FlujoSimuladoCompleto()
     {
         var apiId = await RegistrarYObtenerId("dominio-dc14");
         await HabilitarDominioPropio(_organizacionId);
@@ -1092,9 +1092,73 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Equal(HttpStatusCode.NotFound, (await _cliente.SendAsync(publica)).StatusCode);
     }
 
-    // RF-11: el dominio propio depende del plan de plataforma vigente.
+    // RF-47: secretos heredados cortos nunca producen 500 ni se revelan completos.
+    [Theory]
+    [InlineData("")]
+    [InlineData("a")]
+    [InlineData("abc")]
+    [InlineData("abcd")]
+    public async Task RF_47_ConsultarDominio_SecretoCorto_RespondeEnmascarado(string secreto)
+    {
+        var apiId = await RegistrarYObtenerId("secreto-corto-jg24");
+        await using (var db = Db(out var alcance))
+        {
+            using var _ = alcance;
+            var api = await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(x => x.Id == apiId);
+            api.RegenerarSecretoOrigen(alcance.ServiceProvider.GetRequiredService<IProtectorSecretoOrigen>().Cifrar(secreto), _reloj.Ahora);
+            await db.SaveChangesAsync();
+        }
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/dominio", null);
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var datos = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("shps_••••••••••••", datos.GetProperty("secretoEnmascarado").GetString());
+    }
+
+    // RF-12: el estado informa los datos del plan de la organización.
     [Fact]
-    public async Task RF_11_ConectarDominio_PlanSinDominioPropio_Responde422()
+    public async Task RF_12_ConsultarDominio_InformaPlanYPermisoReal()
+    {
+        var apiId = await RegistrarYObtenerId("plan-dominio-jg24");
+        using var respuesta = await EnviarAutenticado(HttpMethod.Get, $"/api/apis/{apiId}/dominio", null);
+        var datos = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(datos.GetProperty("dominioPropioPermitido").GetBoolean());
+        Assert.False(string.IsNullOrWhiteSpace(datos.GetProperty("planNombre").GetString()));
+    }
+
+    // RF-12: DNS simulado rechaza dominios fuera de .localhost y conserva el motivo.
+    [Fact]
+    public async Task RF_12_ConectarDominio_FueraDeLocalhost_Responde400ConMotivo()
+    {
+        var apiId = await RegistrarYObtenerId("dominio-real-jg24");
+        await HabilitarDominioPropio(_organizacionId);
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/dominio", new { dominio = "api.ejemplo.com" });
+        var datos = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        Assert.Contains(".localhost", datos.GetProperty("errores").GetProperty("dominio")[0].GetString());
+    }
+
+    // RF-12: un CNAME a otro destino no autoriza el dominio ni su TLS.
+    [Fact]
+    public async Task RF_12_VerificarDominio_CnameDistinto_ConservaPendiente()
+    {
+        var apiId = await RegistrarYObtenerId("cname-distinto-jg24");
+        await HabilitarDominioPropio(_organizacionId);
+        await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/dominio", new { dominio = "api.distinto.localhost" });
+        await using (var db = Db(out var alcance))
+        {
+            using var _ = alcance;
+            db.Add(new RegistroDnsSimulado("api.distinto.localhost", "otra.api.shapi.localhost", _reloj.Ahora));
+            await db.SaveChangesAsync();
+        }
+        using var respuesta = await EnviarAutenticado(HttpMethod.Post, $"/api/apis/{apiId}/dominio/verificar", null);
+        var datos = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("pendiente", datos.GetProperty("estado").GetString());
+        Assert.Contains("otra.api.shapi.localhost", datos.GetProperty("motivo").GetString());
+        Assert.Equal(HttpStatusCode.NotFound, (await _cliente.GetAsync("/interno/tls/autorizar?domain=api.distinto.localhost")).StatusCode);
+    }
+
+    // RF-12: el dominio propio depende del plan de plataforma vigente.
+    [Fact]
+    public async Task RF_12_ConectarDominio_PlanSinDominioPropio_Responde422()
     {
         var apiId = await RegistrarYObtenerId("sin-dominio-dc14");
 
@@ -1104,9 +1168,9 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         await AfirmarProblema(respuesta, (HttpStatusCode)422, "plan_sin_dominio_propio");
     }
 
-    // RF-11: los hosts de Shapi no pueden reclamarse y un dominio solo pertenece a una API.
+    // RF-12: los hosts de Shapi no pueden reclamarse y un dominio solo pertenece a una API.
     [Fact]
-    public async Task RF_11_ConectarDominio_ProtegeHostsPlataformaYDominioOcupado()
+    public async Task RF_12_ConectarDominio_ProtegeHostsPlataformaYDominioOcupado()
     {
         await AumentarLimiteApis(_organizacionId, 50);
         var apiUno = await RegistrarYObtenerId("dominio-uno-dc14");
@@ -1125,9 +1189,9 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         await AfirmarProblema(ocupado, HttpStatusCode.BadRequest, "datos_invalidos");
     }
 
-    // RF-11: reemplazar o quitar un host verificado lo elimina de Redis después del commit.
+    // RF-12: reemplazar o quitar un host verificado lo elimina de Redis después del commit.
     [Fact]
-    public async Task RF_11_DominioVerificado_ReemplazarYEliminarQuitaHostAnterior()
+    public async Task RF_12_DominioVerificado_ReemplazarYEliminarQuitaHostAnterior()
     {
         var apiId = await RegistrarYObtenerId("reemplazo-dc14");
         await HabilitarDominioPropio(_organizacionId);
@@ -1167,9 +1231,9 @@ public class ApisTests(ContenedorPostgresApis postgres) : IClassFixture<Contened
         Assert.Contains(apiId, _fabrica.Services.GetRequiredService<PublicadorCacheApisFalso>().ApisPublicadas);
     }
 
-    // RF-11: el trabajo verifica pendientes y aplica exactamente el umbral de 72 horas.
+    // RF-12: el trabajo verifica pendientes y aplica exactamente el umbral de 72 horas.
     [Fact]
-    public async Task RF_11_Trabajador_VerificaCnameYMarcaFallidoALas72Horas()
+    public async Task RF_12_Trabajador_VerificaCnameYMarcaFallidoALas72Horas()
     {
         await AumentarLimiteApis(_organizacionId, 50);
         var apiVerificada = await RegistrarYObtenerId("trabajo-verifica-dc14");

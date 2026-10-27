@@ -30,8 +30,10 @@ namespace Shapi.Api.Tests.Suscripciones;
 public sealed class PublicadorSuscripcionFalso : IPublicadorCache
 {
     public List<Guid> Publicadas { get; } = [];
-    public Task PublicarApi(Guid apiId, CancellationToken cancelacion = default) => Task.CompletedTask;
-    public Task EliminarHost(string host, Guid apiId, CancellationToken cancelacion = default) => Task.CompletedTask;
+    public List<Guid> ApisPublicadas { get; } = [];
+    public List<(string Host, Guid ApiId)> HostsEliminados { get; } = [];
+    public Task PublicarApi(Guid apiId, CancellationToken cancelacion = default) { ApisPublicadas.Add(apiId); return Task.CompletedTask; }
+    public Task EliminarHost(string host, Guid apiId, CancellationToken cancelacion = default) { HostsEliminados.Add((host, apiId)); return Task.CompletedTask; }
     public Task PublicarClave(Guid claveId, CancellationToken cancelacion = default) => Task.CompletedTask;
     public Task ExpirarClave(string hashClave, DateTimeOffset instante, CancellationToken cancelacion = default) => Task.CompletedTask;
     public Task EliminarClave(string hashClave, CancellationToken cancelacion = default) => Task.CompletedTask;
@@ -308,13 +310,65 @@ public sealed class PlataformaSuscripcionesTests(PostgresPersistencia postgres) 
         var actual = await NuevoPlanPlataforma();
         var siguiente = await NuevoPlanPlataforma();
         var sub = await NuevaSuscripcionPlataforma(org, actual);
+        var api = await NuevaApi(org);
+        await Ejecutar($"UPDATE plan_plataforma SET dominio_propio = true WHERE id = '{actual}'");
+        await using (var db = CrearDb())
+        {
+            var dominio = new Shapi.Dominio.Apis.DominioPropio(api, "cancelar.jg24.localhost", "api.api.shapi.localhost", Reloj.Ahora);
+            dominio.Verificar(dominio.DestinoCname, Reloj.Ahora);
+            db.Add(dominio);
+            await db.SaveChangesAsync();
+        }
         using var client = Factory.CreateClient();
         using var cambio = await Enviar(client, HttpMethod.Post, "/api/suscripcion/cambiar", org, user, new { planId = siguiente });
         cambio.StatusCode.Should().Be(HttpStatusCode.OK);
         (await Escalar<Guid>($"SELECT plan_siguiente_id FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(siguiente);
+        (await Escalar<long>($"SELECT count(*) FROM dominio_propio WHERE api_id = '{api}' AND estado = 'verificado'")).Should().Be(1);
+        using var consulta = await Enviar(client, HttpMethod.Get, "/api/suscripcion", org, user, null);
+        var datos = await consulta.Content.ReadFromJsonAsync<JsonElement>();
+        datos.GetProperty("cambioProgramado").GetProperty("desconectaDominios").GetBoolean().Should().BeTrue();
         using var cancelacion = await Enviar(client, HttpMethod.Delete, "/api/suscripcion/cambio-programado", org, user, null);
         cancelacion.StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await Escalar<long>($"SELECT count(*) FROM suscripcion_plataforma WHERE id = '{sub}' AND plan_siguiente_id IS NULL")).Should().Be(1);
+        (await Escalar<long>($"SELECT count(*) FROM dominio_propio WHERE api_id = '{api}' AND estado = 'verificado'")).Should().Be(1);
+    }
+
+    // RF-25, RF-43: todos los cambios inmediatos aplican la desconexión del plan de destino.
+    [Theory]
+    [InlineData("contratar")]
+    [InlineData("cambiar_gratuito")]
+    [InlineData("subida")]
+    public async Task RF_25_RF_43_CambioInmediatoSinDominio_DesconectaYRepublica(string flujo)
+    {
+        var org = await NuevaOrganizacion();
+        var user = await NuevoUsuario();
+        await NuevaMembresia(user, org, "propietario");
+        var origen = await NuevoPlanPlataforma();
+        var destino = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET dominio_propio = true WHERE id = '{origen}'");
+        if (flujo != "subida")
+        {
+            await Ejecutar($"UPDATE plan_plataforma SET precio = 0 WHERE id = '{origen}'");
+        }
+        await Ejecutar($"UPDATE plan_plataforma SET precio = 599 WHERE id = '{destino}'");
+        var sub = await NuevaSuscripcionPlataforma(org, origen);
+        var medio = await NuevoMedioPago(org, null);
+        await Ejecutar($"UPDATE suscripcion_plataforma SET medio_pago_id = '{medio}', inicio = '{Reloj.Ahora.AddDays(-17):O}', fin = '{Reloj.Ahora.AddDays(13):O}' WHERE id = '{sub}'");
+        var api = await NuevaApi(org);
+        await using (var db = CrearDb())
+        {
+            var dominio = new Shapi.Dominio.Apis.DominioPropio(api, "inmediato.jg24.localhost", "api.api.shapi.localhost", Reloj.Ahora);
+            dominio.Verificar(dominio.DestinoCname, Reloj.Ahora);
+            db.Add(dominio);
+            await db.SaveChangesAsync();
+        }
+        using var client = Factory.CreateClient();
+        var ruta = flujo == "contratar" ? "/api/suscripcion/contratar" : "/api/suscripcion/cambiar";
+        using var respuesta = await Enviar(client, HttpMethod.Post, ruta, org, user, new { planId = destino, usarRegistrada = true });
+        respuesta.IsSuccessStatusCode.Should().BeTrue(await respuesta.Content.ReadAsStringAsync());
+        (await Escalar<long>($"SELECT count(*) FROM dominio_propio WHERE api_id = '{api}'")).Should().Be(0);
+        Publicador.HostsEliminados.Should().Contain(("inmediato.jg24.localhost", api));
+        Publicador.ApisPublicadas.Should().Contain(api);
     }
 
     // RF-25: una bajada que supera los límites actuales se rechaza sin programarla.

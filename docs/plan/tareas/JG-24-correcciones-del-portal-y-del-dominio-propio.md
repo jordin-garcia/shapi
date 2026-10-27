@@ -31,10 +31,10 @@ Que A3.6 funcione con las APIs de la siembra, que la consola funcione con un dom
 - **H-C15 (baja, DC-14, RF-12):** faltan pruebas de RF-12: un CNAME que apunta a otro destino deja el dominio pendiente; un dominio que no termina en `.localhost` se rechaza; y, en el frontend, «Conectar» y el error `plan_sin_dominio_propio`. Además, las pruebas del dominio propio se llaman `RF_11_*` (`tests/Shapi.Api.Tests/Apis/ApisTests.cs:1095-1172` y `tests/Shapi.Dominio.Tests/Apis/DominioPropioTests.cs:7-23`).
 - **H-C16 (media, EM-09 y DC-14):** bajar a un plan de plataforma sin dominio propio no tiene en cuenta un dominio verificado (`PlataformaSuscripcionesApi.cs:274-282`). `AutorizarTls` y el host en Redis siguen activos, así que el dominio sigue funcionando en un plan que no lo incluye. 09 no lo define.
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **Texto de la tarjeta en el portal (H-C13).** Recomiendo «No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.», y anotar en 11 que el mockup se corrige por RF-15.
-2. **Bajar de plan con un dominio propio (H-C16).** Recomiendo tratar el dominio como un límite del plan (RF-43). Bajar a un plan sin dominio propio mientras haya uno conectado se rechaza con 422 `excede_limites_del_plan` (con el límite `dominio_propio` en el detalle), como las demás bajadas que exceden los límites (09 §5 y `CodigosError.ExcedeLimitesDelPlan`) y como dice RF-25 («no se puede bajar si excede sus límites»), y B1.4 y A2.5 lo explican. La otra opción es desconectar el dominio al aplicar la bajada.
-3. **Qué URL muestra la documentación (H-C12).** Recomiendo que la documentación siga mostrando la URL del dominio propio, que es la que usará el consumidor en su sistema, y que la consola use siempre `{sub}.api.{dominio_base}`, como dice RF-16.
+## Decisiones aprobadas por Jordin (2026-10-26)
+1. **Texto de tarjeta (H-C13):** «No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.» Se precisa en 11 la corrección del mockup por RF-15.
+2. **Bajada de plan (H-C16):** se permite programarla y se desconectan los dominios propios al aplicar el cambio a un plan que no los incluya. Hasta la renovación siguen conectados; cancelar el cambio los conserva. La desconexión se confirma con el cambio de plan y sus hosts se retiran de Redis después del commit. A2.5 y B1.4 avisan de esta consecuencia.
+3. **URL (H-C12):** la documentación conserva el dominio propio verificado y la consola usa siempre `{sub}.api.{dominio_base}`.
 
 ## Contexto que debes leer
 - `docs/specs/03-requisitos.md` RF-12, RF-15, RF-16, RF-25, RF-43 y RF-47
@@ -50,7 +50,10 @@ Que A3.6 funcione con las APIs de la siembra, que la consola funcione con un dom
 - `frontend/apps/portal/src/modulos/consola/clienteCompuerta.ts` y la página A5.2 (modificar)
 - `frontend/apps/portal/src/paginas/A5-6-Pago.tsx` y `B2-3-Suscripcion.tsx` (modificar)
 - `frontend/apps/panel/src/paginas/A3-6-Dominio.tsx` (modificar)
-- `src/Shapi.Api/Suscripciones/PlataformaSuscripcionesApi.cs` (modificar, según la decisión 2)
+- `src/Shapi.Api/Suscripciones/PlataformaSuscripcionesApi.cs`, `src/Shapi.Trabajador/CierreCiclo/CierreCiclo.cs` y `src/Shapi.Infraestructura/Apis/DominiosDelPlan.cs` (modificar o crear, según la decisión 2)
+- `src/Shapi.Aplicacion/Apis/ContratosApis.cs`, `src/Shapi.Infraestructura/Apis/RepositorioApis.cs` y el contrato OpenAPI de APIs (datos reales del plan en A3.6)
+- A2.5 y B1.4, el contrato de suscripciones y los tipos generados (aviso de desconexión)
+- `tests/e2e/demo-dominios/` y `playwright.dominios.config.ts` (ensayo aislado que avanza el reloj)
 - Pruebas del backend y del frontend (crear, modificar o renombrar)
 - `docs/specs/11-interfaz.md` y `09-cobros-y-suscripciones.md` (precisar lo que se decida)
 

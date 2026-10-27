@@ -32,6 +32,28 @@ namespace Shapi.Api.Tests.Siembra;
 [Collection(nameof(PostgresPersistencia))]
 public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
+    // RF-47: todas las APIs reciben un secreto aleatorio aunque no se configure el origen.
+    [Fact]
+    public async Task RF_47_SembrarSinSecretos_GeneraSecretosValidosYDistintos()
+    {
+        await using var db = CrearDb();
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro");
+        var apis = await db.Set<ApiDominio>().IgnoreQueryFilters().ToListAsync();
+        var secretos = apis.Select(a => new ProtectorPrueba().Descifrar(a.SecretoOrigenCifrado)).ToList();
+        secretos.Should().OnlyHaveUniqueItems();
+        secretos.Should().AllSatisfy(s => s.Should().MatchRegex("^shps_[A-Za-z0-9]{32}$"));
+    }
+
+    // RF-47: la siembra respeta secretos configurados para validar el origen.
+    [Fact]
+    public async Task RF_47_SembrarConSecretoConfigurado_LoConserva()
+    {
+        await using var db = CrearDb();
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro", "secreto-origen-envios", "secreto-origen-agro");
+        var api = await db.Set<ApiDominio>().IgnoreQueryFilters().SingleAsync(a => a.Subdominio == "envios");
+        new ProtectorPrueba().Descifrar(api.SecretoOrigenCifrado).Should().Be("secreto-origen-envios");
+    }
+
     // RNF-06, RF-22: sembrar-demo no arranca el host, pero siembra y resincroniza con la hora compartida.
     [Fact]
     public async Task RNF_14_ComandoSinArrancarHost_UsaDesplazamientoPreexistente()

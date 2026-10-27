@@ -7,12 +7,71 @@ using Shapi.Infraestructura.Bitacora;
 using Shapi.Infraestructura.Correo;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Trabajador.CierreCiclo;
+using Microsoft.EntityFrameworkCore;
+using Shapi.Dominio.Apis;
 
 namespace Shapi.Api.Tests.Suscripciones;
 
 [Collection(nameof(PostgresPersistencia))]
 public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
 {
+    // RF-25, RF-43: la bajada desconecta todos los dominios solo cuando se aplica, después del commit.
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task RF_25_RF_43_Bajada_DominiosSeDesconectanAlAplicar(bool permiteDominio, bool rechazarPago)
+    {
+        var org = await NuevaOrganizacion();
+        var otraOrg = await NuevaOrganizacion();
+        var actual = await NuevoPlanPlataforma();
+        var destino = await NuevoPlanPlataforma();
+        await Ejecutar($"UPDATE plan_plataforma SET dominio_propio = true WHERE id = '{actual}'");
+        await Ejecutar($"UPDATE plan_plataforma SET dominio_propio = {permiteDominio} WHERE id = '{destino}'");
+        var sub = await NuevaSuscripcionPlataforma(org, actual);
+        var medio = await NuevoMedioPago(org, null);
+        var fin = Reloj.Ahora.AddDays(1);
+        await Ejecutar($"UPDATE suscripcion_plataforma SET medio_pago_id = '{medio}', plan_siguiente_id = '{destino}', inicio = '{fin.AddDays(-30):O}', fin = '{fin:O}' WHERE id = '{sub}'");
+        var apis = new[] { await NuevaApi(org), await NuevaApi(org), await NuevaApi(org), await NuevaApi(otraOrg) };
+        await using var db = CrearDb();
+        var dominios = apis.Select((id, i) => new DominioPropio(id, $"api{i}.jg24.localhost", $"api{i}.api.shapi.localhost", Reloj.Ahora)).ToList();
+        dominios[0].Verificar(dominios[0].DestinoCname, Reloj.Ahora);
+        dominios[2].MarcarFallido(Reloj.Ahora);
+        db.AddRange(dominios);
+        await db.SaveChangesAsync();
+        var publicador = Substitute.For<IPublicadorCache>();
+        publicador.EliminarHost(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(async llamada =>
+        {
+            await using var comprobacion = CrearDb();
+            // Otro contexto solo ve la eliminación después de confirmar la transacción.
+            (await comprobacion.Set<DominioPropio>().IgnoreQueryFilters().AnyAsync(d => d.ApiId == llamada.Arg<Guid>())).Should().BeFalse();
+        });
+        var pasarela = Substitute.For<IPasarelaPagos>();
+        pasarela.CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true)
+            .Returns(rechazarPago ? new ResultadoCobro { Error = "pago_rechazado" } : new ResultadoCobro { Exitoso = true, Referencia = "ch-dominio-jg24" });
+        var trabajo = new CerrarCiclo(db, Reloj, pasarela, publicador, Substitute.For<IColaCorreo>(), Substitute.For<IBitacora>(), new OpcionesCierreCiclo());
+        await trabajo.EjecutarAsync();
+        (await db.Set<DominioPropio>().IgnoreQueryFilters().CountAsync()).Should().Be(4);
+        await publicador.DidNotReceive().EliminarHost(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        Reloj.Ahora = fin;
+        await trabajo.EjecutarAsync();
+        (await Escalar<Guid>($"SELECT plan_id FROM suscripcion_plataforma WHERE id = '{sub}'")).Should().Be(destino);
+        (await db.Set<DominioPropio>().IgnoreQueryFilters().CountAsync()).Should().Be(permiteDominio ? 4 : 1);
+        foreach (var dominio in dominios.Take(3))
+        {
+            if (permiteDominio)
+            {
+                await publicador.DidNotReceive().EliminarHost(dominio.Dominio, dominio.ApiId, Arg.Any<CancellationToken>());
+            }
+            else
+            {
+                await publicador.Received(1).EliminarHost(dominio.Dominio, dominio.ApiId, Arg.Any<CancellationToken>());
+                await publicador.Received(1).PublicarApi(dominio.ApiId, Arg.Any<CancellationToken>());
+            }
+        }
+        await publicador.DidNotReceive().PublicarApi(apis[3], Arg.Any<CancellationToken>());
+    }
+
     // RF-22: el fallo de la segunda renovación no deshace ni repite el primer cobro, en ambos niveles.
     [Theory]
     [InlineData(false)]
@@ -75,6 +134,15 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         var tabla = api ? "suscripcion_api" : "suscripcion_plataforma";
         var fin = Reloj.Ahora.AddDays(-1);
         await Ejecutar($"UPDATE {tabla} SET medio_pago_id = '{medio}', inicio = '{fin.AddDays(-30):O}', fin = '{fin:O}' WHERE id = '{suscripcion}'");
+        if (!api)
+        {
+            // RF-25, RF-43: la desconexión también debe revertirse si falla el guardado del cobro.
+            var siguiente = await NuevoPlanPlataforma();
+            await Ejecutar($"UPDATE suscripcion_plataforma SET plan_siguiente_id = '{siguiente}' WHERE id = '{suscripcion}'");
+            await using var preparacion = CrearDb();
+            preparacion.Add(new DominioPropio(apiId, "rollback.jg24.localhost", "api.api.shapi.localhost", Reloj.Ahora));
+            await preparacion.SaveChangesAsync();
+        }
         await Ejecutar("ALTER TABLE pago ADD CONSTRAINT fallo_pago_jg23 CHECK (referencia_pasarela <> 'ch-falla-guardar') NOT VALID");
         var pasarela = Substitute.For<IPasarelaPagos>();
         pasarela.CobrarAsync(Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), true)
@@ -88,6 +156,12 @@ public sealed class CierreCicloTests(PostgresPersistencia postgres) : BaseDePrue
         await publicador.DidNotReceive().PublicarSuscripcion(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
         (await Escalar<DateTime>($"SELECT fin FROM {tabla} WHERE id = '{suscripcion}'")).Should().Be(fin.UtcDateTime);
         (await Escalar<long>("SELECT count(*) FROM pago WHERE referencia_pasarela = 'ch-falla-guardar'")).Should().Be(0);
+        if (!api)
+        {
+            (await Escalar<long>($"SELECT count(*) FROM dominio_propio WHERE api_id = '{apiId}'")).Should().Be(1);
+            await publicador.DidNotReceive().EliminarHost(Arg.Any<string>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+            await publicador.DidNotReceive().PublicarApi(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        }
     }
 
     // RF-17: editar el precio no modifica el ciclo vigente y se cobra al renovar.
