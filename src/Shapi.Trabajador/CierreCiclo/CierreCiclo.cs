@@ -8,6 +8,7 @@ using Shapi.Dominio.Organizaciones;
 using Shapi.Dominio.Pagos;
 using Shapi.Dominio.Planes;
 using Shapi.Dominio.Suscripciones;
+using Shapi.Infraestructura.Apis;
 using Shapi.Infraestructura.Persistencia;
 using AplicacionEntradaBitacora = Shapi.Aplicacion.Comun.EntradaBitacora;
 
@@ -32,11 +33,13 @@ public sealed class CerrarCiclo(
     OpcionesCierreCiclo opciones)
 {
     private readonly List<Guid> _publicarDespuesDelCommit = [];
+    private readonly List<DominioPropio> _dominiosDesconectados = [];
     private string? _cobroPendiente;
 
     public async Task EjecutarAsync(CancellationToken cancelacion = default)
     {
         _publicarDespuesDelCommit.Clear();
+        _dominiosDesconectados.Clear();
         await RenovarPlataformaAsync(cancelacion);
         await RenovarApiAsync(cancelacion);
         await SuspenderPlataformaAsync(cancelacion);
@@ -49,11 +52,14 @@ public sealed class CerrarCiclo(
         var ahora = reloj.Ahora;
         var ids = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters().AsNoTracking()
             .Where(s => s.Estado == EstadoSuscripcion.Activa && s.Fin <= ahora)
-            .OrderBy(s => s.Fin).ThenBy(s => s.Id).Select(s => s.Id).ToListAsync(ct);
-        foreach (var id in ids)
+            .OrderBy(s => s.Fin).ThenBy(s => s.Id).Select(s => new { s.Id, s.OrganizacionId }).ToListAsync(ct);
+        foreach (var candidata in ids)
         {
             await ConfirmarRenovacionAsync(async () =>
             {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT pg_advisory_xact_lock(hashtextextended({candidata.OrganizacionId.ToString()}, 0))", ct);
+                var id = candidata.Id;
                 var suscripcion = await db.Set<SuscripcionPlataforma>()
                     .FromSqlInterpolated($"SELECT * FROM suscripcion_plataforma WHERE id = {id} AND estado = 'activa' AND fin <= {ahora} FOR UPDATE SKIP LOCKED")
                     .IgnoreQueryFilters().SingleOrDefaultAsync(ct);
@@ -66,6 +72,10 @@ public sealed class CerrarCiclo(
                 {
                     var planSiguiente = await db.Set<PlanPlataforma>().IgnoreQueryFilters().SingleAsync(x => x.Id == siguiente, ct);
                     suscripcion.AplicarPlanProgramado(siguiente, ahora);
+                    if (!planSiguiente.DominioPropio)
+                    {
+                        _dominiosDesconectados.AddRange(await DominiosDelPlan.Desconectar(db, suscripcion.OrganizacionId, ct));
+                    }
                     if (planSiguiente.EsPrueba)
                     {
                         suscripcion.EntrarEnGracia(opciones.DiasGracia, ahora);
@@ -234,6 +244,7 @@ public sealed class CerrarCiclo(
             }
 
             _publicarDespuesDelCommit.Clear();
+            _dominiosDesconectados.Clear();
             throw;
         }
         finally
@@ -293,6 +304,8 @@ public sealed class CerrarCiclo(
 
     private async Task PublicarCambiosAsync(CancellationToken ct)
     {
+        await DominiosDelPlan.Publicar(publicador, _dominiosDesconectados, ct);
+        _dominiosDesconectados.Clear();
         foreach (var id in _publicarDespuesDelCommit.Distinct())
         {
             await publicador.PublicarSuscripcion(id, ct);

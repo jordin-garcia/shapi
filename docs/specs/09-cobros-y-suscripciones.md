@@ -119,6 +119,7 @@ El proveedor no puede convertir un plan gratuito en uno de pago, ni al revés, m
 
 - Se guarda `plan_siguiente_id` y se aplica cuando se cierra el ciclo (CU-16). No se reembolsa nada.
 - **Se rechaza** con `excede_limites_del_plan` si la organización tiene más APIs registradas o más miembros de los que permite el plan de destino.
+- **Dominio propio (JG-24, decisión de Jordin del 26 oct):** si el destino no lo incluye, se permite programar la bajada y los dominios de todas las APIs de la organización se desconectan al aplicar el cambio en la renovación, incluidos los pendientes y fallidos. Hasta entonces permanecen conectados; cancelar la bajada los conserva. La desconexión se confirma en la misma transacción que el cambio de plan y, después del commit, se retiran los hosts de Redis y se republican las APIs; dejan de autorizar TLS para esos dominios. Las direcciones por subdominio siguen funcionando. A2.5 avisa antes de confirmar y B1.4 recuerda esta consecuencia mientras el cambio está programado. Cualquier cambio de plataforma que se aplique de inmediato a un destino sin dominio propio cumple la misma regla al aplicarse.
 - Si hay una bajada programada, la interfaz muestra "A partir del {fin} su plan será {X}" y permite cancelarla.
 
 ## 6. Límites del plan de plataforma ([RF-43](03-requisitos.md#rf-43))

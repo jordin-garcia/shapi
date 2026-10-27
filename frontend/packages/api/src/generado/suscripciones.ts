@@ -400,6 +400,8 @@ export interface components {
                 nombre?: string;
                 /** Format: date-time */
                 efectivoDesde?: string;
+                /** @description Al aplicar el cambio se desconectarán los dominios propios porque el plan de destino no los incluye. */
+                desconectaDominios?: boolean;
             } | null;
         };
         PeticionContratarPlan: {
@@ -804,7 +806,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Cambio aplicado, contratado desde plan de prueba/gratuito, sin cambios o programado */
+            /** @description Cambio aplicado, contratado desde plan de prueba/gratuito, sin cambios o programado. Si el destino no incluye dominio propio, los dominios se desconectan al aplicar el cambio; una bajada programada los conserva hasta la renovación y cancelarla los conserva. */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -21,6 +21,7 @@ const configuracion = {
 };
 
 let cliente: QueryClient;
+const textoTarjeta = 'No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.';
 
 function Explota(): never {
   throw new Error('Falla de render simulada');
@@ -75,6 +76,44 @@ afterEach(() => {
 });
 
 describe('RF-15 · marca dinámica del portal', () => {
+  it.each([
+    ['/', 'Cotice envíos a todo el país.'], ['/documentacion', '/cotizaciones'],
+    ['/consola', 'Consola de pruebas'], ['/planes', 'Planes de la API'],
+    ['/registro', 'Crear una cuenta'], ['/invitacion?token=ejemplo', 'Crear una cuenta'], ['/entrar', 'Entrar'],
+    ['/verificar-correo', 'Revise su correo'], ['/recuperar', 'Recuperar la contraseña'], ['/restablecer?token=ejemplo', 'Definir la contraseña'],
+    ['/contratar/basico', 'Datos de la tarjeta'], ['/cuenta/suscripcion', 'Suscripción y claves'],
+    ['/cuenta/consumo', 'Todavía no tiene un plan contratado'], ['/cuenta/pagos', 'Historial de pagos'], ['/cuenta/cambiar-plan/basico', 'Cambio de plan'],
+  ])('RF-15 ninguna página muestra la marca de Shapi: %s', async (ruta, titulo) => {
+    server.use(
+      http.get('http://localhost/api/portal/auth/invitacion/:token', () => HttpResponse.json({ correo: 'persona@ejemplo.com' })),
+      http.get('http://localhost/api/portal/claves', () => HttpResponse.json({ elementos: [] })),
+      http.get('http://localhost/api/portal/pagos', () => HttpResponse.json({ elementos: [], total: 0 })),
+      http.get('http://localhost/api/portal/suscripcion', () => HttpResponse.json({
+        plan: { id: 'otro', nombre: 'Comercio', precio: 450, moneda: 'GTQ', vigenciaDias: 30 },
+        estado: 'en_gracia', periodo: { inicio: '2026-09-01T06:00:00Z', fin: '2026-09-30T06:00:00Z' },
+        proximaRenovacion: '2026-10-01T06:00:00Z', graciaHasta: '2026-10-08T06:00:00Z',
+        diasRestantes: 7, tarjetaEnmascarada: 'Visa •••• 4242', cuotaLlamadas: 5000, limiteMinuto: 30,
+      })),
+    );
+    const { container } = montar(ruta);
+    await screen.findByRole('banner');
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).toBeNull();
+      expect(screen.getAllByRole('heading').length).toBeGreaterThan(0);
+      expect(screen.getByRole('heading', { name: titulo })).toBeDefined();
+    });
+    if (ruta === '/cuenta/suscripcion') {
+      await userEvent.click(screen.getByRole('button', { name: 'Pagar con otra tarjeta' }));
+      expect(await screen.findByLabelText('Número de tarjeta')).toBeDefined();
+      expect(screen.getByText(textoTarjeta)).toBeDefined();
+    }
+    if (ruta === '/contratar/basico') expect(screen.getByText(textoTarjeta)).toBeDefined();
+    // Las URL del dominio base están permitidas; los textos de marca no.
+    const textos: string[] = [];
+    const nodos = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    while (nodos.nextNode()) textos.push(nodos.currentNode.textContent ?? '');
+    expect(textos.join(' ').replace(/https?:\/\/[^\s]+/g, '')).not.toMatch(/\bshapi\b/i);
+  });
   it('aplica --marca-principal y muestra nombre e iniciales sin la marca de Shapi', async () => {
     const { container } = montar('/');
 

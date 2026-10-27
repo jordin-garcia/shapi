@@ -117,7 +117,7 @@ beforeEach(() => {
       apiId: params.id, apiNombre: 'Envíos Xelajú',
       urlPortal: 'https://envios.shapi.localhost', urlApi: 'https://envios.api.shapi.localhost',
       secretoEnmascarado: 'shps_••••••••••••••••••••••••••••••••', modoSimulado: true,
-      dominio: null, destinoCname: null, estado: null, motivo: null, verificadoEn: null,
+      dominio: null, destinoCname: null, estado: null, motivo: null, verificadoEn: null, planNombre: 'Lanzamiento', dominioPropioPermitido: false,
     })),
     http.get('http://localhost/api/apis/:id/portal', ({ params }) => HttpResponse.json({
       apiId: params.id, apiNombre: 'API de Cotización de Envíos', nombreOrganizacion: 'Envíos Xelajú, S.A.',

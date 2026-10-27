@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-25
 depende_de: []
 requisitos: [RF-12, RF-15, RF-16, RF-25, RF-43, RF-47]
@@ -31,10 +31,10 @@ Que A3.6 funcione con las APIs de la siembra, que la consola funcione con un dom
 - **H-C15 (baja, DC-14, RF-12):** faltan pruebas de RF-12: un CNAME que apunta a otro destino deja el dominio pendiente; un dominio que no termina en `.localhost` se rechaza; y, en el frontend, «Conectar» y el error `plan_sin_dominio_propio`. Además, las pruebas del dominio propio se llaman `RF_11_*` (`tests/Shapi.Api.Tests/Apis/ApisTests.cs:1095-1172` y `tests/Shapi.Dominio.Tests/Apis/DominioPropioTests.cs:7-23`).
 - **H-C16 (media, EM-09 y DC-14):** bajar a un plan de plataforma sin dominio propio no tiene en cuenta un dominio verificado (`PlataformaSuscripcionesApi.cs:274-282`). `AutorizarTls` y el host en Redis siguen activos, así que el dominio sigue funcionando en un plan que no lo incluye. 09 no lo define.
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **Texto de la tarjeta en el portal (H-C13).** Recomiendo «No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.», y anotar en 11 que el mockup se corrige por RF-15.
-2. **Bajar de plan con un dominio propio (H-C16).** Recomiendo tratar el dominio como un límite del plan (RF-43). Bajar a un plan sin dominio propio mientras haya uno conectado se rechaza con 422 `excede_limites_del_plan` (con el límite `dominio_propio` en el detalle), como las demás bajadas que exceden los límites (09 §5 y `CodigosError.ExcedeLimitesDelPlan`) y como dice RF-25 («no se puede bajar si excede sus límites»), y B1.4 y A2.5 lo explican. La otra opción es desconectar el dominio al aplicar la bajada.
-3. **Qué URL muestra la documentación (H-C12).** Recomiendo que la documentación siga mostrando la URL del dominio propio, que es la que usará el consumidor en su sistema, y que la consola use siempre `{sub}.api.{dominio_base}`, como dice RF-16.
+## Decisiones aprobadas por Jordin (2026-10-26)
+1. **Texto de tarjeta (H-C13):** «No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.» Se precisa en 11 la corrección del mockup por RF-15.
+2. **Bajada de plan (H-C16):** se permite programarla y se desconectan los dominios propios al aplicar el cambio a un plan que no los incluya. Hasta la renovación siguen conectados; cancelar el cambio los conserva. La desconexión se confirma con el cambio de plan y sus hosts se retiran de Redis después del commit. A2.5 y B1.4 avisan de esta consecuencia.
+3. **URL (H-C12):** la documentación conserva el dominio propio verificado y la consola usa siempre `{sub}.api.{dominio_base}`.
 
 ## Contexto que debes leer
 - `docs/specs/03-requisitos.md` RF-12, RF-15, RF-16, RF-25, RF-43 y RF-47
@@ -50,7 +50,10 @@ Que A3.6 funcione con las APIs de la siembra, que la consola funcione con un dom
 - `frontend/apps/portal/src/modulos/consola/clienteCompuerta.ts` y la página A5.2 (modificar)
 - `frontend/apps/portal/src/paginas/A5-6-Pago.tsx` y `B2-3-Suscripcion.tsx` (modificar)
 - `frontend/apps/panel/src/paginas/A3-6-Dominio.tsx` (modificar)
-- `src/Shapi.Api/Suscripciones/PlataformaSuscripcionesApi.cs` (modificar, según la decisión 2)
+- `src/Shapi.Api/Suscripciones/PlataformaSuscripcionesApi.cs`, `src/Shapi.Trabajador/CierreCiclo/CierreCiclo.cs` y `src/Shapi.Infraestructura/Apis/DominiosDelPlan.cs` (modificar o crear, según la decisión 2)
+- `src/Shapi.Aplicacion/Apis/ContratosApis.cs`, `src/Shapi.Infraestructura/Apis/RepositorioApis.cs` y el contrato OpenAPI de APIs (datos reales del plan en A3.6)
+- A2.5 y B1.4, el contrato de suscripciones y los tipos generados (aviso de desconexión)
+- `tests/e2e/demo-dominios/` y `playwright.dominios.config.ts` (ensayo aislado que avanza el reloj)
 - Pruebas del backend y del frontend (crear, modificar o renombrar)
 - `docs/specs/11-interfaz.md` y `09-cobros-y-suscripciones.md` (precisar lo que se decida)
 
@@ -79,3 +82,16 @@ Además, en el ambiente productivo simulado con la siembra (protocolo B8): abrir
 
 ## Fuera de alcance
 - Cambiar la CSP de Caddy para permitir dominios propios.
+
+## Resultado
+
+Se corrigieron H-C11 a H-C16 con las decisiones aprobadas por Jordin el 26 oct. La verificación y el cierre terminaron el 27 oct.
+
+- **Secretos (RF-47):** la siembra genera secretos aleatorios cuando falta el valor configurado y respeta los proporcionados. El enmascarado admite secretos heredados vacíos o cortos sin revelar su contenido completo ni producir un 500.
+- **Consola y marca (RF-15 y RF-16):** la documentación conserva el dominio propio; la consola usa el host asignado y muestra errores de red recuperables. A5.6 y B2.3 usan el texto neutral aprobado. Las regresiones cubren las rutas del portal y las pantallas de confirmación, rotación, clave nueva y revocación.
+- **A3.6 (RF-12):** la respuesta informa el nombre y el permiso del plan vigente; las etiquetas compartidas distinguen pendiente, verificado y fallido. La pantalla permite vaciar el campo, muestra el motivo de validación y distingue verificación DNS de emisión del certificado. No afirma una vigencia TLS que el sistema no consulta. Se completó la cobertura del CNAME incorrecto y de `.localhost`, y se corrigieron los nombres RF-12.
+- **Cambio de plan (RF-25 y RF-43):** al aplicar un destino sin dominio propio se eliminan los dominios de todas las APIs de esa organización, incluidos pendientes y fallidos, en la transacción del cambio. Después del commit se retiran sus hosts de Redis y se republican las APIs. La bajada los conserva hasta renovar y cancelarla los conserva; las direcciones asignadas siguen funcionando. La conexión y verificación manual comparten el bloqueo de organización con el cierre de ciclo. A2.5 y B1.4 avisan de la desconexión.
+- **Contratos y especificaciones:** se actualizaron `apis.yaml`, `suscripciones.yaml`, sus tipos generados y 03, 09 y 11. Sin dependencias nuevas, migraciones ni cambios de ADR o CSP.
+- **Verificación local:** compilación con cero errores y advertencias; formato correcto; 1.097 pruebas de API y 66 de dominio aprobadas sin omisiones; 506 pruebas frontend en 42 archivos, lint sin errores (11 avisos previos), tipos y builds correctos. Las 62 pruebas del portal afectadas se repitieron al reforzar RF-15. Las comprobaciones previas bajo saturación se repitieron por etapas, sin cambiar tiempos, aserciones ni aislamiento; Redis de desarrollo elimina la espera de conexión de los fixtures que usan el reloj real.
+- **Ensayo real:** `playwright.dominios.config.ts`, ambiente `shapi-jg24` recién sembrado sin secretos configurados y con imágenes de esta rama: 1 aprobado en 31,5 s. Comprueba ambas A3.6, validación, DNS simulado, documentación con dominio propio, consola con 200 por el host asignado, avisos de bajada, desconexión con 404 y servicio conservado con 200 por subdominio. Las consultas auxiliares usan el navegador para resolver `*.localhost` en Windows. Diez capturas reales y dos de B2.3 con presentación de gracia controlada se compararon con los mockups y las precisiones de 11; evidencia local en `.shapi/jg24/`.
+- **Archivos principales:** `GestionarDominios.cs`, `ContratosApis.cs`, `RepositorioApis.cs`, `SiembraDemo.cs`, `DominiosDelPlan.cs`, `PlataformaSuscripcionesApi.cs`, `CierreCiclo.cs`, A3.6, A2.5, B1.4, A5.2, A5.6, B2.3, `clienteCompuerta.ts` y sus pruebas.

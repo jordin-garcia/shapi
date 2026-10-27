@@ -231,7 +231,7 @@ describe('RF-11, RF-12 y RF-47 · A3.6 Dominios', () => {
         urlPortal: 'https://envios.shapi.localhost', urlApi: 'https://envios.api.shapi.localhost',
         secretoEnmascarado: 'shps_••••••••••••••••••••••••••••••••', modoSimulado: true,
         dominio: 'api.enviosxelaju.localhost', destinoCname: 'envios.api.shapi.localhost',
-        estado: 'pendiente', motivo: null, verificadoEn: null,
+        estado: 'pendiente', motivo: null, verificadoEn: null, planNombre: 'Producto', dominioPropioPermitido: true,
       })),
       http.post(`${API}/${API_ID}/dominio/simular-registro`, () => { simulaciones++; return new HttpResponse(null, { status: 204 }); }),
       http.post(`${API}/${API_ID}/dominio/verificar`, () => { verificaciones++; return HttpResponse.json({ estado: 'verificado' }); }),
@@ -242,10 +242,11 @@ describe('RF-11, RF-12 y RF-47 · A3.6 Dominios', () => {
     expect(await screen.findByRole('heading', { name: 'Direcciones y dominio propio' })).toBeDefined();
     expect(screen.getByText('Activas')).toBeDefined();
     expect(screen.getByText('Automático')).toBeDefined();
-    expect(screen.getByText('Vigente')).toBeDefined();
+    // JG-24: no se consulta el certificado de Caddy ni se afirma su vigencia.
+    expect(screen.queryByText('Vigente')).toBeNull();
     expect(screen.getByText('Shapi emite y renueva los certificados de estas direcciones. No tiene que configurar nada.')).toBeDefined();
     expect(screen.getByText('Por seguridad solo se muestra completo al generarlo.')).toBeDefined();
-    expect(screen.getByText('Pendiente de verificación')).toBeDefined();
+    expect(screen.getAllByText('Pendiente de verificación')).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: 'Valor' })).toBeDefined();
     expect(screen.getByText('https://envios.shapi.localhost')).toBeDefined();
     expect(screen.getByText('api.enviosxelaju.localhost')).toBeDefined();

@@ -10,7 +10,8 @@ public sealed record SolicitudDominioPropio(string? Dominio);
 public sealed record EstadoDominioPropio(
     Guid ApiId, string ApiNombre, string UrlPortal, string UrlApi, string SecretoEnmascarado,
     bool ModoSimulado, string? Dominio, string? DestinoCname, string? Estado, string? Motivo,
-    DateTimeOffset? VerificadoEn);
+    DateTimeOffset? VerificadoEn, string? PlanNombre, bool DominioPropioPermitido);
+public sealed record PlanDominioPropio(string Nombre, bool Permitido);
 public sealed record SecretoOrigenRegenerado(string SecretoOrigen);
 
 public sealed record ActorRegistroApi(Guid Id, string NombreAlterno, string? Ip);
@@ -215,6 +216,8 @@ public interface IRepositorioApis
     Task<Api?> Obtener(Guid apiId, Guid organizacionId, CancellationToken cancelacion = default);
 
     Task<bool> PlanPermiteDominioPropio(Guid organizacionId, CancellationToken cancelacion = default);
+
+    Task<PlanDominioPropio?> ObtenerPlanDominioPropio(Guid organizacionId, CancellationToken cancelacion = default);
 
     Task<DominioPropio?> ObtenerDominio(Guid apiId, CancellationToken cancelacion = default);
 

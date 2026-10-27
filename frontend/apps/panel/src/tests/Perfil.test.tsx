@@ -32,6 +32,13 @@ beforeEach(() => {
         rol: 'propietario', correoVerificado: true, destino: '/panel/apis'
     })),
     http.get(`${API}/perfil`, () => HttpResponse.json({ nombre: 'Ana' })),
+    // El layout consulta el aviso de Prueba (JG-23), también al abrir Mi perfil.
+    http.get(`${API}/suscripcion`, () => HttpResponse.json({
+      plan: { id: 'producto', nombre: 'Producto', descripcion: 'Plan vigente', precio: 599, moneda: 'GTQ',
+        vigenciaDias: 30, maxApis: 10, maxMiembros: 10, cuotaPeticiones: 2000000, dominioPropio: true, esPrueba: false },
+      estado: 'activa', periodo: { inicio: '2026-10-01T06:00:00Z', fin: '2026-10-30T06:00:00Z' },
+      proximaRenovacion: '2026-10-31T06:00:00Z', tarjetaEnmascarada: null, graciaHasta: null, avisoPrueba: null,
+    })),
     http.get(`${API}/apis`, () => HttpResponse.json({ elementos: [{ id: 'api-1', nombre: 'API de Cotización de Envíos' }], total: 1 })),
     http.get(`${API}/apis/:id/planes`, () => HttpResponse.json([]))
   );

@@ -319,7 +319,7 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
       http.get(API + '/planes-plataforma', () => HttpResponse.json([lanzamiento, producto])),
       http.get(API + '/suscripcion', () => HttpResponse.json({
         ...actual, cambioProgramado: cambioSolicitado
-          ? { planId: lanzamiento.id, nombre: lanzamiento.nombre, efectivoDesde: suscripcion.proximaRenovacion } : null,
+          ? { planId: lanzamiento.id, nombre: lanzamiento.nombre, efectivoDesde: suscripcion.proximaRenovacion, desconectaDominios: true } : null,
       })),
       http.post(API + '/suscripcion/cambiar', () => {
         cambioSolicitado = true;
@@ -330,9 +330,11 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
       <Route path="/panel/suscripcion/cambiar/:plan" element={<PaginaA25CambioPlan />} />
       <Route path="/panel/suscripcion" element={<PaginaB14Suscripcion />} />
     </Routes>);
+    expect(await screen.findByText('Al aplicar el cambio, se desconectarán los dominios propios de sus APIs. Sus direcciones por subdominio seguirán funcionando.')).toBeDefined();
     await userEvent.click(await screen.findByRole('button', { name: 'Programar cambio de plan' }));
     expect(await screen.findByRole('heading', { name: 'Suscripción de plataforma' })).toBeDefined();
     expect(screen.getByText('A partir del 23 sept 2026 su plan será Lanzamiento.')).toBeDefined();
+    expect(screen.getByText('Al aplicar el cambio, se desconectarán los dominios propios de sus APIs. Sus direcciones por subdominio seguirán funcionando.')).toBeDefined();
     expect(await screen.findByRole('button', { name: 'Cancelar cambio programado' })).toBeDefined();
   });
 

@@ -20,7 +20,7 @@ public sealed class GestionarDominios(
     public async Task<Resultado<EstadoDominioPropio>> Obtener(Guid apiId, Guid organizacionId, CancellationToken ct = default)
     {
         var api = await repositorio.Obtener(apiId, organizacionId, ct);
-        return api is null ? NoEncontrada() : Estado(api, await repositorio.ObtenerDominio(apiId, ct));
+        return api is null ? NoEncontrada() : await Estado(api, await repositorio.ObtenerDominio(apiId, ct), ct);
     }
 
     public async Task<Resultado<EstadoDominioPropio>> Conectar(
@@ -47,6 +47,9 @@ public sealed class GestionarDominios(
                     : "Use un nombre de dominio válido."]
                 });
         }
+        await using var transaccion = await repositorio.IniciarTransaccion(ct);
+        // El cierre de ciclo toma el mismo bloqueo antes de aplicar el plan y desconectar los dominios.
+        await repositorio.BloquearRegistroApi(organizacionId, ct);
         if (!await repositorio.PlanPermiteDominioPropio(organizacionId, ct))
         {
             return new Error(CodigosError.PlanSinDominioPropio, "Su plan no incluye dominio propio.");
@@ -58,7 +61,6 @@ public sealed class GestionarDominios(
         }
 
         var destino = $"{api.Subdominio}.api.{configuracion.DominioBase}";
-        await using var transaccion = await repositorio.IniciarTransaccion(ct);
         await repositorio.BloquearApi(api, ct);
         var actual = await repositorio.ObtenerDominio(apiId, ct);
         var hostAnterior = actual is { Estado: EstadoDominio.Verificado } ? actual.Dominio : null;
@@ -79,7 +81,7 @@ public sealed class GestionarDominios(
             await publicador.EliminarHost(hostAnterior, apiId, ct);
             await publicador.PublicarApi(apiId, ct);
         }
-        return Estado(api, actual);
+        return await Estado(api, actual, ct);
     }
 
     public async Task<Resultado<bool>> Simular(Guid apiId, Guid organizacionId, CancellationToken ct = default)
@@ -115,6 +117,8 @@ public sealed class GestionarDominios(
             return NoEncontrada();
         }
 
+        await using var transaccion = await repositorio.IniciarTransaccion(ct);
+        await repositorio.BloquearRegistroApi(organizacionId, ct);
         var dominio = await repositorio.ObtenerDominio(apiId, ct);
         if (dominio is null)
         {
@@ -126,14 +130,13 @@ public sealed class GestionarDominios(
         var coincide = dominio.Verificar(await resolutor.ResolverCname(dominio.Dominio, ct), reloj.Ahora);
         if (coincide && !yaVerificado)
         {
-            await using var transaccion = await repositorio.IniciarTransaccion(ct);
             await Registrar(api, actor, AccionesBitacora.DominioVerificado, $"Verificó el dominio {dominio.Dominio}.", ct);
-            await transaccion.Confirmar(ct);
         }
         else
         {
             await repositorio.Guardar(ct);
         }
+        await transaccion.Confirmar(ct);
         if (coincide)
         {
             await publicador.PublicarApi(apiId, ct);
@@ -143,7 +146,7 @@ public sealed class GestionarDominios(
             await publicador.EliminarHost(hostVerificado, apiId, ct);
             await publicador.PublicarApi(apiId, ct);
         }
-        return Estado(api, dominio);
+        return await Estado(api, dominio, ct);
     }
 
     public async Task<Resultado<bool>> Eliminar(Guid apiId, Guid organizacionId, CancellationToken ct = default)
@@ -194,16 +197,20 @@ public sealed class GestionarDominios(
         { ObjetivoTipo = "api", ObjetivoId = api.Id, Ip = actor.Ip }, ct);
     }
 
-    private EstadoDominioPropio Estado(Api api, DominioPropio? dominio) => new(
-        api.Id, api.Nombre, $"https://{api.Subdominio}.{configuracion.DominioBase}",
-        $"https://{api.Subdominio}.api.{configuracion.DominioBase}", EnmascararSecreto(api.SecretoOrigenCifrado),
-        configuracion.ModoSimulado, dominio?.Dominio, dominio?.DestinoCname,
-        dominio?.Estado.ToString().ToLowerInvariant(), dominio?.Motivo, dominio?.VerificadoEn);
+    private async Task<EstadoDominioPropio> Estado(Api api, DominioPropio? dominio, CancellationToken ct)
+    {
+        var plan = await repositorio.ObtenerPlanDominioPropio(api.OrganizacionId, ct);
+        return new(api.Id, api.Nombre, $"https://{api.Subdominio}.{configuracion.DominioBase}",
+            $"https://{api.Subdominio}.api.{configuracion.DominioBase}", EnmascararSecreto(api.SecretoOrigenCifrado),
+            configuracion.ModoSimulado, dominio?.Dominio, dominio?.DestinoCname,
+            dominio?.Estado.ToString().ToLowerInvariant(), dominio?.Motivo, dominio?.VerificadoEn,
+            plan?.Nombre, plan?.Permitido ?? false);
+    }
 
     private string EnmascararSecreto(string cifrado)
     {
         var secreto = protector.Descifrar(cifrado);
-        return $"shps_••••••••••••{secreto[^4..]}";
+        return $"shps_••••••••••••{(secreto.Length > 4 ? secreto[^4..] : string.Empty)}";
     }
 
     private static string? Normalizar(string? valor)

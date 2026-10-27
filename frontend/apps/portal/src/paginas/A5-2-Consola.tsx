@@ -104,6 +104,7 @@ function PanelRespuesta({ resultado }: { resultado?: ResultadoCompuerta }) {
 function FormularioConsola({ ruta, rutas, seleccionar }: {
   ruta: RutaConsola; rutas: RutaConsola[]; seleccionar: (id: string) => void;
 }) {
+  const marca = useMarcaPortal();
   const [valores, setValores] = useState(() => valoresDeEjemplo(ruta));
   const [clave, setClave] = useState(() => sessionStorage.getItem(CLAVE_PRUEBAS_SESION) ?? '');
   const [errores, setErrores] = useState<Record<string, string>>({});
@@ -126,7 +127,7 @@ function FormularioConsola({ ruta, rutas, seleccionar }: {
     setErrores(siguientes);
     if (Object.keys(siguientes).length > 0) return;
     setEnviando(true); setErrorEnvio(undefined); setResultado(undefined);
-    try { setResultado(await enviarACompuerta(ruta, valores, clave)); }
+    try { setResultado(await enviarACompuerta(ruta, valores, clave, marca.hostApi)); }
     catch { setErrorEnvio('No se pudo enviar la petición. Revise su conexión e intente de nuevo.'); }
     finally { setEnviando(false); }
   }

@@ -211,7 +211,7 @@ function FormularioPago({ precio, procesando, confirmar, cancelar }: {
       <Campo etiqueta="Vencimiento" placeholder="MM / AA" autoComplete="cc-exp" value={vencimiento} onChange={evento => setVencimiento(evento.target.value)} />
       <Campo etiqueta="Código de seguridad" autoComplete="cc-csc" inputMode="numeric" value={cvv} onChange={evento => setCvv(evento.target.value)} />
     </div>
-    <p className="mt-5 text-[14px] leading-[1.5] text-tinta-suave">Shapi no guarda el número completo ni el código de seguridad. Solo verá la marca y los últimos cuatro dígitos.</p>
+    <p className="mt-5 text-[14px] leading-[1.5] text-tinta-suave">No se guardan el número completo ni el código de seguridad: la pasarela entrega un token con el que se cobran las renovaciones. Usted solo verá la marca y los últimos cuatro dígitos.</p>
     <div className="mt-5 border-t border-borde pt-5"><Boton type="submit" deshabilitado={procesando}>{procesando ? 'Procesando…' : `Pagar ${dinero(precio)} y reactivar`}</Boton></div>
   </form>;
 }

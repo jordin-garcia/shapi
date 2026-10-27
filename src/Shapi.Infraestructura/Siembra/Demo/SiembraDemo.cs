@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -335,7 +336,10 @@ public sealed class SiembraDemo(
         EstadoApi estado, DateTimeOffset ahora, string? portalNombre = null, string? portalColor = null,
         string? bienvenida = null)
     {
-        var api = new Api(organizacionId, nombre, subdominio, url, protector.Cifrar(secretoOrigen ?? string.Empty), ahora);
+        var secreto = string.IsNullOrWhiteSpace(secretoOrigen)
+            ? $"shps_{RandomNumberGenerator.GetString("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 32)}"
+            : secretoOrigen;
+        var api = new Api(organizacionId, nombre, subdominio, url, protector.Cifrar(secreto), ahora);
         Poner(api, nameof(Api.Estado), estado);
         Poner(api, nameof(Api.PublicadaEn), estado == EstadoApi.Publicada ? ahora.AddDays(-30) : null);
         if (portalNombre is not null)

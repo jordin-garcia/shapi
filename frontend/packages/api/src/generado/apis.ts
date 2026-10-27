@@ -344,6 +344,10 @@ export interface components {
             /** Format: uri */
             urlApi: string;
             secretoEnmascarado: string;
+            /** @description Nombre del plan de plataforma vigente; null si no hay suscripción. */
+            planNombre: string | null;
+            /** @description Si el plan vigente permite conectar un dominio propio. */
+            dominioPropioPermitido: boolean;
             modoSimulado: boolean;
             dominio: string | null;
             destinoCname: string | null;

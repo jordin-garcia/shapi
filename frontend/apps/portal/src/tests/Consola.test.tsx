@@ -86,6 +86,37 @@ afterEach(() => {
 });
 
 describe('RF-16 y RF-45 · consola de pruebas del portal', () => {
+  it('RF-16 usa el host asignado aunque la documentación muestre un dominio propio', async () => {
+    let recibido = false;
+    server.use(
+      http.get(`${API_PORTAL}/documentacion`, () => HttpResponse.json({ rutas: rutas.map(ruta => ({
+        ...ruta, urlCompleta: `https://api.enviosxelaju.localhost${ruta.patron}`,
+      })) })),
+      http.get('https://envios.api.shapi.localhost/rastreo/GX-100', ({ request }) => {
+        recibido = true;
+        expect(new URL(request.url).searchParams.get('detalle')).toBe('true');
+        return HttpResponse.json({ estado: 'en_transito' });
+      }),
+      http.get('https://api.enviosxelaju.localhost/rastreo/GX-100', () => HttpResponse.error()),
+    );
+    montar();
+    await userEvent.selectOptions(await screen.findByLabelText('Ruta'), 'GET /rastreo/{guia}');
+    await userEvent.type(screen.getByLabelText('Su clave de pruebas'), 'shp_prueba_valida');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar petición' }));
+    expect(await screen.findByText('200')).toBeDefined();
+    expect(recibido).toBe(true);
+  });
+
+  it('RF-16 muestra un error recuperable cuando el navegador bloquea la petición', async () => {
+    server.use(http.post('https://envios.api.shapi.localhost/cotizaciones', () => HttpResponse.error()));
+    montar();
+    await userEvent.type(await screen.findByLabelText('Su clave de pruebas'), 'shp_prueba_valida');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar petición' }));
+    expect(await screen.findByText('No se pudo enviar la petición. Revise su conexión e intente de nuevo.')).toBeDefined();
+    server.use(http.post('https://envios.api.shapi.localhost/cotizaciones', () => HttpResponse.json({ ok: true })));
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar petición' }));
+    expect(await screen.findByText('200')).toBeDefined();
+  });
   it('mantiene separada la forma de caché al navegar desde Documentación', async () => {
     const enrutador = createMemoryRouter(crearRutas(), { initialEntries: ['/documentacion'] });
     render(
