@@ -9,6 +9,7 @@ public class MotorPlantillasCorreoTests
 {
     public static TheoryData<string, string> Plantillas => new()
     {
+        { "nuevo_caso", """{"nombre":"Ana","numeroCaso":"CAS-104","asunto":"Error de autenticación","enlace":"https://shapi.localhost/admin/casos/104"}""" },
         { "verificacion_correo", """{"nombre":"Ana","token":"token-1"}""" },
         { "recuperacion", """{"nombre":"Ana","token":"token-1"}""" },
         { "invitacion_miembro", """{"nombre":"Ana","nombreOrganizacion":"Acme","token":"token-1"}""" },
@@ -37,6 +38,7 @@ public class MotorPlantillasCorreoTests
     [InlineData("prueba_por_vencer", "Su prueba está por vencer")]
     [InlineData("aviso_cuota_plataforma", "Aviso de cuota de plataforma")]
     [InlineData("respuesta_caso", "Nueva respuesta en su caso")]
+    [InlineData("nuevo_caso", "Nuevo caso")]
     public void RF_46_Plantilla_TieneUnAsuntoEspecifico(string plantilla, string asunto)
     {
         ColaCorreoBaseDatos.AsuntoPara(plantilla).Should().Be(asunto);

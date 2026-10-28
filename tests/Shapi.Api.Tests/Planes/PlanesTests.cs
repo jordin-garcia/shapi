@@ -74,6 +74,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
     private WebApplicationFactory<Program> _fabrica = null!;
     private HttpClient _cliente = null!;
     private Guid _organizacionId;
+    private Guid _usuarioId;
 
     public async Task InitializeAsync()
     {
@@ -104,6 +105,12 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         });
         _cliente = _fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false, AllowAutoRedirect = false });
         _organizacionId = await CrearOrganizacion("Envíos Xelajú, S.A.");
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        var usuario = new Shapi.Dominio.Identidad.Usuario("Ana Lucía Morales", "ana@envios.test");
+        db.Add(usuario);
+        await db.SaveChangesAsync();
+        _usuarioId = usuario.Id;
     }
 
     public async Task DisposeAsync()
@@ -507,7 +514,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         var peticion = new HttpRequestMessage(HttpMethod.Get, $"/api/apis/{apiId}/planes");
         peticion.Headers.Add("X-Prueba-Organizacion", otraOrgId.ToString());
         peticion.Headers.Add("X-Prueba-Rol", "Propietario");
-        peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
+        peticion.Headers.Add("X-Prueba-Usuario", _usuarioId.ToString());
         peticion.Headers.Add("X-Requested-With", "shapi");
 
         using var respuesta = await _cliente.SendAsync(peticion);
@@ -518,7 +525,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         var peticion = new HttpRequestMessage(metodo, ruta);
         peticion.Headers.Add("X-Prueba-Organizacion", _organizacionId.ToString());
         peticion.Headers.Add("X-Prueba-Rol", rol);
-        peticion.Headers.Add("X-Prueba-Usuario", Guid.NewGuid().ToString());
+        peticion.Headers.Add("X-Prueba-Usuario", _usuarioId.ToString());
         peticion.Headers.Add("X-Requested-With", "shapi");
         if (cuerpo is not null)
         {

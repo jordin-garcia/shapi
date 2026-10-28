@@ -137,6 +137,8 @@ paths:
           description: Caso asignado al usuario de la sesion.
         '404':
           $ref: '#/components/responses/NoEncontrado'
+        '422':
+          $ref: '#/components/responses/CasoCerrado'
   /api/admin/casos/{numero}/mensajes:
     parameters:
       - $ref: '#/components/parameters/NumeroCaso'

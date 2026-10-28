@@ -7,6 +7,19 @@ public class CasoTests
     private static readonly DateTimeOffset Ahora = new(2026, 10, 7, 15, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public void RF_40_CasoCerrado_NoSePuedeAsignar()
+    {
+        var caso = Caso.Abrir(Guid.NewGuid(), null, Guid.NewGuid(), "Asunto", "Descripción", Ahora);
+        caso.Cerrar(Ahora.AddMinutes(1));
+
+        var error = Assert.Throws<InvalidOperationException>(() => caso.Asignar(Guid.NewGuid(), Ahora.AddMinutes(2)));
+
+        Assert.Equal("caso_cerrado", error.Message);
+        Assert.Null(caso.AsignadoA);
+        Assert.Equal(Ahora.AddMinutes(1), caso.ActualizadoEn);
+    }
+
+    [Fact]
     public void RF_40_CasoNuevo_QuedaAbiertoConPrimerMensaje()
     {
         var organizacionId = Guid.NewGuid();

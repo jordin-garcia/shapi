@@ -5,5 +5,6 @@ public static class TextoBitacora
 {
     /// <summary>"la API de Cotización de Envíos". Si el nombre no empieza con "API", se le antepone.</summary>
     public static string LaApi(string nombre) =>
-        nombre.StartsWith("API ", StringComparison.OrdinalIgnoreCase) ? $"la {nombre}" : $"la API {nombre}";
+        nombre.Equals("API", StringComparison.OrdinalIgnoreCase) || nombre.StartsWith("API ", StringComparison.OrdinalIgnoreCase)
+            ? $"la {nombre}" : $"la API {nombre}";
 }

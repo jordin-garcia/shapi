@@ -227,7 +227,7 @@ public sealed class PlanesPagosPlataformaTests(PostgresPersistencia postgres) : 
         (await Escalar<long>($"SELECT count(*) FROM bitacora WHERE accion = 'pago.revertido' AND objetivo_id = '{pago}'")).Should().Be(1);
         var nombreOrg = await Escalar<string>($"SELECT nombre FROM organizacion WHERE id = '{org}'");
         (await Fila($"SELECT organizacion_id::text, descripcion FROM bitacora WHERE accion = 'pago.revertido' AND objetivo_id = '{pago}'"))
-            .Should().Equal(org.ToString(), $"Revirtió el cobro de Q 199.00 de {nombreOrg}");
+            .Should().Equal(org.ToString(), $"Revirtió el cobro de Q 199.00 de {nombreOrg}.");
 
         var suscripcionFinalizada = await Escalar<Guid>($"""
             INSERT INTO suscripcion_plataforma (id, organizacion_id, plan_id, estado, inicio, fin)

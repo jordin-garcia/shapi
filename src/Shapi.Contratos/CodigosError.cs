@@ -25,6 +25,10 @@ public static class CodigosError
     // Identidad y organizaciones (03 RF-02 y RF-06)
     public const string CorreoNoVerificado = "correo_no_verificado";
     public const string CorreoEnOtraOrganizacion = "correo_en_otra_organizacion";
+    public const string PropietarioInmutable = "propietario_inmutable";
+    public const string MiembroYaExistente = "miembro_ya_existente";
+    public const string InvitacionPendiente = "invitacion_pendiente";
+    public const string InvitacionNoEncontrada = "invitacion_no_encontrada";
     public const string CorreoYaRegistrado = "correo_ya_registrado";
     public const string CredencialesInvalidas = "credenciales_invalidas";
     public const string CuentaBloqueada = "cuenta_bloqueada";

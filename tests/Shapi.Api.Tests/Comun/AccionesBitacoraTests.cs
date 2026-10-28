@@ -7,6 +7,13 @@ namespace Shapi.Api.Tests.Comun;
 // RF-41: el catálogo de acciones es exactamente el de docs/specs/10-identidad-y-seguridad.md §7.
 public partial class AccionesBitacoraTests
 {
+    [Theory]
+    [InlineData("API de Cotización de Envíos", "la API de Cotización de Envíos")]
+    [InlineData("Cotización de Envíos", "la API Cotización de Envíos")]
+    [InlineData("API", "la API")]
+    public void RF_41_NombreApi_NoDuplicaElPrefijo(string nombre, string esperado) =>
+        TextoBitacora.LaApi(nombre).Should().Be(esperado);
+
     [Fact]
     public void AccionesBitacora_Constantes_CoincidenConElCatalogoDe10Seccion7()
     {

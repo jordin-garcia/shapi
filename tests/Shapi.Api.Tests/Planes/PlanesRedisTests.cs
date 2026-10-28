@@ -47,6 +47,10 @@ public sealed class PlanesRedisTests(PostgresPersistencia postgres, RedisCache r
     public async Task EM07_EditarPlan_PublicaCuotaYLimiteNuevosEnRedis()
     {
         var organizacion = await NuevaOrganizacion();
+        var usuario = await Escalar<Guid>($"""
+            INSERT INTO usuario (id, correo, nombre, hash_contrasena, estado)
+            VALUES (gen_random_uuid(), 'ana@ejemplo.com', 'Ana Lucía Morales', 'hash', 'activo') RETURNING id
+            """);
         var api = await NuevaApiPublicada(organizacion);
         var plan = await NuevoPlanApiCon(api, "Comercio", 5000, 60);
         var consumidor = await Escalar<Guid>($"""
@@ -60,7 +64,7 @@ public sealed class PlanesRedisTests(PostgresPersistencia postgres, RedisCache r
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(
             [
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.NameIdentifier, usuario.ToString()),
                 new Claim(PoliticasAutorizacion.ClaimOrganizacion, organizacion.ToString()),
                 new Claim(PoliticasAutorizacion.ClaimAmbito, nameof(AmbitoSesion.Personal)),
             ], "Prueba")),
@@ -71,7 +75,7 @@ public sealed class PlanesRedisTests(PostgresPersistencia postgres, RedisCache r
             plan,
             organizacion,
             new SolicitudPlanApi("Comercio", "Descripción", 450, false, 30, 8000, 90),
-            Guid.NewGuid(),
+            usuario,
             "Ana Lucía Morales",
             null);
 

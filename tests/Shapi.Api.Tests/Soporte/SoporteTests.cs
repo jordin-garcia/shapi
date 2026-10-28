@@ -113,11 +113,13 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
         Assert.Contains(correos, datos => datos.Contains($"CAS-{numero}", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public async Task RF_40_Soporte_AsignaRespondeYCierra_EncolaCorreoYRegistraBitacora()
+    [Theory]
+    [InlineData(Rol.Soporte)]
+    [InlineData(Rol.Administrador)]
+    public async Task RF_40_Soporte_AsignaRespondeYCierra_EncolaCorreoYRegistraBitacora(Rol rol)
     {
         var (propietaria, organizacion) = await CrearUsuario("Ana Lucia Morales", Rol.Propietario, TipoOrganizacion.Proveedor);
-        var (soporte, _) = await CrearUsuario("Sofia Menchu", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var (soporte, _) = await CrearUsuario("Sofía Menchú", rol, TipoOrganizacion.Plataforma);
         var cookiePropietaria = await CrearSesion(propietaria.Id);
         var cookieSoporte = await CrearSesion(soporte.Id);
         var abierto = await Enviar(HttpMethod.Post, "/api/casos", cookiePropietaria,
@@ -132,7 +134,10 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
 
         var cerrado = await Enviar(HttpMethod.Post, $"/api/casos/{numero}/mensajes", cookiePropietaria,
             new { cuerpo = "Gracias." });
-        await AfirmarProblema(cerrado, HttpStatusCode.UnprocessableEntity, "caso_cerrado");
+        var problemaCerrado = await AfirmarProblema(cerrado, HttpStatusCode.UnprocessableEntity, "caso_cerrado");
+        Assert.Equal("El caso está cerrado.", problemaCerrado.GetProperty("title").GetString());
+        await AfirmarProblema(await Enviar(HttpMethod.Post, $"/api/admin/casos/{numero}/asignar", cookieSoporte),
+            HttpStatusCode.UnprocessableEntity, "caso_cerrado");
 
         await using var db = Db(out var scope);
         using var _ = scope;
@@ -141,13 +146,114 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
         Assert.Equal(propietaria.Correo, correo.Destinatario);
         Assert.Contains($"CAS-{numero}", correo.Datos);
         Assert.True(await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters().AnyAsync(e => e.Accion == "caso.cerrado" && e.OrganizacionId == organizacion.Id));
+        var entradas = await db.Set<EntradaBitacoraDominio>().IgnoreQueryFilters()
+            .Where(e => e.ObjetivoId == null || e.OrganizacionId == organizacion.Id).ToListAsync();
+        var apertura = Assert.Single(entradas, e => e.Accion == "caso.abierto");
+        Assert.Equal(propietaria.Nombre, apertura.ActorNombre);
+        Assert.Equal($"Abrió el caso CAS-{numero} de {organizacion.Nombre}.", apertura.Descripcion);
+        var cierre = Assert.Single(entradas, e => e.Accion == "caso.cerrado");
+        Assert.Equal(soporte.Nombre, cierre.ActorNombre);
+        Assert.Equal($"Cerró el caso CAS-{numero} de {organizacion.Nombre}.", cierre.Descripcion);
     }
 
     [Fact]
-    public async Task RF_40_Administracion_RegistraCasoYConsultaResumenSoloLectura()
+    public async Task RF_40_RF_42_Apertura_NotificaSoloATodoElSoporteActivoConNuevoCaso()
+    {
+        var (propietaria, _) = await CrearUsuario("Ana Lucía", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var (soporte1, _) = await CrearUsuario("Soporte uno", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var (soporte2, _) = await CrearUsuario("Soporte dos", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var (inactivo, _) = await CrearUsuario("Soporte inactivo", Rol.Soporte, TipoOrganizacion.Plataforma);
+        await CrearUsuario("Administrador de casos", Rol.Administrador, TipoOrganizacion.Plataforma);
+        await Desactivar(inactivo.Id);
+
+        var respuesta = await Enviar(HttpMethod.Post, "/api/casos", await CrearSesion(propietaria.Id),
+            new { asunto = "¿Qué ocurrió?", descripcion = "Descripción del caso." });
+        Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
+        var numero = (await respuesta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("numero").GetInt32();
+
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        var correos = await db.Set<CorreoSaliente>().Where(c => c.Plantilla == "nuevo_caso").ToListAsync();
+        Assert.Equal(new[] { soporte1.Correo, soporte2.Correo }.Order(), correos.Select(c => c.Destinatario).Order());
+        Assert.All(correos, c =>
+        {
+            Assert.Equal("Nuevo caso", c.Asunto);
+            Assert.Contains($"CAS-{numero}", c.Datos);
+            Assert.Contains($"https://shapi.localhost/admin/casos/{numero}", c.Datos);
+        });
+        Assert.False(await db.Set<CorreoSaliente>().AnyAsync(c => c.Plantilla == "respuesta_caso"));
+    }
+
+    [Theory]
+    [InlineData(Rol.Soporte)]
+    [InlineData(Rol.Administrador)]
+    public async Task RF_40_RespuestaProveedor_NotificaSoloAlAsignadoActivo(Rol rol)
+    {
+        var (propietaria, _) = await CrearUsuario("Propietaria respuesta", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var (asignado, _) = await CrearUsuario("Asignado", rol, TipoOrganizacion.Plataforma);
+        await CrearUsuario("Otro soporte", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var cookie = await CrearSesion(propietaria.Id);
+        var abierto = await Enviar(HttpMethod.Post, "/api/casos", cookie, new { asunto = "Respuesta", descripcion = "Inicio." });
+        var numero = (await abierto.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("numero").GetInt32();
+        Assert.Equal(HttpStatusCode.NoContent, (await Enviar(HttpMethod.Post, $"/api/admin/casos/{numero}/asignar", await CrearSesion(asignado.Id))).StatusCode);
+
+        var respuesta = await Enviar(HttpMethod.Post, $"/api/casos/{numero}/mensajes", cookie, new { cuerpo = "Nueva información." });
+        Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        var correo = Assert.Single(await db.Set<CorreoSaliente>().Where(c => c.Plantilla == "respuesta_caso").ToListAsync());
+        Assert.Equal(asignado.Correo, correo.Destinatario);
+        Assert.Contains($"CAS-{numero}", correo.Datos);
+
+        await Desactivar(asignado.Id);
+        Assert.Equal(HttpStatusCode.Created, (await Enviar(HttpMethod.Post, $"/api/casos/{numero}/mensajes", cookie, new { cuerpo = "Otra respuesta." })).StatusCode);
+        Assert.Equal(1, await db.Set<CorreoSaliente>().CountAsync(c => c.Plantilla == "respuesta_caso"));
+    }
+
+    [Fact]
+    public async Task RF_42_RespuestaPlataforma_NoNotificaAlProveedorDesactivado()
+    {
+        var (propietaria, _) = await CrearUsuario("Propietaria inactiva", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var (soporte, _) = await CrearUsuario("Soporte activo", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var abierto = await Enviar(HttpMethod.Post, "/api/casos", await CrearSesion(propietaria.Id), new { asunto = "Caso", descripcion = "Inicio." });
+        var numero = (await abierto.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("numero").GetInt32();
+        await Desactivar(propietaria.Id);
+
+        Assert.Equal(HttpStatusCode.Created, (await Enviar(HttpMethod.Post, $"/api/admin/casos/{numero}/mensajes", await CrearSesion(soporte.Id), new { cuerpo = "Respuesta." })).StatusCode);
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        Assert.False(await db.Set<CorreoSaliente>().AnyAsync(c => c.Destinatario == propietaria.Correo));
+    }
+
+    [Fact]
+    public async Task RF_40_Validacion_MuestraDescripcionMaximoYOrganizacionConTildes()
+    {
+        var (propietaria, _) = await CrearUsuario("Propietaria validación", Rol.Propietario, TipoOrganizacion.Proveedor);
+        var respuesta = await Enviar(HttpMethod.Post, "/api/casos", await CrearSesion(propietaria.Id),
+            new { asunto = new string('x', 121), descripcion = new string('x', 4001), apiId = Guid.NewGuid() });
+        var problema = await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        var errores = problema.GetProperty("errores");
+        Assert.Equal("El asunto es obligatorio y debe tener máximo 120 caracteres.", errores.GetProperty("asunto")[0].GetString());
+        Assert.Equal("La descripción es obligatoria y debe tener máximo 4000 caracteres.", errores.GetProperty("descripcion")[0].GetString());
+        Assert.Equal("La API no pertenece a la organización.", errores.GetProperty("apiId")[0].GetString());
+    }
+
+    private async Task Desactivar(Guid id)
+    {
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        var usuario = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == id);
+        usuario.Desactivar();
+        await db.SaveChangesAsync();
+    }
+
+    [Theory]
+    [InlineData(Rol.Soporte)]
+    [InlineData(Rol.Administrador)]
+    public async Task RF_40_Administracion_RegistraCasoYConsultaResumenSoloLectura(Rol rol)
     {
         var (propietaria, organizacion) = await CrearUsuario("Ana Lucia Morales", Rol.Propietario, TipoOrganizacion.Proveedor);
-        var (soporte, _) = await CrearUsuario("Sofia Menchu", Rol.Soporte, TipoOrganizacion.Plataforma);
+        var (soporte, _) = await CrearUsuario("Sofía Menchú", rol, TipoOrganizacion.Plataforma);
         var api = await CrearApi(organizacion.Id, $"api-{Guid.NewGuid():N}"[..20]);
         var cookie = await CrearSesion(soporte.Id);
 
@@ -167,7 +273,7 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
 
         await using var db = Db(out var scope);
         using var _ = scope;
-        Assert.True(await db.Set<CorreoSaliente>().AnyAsync(c => c.Destinatario == propietaria.Correo && c.Plantilla == "respuesta_caso"));
+        Assert.True(await db.Set<CorreoSaliente>().AnyAsync(c => c.Destinatario == propietaria.Correo && c.Plantilla == "nuevo_caso"));
     }
 
     [Fact]
@@ -353,11 +459,12 @@ public class SoporteTests(ContenedorPostgresSoporte postgres) : IClassFixture<Co
         return await db.Set<T>().IgnoreQueryFilters().CountAsync();
     }
 
-    private static async Task AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
+    private static async Task<JsonElement> AfirmarProblema(HttpResponseMessage respuesta, HttpStatusCode estado, string codigo)
     {
         Assert.Equal(estado, respuesta.StatusCode);
         var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(codigo, problema.GetProperty("codigo").GetString());
+        return problema;
     }
 
     private ShapiDbContext Db(out IServiceScope scope)

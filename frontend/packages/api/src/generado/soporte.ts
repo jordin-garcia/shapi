@@ -522,6 +522,7 @@ export interface operations {
                 content?: never;
             };
             404: components["responses"]["NoEncontrado"];
+            422: components["responses"]["CasoCerrado"];
         };
     };
     responderCasoAdministracion: {

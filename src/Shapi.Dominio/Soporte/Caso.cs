@@ -31,7 +31,7 @@ public class Caso : IPerteneceAOrganizacion
     {
         if (organizacionId == Guid.Empty)
         {
-            throw new ArgumentException("La organizacion es obligatoria.", nameof(organizacionId));
+            throw new ArgumentException("La organización es obligatoria.", nameof(organizacionId));
         }
 
         if (creadoPor == Guid.Empty)
@@ -46,7 +46,7 @@ public class Caso : IPerteneceAOrganizacion
 
         if (string.IsNullOrWhiteSpace(descripcion))
         {
-            throw new ArgumentException("La descripcion es obligatoria.", nameof(descripcion));
+            throw new ArgumentException("La descripción es obligatoria.", nameof(descripcion));
         }
 
         var caso = new Caso
@@ -84,6 +84,11 @@ public class Caso : IPerteneceAOrganizacion
 
     public void Asignar(Guid usuarioId, DateTimeOffset ahora)
     {
+        if (Estado == EstadoCaso.Cerrado)
+        {
+            throw new InvalidOperationException("caso_cerrado");
+        }
+
         AsignadoA = usuarioId;
         ActualizadoEn = ahora;
     }

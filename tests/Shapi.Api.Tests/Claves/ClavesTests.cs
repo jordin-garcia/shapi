@@ -425,13 +425,13 @@ public sealed class ClavesTests(PostgresPersistencia postgres, RedisCache redis)
             """);
         entradas.Should().HaveCount(3);
         entradas[0].Should().Equal("clave.rotada",
-            $"Boutique Cayalá rotó su clave de producción en la {NombreApi}",
+            $"Boutique Cayalá rotó su clave de producción en la {NombreApi}.",
             "consumidor", "María José Quiñónez", e.OrganizacionId, "clave", emitidas[0].Id);
         entradas[1].Should().Equal("clave.revocada_por_consumidor",
-            $"Boutique Cayalá revocó su clave de producción en la {NombreApi}",
+            $"Boutique Cayalá revocó su clave de producción en la {NombreApi}.",
             "consumidor", "María José Quiñónez", e.OrganizacionId, "clave", emitidas[0].Id);
         entradas[2].Should().Equal("clave.revocada_por_proveedor",
-            $"Revocó la clave de pruebas de Boutique Cayalá en la {NombreApi}",
+            $"Revocó la clave de pruebas de Boutique Cayalá en la {NombreApi}.",
             "usuario", "Ana Lucía Morales", e.OrganizacionId, "clave", emitidas[1].Id);
     }
 

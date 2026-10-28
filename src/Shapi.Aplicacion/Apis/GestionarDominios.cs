@@ -184,7 +184,7 @@ public sealed class GestionarDominios(
         await repositorio.BloquearApi(api, ct);
         var secreto = $"shps_{RandomNumberGenerator.GetString(AlfabetoBase62, 32)}";
         api.RegenerarSecretoOrigen(protector.Cifrar(secreto), reloj.Ahora);
-        await Registrar(api, actor, AccionesBitacora.SecretoOrigenRegenerado, $"Regeneró el secreto de origen de la API {api.Nombre}.", ct);
+        await Registrar(api, actor, AccionesBitacora.SecretoOrigenRegenerado, $"Regeneró el secreto de origen de {TextoBitacora.LaApi(api.Nombre)}.", ct);
         await transaccion.Confirmar(ct);
         await publicador.PublicarApi(apiId, ct);
         return new SecretoOrigenRegenerado(secreto);

@@ -63,7 +63,7 @@ public static class MiembrosApi
         ).SingleOrDefaultAsync(cancelacion);
         if (suscripcion is null)
         {
-            return Problemas.Crear(StatusCodes.Status404NotFound, "suscripcion_no_encontrada", "No se encontró la suscripción de la organización.");
+            return Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.SuscripcionNoEncontrada, "No se encontró la suscripción de la organización.");
         }
 
         var pendientes = await db.Set<Token>().AsNoTracking()
@@ -113,8 +113,8 @@ public static class MiembrosApi
         if (existente is not null)
         {
             return existente.OrganizacionId == organizacionId
-                ? Problemas.Crear(StatusCodes.Status409Conflict, "miembro_ya_existente", "Esta persona ya pertenece a la organización.")
-                : ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, "correo_en_otra_organizacion", "El correo ya pertenece a otra organización.");
+                ? Problemas.Crear(StatusCodes.Status409Conflict, CodigosError.MiembroYaExistente, "Esta persona ya pertenece a la organización.")
+                : ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, CodigosError.CorreoEnOtraOrganizacion, "El correo ya pertenece a otra organización.");
         }
 
         var suscripcion = await (
@@ -125,7 +125,7 @@ public static class MiembrosApi
         ).SingleOrDefaultAsync(cancelacion);
         if (suscripcion is null)
         {
-            return Problemas.Crear(StatusCodes.Status404NotFound, "suscripcion_no_encontrada", "No se encontró la suscripción de la organización.");
+            return Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.SuscripcionNoEncontrada, "No se encontró la suscripción de la organización.");
         }
 
         await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
@@ -137,7 +137,7 @@ public static class MiembrosApi
             t.Tipo == TipoToken.InvitacionMiembro && t.UsadoEn == null && t.ExpiraEn > reloj.Ahora, cancelacion);
         if (duplicada)
         {
-            return Problemas.Crear(StatusCodes.Status409Conflict, "invitacion_pendiente", "Ya hay una invitación vigente para ese correo.");
+            return Problemas.Crear(StatusCodes.Status409Conflict, CodigosError.InvitacionPendiente, "Ya hay una invitación vigente para ese correo.");
         }
 
         var miembrosActuales = await db.Set<Membresia>().IgnoreQueryFilters().CountAsync(m => m.OrganizacionId == organizacionId, cancelacion);
@@ -279,7 +279,7 @@ public static class MiembrosApi
             usuario = bloqueada;
             if (await db.Set<Membresia>().IgnoreQueryFilters().AnyAsync(membresia => membresia.UsuarioId == usuario.Id, cancelacion))
             {
-                return ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, "correo_en_otra_organizacion", "El correo ya pertenece a otra organización.");
+                return ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, CodigosError.CorreoEnOtraOrganizacion, "El correo ya pertenece a otra organización.");
             }
 
             db.Add(new Membresia(usuario.Id, organizacionId, invitacion.Rol == "editor" ? Rol.Editor : Rol.Lector));
@@ -298,7 +298,7 @@ public static class MiembrosApi
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation, TableName: "usuario" })
         {
-            return ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, "correo_en_otra_organizacion", "El correo ya pertenece a otra organización.");
+            return ProblemaConDetalle(StatusCodes.Status422UnprocessableEntity, CodigosError.CorreoEnOtraOrganizacion, "El correo ya pertenece a otra organización.");
         }
 
         return TypedResults.Created("/api/auth/entrar", new { usuarioId = usuario.Id });
@@ -335,7 +335,7 @@ public static class MiembrosApi
 
         if (membresia.Rol == Rol.Propietario)
         {
-            return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, "propietario_inmutable", "No puede cambiar el rol del propietario.");
+            return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.PropietarioInmutable, "No puede cambiar el rol del propietario.");
         }
 
         var rolNuevo = peticion.Rol == "editor" ? Rol.Editor : Rol.Lector;
@@ -380,7 +380,7 @@ public static class MiembrosApi
 
         if (membresia.Rol == Rol.Propietario)
         {
-            return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, "propietario_inmutable", "No puede quitar al propietario.");
+            return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.PropietarioInmutable, "No puede quitar al propietario.");
         }
 
         var cuenta = await db.Set<Usuario>().IgnoreQueryFilters().SingleAsync(u => u.Id == membresia.UsuarioId, cancelacion);
@@ -424,7 +424,7 @@ public static class MiembrosApi
         });
     }
 
-    private static IResult InvitacionInvalida() => Problemas.Crear(StatusCodes.Status404NotFound, "invitacion_no_encontrada", "La invitación venció, ya se usó o no existe.");
+    private static IResult InvitacionInvalida() => Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.InvitacionNoEncontrada, "La invitación venció, ya se usó o no existe.");
     private static Guid? IdUsuario(ClaimsPrincipal usuario) => Guid.TryParse(usuario.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
     private static string RolTexto(Rol rol) => rol.ToString().ToLowerInvariant();
 

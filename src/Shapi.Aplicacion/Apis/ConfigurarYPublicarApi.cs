@@ -208,7 +208,7 @@ public sealed class CambiarPublicacionApi(
             nombreActor,
             organizacionId,
             accion,
-            $"{verbo} la API {api.Nombre}.")
+            $"{verbo} {TextoBitacora.LaApi(api.Nombre)}.")
         {
             ObjetivoTipo = "api",
             ObjetivoId = api.Id,

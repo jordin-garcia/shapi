@@ -235,6 +235,7 @@ public sealed class RepositorioSoporte(ShapiDbContext db, IReloj reloj, IConfigu
             from membresia in db.Set<Membresia>().IgnoreQueryFilters()
             join usuario in db.Set<Usuario>().IgnoreQueryFilters() on membresia.UsuarioId equals usuario.Id
             where membresia.OrganizacionId == caso.OrganizacionId && usuario.Id == caso.CreadoPor
+                && usuario.Estado == EstadoCuenta.Activo
             select new DestinatarioCaso(usuario.Nombre, usuario.Correo, false))
             .FirstOrDefaultAsync(cancelacion);
         if (creador is not null)
@@ -246,35 +247,33 @@ public sealed class RepositorioSoporte(ShapiDbContext db, IReloj reloj, IConfigu
             from membresia in db.Set<Membresia>().IgnoreQueryFilters()
             join usuario in db.Set<Usuario>().IgnoreQueryFilters() on membresia.UsuarioId equals usuario.Id
             where membresia.OrganizacionId == caso.OrganizacionId && membresia.Rol == Rol.Propietario
+                && usuario.Estado == EstadoCuenta.Activo
             orderby usuario.CreadoEn
             select new DestinatarioCaso(usuario.Nombre, usuario.Correo, false))
             .FirstOrDefaultAsync(cancelacion);
     }
 
-    public async Task<DestinatarioCaso?> DestinatarioPlataforma(Guid? asignadoA, CancellationToken cancelacion)
+    public async Task<IReadOnlyList<DestinatarioCaso>> DestinatariosPlataforma(Guid? asignadoA, CancellationToken cancelacion)
     {
         var consulta =
             from membresia in db.Set<Membresia>().IgnoreQueryFilters()
             join usuario in db.Set<Usuario>().IgnoreQueryFilters() on membresia.UsuarioId equals usuario.Id
             join organizacion in db.Set<Organizacion>().IgnoreQueryFilters() on membresia.OrganizacionId equals organizacion.Id
             where organizacion.Tipo == TipoOrganizacion.Plataforma
+                && usuario.Estado == EstadoCuenta.Activo
                 && (membresia.Rol == Rol.Soporte || membresia.Rol == Rol.Administrador)
             select new { usuario, membresia };
-        if (asignadoA.HasValue)
-        {
-            var asignado = await consulta.Where(x => x.usuario.Id == asignadoA)
-                .Select(x => x.usuario).FirstOrDefaultAsync(cancelacion);
-            if (asignado is not null)
-            {
-                return new(asignado.Nombre, asignado.Correo, true);
-            }
-        }
-
-        return await consulta.OrderBy(x => x.membresia.Rol == Rol.Soporte ? 0 : 1)
-            .ThenBy(x => x.usuario.CreadoEn)
+        return await consulta.Where(x => asignadoA.HasValue
+                ? x.usuario.Id == asignadoA.Value
+                : x.membresia.Rol == Rol.Soporte)
+            .OrderBy(x => x.usuario.CreadoEn).ThenBy(x => x.usuario.Id)
             .Select(x => new DestinatarioCaso(x.usuario.Nombre, x.usuario.Correo, true))
-            .FirstOrDefaultAsync(cancelacion);
+            .ToListAsync(cancelacion);
     }
+
+    public Task<string> NombreOrganizacion(Guid organizacionId, CancellationToken cancelacion) =>
+        db.Set<Organizacion>().IgnoreQueryFilters().AsNoTracking()
+            .Where(o => o.Id == organizacionId).Select(o => o.Nombre).SingleAsync(cancelacion);
 
     public string EnlaceCaso(bool plataforma, int numero)
     {

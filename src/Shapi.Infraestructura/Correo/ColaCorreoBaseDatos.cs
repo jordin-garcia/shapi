@@ -34,6 +34,7 @@ public class ColaCorreoBaseDatos(ShapiDbContext db, IReloj reloj) : IColaCorreo
         "prueba_por_vencer" => "Su prueba está por vencer",
         "aviso_cuota_plataforma" => "Aviso de cuota de plataforma",
         "respuesta_caso" => "Nueva respuesta en su caso",
+        "nuevo_caso" => "Nuevo caso",
         _ => "Tiene una notificación",
     };
 }

@@ -91,6 +91,23 @@ describe('A4.2 · Miembros y roles (RF-06, RF-43)', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar invitación' }));
     await waitFor(() => expect(cuerpoInvitacion).toEqual({ correo: 'nueva@ejemplo.com', rol: 'lector' }));
     await waitFor(() => expect(screen.getByText(/Su plan Producto permite 10 miembros; tiene 2\./)).toBeDefined());
+    expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Acción confirmada');
+  });
+
+  it.each([
+    ['limite_del_plan', 'Su plan no permite invitar más miembros.'],
+    ['correo_en_otra_organizacion', 'El correo ya pertenece a otra organización.'],
+  ])('RF-06 · muestra el mensaje del servidor para %s', async (codigo, mensaje) => {
+    servidor.use(http.post('http://localhost/api/miembros/invitaciones', () => HttpResponse.json(
+      { type: 'about:blank', title: mensaje, status: 422, codigo },
+      { status: 422, headers: { 'content-type': 'application/problem+json' } },
+    )));
+    const user = userEvent.setup();
+    renderMiembros();
+    await user.type(await screen.findByLabelText('Correo'), 'nueva@ejemplo.com');
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }));
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', mensaje);
+    expect(screen.queryByText('Acción confirmada')).toBeNull();
   });
 
   it('cambia el rol y pide confirmación antes de quitar al miembro', async () => {

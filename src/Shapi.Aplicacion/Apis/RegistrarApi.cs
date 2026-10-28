@@ -119,7 +119,7 @@ public sealed class RegistrarApi(
             nombreActor,
             organizacionId,
             AccionesBitacora.ApiRegistrada,
-            $"Registró la API {api.Nombre}.")
+            $"Registró {TextoBitacora.LaApi(api.Nombre)}.")
         {
             ObjetivoTipo = "api",
             ObjetivoId = api.Id,

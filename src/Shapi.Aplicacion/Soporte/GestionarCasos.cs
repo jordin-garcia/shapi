@@ -55,7 +55,7 @@ public sealed class AbrirCaso(
         if (!await repositorio.ExisteOrganizacionProveedor(solicitud.OrganizacionId, cancelacion))
         {
             return new Error(CodigosError.DatosInvalidos, "Revise los datos del caso.",
-                new Dictionary<string, string[]> { ["organizacionId"] = ["La organizacion proveedora no existe."] });
+                new Dictionary<string, string[]> { ["organizacionId"] = ["La organización proveedora no existe."] });
         }
 
         var error = await Validar(
@@ -86,13 +86,13 @@ public sealed class AbrirCaso(
             usuarioNombre,
             organizacionId,
             AccionesBitacora.CasoAbierto,
-            $"Abrio el caso CAS-{caso.Numero}: {caso.Asunto}.")
+            $"Abrió el caso CAS-{caso.Numero} de {await repositorio.NombreOrganizacion(organizacionId, cancelacion)}.")
         {
             ObjetivoTipo = "caso",
             ObjetivoId = caso.Id,
             Ip = ip,
         }, cancelacion);
-        await notificador.Notificar(caso, personalPlataforma, cancelacion);
+        await notificador.Notificar(caso, personalPlataforma, cancelacion, nuevo: true);
         await transaccion.Confirmar(cancelacion);
         return (await repositorio.Detalle(caso, cancelacion))!;
     }
@@ -107,17 +107,17 @@ public sealed class AbrirCaso(
         var errores = new Dictionary<string, string[]>();
         if (string.IsNullOrWhiteSpace(asunto) || asunto.Trim().Length > 120)
         {
-            errores["asunto"] = ["El asunto es obligatorio y debe tener maximo 120 caracteres."];
+            errores["asunto"] = ["El asunto es obligatorio y debe tener máximo 120 caracteres."];
         }
 
         if (string.IsNullOrWhiteSpace(descripcion) || descripcion.Trim().Length > 4000)
         {
-            errores["descripcion"] = ["La descripcion es obligatoria y debe tener maximo 4000 caracteres."];
+            errores["descripcion"] = ["La descripción es obligatoria y debe tener máximo 4000 caracteres."];
         }
 
         if (apiId.HasValue && !await repositorio.ApiPertenece(apiId.Value, organizacionId, cancelacion))
         {
-            errores["apiId"] = ["La API no pertenece a la organizacion."];
+            errores["apiId"] = ["La API no pertenece a la organización."];
         }
 
         return errores.Count == 0
@@ -173,13 +173,13 @@ public sealed class ResponderCaso(
 
         if (caso.Estado == EstadoCaso.Cerrado)
         {
-            return new Error(CodigosError.CasoCerrado, "El caso esta cerrado.");
+            return new Error(CodigosError.CasoCerrado, "El caso está cerrado.");
         }
 
         if (string.IsNullOrWhiteSpace(solicitud.Cuerpo) || solicitud.Cuerpo.Trim().Length > 4000)
         {
             return new Error(CodigosError.DatosInvalidos, "Revise el mensaje.",
-                new Dictionary<string, string[]> { ["cuerpo"] = ["El mensaje es obligatorio y debe tener maximo 4000 caracteres."] });
+                new Dictionary<string, string[]> { ["cuerpo"] = ["El mensaje es obligatorio y debe tener máximo 4000 caracteres."] });
         }
 
         var mensaje = caso.Responder(usuarioId, solicitud.Cuerpo, reloj.Ahora);
@@ -192,13 +192,18 @@ public sealed class ResponderCaso(
 
 public sealed class AsignarCaso(IRepositorioSoporte repositorio, IReloj reloj)
 {
-    public async Task<bool> Ejecutar(int numero, Guid usuarioId, CancellationToken cancelacion)
+    public async Task<Resultado<bool>> Ejecutar(int numero, Guid usuarioId, CancellationToken cancelacion)
     {
         await using var transaccion = await repositorio.IniciarTransaccion(cancelacion);
         var caso = await repositorio.ObtenerAdministracion(numero, true, cancelacion);
         if (caso is null)
         {
             return false;
+        }
+
+        if (caso.Estado == EstadoCaso.Cerrado)
+        {
+            return new Error(CodigosError.CasoCerrado, "El caso está cerrado.");
         }
 
         caso.Asignar(usuarioId, reloj.Ahora);
@@ -232,7 +237,7 @@ public sealed class CerrarCaso(
         await repositorio.GuardarCambios(cancelacion);
         await bitacora.Registrar(new EntradaBitacora(
             TipoActor.Usuario, usuarioId, usuarioNombre, caso.OrganizacionId,
-            AccionesBitacora.CasoCerrado, $"Cerro el caso CAS-{caso.Numero}: {caso.Asunto}.")
+            AccionesBitacora.CasoCerrado, $"Cerró el caso CAS-{caso.Numero} de {await repositorio.NombreOrganizacion(caso.OrganizacionId, cancelacion)}.")
         {
             ObjetivoTipo = "caso",
             ObjetivoId = caso.Id,
@@ -251,22 +256,28 @@ public sealed class ConsultarOrganizacionCaso(IRepositorioSoporte repositorio)
 
 public sealed class NotificadorCasos(IRepositorioSoporte repositorio, IColaCorreo correo)
 {
-    public async Task Notificar(Caso caso, bool autorEsPlataforma, CancellationToken cancelacion)
+    public async Task Notificar(Caso caso, bool autorEsPlataforma, CancellationToken cancelacion, bool nuevo = false)
     {
-        var destinatario = autorEsPlataforma
-            ? await repositorio.DestinatarioProveedor(caso, cancelacion)
-            : await repositorio.DestinatarioPlataforma(caso.AsignadoA, cancelacion);
-        if (destinatario is null)
+        IReadOnlyList<DestinatarioCaso> destinatarios;
+        if (autorEsPlataforma)
         {
-            return;
+            var proveedor = await repositorio.DestinatarioProveedor(caso, cancelacion);
+            destinatarios = proveedor is null ? [] : [proveedor];
+        }
+        else
+        {
+            destinatarios = await repositorio.DestinatariosPlataforma(caso.AsignadoA, cancelacion);
         }
 
-        await correo.Encolar("respuesta_caso", destinatario.Correo, new
+        foreach (var destinatario in destinatarios)
         {
-            nombre = destinatario.Nombre,
-            numeroCaso = $"CAS-{caso.Numero}",
-            asunto = caso.Asunto,
-            enlace = repositorio.EnlaceCaso(destinatario.Plataforma, caso.Numero),
-        }, cancelacion);
+            await correo.Encolar(nuevo ? "nuevo_caso" : "respuesta_caso", destinatario.Correo, new
+            {
+                nombre = destinatario.Nombre,
+                numeroCaso = $"CAS-{caso.Numero}",
+                asunto = caso.Asunto,
+                enlace = repositorio.EnlaceCaso(destinatario.Plataforma, caso.Numero),
+            }, cancelacion);
+        }
     }
 }

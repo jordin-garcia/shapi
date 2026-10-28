@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { crearCliente } from '@shapi/api';
-import { Aviso, Boton, Campo, EstadoCargando, EstadoError, Selector, Tabla, Tarjeta } from '@shapi/ui';
+import { crearCliente, ErrorApi } from '@shapi/api';
+import { Aviso, Boton, Campo, EstadoCargando, EstadoError, Selector, Tabla, Tarjeta, Toast } from '@shapi/ui';
 import type { components, paths } from '@shapi/api/organizaciones';
 
 const cliente = crearCliente<paths>(window.location.origin);
@@ -13,6 +13,7 @@ export default function PaginaA42Miembros() {
   const [correo, setCorreo] = useState('');
   const [rol, setRol] = useState<'editor' | 'lector'>('editor');
   const [error, setError] = useState('');
+  const [confirmacion, setConfirmacion] = useState(0);
   const [quitar, setQuitar] = useState<Miembro | null>(null);
   const consulta = useQuery({
     queryKey: ['miembros'],
@@ -30,8 +31,8 @@ export default function PaginaA42Miembros() {
       const { response } = await cliente.POST('/api/miembros/invitaciones', { body: cuerpo });
       if (!response.ok) throw new Error('No se pudo enviar la invitación.');
     },
-    onSuccess: async () => { setCorreo(''); setError(''); await refrescar(); },
-    onError: () => setError('No se pudo enviar la invitación. Revise el correo y el límite de su plan.'),
+    onSuccess: async () => { setCorreo(''); setError(''); setConfirmacion(valor => valor + 1); await refrescar(); },
+    onError: (causa) => setError(causa instanceof ErrorApi ? causa.titulo : 'No se pudo enviar la invitación. Inténtelo de nuevo.'),
   });
   const cambiarRol = useMutation({
     mutationFn: async ({ id, rol: nuevoRol }: { id: string; rol: 'editor' | 'lector' }) => {
@@ -99,6 +100,7 @@ export default function PaginaA42Miembros() {
 
   return (
     <div>
+      {confirmacion > 0 && <Toast key={confirmacion}>Acción confirmada</Toast>}
       <div className="flex flex-col gap-2.5">
         <p className="m-0 text-xs font-medium uppercase tracking-[0.16em] text-tinta-suave">Organización</p>
         <h1 className="m-0 font-display text-[32px] leading-tight">Miembros y roles</h1>

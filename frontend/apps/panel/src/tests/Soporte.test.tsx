@@ -50,15 +50,20 @@ const caso = {
 describe('RF-40 · A7 Casos del proveedor', () => {
   it('reproduce la lista y permite abrir un caso', async () => {
     let enviado: Record<string, unknown> | undefined;
+    let abierto = false;
     server.use(
-      http.get(`${API}/api/casos`, () => HttpResponse.json({ elementos: [{ numero: 104, asunto: caso.asunto, apiNombre: caso.apiNombre, estado: 'abierto', creadoEn: caso.creadoEn, respuestas: 2 }], total: 1 })),
+      http.get(`${API}/api/casos`, () => HttpResponse.json({ elementos: [
+        { numero: 104, asunto: caso.asunto, apiNombre: caso.apiNombre, estado: 'abierto', creadoEn: caso.creadoEn, respuestas: 2 },
+        ...(abierto ? [{ numero: 105, asunto: 'No puedo publicar', apiNombre: caso.apiNombre, estado: 'abierto', creadoEn: caso.creadoEn, respuestas: 0 }] : []),
+      ], total: abierto ? 2 : 1 })),
       http.get(`${API}/api/apis`, () => HttpResponse.json({
         elementos: [{ id: '11111111-1111-1111-1111-111111111111', nombre: caso.apiNombre, subdominio: 'envios', estado: 'publicada' }],
         total: 1, planNombre: 'Producto', maxApis: 5,
       })),
       http.post(`${API}/api/casos`, async ({ request }) => {
         enviado = await request.json() as Record<string, unknown>;
-        return HttpResponse.json(caso, { status: 201 });
+        abierto = true;
+        return HttpResponse.json({ ...caso, numero: 105, asunto: 'No puedo publicar' }, { status: 201 });
       }),
     );
 
@@ -78,6 +83,10 @@ describe('RF-40 · A7 Casos del proveedor', () => {
       apiId: '11111111-1111-1111-1111-111111111111',
       descripcion: 'Falla desde ayer.',
     }));
+    // RF-40, H-C22: el nuevo caso aparece sin recargar ni navegar.
+    expect(await screen.findByText('CAS-105')).toBeDefined();
+    expect(screen.getByText('No puedo publicar')).toBeDefined();
+    expect(screen.getByLabelText('Asunto')).toHaveProperty('value', '');
   });
 
   it('muestra la conversacion y envia respuestas', async () => {
