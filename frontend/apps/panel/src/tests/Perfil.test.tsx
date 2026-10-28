@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,7 +19,10 @@ async function registrar(request: Request, ruta: string) {
 
 async function abrir(ruta: string) {
   await router.navigate(ruta);
-  render(<StrictMode><QueryClientProvider client={cliente}><RouterProvider router={router} /></QueryClientProvider></StrictMode>);
+  // La ruta usa Suspense: el montaje termina después de sus actualizaciones asíncronas de React.
+  await act(async () => {
+    render(<StrictMode><QueryClientProvider client={cliente}><RouterProvider router={router} /></QueryClientProvider></StrictMode>);
+  });
 }
 
 beforeEach(() => {

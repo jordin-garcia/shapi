@@ -8,13 +8,29 @@ import { esperarEnlaceCorreo } from '../soporte/mailpit';
 test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones con punto final', async ({ browser, page }, info) => {
   test.setTimeout(420_000);
   const proveedor = await registrarProveedor(page);
-  const contextos = await Promise.all(Array.from({ length: 3 }, () => browser.newContext({ ignoreHTTPSErrors: true })));
+  const contextos = await Promise.all(Array.from({ length: 3 }, () => browser.newContext({
+    ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 },
+  })));
   const [admin, consumidor, invitado] = await Promise.all(contextos.map(c => c.newPage()));
+  async function capturar(pagina: typeof page, nombre: string) {
+    const archivo = info.outputPath(nombre);
+    await pagina.screenshot({ path: archivo, fullPage: true });
+    await info.attach(nombre, { path: archivo, contentType: 'image/png' });
+  }
   try {
     await entrar(admin, panel, 'rodrigo.alvarado@shapi.localhost');
+    interface Entrada { fecha: string; accion: string; descripcion: string; actor: { nombre: string; rol: string } }
+    const huella = (entrada: Entrada) => JSON.stringify([entrada.fecha, entrada.accion, entrada.actor.nombre, entrada.descripcion]);
+    async function leerBitacora() {
+      const entradas: Entrada[] = [];
+      for (let pagina = 1; ; pagina++) {
+        const resultado = await consultar<{ elementos: Entrada[]; total: number }>(admin, `/api/admin/bitacora?tamano=100&pagina=${pagina}`);
+        entradas.push(...resultado.elementos);
+        if (pagina * 100 >= resultado.total) return entradas;
+      }
+    }
     // Se excluyen las filas históricas de la siembra, que son append-only.
-    const anteriores = await consultar<{ elementos: { id: number }[] }>(admin, '/api/admin/bitacora?tamano=100');
-    const ultimoId = Math.max(0, ...anteriores.elementos.map(e => e.id));
+    const anteriores = new Set((await leerBitacora()).map(huella));
     await contratarPlataforma(page);
     const planes = await consultar<{ id: string; nombre: string }[]>(page, '/api/planes-plataforma');
     await consultar(page, '/api/suscripcion/cambiar', 'POST', { planId: planes.find(p => p.nombre === 'Producto')!.id, usarRegistrada: true });
@@ -58,10 +74,12 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
 
     const correoInvitado = `miembro-${sufijo()}@ejemplo.com`;
     await page.goto(`${panel}/panel/miembros`);
+    await expect(page.getByText('Todavía no ha invitado a nadie')).toBeVisible();
+    await capturar(page, 'A4-2-miembros-vacia.png');
     await page.getByLabel('Correo', { exact: true }).fill(correoInvitado);
     await page.getByRole('button', { name: 'Enviar invitación' }).click();
     await expect(page.getByText('Acción confirmada', { exact: true })).toBeVisible();
-    await page.screenshot({ path: info.outputPath('A4-2-invitacion-confirmada.png'), fullPage: true });
+    await capturar(page, 'A4-2-invitacion-confirmada.png');
     const enlace = await esperarEnlaceCorreo(correoInvitado, { contiene: '/invitacion?token=' });
     await invitado.goto(enlace);
     await consultar(invitado, `/api/invitaciones/${encodeURIComponent(new URL(enlace).searchParams.get('token')!)}/aceptar`, 'POST', { nombre: 'Miembro de bitácora', contrasena });
@@ -69,6 +87,18 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
     const miembro = miembros.elementos.find(m => m.correo === correoInvitado)!;
     await consultar(page, `/api/miembros/${miembro.id}/rol`, 'PUT', { rol: 'lector' });
     await consultar(page, `/api/miembros/${miembro.id}`, 'DELETE');
+    // RF-06: respuestas reales del servidor; la vista sigue abierta como en una carrera entre pestañas.
+    await page.getByLabel('Correo', { exact: true }).fill('ana.morales@enviosxelaju.com');
+    await page.getByRole('button', { name: 'Enviar invitación' }).click();
+    await expect(page.getByRole('alert')).toHaveText('El correo ya pertenece a otra organización.');
+    await capturar(page, 'A4-2-correo-otra-organizacion.png');
+    for (let indice = 0; indice < 9; indice++) {
+      await consultar(page, '/api/miembros/invitaciones', 'POST', { correo: `limite-${indice}-${proveedor.id}@ejemplo.com`, rol: 'lector' });
+    }
+    await page.getByLabel('Correo', { exact: true }).fill(`exceso-${proveedor.id}@ejemplo.com`);
+    await page.getByRole('button', { name: 'Enviar invitación' }).click();
+    await expect(page.getByRole('alert')).toHaveText('Su plan llegó al límite de miembros.');
+    await capturar(page, 'A4-2-limite-del-plan.png');
 
     // RF-40: abrir por A7.1, responder y cerrar por A6.4b, con persistencia y correo reales.
     await page.goto(`${panel}/panel/soporte`);
@@ -78,7 +108,7 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
     await page.getByRole('button', { name: 'Abrir caso', exact: true }).click();
     const fila = page.getByRole('row').filter({ hasText: asunto });
     await expect(fila).toBeVisible();
-    await page.screenshot({ path: info.outputPath('A7-1-caso-sin-recargar.png'), fullPage: true });
+    await capturar(page, 'A7-1-caso-sin-recargar.png');
     const casos = await consultar<{ elementos: { numero: number; asunto: string }[] }>(page, '/api/casos');
     const numero = casos.elementos.find(c => c.asunto === asunto)!.numero;
     await admin.goto(`${panel}/admin/casos/${numero}`);
@@ -86,13 +116,13 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
     await admin.getByLabel('Respuesta', { exact: true }).fill('Respuesta del administrador.');
     await admin.getByRole('button', { name: 'Enviar respuesta', exact: true }).click();
     await expect(admin.getByText('Respuesta del administrador.', { exact: true })).toBeVisible();
-    await admin.screenshot({ path: info.outputPath('A6-4b-respuesta.png'), fullPage: true });
+    await capturar(admin, 'A6-4b-respuesta.png');
     await consultar(page, `/api/casos/${numero}/mensajes`, 'POST', { cuerpo: 'Respuesta del proveedor.' });
     await admin.getByRole('button', { name: 'Cerrar el caso' }).click();
     await expect(admin.getByText('Cerrado', { exact: true })).toBeVisible();
     await page.goto(`${panel}/panel/soporte/${numero}`);
     await expect(page.getByText('Respuesta del administrador.', { exact: true })).toBeVisible();
-    await page.screenshot({ path: info.outputPath('A7-2-conversacion-cerrada.png'), fullPage: true });
+    await capturar(page, 'A7-2-conversacion-cerrada.png');
     const correo = await esperarEnlaceCorreo(proveedor.correo, { contiene: `/panel/soporte/${numero}` });
     expect(correo).toBe(`${panel}/panel/soporte/${numero}`);
 
@@ -108,13 +138,7 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
     const pagos = await consultar<{ elementos: { id: string; estado: string }[] }>(page, '/api/pagos');
     await consultar(admin, `/api/admin/pagos/${pagos.elementos.find(p => p.estado === 'autorizado')!.id}/revertir`, 'POST');
 
-    interface Entrada { id: number; accion: string; descripcion: string; actor: { nombre: string; rol: string } }
-    const entradas: Entrada[] = [];
-    for (let pagina = 1; ; pagina++) {
-      const resultado = await consultar<{ elementos: Entrada[]; total: number }>(admin, `/api/admin/bitacora?tamano=100&pagina=${pagina}`);
-      entradas.push(...resultado.elementos.filter(e => e.id > ultimoId));
-      if (pagina * 100 >= resultado.total) break;
-    }
+    const entradas = (await leerBitacora()).filter(entrada => !anteriores.has(huella(entrada)));
     // El catálogo se lee de la especificación para detectar una acción nueva sin cobertura.
     const tabla = readFileSync(new URL('../../../docs/specs/10-identidad-y-seguridad.md', import.meta.url), 'utf8').split('## 7. Bitácora')[1].split('## 8. Amenazas')[0];
     const catalogo = tabla.split('\n').filter(l => l.startsWith('| `')).flatMap(l => {
@@ -142,7 +166,7 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
     }
     await admin.goto(`${panel}/admin/bitacora`);
     await expect(admin.getByRole('heading', { name: 'Bitácora de acciones sensibles', exact: true })).toBeVisible();
-    await admin.screenshot({ path: info.outputPath('B3-2-nombres-y-puntos.png'), fullPage: true });
+    await capturar(admin, 'B3-2-nombres-y-puntos.png');
   } finally {
     await Promise.all(contextos.map(c => c.close()));
   }
