@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-26
 depende_de: []
 requisitos: [RF-06, RF-40, RF-41, RF-42]
@@ -89,3 +89,20 @@ Además, en el ambiente productivo simulado (protocolo B8): abrir un caso desde 
 
 ## Fuera de alcance
 - Corregir las filas viejas de la bitácora: no admite UPDATE (RF-41). Un ambiente levantado desde cero, con volúmenes limpios, ya no las tiene.
+
+## Resultado
+
+### Implementación (28 oct 2026)
+- **H-C21:** `BitacoraBaseDatos` resuelve el nombre de `Usuario` o `Consumidor` al insertar y guarda «Sistema» para el trabajador. El nombre queda como instantánea aunque la cuenta cambie después; no se modifican las filas históricas. Una prueba de persistencia comprueba la instantánea y el ensayo E2E recorre todas las acciones humanas del catálogo de 10 §7 con cuentas reales.
+- **H-C20 y H-104:** el registro común agrega un solo punto final; `TextoBitacora.LaApi` evita «API API» y los casos usan tildes y el nombre de la organización. La siembra nueva usa nombres personales y punto final, y reconoce las descripciones históricas con o sin punto para conservar su idempotencia. Se precisó 10 §7 y se cerró la duda 6 de la auditoría del 3 oct según la decisión de Jordin.
+- **H-C17, H-C18 y H-C23:** `NotificadorCasos` y `RepositorioSoporte` distinguen `nuevo_caso` de `respuesta_caso` y seleccionan solo cuentas activas. Sin asignado, avisan a todo el soporte activo y a ningún administrador; con asignado, solo a esa persona activa. Las pruebas incluyen administradores, respuesta del proveedor, difusión a soporte y cuentas desactivadas. Las plantillas y el asunto «Nuevo caso» quedaron incorporados y 10 §6 actualizado.
+- **H-C19:** el dominio y el caso de uso rechazan asignar un caso cerrado; el caso de uso conserva el bloqueo de fila para comprobar su estado. El endpoint devuelve 422 `caso_cerrado`, documentado en `contratos/openapi/soporte.yaml` y los tipos TypeScript regenerados.
+- **H-C22 y H-C24:** A7.1 ya invalidaba la consulta y ahora una prueba exige que aparezca la fila nueva sin recargar. A4.2 usa el aviso «Acción confirmada» y el título del error recibido; las pruebas distinguen los errores de límite y de correo en otra organización. `MiembrosApi.cs` usa `CodigosError` en sus errores manuales.
+- Se ajustaron las expectativas de descripciones y los actores persistidos de las fixtures de planes. `Perfil.test.tsx` espera el montaje asíncrono de React/Suspense con `act`, conservando sus aserciones y límites. No se agregaron dependencias de las aplicaciones, migraciones ni cambios de ADR.
+
+### Verificación
+- Plan: 89 tareas válidas. Compilación completa: 0 errores y 0 advertencias. Formato completo sin cambios pendientes.
+- API: 1111 pruebas aprobadas, 0 fallos y 0 omitidas. Dominio: 67 aprobadas, 0 fallos y 0 omitidas. La ejecución final de API se hizo desde Windows, con cuatro hilos y Redis local para las fixtures del reloj real, después de corregir dos expectativas y los problemas de conectividad del runner Linux con Docker y Mailpit.
+- Frontend: lint sin errores (11 avisos anteriores), typecheck correcto, 508 pruebas aprobadas en 42 archivos y builds de panel y portal correctos. La ejecución final usa la imagen Linux del Dockerfile del proyecto. Los tipos del ensayo E2E también pasan.
+- Ensayo productivo simulado con imágenes y volúmenes aislados: apertura de caso por A7.1 sin recarga, respuesta y cierre por A6.4b, correos al proveedor y al asignado comprobados en Mailpit, y nombres personales y punto final en todo el catálogo HTTP de bitácora. Capturas de A4.2 (vacío, confirmación y ambos errores), A7.1, A6.4b, A7.2 y B3.2 comparadas con los mockups; se usan datos propios del ensayo y la decisión de puntuación prevalece sobre los ejemplos antiguos. Evidencia local en `.shapi/jg25/`.
+- Revisión en contexto limpio: **LISTO**, sin hallazgos de corrección ni opcionales.

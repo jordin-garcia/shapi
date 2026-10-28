@@ -292,7 +292,7 @@ Resultados:
 
 **Planes y contratación (EM-07 y EM-08)**
 - [ ] **H-103 (baja, EM-08)** `src/Shapi.Api/Suscripciones/ContratacionApi.cs:115-120`: el 400 de un vencimiento inválido casi nunca se alcanza, porque la pasarela responde antes 422 `tarjeta_vencida`. Además, la clave `tarjeta.vencimiento` no es un campo de la petición, que tiene `mesVencimiento` y `anioVencimiento`. Corrección: validar el formato antes de tokenizar, con `errores` en `tarjeta.mesVencimiento` y `tarjeta.anioVencimiento`, y con prueba.
-- [ ] **H-104 (baja, EM-07, DC-04 y DC-05)** Las descripciones de la bitácora de planes, del registro de APIs y de la exposición de rutas terminan con punto: `GestionarPlanes.cs:83`, `:221` y `:271`; `RegistrarApi.cs:114`; `GestionarEspecificacion.cs:239`. 10 §7, el mockup B3.2 y las de claves no lo llevan.
+- [x] **H-104 (baja, EM-07, DC-04 y DC-05)** Las descripciones de la bitácora de planes, del registro de APIs y de la exposición de rutas terminan con punto: `GestionarPlanes.cs:83`, `:221` y `:271`; `RegistrarApi.cs:114`; `GestionarEspecificacion.cs:239`. 10 §7, el mockup B3.2 y las de claves no lo llevan. **Resuelto en JG-25 (28 oct):** Jordin eligió punto final en todas las descripciones nuevas; se normaliza al insertar y se precisa 10 §7, sin modificar filas históricas.
 - [ ] **H-105 (baja, EM-07 y EM-08)** La edición o la desactivación de un plan puede cruzarse con una contratación en curso, porque ninguna bloquea el plan. Puede quedar una suscripción gratuita en un plan que pasó a ser de pago, o la contratación de un plan inactivo. Corrección:
   - volver a leer el plan con `FOR SHARE` dentro de la transacción de la contratación;
   - usar `FOR UPDATE` en `EditarPlan` y `DesactivarPlan`.
