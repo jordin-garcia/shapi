@@ -122,3 +122,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Emilio:** con autorización de José Pablo se corrigió `src/Shapi.Api/Identidad/Endpoints.cs` para publicar la organización después del registro; se agregó `tests/Shapi.Api.Tests/Identidad/RegistroCacheTests.cs` y se aisló `IPublicadorCache` en las pruebas existentes `AutenticacionTests.cs` y `RecuperacionTests.cs`. EM-23 documenta y verifica la falla. Actualice su rama desde `main` al integrarse.
   - **JG-17 y JZ-16:** las E2E principales ya están automatizadas. `pnpm test`, en `tests/e2e`, ejecuta el reloj al final; adelanta el ambiente de demostración 37 días. La CI usa un ambiente efímero nuevo por ejecución.
 - Cierre: formato completo correcto, sin cambios; plan válido con 89 tareas.
+
+## 2026-10-27 · JZ-19 · Elemento de código para el video del Avance 3
+- Hecho: se preparó `docs/video/elementos/jose-pablo.md` con el patrón de bandeja de salida transaccional de soporte y correo, dos características de Clean Code, un fragmento literal de 20 líneas, pruebas de RF-46, narración de 337 palabras y orden de pantalla para 2 a 3 minutos. La tabla de funcionalidades distingue las pantallas compartidas y las continuaciones realizadas por Jordin.
+- Decisiones: explicar la coordinación de la transacción de negocio y el envío posterior sin prometer entrega exactamente una vez. Se eligió un patrón distinto del elemento de Emilio y del asignado a Jordin; el de Dominique aún no estaba creado. Solo se modificó documentación.
+- Verificación: plan válido (89 tareas); cinco pruebas de `CorreoSalienteTests` correctas, cero fallidas y cero omitidas; fragmento y 15 referencias completas comparados con `main` en `30b14fee9d6f2aba0302e61b0f168e88a09c9570`; narración y duración estimada comprobadas.
+- Revisión independiente en contexto limpio según el protocolo B9: LISTO, sin hallazgos de corrección ni opcionales.
+- Pendiente o aviso para otros:
+  - **JG-29:** el elemento ya está en `docs/video/elementos/jose-pablo.md`; vuelva a comprobar las líneas después de JG-25 y JG-27 y mida la narración durante el ensayo. La estimación es de 2 min 45 s.
+  - **DC-18:** José Pablo eligió bandeja de salida transaccional para evitar repetir el patrón entre los cuatro elementos.
