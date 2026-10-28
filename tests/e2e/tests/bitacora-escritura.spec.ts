@@ -115,9 +115,12 @@ test('RF-41 · todas las acciones HTTP guardan el nombre real y descripciones co
     await admin.getByRole('button', { name: 'Asignarme el caso' }).click();
     await admin.getByLabel('Respuesta', { exact: true }).fill('Respuesta del administrador.');
     await admin.getByRole('button', { name: 'Enviar respuesta', exact: true }).click();
+    await expect(admin.getByLabel('Respuesta', { exact: true })).toHaveValue('');
     await expect(admin.getByText('Respuesta del administrador.', { exact: true })).toBeVisible();
     await capturar(admin, 'A6-4b-respuesta.png');
     await consultar(page, `/api/casos/${numero}/mensajes`, 'POST', { cuerpo: 'Respuesta del proveedor.' });
+    const correoAlAsignado = await esperarEnlaceCorreo('rodrigo.alvarado@shapi.localhost', { contiene: `/admin/casos/${numero}` });
+    expect(correoAlAsignado).toBe(`${panel}/admin/casos/${numero}`);
     await admin.getByRole('button', { name: 'Cerrar el caso' }).click();
     await expect(admin.getByText('Cerrado', { exact: true })).toBeVisible();
     await page.goto(`${panel}/panel/soporte/${numero}`);
