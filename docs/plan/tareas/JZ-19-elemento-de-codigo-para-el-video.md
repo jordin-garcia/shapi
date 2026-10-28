@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-25
 depende_de: []
 requisitos: []
@@ -52,3 +52,12 @@ Además, ejecutar la prueba que cita el archivo (`dotnet test … --filter "Full
 
 ## Fuera de alcance
 - Cambiar el código para que se vea mejor en el video. Si el agente encuentra algo que corregir, lo anota como aviso para Jordin en la bitácora.
+
+## Resultado
+
+- Se creó `docs/video/elementos/jose-pablo.md` con la bandeja de salida transaccional como patrón de arquitectura, su aplicación en soporte y correo, y dos características de Clean Code con ejemplos concretos.
+- Incluye un fragmento literal de 20 líneas de `CorreoSaliente.RegistrarFallo`, las pruebas de RF-46 que lo ejercitan, una narración de 337 palabras para 2 a 3 minutos, una secuencia de pantalla estimada en 2 min 45 s y la tabla de funcionalidades y pantallas para JG-29.
+- Se documentan los cinco reintentos además del intento inicial, la eliminación del token y el límite de entrega ante una caída entre SMTP y la confirmación en PostgreSQL. No se cambió código, contratos, dependencias ni comportamiento.
+- Verificación: `node scripts/tareas.mjs --validar` dio «Plan válido: 89 tareas»; las cinco pruebas de `Shapi.Dominio.Tests.Correo.CorreoSalienteTests` pasaron, sin fallos ni omitidas. Una comparación contra `main` (`30b14fee9d6f2aba0302e61b0f168e88a09c9570`) confirmó el fragmento exacto y las 15 referencias con archivo y rango completos; se comprobó la extensión de la narración.
+- Decisión: se eligió la bandeja de salida, distinta de puertos y adaptadores (Emilio) y la cadena de responsabilidad (Jordin). El elemento de Dominique todavía no estaba creado. JG-29 volverá a comprobar las líneas después de JG-25 y JG-27, antes de grabar.
+- Revisión independiente en contexto limpio según `docs/plan/prompts/revision.md`: LISTO, sin hallazgos de corrección ni opcionales.
