@@ -48,10 +48,11 @@ public sealed class RepositorioConsolidacion(ShapiDbContext db, IReloj reloj)
         // El mismo orden en todos los lotes evita invertir los bloqueos entre dos consolidadores.
         foreach (var grupo in filas.GroupBy(x => x.ApiId).OrderBy(x => x.Key))
         {
-            // La recarga de OpenAPI bloquea la API antes de retirar rutas. Este bloqueo compartido mantiene estables
-            // esas rutas hasta el COMMIT. No se usa FOR UPDATE: las FK también bloquean la API (H-112).
+            // La recarga de OpenAPI bloquea la API (FOR NO KEY UPDATE) antes de retirar rutas. Este bloqueo compartido
+            // espera a esa recarga y mantiene estables sus rutas hasta el COMMIT. Es FOR SHARE y no FOR KEY SHARE,
+            // porque FOR KEY SHARE no choca con FOR NO KEY UPDATE; tampoco choca con las FK de otras inserciones (H-112).
             var conexion = (NpgsqlConnection)db.Database.GetDbConnection();
-            await using var protegerApi = new NpgsqlCommand("SELECT id FROM api WHERE id = @api FOR KEY SHARE", conexion,
+            await using var protegerApi = new NpgsqlCommand("SELECT id FROM api WHERE id = @api FOR SHARE", conexion,
                 (NpgsqlTransaction)transaccion.GetDbTransaction());
             protegerApi.Parameters.AddWithValue("api", grupo.Key);
             if (await protegerApi.ExecuteScalarAsync(cancelacion) is null)

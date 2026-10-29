@@ -79,9 +79,9 @@ Verificación manual con el entorno levantado:
   - registro, correo en Mailpit con el enlace al host del portal, verificación y entrada;
   - destino `/planes` sin suscripción y `/cuenta/suscripcion` con una suscripción vigente;
   - enlace ya usado, credenciales inválidas, recuperación neutral, restablecimiento e invitación (cuenta ya verificada).
-  - Las capturas de las seis pantallas coinciden con sus mockups en textos, datos, orden y estados. Diferencia aceptada: A5.10 no muestra el correo (11 §Precisiones).
+  - Las capturas de las seis pantallas coinciden con sus mockups en textos, datos, orden y estados. Diferencia aceptada: A5.10 no muestra el correo (11 §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)»).
 - **Pendiente ajeno a DC-08:** el correo de verificación llega sin la marca de Envíos Xelajú. Es la plantilla básica de JZ-03, y ponerle la marca del portal es el criterio 2 de JZ-11 (José Pablo). El backend ya manda `nombrePortal` y `colorPortal` en los datos del correo.
-- **Decisiones:** se mantienen las de Dominique: `/verificar-correo?token=` (10 §1), A5.10 sin el correo (11 §Precisiones) y el encabezado de las pantallas de acceso solo con la marca. La que se agregó: los colores de la marca se aplican en `MarcoAcceso`, no en cada botón.
+- **Decisiones:** se mantienen las de Dominique: `/verificar-correo?token=` (10 §1), A5.10 sin el correo (11 §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)») y el encabezado de las pantallas de acceso solo con la marca. La que se agregó: los colores de la marca se aplican en `MarcoAcceso`, no en cada botón.
 - **Archivos principales:**
   - `frontend/apps/portal/src/paginas/A5-{3,3b,7,8,9,10}-*.tsx`
   - `frontend/apps/portal/src/modulos/sesion/` (`useSesionConsumidor.ts`, `useIdentidadConsumidor.ts`, `FormulariosAcceso.tsx`, `CerrarSesionConsumidor.tsx`)

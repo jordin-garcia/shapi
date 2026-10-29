@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,20 +37,20 @@ public sealed class ContratacionApi(
         var portal = await resolutor.Resolver(http.Request.Host.Host, cancelacion);
         if (portal is null)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         if (!Guid.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var consumidorId)
             || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
             || organizacionId != portal.OrganizacionId)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         var consumidor = await db.Set<Consumidor>().SingleOrDefaultAsync(c => c.Id == consumidorId, cancelacion);
         if (consumidor is null)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         if (consumidor.CorreoVerificadoEn is null)
@@ -61,7 +62,7 @@ public sealed class ContratacionApi(
             .SingleOrDefaultAsync(p => p.Id == peticion.PlanId && p.ApiId == portal.ApiId, cancelacion);
         if (plan is null)
         {
-            return TypedResults.NotFound();
+            return Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.PlanNoEncontrado, "No se encontró el plan en esta API.");
         }
 
         if (!plan.Activo)
@@ -73,7 +74,14 @@ public sealed class ContratacionApi(
         await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
         if (!await BloquearConsumidor(consumidorId, cancelacion))
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
+        }
+
+        // Auditoría 2026-10-03, H-105: si el plan se edita o se desactiva en este momento, se espera su COMMIT y se
+        // vuelve a leer, para no contratar un plan inactivo ni una suscripción gratuita en un plan que pasó a ser de pago.
+        if (!await BloquearPlan(plan, cancelacion))
+        {
+            return Problemas.Crear(StatusCodes.Status422UnprocessableEntity, CodigosError.PlanNoEncontrado, "El plan no está activo.");
         }
 
         var existente = await db.Set<SuscripcionApi>().AnyAsync(s => s.ConsumidorId == consumidorId && s.ApiId == portal.ApiId
@@ -93,6 +101,12 @@ public sealed class ContratacionApi(
                     new Dictionary<string, string[]> { ["tarjeta"] = ["Escriba los datos de la tarjeta."] });
             }
 
+            if (ErroresVencimiento(peticion.Tarjeta, out var mes, out var anio) is { } erroresVencimiento)
+            {
+                await transaccion.RollbackAsync(cancelacion);
+                return VencimientoInvalido(erroresVencimiento);
+            }
+
             var tokenizada = await pasarela.TokenizarAsync(new DatosTarjeta
             {
                 Numero = peticion.Tarjeta.Numero,
@@ -108,29 +122,11 @@ public sealed class ContratacionApi(
             }
 
             // convenciones §5: datos_invalidos es 400, con el error solo en el campo que falló.
-            var errores = new Dictionary<string, string[]>();
             var titular = tokenizada.Titular ?? peticion.Tarjeta.Titular;
             if (string.IsNullOrWhiteSpace(titular))
             {
-                errores["tarjeta.titular"] = ["Escriba el nombre del titular."];
-            }
-
-            if (!int.TryParse(peticion.Tarjeta.MesVencimiento, out var mes) || mes is < 1 or > 12
-                || !int.TryParse(peticion.Tarjeta.AnioVencimiento, out var anio) || anio is < 0 or > 9999)
-            {
-                errores["tarjeta.vencimiento"] = ["Revise el mes y el año de vencimiento."];
-                mes = anio = 0;
-            }
-            else if (anio < 100)
-            {
-                anio += 2000;
-            }
-
-            if (errores.Count > 0)
-            {
                 await transaccion.RollbackAsync(cancelacion);
-                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
-                    "Los datos de vencimiento o titular de la tarjeta no son válidos.", errores);
+                return TitularInvalido();
             }
 
             medioPago = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!,
@@ -218,14 +214,14 @@ public sealed class ContratacionApi(
         var portal = await resolutor.Resolver(http.Request.Host.Host, cancelacion);
         if (portal is null)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         if (!Guid.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var consumidorId)
             || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
             || organizacionId != portal.OrganizacionId)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         var fila = await (from s in db.Set<SuscripcionApi>()
@@ -236,7 +232,7 @@ public sealed class ContratacionApi(
                           select new { Suscripcion = s, Plan = p, Medio = m }).SingleOrDefaultAsync(cancelacion);
         if (fila is null)
         {
-            return TypedResults.NotFound();
+            return SuscripcionNoEncontrada();
         }
 
         var organizacion = await db.Set<Organizacion>().AsNoTracking()
@@ -285,13 +281,13 @@ public sealed class ContratacionApi(
             || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
             || organizacionId != portal.OrganizacionId)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         if (!await BloquearConsumidor(consumidorId, ct))
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         var suscripcion = await db.Set<SuscripcionApi>()
@@ -299,7 +295,7 @@ public sealed class ContratacionApi(
             .SingleOrDefaultAsync(ct);
         if (suscripcion is null)
         {
-            return TypedResults.NotFound();
+            return SuscripcionNoEncontrada();
         }
 
         if (suscripcion.PlanSiguienteId is null)
@@ -321,26 +317,26 @@ public sealed class ContratacionApi(
             || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
             || organizacionId != portal.OrganizacionId)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         var consumidor = await db.Set<Consumidor>().SingleOrDefaultAsync(x => x.Id == consumidorId, ct);
         if (consumidor is null)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         if (!await BloquearConsumidor(consumidorId, ct))
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         var suscripcion = await db.Set<SuscripcionApi>().SingleOrDefaultAsync(x => x.ConsumidorId == consumidorId
             && x.ApiId == portal.ApiId && (x.Estado == EstadoSuscripcion.EnGracia || x.Estado == EstadoSuscripcion.Suspendida), ct);
         if (suscripcion is null)
         {
-            return Problemas.Crear(StatusCodes.Status404NotFound, "suscripcion_no_encontrada", "No hay una suscripción que requiera pago.");
+            return Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.SuscripcionNoEncontrada, "No hay una suscripción que requiera pago.");
         }
 
         var plan = await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(x => x.Id == suscripcion.PlanId, ct);
@@ -358,6 +354,12 @@ public sealed class ContratacionApi(
                 "Escriba los datos de la tarjeta.", new Dictionary<string, string[]> { ["tarjeta"] = ["Escriba los datos de la tarjeta."] });
         }
 
+        if (ErroresVencimiento(tarjeta, out var mes, out var anio) is { } erroresVencimiento)
+        {
+            await tx.RollbackAsync(ct);
+            return VencimientoInvalido(erroresVencimiento);
+        }
+
         var tokenizada = await pasarela.TokenizarAsync(new DatosTarjeta
         {
             Numero = tarjeta.Numero,
@@ -373,18 +375,10 @@ public sealed class ContratacionApi(
         }
 
         var titular = tokenizada.Titular ?? tarjeta.Titular;
-        if (string.IsNullOrWhiteSpace(titular) || !int.TryParse(tarjeta.MesVencimiento, out var mes) || mes is < 1 or > 12
-            || !int.TryParse(tarjeta.AnioVencimiento, out var anio) || anio is < 0 or > 9999)
+        if (string.IsNullOrWhiteSpace(titular))
         {
             await tx.RollbackAsync(ct);
-            return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
-                "Los datos de vencimiento o titular de la tarjeta no son válidos.",
-                new Dictionary<string, string[]> { [string.IsNullOrWhiteSpace(titular) ? "tarjeta.titular" : "tarjeta.vencimiento"] = ["Revise los datos de la tarjeta."] });
-        }
-
-        if (anio < 100)
-        {
-            anio += 2000;
+            return TitularInvalido();
         }
 
         var medio = MedioPago.CrearParaConsumidor(consumidorId, tokenizada.Token!, tokenizada.Marca!, tokenizada.Ultimos4!, titular, mes, anio);
@@ -438,13 +432,13 @@ public sealed class ContratacionApi(
             || !Guid.TryParse(http.User.FindFirstValue(PoliticasAutorizacion.ClaimOrganizacion), out var organizacionId)
             || organizacionId != portal.OrganizacionId)
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         if (!await BloquearConsumidor(consumidorId, ct))
         {
-            return TypedResults.NotFound();
+            return PortalNoEncontrado();
         }
 
         var actual = await db.Set<SuscripcionApi>().SingleOrDefaultAsync(x => x.ConsumidorId == consumidorId
@@ -458,7 +452,8 @@ public sealed class ContratacionApi(
         var origen = await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(x => x.Id == actual.PlanId, ct);
         var destino = await db.Set<PlanApi>().SingleOrDefaultAsync(x => x.Id == peticion.PlanId
             && x.ApiId == portal.ApiId && x.Activo, ct);
-        if (destino is null)
+        // H-105: el plan destino tampoco puede desactivarse ni editarse a medio cambio.
+        if (destino is null || !await BloquearPlan(destino, ct))
         {
             return Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.PlanNoEncontrado,
                 "No se encontró un plan activo de esta API.");
@@ -493,6 +488,12 @@ public sealed class ContratacionApi(
         if (prorrateo.APagar > 0 && peticion.Tarjeta is not null)
         {
             var tarjeta = peticion.Tarjeta;
+            if (ErroresVencimiento(tarjeta, out var mes, out var anio) is { } erroresVencimiento)
+            {
+                await tx.RollbackAsync(ct);
+                return VencimientoInvalido(erroresVencimiento);
+            }
+
             var resultado = await pasarela.TokenizarAsync(new DatosTarjeta
             {
                 Numero = tarjeta.Numero,
@@ -508,20 +509,12 @@ public sealed class ContratacionApi(
             }
 
             var titular = resultado.Titular ?? tarjeta.Titular;
-            if (string.IsNullOrWhiteSpace(titular)
-                || !int.TryParse(tarjeta.MesVencimiento, out var mes) || mes is < 1 or > 12
-                || !int.TryParse(tarjeta.AnioVencimiento, out var anio) || anio is < 0 or > 9999)
+            if (string.IsNullOrWhiteSpace(titular))
             {
                 await tx.RollbackAsync(ct);
-                return Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
-                    "Los datos de vencimiento o titular de la tarjeta no son válidos.",
-                    new Dictionary<string, string[]> { [string.IsNullOrWhiteSpace(titular) ? "tarjeta.titular" : "tarjeta.vencimiento"] = ["Revise los datos de la tarjeta."] });
+                return TitularInvalido();
             }
 
-            if (anio < 100)
-            {
-                anio += 2000;
-            }
             medioNuevo = MedioPago.CrearParaConsumidor(consumidorId, resultado.Token!, resultado.Marca!, resultado.Ultimos4!, titular, mes, anio);
         }
         else if (prorrateo.APagar > 0 && medioRegistrado is null)
@@ -643,10 +636,66 @@ public sealed class ContratacionApi(
         proximaRenovacion = suscripcion.Fin,
     };
 
+    /// <summary>
+    /// convenciones §5 (auditoría 2026-10-03, H-103): un mes o un año mal escritos son 400 <c>datos_invalidos</c>, con el
+    /// error en su campo. Se validan antes de tokenizar, porque la pasarela respondería antes 422 <c>tarjeta_vencida</c>.
+    /// Un año de dos cifras se entiende como 20AA.
+    /// </summary>
+    private static Dictionary<string, string[]>? ErroresVencimiento(TarjetaContratacion tarjeta, out int mes, out int anio)
+    {
+        var errores = new Dictionary<string, string[]>();
+        if (!int.TryParse(tarjeta.MesVencimiento, NumberStyles.None, CultureInfo.InvariantCulture, out mes) || mes is < 1 or > 12)
+        {
+            errores["tarjeta.mesVencimiento"] = ["Escriba un mes entre 1 y 12."];
+        }
+
+        anio = 0;
+        if (tarjeta.AnioVencimiento?.Length is not (2 or 4)
+            || !int.TryParse(tarjeta.AnioVencimiento, NumberStyles.None, CultureInfo.InvariantCulture, out anio))
+        {
+            errores["tarjeta.anioVencimiento"] = ["Escriba el año de vencimiento con dos o cuatro cifras."];
+        }
+        else if (anio < 100)
+        {
+            anio += 2000;
+        }
+
+        return errores.Count > 0 ? errores : null;
+    }
+
+    // convenciones §5 (auditoría 2026-10-03, H-106): todo 404 trae su código. Un host sin portal, una sesión de otra
+    // organización o un consumidor que ya no existe responden igual, como el catálogo de planes del portal.
+    private static IResult PortalNoEncontrado() =>
+        Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.ApiNoEncontrada, "No se encontró el portal.");
+
+    private static IResult SuscripcionNoEncontrada() =>
+        Problemas.Crear(StatusCodes.Status404NotFound, CodigosError.SuscripcionNoEncontrada,
+            "No tiene una suscripción vigente en esta API.");
+
+    private static IResult VencimientoInvalido(Dictionary<string, string[]> errores) =>
+        Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
+            "Revise el mes y el año de vencimiento de la tarjeta.", errores);
+
+    private static IResult TitularInvalido() =>
+        Problemas.Crear(StatusCodes.Status400BadRequest, CodigosError.DatosInvalidos,
+            "Escriba el nombre del titular de la tarjeta.",
+            new Dictionary<string, string[]> { ["tarjeta.titular"] = ["Escriba el nombre del titular."] });
+
     private static IResult RespuestaErrorTarjeta(string codigo)
     {
         var estado = codigo == CodigosError.PasarelaNoDisponible ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status422UnprocessableEntity;
         return Problemas.Crear(estado, codigo, "No se pudo procesar la tarjeta.");
+    }
+
+    /// <summary>
+    /// Bloquea el plan en modo compartido (<c>FOR SHARE</c>) hasta el COMMIT y lo vuelve a leer: espera a una edición o
+    /// desactivación en curso, que lo bloquea con <c>FOR UPDATE</c>. Devuelve si el plan sigue activo.
+    /// </summary>
+    private async Task<bool> BloquearPlan(PlanApi plan, CancellationToken cancelacion)
+    {
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM plan_api WHERE id = {plan.Id} FOR SHARE", cancelacion);
+        await db.Entry(plan).ReloadAsync(cancelacion);
+        return plan.Activo;
     }
 
     private async Task<bool> BloquearConsumidor(Guid consumidorId, CancellationToken cancelacion)

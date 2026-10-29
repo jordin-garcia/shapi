@@ -438,6 +438,51 @@ public sealed class ConsolidacionTests(PostgresPersistencia postgres, RedisCache
         (await capturador.LotesPendientesAsync(CancellationToken.None)).Should().BeEmpty();
     }
 
+    // RNF-05 (auditoría 2026-10-03, H-112): el bloqueo de la API durante una recarga no choca con las FK de las tablas
+    // hijas. Con FOR UPDATE, insertar un plan de la API esperaría hasta el COMMIT y vencería el lock_timeout.
+    [Fact]
+    public async Task RNF_05_BloqueoDeLaApi_NoDetieneLasInsercionesEnLasTablasHijas()
+    {
+        var apiId = await NuevaApi(await NuevaOrganizacion());
+        using var alcance = Servicios.CreateScope();
+        var db = alcance.ServiceProvider.GetRequiredService<Shapi.Infraestructura.Persistencia.ShapiDbContext>();
+        var repositorio = new Shapi.Infraestructura.Apis.RepositorioApis(db);
+        var api = await db.Set<Shapi.Dominio.Apis.Api>().IgnoreQueryFilters().SingleAsync(a => a.Id == apiId);
+        await using var transaccion = await repositorio.IniciarTransaccion();
+        await repositorio.BloquearApi(api);
+
+        await Ejecutar($"""
+            SET LOCAL lock_timeout = '2s';
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), '{apiId}', 'Comercio', 'Descripción', 450, false, 30, 1000, 60, true)
+            """);
+
+        (await Escalar<long>($"SELECT count(*) FROM plan_api WHERE api_id = '{apiId}'")).Should().Be(1);
+    }
+
+    // RNF-05 y RF-33 (H-112): la consolidación sigue esperando a una recarga de la especificación en curso, para no
+    // atribuir consumo a rutas que la recarga está retirando.
+    [Fact]
+    public async Task RNF_05_Consolidacion_EsperaALaRecargaDeLaApiEnCurso()
+    {
+        var apiId = await NuevaApi(await NuevaOrganizacion());
+        await Medir(LlavesRedis.Metricas(Fecha, apiId, null, null, "produccion"), 4);
+        using var alcance = Servicios.CreateScope();
+        var db = alcance.ServiceProvider.GetRequiredService<Shapi.Infraestructura.Persistencia.ShapiDbContext>();
+        var repositorio = new Shapi.Infraestructura.Apis.RepositorioApis(db);
+        var api = await db.Set<Shapi.Dominio.Apis.Api>().IgnoreQueryFilters().SingleAsync(a => a.Id == apiId);
+        await using var transaccion = await repositorio.IniciarTransaccion();
+        await repositorio.BloquearApi(api);
+
+        var consolidacion = Consolidar();
+        var espero = await EsperaDeBloqueos.EsperarAsync(Cadena);
+        await transaccion.DisposeAsync();
+        await consolidacion;
+
+        espero.Should().BeTrue("la consolidación debe esperar el bloqueo de la recarga");
+        (await Escalar<long>($"SELECT sum(peticiones)::bigint FROM consumo_diario WHERE api_id = '{apiId}'")).Should().Be(4);
+    }
+
     private async Task Medir(string llave, long cantidad)
     {
         HashEntry[] campos =

@@ -27,6 +27,8 @@ public interface IPasarelaPagos
 | Vencimiento | Tiene que ser el mes actual o uno posterior, según la fecha en America/Guatemala. Si no, `tarjeta_vencida` |
 | CVV | 3 dígitos, o 4 si es American Express. Si no, `cvv_invalido` |
 
+Antes de llamar a la pasarela, la API de control valida el **formato** del vencimiento: el mes, de 1 a 12, y el año, de dos cifras (se entiende 20AA) o de cuatro. Un mes o un año mal escritos responden `400 datos_invalidos` con el error en `tarjeta.mesVencimiento` o en `tarjeta.anioVencimiento` ([convenciones §5](../plan/convenciones.md)). Solo un vencimiento bien escrito y ya pasado llega a la pasarela y responde `422 tarjeta_vencida`. Vale para la contratación, la reactivación y el cambio de plan (JG-28, duda 5 y H-103).
+
 ### Tarjetas de prueba
 
 | Número | Resultado |

@@ -249,7 +249,7 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.True(problema.GetProperty("errores").TryGetProperty("precio", out _));
     }
 
-    // Decidido (3 oct, EM-07): no se cambia entre gratuito y de pago mientras haya suscripciones vigentes (09 §5).
+    // RF-18 (auditoría 2026-10-03, H-107). Decidido (3 oct, EM-07): no se cambia entre gratuito y de pago mientras haya suscripciones vigentes (09 §5).
     [Fact]
     public async Task EM07_EditarPlan_CambiarAGratuitoConSuscripciones_Responde422SinCambios()
     {
@@ -274,6 +274,52 @@ public class PlanesTests(ContenedorPostgresPlanes postgres) : IClassFixture<Cont
         Assert.False((await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(p => p.Id == planId)).EsGratuito);
     }
 
+    // RF-18 y 09 §5 (auditoría 2026-10-03, H-105): una contratación en curso del plan gratuito, sin confirmar todavía,
+    // cuenta como suscripción vigente: la edición espera su COMMIT y no deja una suscripción gratuita en un plan de pago.
+    [Fact]
+    public async Task RF_18_EditarPlan_ConUnaContratacionEnCurso_EsperaYRespondeConSuscripciones()
+    {
+        var apiId = await InsertarApi(_organizacionId);
+        var planId = await InsertarPlan(apiId, "Gratis", precio: 0m, gratuito: true);
+        await using var contratacion = new NpgsqlConnection(_cadena);
+        await contratacion.OpenAsync();
+        await using var transaccion = await contratacion.BeginTransactionAsync();
+        await using (var comando = new NpgsqlCommand("""
+            WITH c AS (
+              INSERT INTO consumidor (id, organizacion_id, nombre, correo, hash_contrasena, estado, nombre_empresa)
+              VALUES (gen_random_uuid(), @org, 'Consumidor', 'carrera@test.com', 'hash', 'activo', 'Empresa') RETURNING id
+            )
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin)
+            SELECT gen_random_uuid(), id, @api, @plan, 'activa', now(), now() + interval '30 days' FROM c
+            """, contratacion, transaccion))
+        {
+            comando.Parameters.AddWithValue("org", _organizacionId);
+            comando.Parameters.AddWithValue("api", apiId);
+            comando.Parameters.AddWithValue("plan", planId);
+            await comando.ExecuteNonQueryAsync();
+        }
+
+        var edicion = EnviarAutenticado(HttpMethod.Put, $"/api/apis/{apiId}/planes/{planId}", new
+        {
+            nombre = "Gratis",
+            descripcion = "Desc",
+            precio = 450.0m,
+            esGratuito = false,
+            vigenciaDias = 30,
+            cuotaLlamadas = 1000,
+            limiteMinuto = 60,
+        });
+        await EsperaDeBloqueos.EsperarAsync(_cadena, TimeSpan.FromSeconds(3));
+        await transaccion.CommitAsync();
+        using var respuesta = await edicion;
+
+        await AfirmarProblema(respuesta, (HttpStatusCode)422, "plan_con_suscripciones");
+        await using var db = Db(out var alcance);
+        using var _ = alcance;
+        Assert.True((await db.Set<PlanApi>().IgnoreQueryFilters().SingleAsync(p => p.Id == planId)).EsGratuito);
+    }
+
+    // RF-18 (auditoría 2026-10-03, H-107): sin suscripciones vigentes, el plan sí puede pasar a gratuito.
     [Fact]
     public async Task EM07_EditarPlan_CambiarAGratuitoSinSuscripciones_Responde200()
     {

@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P3
-estado: pendiente
+estado: hecha
 programada: 2026-10-28
 depende_de: [JG-23]
 requisitos: [RF-03, RF-04, RF-18, RF-20, RF-30]
@@ -80,3 +80,23 @@ dotnet test tests/Shapi.Compuerta.Tests
 
 ## Fuera de alcance
 - Funcionalidades nuevas.
+
+## Resultado
+Se corrigieron los diez hallazgos (H-98 a H-103, H-105 a H-107 y H-112) y se decidieron las diez dudas (29 oct). Todas las casillas del paso 13 de `auditoria-2026-10-03.md` quedaron marcadas.
+
+**Hallazgos**
+- **H-98:** `ServicioRecuperacion.Solicitar` abre la transacción antes de contar y bloquea la fila de la cuenta (`usuario` o `consumidor`; `Guid.Empty` si no existe, con los mismos comandos).
+- **H-99:** pruebas del portal para el mismo trabajo exista o no la cuenta, el límite de 3 por hora y `restablecer`; y la de Mi perfil, donde un cambio correcto reinicia los intentos.
+- **H-100 y H-102:** referencias corregidas en DC-08, EM-04 y JG-06.
+- **H-101:** la prueba de la tilde en `X-Shapi-Plan` usa un origen real en modo demostración y espera 200.
+- **H-103:** `ErroresVencimiento` valida el formato antes de tokenizar en la contratación, la reactivación y el cambio de plan. Los errores van en `tarjeta.mesVencimiento` y `tarjeta.anioVencimiento`.
+- **H-105:** `EditarPlan` y `DesactivarPlan` bloquean el plan con `FOR UPDATE`; la contratación y el cambio de plan lo bloquean con `FOR SHARE` y lo vuelven a leer.
+- **H-106:** los 404 de la contratación traen `api_no_encontrada`, `plan_no_encontrado` o `suscripcion_no_encontrada`.
+- **H-107:** dos pruebas de `PlanesTests` nombran RF-18.
+- **H-112:** `BloquearApi` usa `FOR NO KEY UPDATE`. **Precisión:** como `FOR KEY SHARE` no choca con `FOR NO KEY UPDATE`, la consolidación de JG-09 pasó a `FOR SHARE`, para seguir esperando a una recarga de la especificación en curso. Lo cubre una prueba.
+
+**Dudas:** 1, 2, 5, 7, 8, 10 y 15, como se recomendó. La 3 ya estaba resuelta por JG-09 (`LlamadasDescontadas` vuelve a 0). La 13 ya la cubre JG-27 (el reinicio borra todas las organizaciones proveedoras). La 11 se deja como está. **La 4 cambió:** la compuerta no puede saber si la petición llegó al origen cuando el consumidor corta, así que Jordin decidió que la cuota se descuenta.
+
+**Especificaciones:** 07 §4 (ventanas de Redis y bloqueos de fila), 08 §3 (corte del consumidor y medición de la reserva devuelta), 09 §2 (formato del vencimiento) y 10 §1 y §8. Contrato `suscripciones.yaml` y tipos generados.
+
+**Archivos principales:** `ServicioRecuperacion.cs`, `ContratacionApi.cs`, `GestionarPlanes.cs`, `RepositorioApis.cs`, `RepositorioConsolidacion.cs`; pruebas en `Identidad`, `Suscripciones`, `Planes`, `Consumo` y `Tuberia`, con el ayudante `Persistencia/EsperaDeBloqueos.cs`. También se actualizaron las líneas citadas en `docs/video/elementos/emilio.md`, que se movieron (JG-29, criterio 7).

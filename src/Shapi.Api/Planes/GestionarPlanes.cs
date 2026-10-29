@@ -172,6 +172,11 @@ public class EditarPlan(ShapiDbContext db, IBitacora bitacora, IPublicadorCache 
             return Resultado<PlanApi>.Fallo(new Error(CodigosError.ApiNoEncontrada, "No se encontró la API."));
         }
 
+        // Auditoría 2026-10-03, H-105: el plan se bloquea hasta el COMMIT. Si una contratación ya lo bloqueó (FOR SHARE,
+        // o la FK de su suscripción), se espera a que confirme y su suscripción se cuenta abajo; una que empiece después
+        // espera y lee el plan editado.
+        await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM plan_api WHERE id = {planId} AND api_id = {apiId} FOR UPDATE", cancelacion);
         var plan = await db.Set<PlanApi>().SingleOrDefaultAsync(p => p.Id == planId && p.ApiId == apiId && p.Activo, cancelacion);
         if (plan is null)
         {
@@ -234,6 +239,8 @@ public class EditarPlan(ShapiDbContext db, IBitacora bitacora, IPublicadorCache 
             return Resultado<PlanApi>.Fallo(CrearPlan.PlanDuplicado());
         }
 
+        await transaccion.CommitAsync(cancelacion);
+
         // Criterio 2 de EM-07: la cuota y el límite nuevos se publican de inmediato en las suscripciones vigentes.
         foreach (var subId in suscripciones)
         {
@@ -254,6 +261,10 @@ public class DesactivarPlan(ShapiDbContext db, IBitacora bitacora)
             return Resultado.Fallo(new Error(CodigosError.ApiNoEncontrada, "No se encontró la API."));
         }
 
+        // Auditoría 2026-10-03, H-105: una contratación que empiece mientras se desactiva el plan espera el COMMIT y
+        // lee el plan ya inactivo.
+        await using var transaccion = await db.Database.BeginTransactionAsync(cancelacion);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM plan_api WHERE id = {planId} AND api_id = {apiId} FOR UPDATE", cancelacion);
         var plan = await db.Set<PlanApi>().SingleOrDefaultAsync(p => p.Id == planId && p.ApiId == apiId && p.Activo, cancelacion);
         if (plan is null)
         {
@@ -276,6 +287,7 @@ public class DesactivarPlan(ShapiDbContext db, IBitacora bitacora)
         }, cancelacion);
 
         await db.SaveChangesAsync(cancelacion);
+        await transaccion.CommitAsync(cancelacion);
         return Resultado.Exito();
     }
 }

@@ -482,16 +482,23 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
     {
         // Criterio 7 (auditoría 2026-10-03, H-01): Kestrel rechaza las cabeceras de respuesta que no son ASCII, y la
         // siembra de demostración tiene el plan "Básico". TestServer no valida las cabeceras: por eso esta prueba usa
-        // Kestrel real. El cliente real de YARP no puede conectar con el origen de prueba (502), y el 502 también lleva las cabeceras de 08 §5.
+        // Kestrel real, con un origen real permitido en modo demostración, sin depender del DNS (H-101).
+        await using var origen = await OrigenReal.IniciarAsync(async http =>
+        {
+            http.Response.StatusCode = StatusCodes.Status200OK;
+            await http.Response.WriteAsync("origen real");
+        });
         using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(web =>
         {
             web.UseSetting("SHAPI_REDIS", _entorno.CadenaRedis);
+            web.UseSetting("SHAPI_MODO_DEMO", "true");
+            web.UseSetting("SHAPI_ORIGENES_PERMITIDOS", $"localhost:{origen.Puerto}");
             web.ConfigureTestServices(servicios => servicios.AddSingleton<TimeProvider>(_reloj));
         });
         // Un puerto libre: UseKestrel(0) usa el 5000 por defecto y choca con otras pruebas en paralelo.
         fabrica.UseKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
         fabrica.StartServer();
-        var escenario = await SembrarAsync(planNombre: "Básico");
+        var escenario = await SembrarAsync(planNombre: "Básico", urlOrigen: $"http://localhost:{origen.Puerto}");
         using var cliente = fabrica.CreateClient();
         using var peticion = new HttpRequestMessage(HttpMethod.Get, "/cotizaciones");
         peticion.Headers.Host = escenario.Host;
@@ -499,7 +506,9 @@ public sealed class LimitesYCuotasTests : IClassFixture<EntornoCompuerta>, IDisp
 
         var respuesta = await cliente.SendAsync(peticion);
 
-        await VerificarErrorAsync(respuesta, "origen_inaccesible", HttpStatusCode.BadGateway);
+        respuesta.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await respuesta.Content.ReadAsStringAsync()).Should().Be("origen real");
+        origen.Peticiones.Should().Be(1);
         Cabecera(respuesta, "X-Shapi-Plan").Should().Be("B%C3%A1sico");
         Uri.UnescapeDataString(Cabecera(respuesta, "X-Shapi-Plan")!).Should().Be("Básico");
         VerificarCabecerasCuota(respuesta);

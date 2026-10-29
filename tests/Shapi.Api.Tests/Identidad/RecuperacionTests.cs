@@ -152,6 +152,22 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
     }
 
     [Fact]
+    public async Task RF_03_Recuperar_SolicitudesSimultaneas_NoCreanMasDeTresEnlaces()
+    {
+        // 10 §1 (auditoría 2026-10-03, H-98): el conteo de las 3 por hora se serializa por cuenta.
+        await RegistrarYVerificar(CorreoAna);
+
+        var respuestas = await Task.WhenAll(Enumerable.Range(0, 6)
+            .Select(_ => Enviar(HttpMethod.Post, "/api/auth/recuperar", new { correo = CorreoAna })));
+
+        Assert.All(respuestas, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
+        Assert.Equal(3, await CorreosDeRecuperacion());
+        await using var db = Db(out var scope);
+        using var _ = scope;
+        Assert.Equal(3, await db.Set<Token>().IgnoreQueryFilters().CountAsync(t => t.Tipo == TipoToken.Recuperacion));
+    }
+
+    [Fact]
     public async Task RF_03_Restablecer_InvalidaLosDemasEnlacesYReiniciaElBloqueo()
     {
         // 10 §1 (auditoría 2026-10-03, decisión del paso 3).
@@ -418,6 +434,30 @@ public class RecuperacionTests(ContenedorPostgres postgres) : IClassFixture<Cont
         await AfirmarProblema(await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
             new { contrasenaActual = ContrasenaValida, contrasenaNueva = "NuevaContra456" }, cookie), HttpStatusCode.Locked, "cuenta_bloqueada");
         await AfirmarProblema(await Entrar(CorreoAna, ContrasenaValida), HttpStatusCode.Locked, "cuenta_bloqueada");
+    }
+
+    [Fact]
+    public async Task RF_04_CambiarContrasena_UnCambioCorrecto_ReiniciaLosIntentosFallidos()
+    {
+        // RF-04 y 10 §1 (auditoría 2026-10-03, H-99): un cambio correcto en Mi perfil reinicia los intentos, como un
+        // inicio de sesión exitoso. Sin el reinicio, 4 + 4 intentos fallidos bloquearían la cuenta.
+        await RegistrarYVerificar(CorreoAna);
+        var cookie = CookieDeSesion(await Entrar(CorreoAna, ContrasenaValida));
+        for (var i = 0; i < 4; i++)
+        {
+            await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+                new { contrasenaActual = "Incorrecta123!", contrasenaNueva = "NuevaContra456" }, cookie);
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+            new { contrasenaActual = ContrasenaValida, contrasenaNueva = "NuevaContra456" }, cookie)).StatusCode);
+        for (var i = 0; i < 4; i++)
+        {
+            await AfirmarProblema(await Enviar(HttpMethod.Post, "/api/perfil/contrasena",
+                new { contrasenaActual = "Incorrecta123!", contrasenaNueva = "OtraContra789" }, cookie), HttpStatusCode.BadRequest, "datos_invalidos");
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await Entrar(CorreoAna, "NuevaContra456")).StatusCode);
     }
 
     [Fact]
