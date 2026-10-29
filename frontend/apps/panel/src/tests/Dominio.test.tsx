@@ -16,7 +16,8 @@ const base = {
   planNombre: 'Producto', dominioPropioPermitido: true,
 };
 let cache: QueryClient;
-beforeEach(() => { cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); });
+beforeEach(() => {
+  server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ usuario: { nombre: 'Ana' }, organizacion: { id: 'org-1' }, rol: 'propietario' }))); cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); });
 afterEach(() => { cleanup(); cache.clear(); });
 function montar(datos = base) {
   server.use(http.get(url, () => HttpResponse.json(datos)));

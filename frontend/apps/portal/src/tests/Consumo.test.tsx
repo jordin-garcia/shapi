@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryRouter, type RouterProviderProps } from 'react-router';
 import type { components } from '@shapi/api/consumo';
 import App from '../App';
@@ -44,9 +44,28 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => { cleanup(); cliente.clear(); });
+afterEach(() => { cleanup(); cliente.clear(); vi.useRealTimers(); });
 
 describe('JG-12 · RF-37 · consumo del ciclo', () => {
+  it('JG-26 · RF-37 consulta de nuevo cada 10 segundos y actualiza la cuota visible', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    let consultas = 0;
+    server.use(http.get(`${API}/consumo`, () => {
+      consultas++;
+      return HttpResponse.json({ ...consumo, restante: 18521 - consultas });
+    }));
+    montar();
+    await screen.findByText('18,520 llamadas');
+    await act(() => vi.advanceTimersByTimeAsync(9999));
+    expect(consultas).toBe(1);
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    await screen.findByText('18,519 llamadas');
+    expect(consultas).toBe(2);
+    await act(() => vi.advanceTimersByTimeAsync(10000));
+    await screen.findByText('18,518 llamadas');
+    expect(consultas).toBe(3);
+  });
+
   it('reproduce los textos, cifras, rutas y totales de B2.1', async () => {
     montar();
     expect(await screen.findByRole('heading', { name: 'Consumo del ciclo' })).toBeDefined();

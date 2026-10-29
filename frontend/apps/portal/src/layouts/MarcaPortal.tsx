@@ -7,9 +7,9 @@ export function MarcaPortal() {
   return (
     <Link to="/" className="flex items-center gap-[11px] text-tinta hover:no-underline">
       {marca.urlLogo
-        ? <img src={marca.urlLogo} alt={marca.nombrePortal} className="size-7 rounded-base object-contain" />
+        ? <img src={marca.urlLogo} alt={marca.nombrePortal} className="size-7 rounded-[6px] object-contain" />
         : (
-          <span className="size-7 rounded-base bg-[var(--marca-principal)] text-white flex items-center justify-center font-display text-[11px] font-semibold tracking-[-0.02em]">
+          <span className="size-7 rounded-[6px] bg-[var(--marca-principal)] text-white flex items-center justify-center font-display text-[11px] font-semibold tracking-[-0.02em]">
             {iniciales(marca.nombrePortal)}
           </span>
         )}

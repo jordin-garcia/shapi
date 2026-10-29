@@ -8,8 +8,8 @@ prioridad: P3
 estado: pendiente
 programada: 2026-10-27
 depende_de: []
-requisitos: [RF-09, RF-18, RF-37, RF-38, RNF-12]
-pantallas: [A3.3, A3.4, A4.1, A6.2, B2.1, A5.0]
+requisitos: [RF-07, RF-09, RF-10, RF-15, RF-18, RF-37, RF-38, RF-39, RNF-12]
+pantallas: [A3.1, A3.3, A3.4, A3.5, A3.6, A3.7, A4.1, A6.2, B2.1, B3.1, A5.0]
 ---
 
 # JG-26 · Correcciones de pantallas del panel y del portal
@@ -31,8 +31,8 @@ Es P3: si no cabe antes del jueves 29, es la primera que queda fuera (calendario
 - **H-114 (baja, DC-05):** `A3-3-Especificacion.tsx:97`: la clase `bg-principal-claro` no existe y la zona de arrastre no se tiñe.
 - **H-115 (baja, DC-03):** `frontend/apps/portal/src/layouts/MarcaPortal.tsx:10,12`: la insignia del encabezado tiene 8 px de radio, y los mockups de A5 y B2, 6 px.
 
-## ❓ Decisiones pendientes (preguntarle a Jordin antes de escribir código)
-1. **Controles de escritura para el lector (H-113, duda 9 del 3 oct).** Recomiendo ocultarlos en todo el panel, como dice 04 §3, y que DC-16 lo revise. La otra opción es dejar el 403 y precisarlo en 04 §3.
+## Decisión de Jordin (2026-10-28)
+1. **Controles de escritura para el lector (H-113, duda 9 del 3 oct).** Aprobó ocultarlos en todo el panel, conforme a 04 §3. Las consultas conservan los datos como texto de solo lectura; perfil y soporte mantienen las operaciones que permite la matriz. El backend sigue autorizando cada operación.
 
 ## Contexto que debes leer
 - `docs/specs/12-decisiones.md` ADR-30
@@ -44,6 +44,7 @@ Es P3: si no cabe antes del jueves 29, es la primera que queda fuera (calendario
 ## Archivos que creas o modificas
 - `frontend/apps/panel/src/paginas/A4-1-PlanesApi.tsx`, `A6-2-Organizaciones.tsx`, `A3-3-Especificacion.tsx` y `A3-4-*.tsx` (modificar)
 - `frontend/apps/portal/src/layouts/MarcaPortal.tsx` (modificar)
+- Por la decisión de Jordin sobre H-113: `frontend/apps/panel/src/paginas/A3-1-Apis.tsx`, `A3-5-ConfigRutas.tsx`, `A3-6-Dominio.tsx`, `A3-7-Portal.tsx` y `modulos/sesion/usePuedeConfigurarApi.ts`; las demás pantallas ya ocultan sus escrituras al lector o están protegidas por rol.
 - Pruebas del frontend y una prueba de integración de RF-37 en `tests/Shapi.Api.Tests` o `tests/Shapi.Compuerta.Tests` (crear)
 
 ## Criterios de aceptación

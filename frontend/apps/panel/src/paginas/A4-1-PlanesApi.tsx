@@ -5,6 +5,7 @@ import type { components, paths } from '@shapi/api/planes';
 import type { paths as apisPaths } from '@shapi/api/apis';
 import { Aviso, Boton, Campo, Selector, Tabla, Tarjeta, EstadoCargando, EstadoError } from '@shapi/ui';
 import { useParams } from 'react-router';
+import { usePuedeConfigurarApi } from '../modulos/sesion/usePuedeConfigurarApi';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const clienteApis = crearCliente<apisPaths>(window.location.origin);
@@ -17,6 +18,7 @@ function formatearPrecio(precio: number) {
 }
 
 export default function PaginaA41PlanesApi() {
+  const puedeConfigurar = usePuedeConfigurarApi();
   const { id: apiId } = useParams<{ id: string }>();
   const cache = useQueryClient();
   const [vista, setVista] = useState<'lista' | 'nuevo' | PlanApi>('lista');
@@ -53,7 +55,7 @@ export default function PaginaA41PlanesApi() {
   const planes = consulta.data;
 
 
-  if (vista !== 'lista') {
+  if (puedeConfigurar && vista !== 'lista') {
     return (
       <FormularioPlan apiNombre={nombreApi}
         apiId={apiId!}
@@ -75,10 +77,10 @@ export default function PaginaA41PlanesApi() {
           <h1 className="font-display text-[32px] leading-[1.2]">Planes de la API</h1>
           <p className="text-[15px] leading-[1.55] text-tinta-suave">Sus consumidores contratan estos planes desde su portal.</p>
         </div>
-        {planes.length > 0 && <Boton type="button" onClick={() => setVista('nuevo')}>Crear un plan</Boton>}
+        {puedeConfigurar && planes.length > 0 && <Boton type="button" onClick={() => setVista('nuevo')}>Crear un plan</Boton>}
       </div>
 
-      <Tarjeta className="mt-8 pt-0">
+      <Tarjeta className="mt-8 pb-2">
         <Tabla
           encabezados={['Plan', 'Descripción', 'Precio', 'Vigencia', 'Cuota mensual', 'Límite por minuto', 'Acción']}
           filas={planes.map(plan => [
@@ -88,7 +90,7 @@ export default function PaginaA41PlanesApi() {
             <span key="vigencia">{plan.vigenciaDias} días</span>,
             <span key="cuota">{plan.cuotaLlamadas.toLocaleString('en-US')} llamadas</span>,
             <span key="limite">{plan.limiteMinuto.toLocaleString('en-US')} peticiones</span>,
-            <button key="accion" type="button" onClick={() => setVista(plan)} className="font-medium text-principal hover:underline text-right w-full block">Editar</button>
+            puedeConfigurar ? <button key="accion" type="button" onClick={() => setVista(plan)} className="font-medium text-principal hover:underline text-right w-full block">Editar</button> : null,
           ])}
         />
 
@@ -102,7 +104,7 @@ export default function PaginaA41PlanesApi() {
               <h2 className="font-display text-[22px] leading-[1.3]">Todavía no tiene planes para esta API</h2>
               <p className="text-[15px] leading-[1.55] text-tinta-suave">Cree un plan con su precio, vigencia, cuota mensual y límite por minuto. Sus consumidores lo contratarán desde su portal.</p>
             </div>
-            <Boton type="button" onClick={() => setVista('nuevo')}>Crear un plan</Boton>
+            {puedeConfigurar && <Boton type="button" onClick={() => setVista('nuevo')}>Crear un plan</Boton>}
           </div>
         )}
       </Tarjeta>
@@ -234,7 +236,7 @@ function FormularioPlan({ apiId, apiNombre, planOriginal, alTerminar, alCancelar
               <label htmlFor="precio" className={`text-[13px] font-semibold ${esGratuito ? 'text-tinta-inactiva' : 'text-tinta'}`}>Precio</label>
               <div className={`flex gap-2 items-center h-12 rounded-base border px-[14px] text-[15px] outline-none tabular-nums ${esGratuito ? 'border-borde bg-fondo text-tinta-inactiva' : 'border-borde-campo bg-panel focus-within:border-principal focus-within:ring-[3px] focus-within:ring-anillo-foco'}`}>
                 <span className={esGratuito ? 'text-tinta-inactiva' : 'text-tinta-suave'}>Q</span>
-                <input id="precio" required={!esGratuito} disabled={esGratuito} type="number" step="0.01" min="0" className="flex-grow bg-transparent outline-none" value={esGratuito ? '0.00' : precioStr} onChange={e => setPrecioStr(e.target.value)} />
+                <input id="precio" required={!esGratuito} disabled={esGratuito} type="number" step="0.01" min={esGratuito ? '0' : '0.01'} className="flex-grow bg-transparent outline-none" value={esGratuito ? '0.00' : precioStr} onChange={e => setPrecioStr(e.target.value)} />
               </div>
               {esGratuito && <p className="text-[13px] text-tinta-suave leading-[1.5]">Un plan gratuito queda en Q 0.00.</p>}
             </div>

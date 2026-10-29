@@ -57,7 +57,7 @@ describe('RF-38 · A6.2 Administración de organizaciones', () => {
       plan: 'Producto',
       estado: 'activa',
       cicloInicio: '2026-08-24T06:00:00Z',
-      cicloFin: '2026-09-22T06:00:00Z',
+      cicloFin: '2026-09-23T06:00:00Z',
     };
     server.use(sesion(), http.get(API, () => HttpResponse.json([envios, organizacion])));
 
@@ -71,7 +71,9 @@ describe('RF-38 · A6.2 Administración de organizaciones', () => {
     ]);
     expect(screen.getByText('mario.pop@transportespeten.com')).toBeDefined();
     expect(screen.getByText('Lanzamiento')).toBeDefined();
-    expect(screen.getByText('3 sep – 3 oct 2026')).toBeDefined();
+    // RF-38 · ADR-30: fin es exclusivo, se muestra el último día con servicio.
+    expect(screen.getByText('3 sep – 2 oct 2026')).toBeDefined();
+    expect(screen.getByText('24 ago – 22 sep 2026')).toBeDefined();
     expect(screen.getByText('En gracia')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Suspender Transportes Petén, S.A.' })).toBeDefined();
     expect(screen.getAllByRole('row').slice(1).map(fila => fila.querySelector('td')?.textContent)).toEqual([

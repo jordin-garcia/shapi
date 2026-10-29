@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Routes, Route } from 'react-router';
@@ -22,9 +22,28 @@ beforeEach(() => {
     http.get('http://localhost/api/admin/demo/reloj', () => new HttpResponse(null, { status: 404 })),
   );
 });
-afterEach(() => { cleanup(); cliente.clear(); });
+afterEach(() => { cleanup(); cliente.clear(); vi.useRealTimers(); });
 
 describe('RF-39 · B3.1', () => {
+  it('JG-26 · RF-39 consulta cada 30 segundos y actualiza la latencia visible', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    let consultas = 0;
+    server.use(http.get('http://localhost/api/admin/estado', () => {
+      consultas++;
+      return HttpResponse.json({ ...datos(), latenciaP95Ms: 10 + consultas });
+    }));
+    mostrar();
+    await screen.findByText('11 ms');
+    await act(() => vi.advanceTimersByTimeAsync(29999));
+    expect(consultas).toBe(1);
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    await screen.findByText('12 ms');
+    expect(consultas).toBe(2);
+    await act(() => vi.advanceTimersByTimeAsync(30000));
+    await screen.findByText('13 ms');
+    expect(consultas).toBe(3);
+  });
+
   it('reproduce la vista de soporte con su nombre y navegación reducida', async () => {
     server.use(
       http.get('http://localhost/api/admin/estado', () => HttpResponse.json(datos())),

@@ -265,7 +265,7 @@ Estos estados no tienen mockup propio. Se implementan con los componentes base:
 - **A3.2, origen inaccesible o no permitido:** el aviso muestra el título del error y el motivo de la prueba de conexión (`detalle.motivo`).
 - **A3.3, al volver a la pantalla:** si la API ya tiene especificación, se muestra la tarjeta del archivo con «Cargado». Como el nombre del archivo no se guarda, en su lugar va el título de la especificación, y debajo «OpenAPI {versión} · {tamaño}». Justo después de cargar un archivo se muestra su nombre, como en el mockup.
 - **A3.3, especificación inválida:** el aviso muestra el título, la ubicación y el motivo en español. Si el error lo dio la biblioteca que lee el documento, se agrega «Detalle técnico: {mensaje original}», que está en inglés.
-- **A3.4 y A3.3 para el lector:** el lector puede ver las rutas (04 §3.1), pero guardar cambios responde 403.
+- **Controles del lector en el panel (JG-26, decidido el 28 oct):** el lector consulta APIs, especificaciones, rutas, su configuración, planes, dominios y la marca del portal (04 §3.1). Se ocultan las opciones de registrar, publicar, cargar, guardar, editar, conectar, verificar y regenerar; los valores se presentan como texto de solo lectura. El secreto de origen tampoco se muestra. Las operaciones permitidas sobre su perfil y los casos de soporte se conservan. El backend mantiene sus políticas y responde 403 a las escrituras no autorizadas.
 
 ### Comportamiento de las claves del proveedor (JG-10)
 

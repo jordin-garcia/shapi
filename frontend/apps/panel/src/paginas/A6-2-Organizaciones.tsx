@@ -25,7 +25,7 @@ function ciclo(organizacion: Organizacion) {
     day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'America/Guatemala',
   }).formatToParts(new Date(fecha)).map(parte => [parte.type, parte.value]));
   const desde = partes(organizacion.cicloInicio);
-  const hasta = partes(organizacion.cicloFin);
+  const hasta = partes(new Date(new Date(organizacion.cicloFin).getTime() - 86_400_000).toISOString());
   return `${desde.day} ${meses[Number(desde.month) - 1]} – ${hasta.day} ${meses[Number(hasta.month) - 1]} ${hasta.year}`;
 }
 

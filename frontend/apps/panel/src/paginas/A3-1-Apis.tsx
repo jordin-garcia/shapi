@@ -4,6 +4,7 @@ import { crearCliente, ErrorApi } from '@shapi/api';
 import type { paths } from '@shapi/api/apis';
 import { Aviso, EstadoCargando, EstadoError, Etiqueta, Tabla } from '@shapi/ui';
 import { Link } from 'react-router';
+import { usePuedeConfigurarApi } from '../modulos/sesion/usePuedeConfigurarApi';
 
 const cliente = crearCliente<paths>(window.location.origin);
 
@@ -12,6 +13,7 @@ function EnlaceRegistro() {
 }
 
 export default function PaginaA31Apis() {
+  const puedeConfigurar = usePuedeConfigurarApi();
   const cache = useQueryClient();
   const [errorPublicacion, setErrorPublicacion] = useState<string>();
   const consulta = useQuery({
@@ -74,7 +76,7 @@ export default function PaginaA31Apis() {
             : <>Publique o despublique cada API. Para configurarla, entre a su nombre. {uso}</>}
         </p>
       </div>
-      {elementos.length > 0 && <EnlaceRegistro />}
+      {puedeConfigurar && elementos.length > 0 && <EnlaceRegistro />}
     </div>
 
     <section className="mt-8 rounded-base border border-borde bg-panel p-5" aria-label="APIs registradas">
@@ -87,7 +89,7 @@ export default function PaginaA31Apis() {
             <Link key="nombre" className="font-medium text-tinta hover:text-principal" to={`/panel/apis/${encodeURIComponent(api.id)}/especificacion`}>{api.nombre}</Link>,
             <span key="subdominio">{api.subdominio}</span>,
             <Etiqueta key="estado" estado={api.estado === 'publicada' ? 'correcto' : 'neutro'}>{estado}</Etiqueta>,
-            <button
+            puedeConfigurar ? <button
               key="accion"
               type="button"
               className="font-medium text-principal hover:underline disabled:text-tinta-inactiva disabled:no-underline"
@@ -97,7 +99,7 @@ export default function PaginaA31Apis() {
               {publicacion.isPending && publicacion.variables?.id === api.id
                 ? 'Procesando…'
                 : api.estado === 'publicada' ? 'Despublicar' : 'Publicar'}
-            </button>,
+            </button> : null,
           ];
         })}
       />
@@ -111,7 +113,7 @@ export default function PaginaA31Apis() {
           <h2 className="font-display text-[22px] leading-[1.3]">Todavía no tiene APIs registradas</h2>
           <p className="text-[15px] leading-[1.55] text-tinta-suave">Registre su primera API con la URL de su servidor de origen. Después cargará su especificación OpenAPI y elegirá qué rutas exponer.</p>
         </div>
-        <EnlaceRegistro />
+        {puedeConfigurar && <EnlaceRegistro />}
       </div>}
     </section>
   </div>;

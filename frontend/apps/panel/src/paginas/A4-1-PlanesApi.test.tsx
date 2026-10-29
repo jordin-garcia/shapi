@@ -25,6 +25,7 @@ const planesMock = [
 let ultimoCuerpoPOST: Record<string, unknown> | null = null;
 
 const servidor = setupServer(
+  http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ usuario: { nombre: 'Ana' }, organizacion: { id: 'org-1' }, rol: 'propietario' })),
 
   http.get('http://localhost/api/apis', () => {
     return HttpResponse.json({

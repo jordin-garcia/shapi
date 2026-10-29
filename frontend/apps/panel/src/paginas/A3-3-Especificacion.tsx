@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/apis';
 import { Aviso, EstadoCargando, EstadoError, Etiqueta, Tabla, Tarjeta } from '@shapi/ui';
 import { Link, useParams } from 'react-router';
+import { usePuedeConfigurarApi } from '../modulos/sesion/usePuedeConfigurarApi';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type EspecificacionCargada = components['schemas']['EspecificacionCargada'];
@@ -14,6 +15,8 @@ function tamano(bytes: number) {
 }
 
 export default function PaginaA33Especificacion() {
+  const puedeConfigurar = usePuedeConfigurarApi();
+  const cache = useQueryClient();
   const { id = '' } = useParams();
   const selector = useRef<HTMLInputElement>(null);
   const [archivo, setArchivo] = useState<File>();
@@ -45,9 +48,10 @@ export default function PaginaA33Especificacion() {
       if (!response.ok || !data) throw new Error('No se pudo cargar la especificación.');
       return data;
     },
-    onSuccess: data => {
+    onSuccess: async data => {
       setResultado(data);
       setError(undefined);
+      await cache.invalidateQueries({ queryKey: ['rutas-api', id] });
     },
     onError: fallo => {
       // El archivo rechazado no queda como cargado: vuelve a verse la especificación que la API conserva.
@@ -93,8 +97,8 @@ export default function PaginaA33Especificacion() {
     <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
       <Tarjeta className="flex flex-col">
         <h2 className="font-display text-[21px] leading-[1.3]">Archivo de especificación</h2>
-        <div
-          className={`mt-5 flex flex-col items-center gap-3 rounded-base border border-dashed p-8 text-center ${arrastrando ? 'border-principal bg-principal-claro' : 'border-borde-campo bg-fondo'}`}
+        {puedeConfigurar && <div
+          className={`mt-5 flex flex-col items-center gap-3 rounded-base border border-dashed p-8 text-center ${arrastrando ? 'border-principal bg-principal/5' : 'border-borde-campo bg-fondo'}`}
           onDragOver={evento => { evento.preventDefault(); setArrastrando(true); }}
           onDragLeave={() => setArrastrando(false)}
           onDrop={evento => {
@@ -116,7 +120,7 @@ export default function PaginaA33Especificacion() {
             accept=".yaml,.yml,.json,application/json,application/yaml,text/yaml"
             onChange={evento => seleccionar(evento.target.files?.[0])}
           />
-        </div>
+        </div>}
 
         {cargada && <div className="mt-4 flex items-center justify-between gap-4 rounded-base border border-borde px-4 py-[14px]">
           <div>

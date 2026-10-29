@@ -4,6 +4,7 @@ import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/apis';
 import { Aviso, Boton, EstadoCargando, EstadoError, Tarjeta } from '@shapi/ui';
 import { useParams } from 'react-router';
+import { usePuedeConfigurarApi } from '../modulos/sesion/usePuedeConfigurarApi';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type Ruta = components['schemas']['RutaAdministrada'];
@@ -11,6 +12,7 @@ type Ruta = components['schemas']['RutaAdministrada'];
 const CLASES_RADIO = 'size-4 shrink-0 appearance-none rounded-full border-[1.5px] border-borde-campo bg-panel checked:border-principal checked:bg-principal checked:shadow-[inset_0_0_0_2.5px_var(--panel)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-anillo-foco';
 
 export default function PaginaA34Rutas() {
+  const puedeConfigurar = usePuedeConfigurarApi();
   const { id = '' } = useParams();
   const cache = useQueryClient();
   const [cambios, setCambios] = useState<Record<string, boolean>>({});
@@ -76,7 +78,7 @@ export default function PaginaA34Rutas() {
               <td className="py-3 pr-4 text-[12px] font-semibold tracking-[0.06em] text-tinta-suave">{ruta.metodo}</td>
               <td className="py-3 pr-4 text-[15px] text-tinta">{ruta.patron}</td>
               <td className="py-3 text-[14px] text-tinta">
-                <div className="flex gap-7">
+                {puedeConfigurar ? <div className="flex gap-7">
                   <label className="flex items-center gap-2">
                     <input type="radio" className={CLASES_RADIO} name={`ruta-${ruta.id}`} checked={ruta.expuesta} onChange={() => setCambios(actuales => ({ ...actuales, [ruta.id]: true }))} aria-label={`Exponer ${ruta.metodo} ${ruta.patron}`} />
                     Expuesta
@@ -85,7 +87,7 @@ export default function PaginaA34Rutas() {
                     <input type="radio" className={CLASES_RADIO} name={`ruta-${ruta.id}`} checked={!ruta.expuesta} onChange={() => setCambios(actuales => ({ ...actuales, [ruta.id]: false }))} aria-label={`Ocultar ${ruta.metodo} ${ruta.patron}`} />
                     Oculta
                   </label>
-                </div>
+                </div> : <span>{ruta.expuesta ? 'Expuesta' : 'Oculta'}</span>}
               </td>
             </tr>)}</tbody>
           </table>
@@ -101,9 +103,9 @@ export default function PaginaA34Rutas() {
         <p className="mt-5 text-[14px] leading-[1.5] text-tinta-suave">Solo las rutas expuestas quedan disponibles para sus consumidores.</p>
         {mensaje && <div className="mt-5"><Aviso estado="exito">{mensaje}</Aviso></div>}
         {error && <div className="mt-5"><Aviso estado="error">{error}</Aviso></div>}
-        <Boton className="mt-6" type="button" deshabilitado={guardar.isPending || rutas.length === 0} onClick={() => guardar.mutate()}>
+        {puedeConfigurar && <Boton className="mt-6" type="button" deshabilitado={guardar.isPending || rutas.length === 0} onClick={() => guardar.mutate()}>
           {guardar.isPending ? 'Guardando…' : 'Guardar rutas expuestas'}
-        </Boton>
+        </Boton>}
       </Tarjeta>
     </div>
   </div>;
