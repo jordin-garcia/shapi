@@ -298,7 +298,7 @@ Resultados:
   - usar `FOR UPDATE` en `EditarPlan` y `DesactivarPlan`.
 - [ ] **H-106 (baja, EM-08)** Los 404 de la contratación y de la consulta de la suscripción (`TypedResults.NotFound()`) no traen `codigo` (convenciones §5).
 - [ ] **H-107 (baja, EM-07)** `tests/Shapi.Api.Tests/Planes/PlanesTests.cs:245` y `:270`: dos pruebas sin el código del requisito.
-- [ ] **H-108 (baja, EM-07)** `frontend/apps/panel/src/paginas/A4-1-PlanesApi.tsx:237`: el precio de un plan de pago acepta 0 (`min="0"`); el servidor ya responde 400.
+- [x] **H-108 (baja, EM-07)** `frontend/apps/panel/src/paginas/A4-1-PlanesApi.tsx:237`: el precio de un plan de pago acepta 0 (`min="0"`); el servidor ya responde 400.
 
 **CI (JG-18)**
 - [x] **H-109 (baja, JG-18, documentación)** `ambiente-productivo` ya está en la protección de `main`, pero protocolo B11, este plan y el `## Resultado` de JG-18 decían que era informativo o que estaba pendiente. **Corregido en el PR del paso 12.**
@@ -309,11 +309,11 @@ Resultados:
   - una prueba de Vitest.
   - **Corregido (4 oct):** `modulos/sesion/cacheConsumidor.ts` borra todo salvo la configuración y la sesión. Lo usan el cierre de sesión, `RequiereSesionConsumidor` cuando la sesión resulta nula y `useIrAlDestinoConsumidor` antes de ir al destino, al entrar, registrarse, aceptar una invitación o restablecer la contraseña. Hay dos pruebas de Vitest.
   - **Para la próxima auditoría:** si otro consumidor entra en otra pestaña, esta pestaña recibe al recuperar el foco una sesión no nula pero de otra persona, y no limpia la caché. Para detectarlo, `SesionConsumidor` tendría que traer un identificador del consumidor (cambio de contrato).
-- [ ] **H-111 (baja, DC-05)** `A3-3-Especificacion.tsx:48-51`: al cargar con éxito no se invalida `['rutas-api', id]`. Después de un rechazo, la tarjeta vuelve a mostrar la especificación anterior, y A3.4 se abre con las rutas viejas.
+- [x] **H-111 (baja, DC-05)** `A3-3-Especificacion.tsx:48-51`: al cargar con éxito no se invalida `['rutas-api', id]`. Después de un rechazo, la tarjeta vuelve a mostrar la especificación anterior, y A3.4 se abre con las rutas viejas.
 - [ ] **H-112 (baja, DC-05)** `src/Shapi.Infraestructura/Apis/RepositorioApis.cs:39`: `FOR UPDATE` choca con el `FOR KEY SHARE` de las FK de las tablas hijas (`consumo_diario`, `plan_api`…). Cuando exista JG-09, podría haber interbloqueos. Corrección: `FOR NO KEY UPDATE`.
-- [ ] **H-113 (baja, DC-04 y DC-05)** Desde H-48 el lector abre A3.3 y A3.4, y ve «Registrar una API», la zona de carga y «Guardar rutas expuestas». 04 §3 dice que el frontend oculta las opciones no permitidas.
-- [ ] **H-114 (baja, DC-05)** `A3-3-Especificacion.tsx:97`: `bg-principal-claro` no existe, así que la zona de arrastre no se tiñe.
-- [ ] **H-115 (baja, DC-03)** `frontend/apps/portal/src/layouts/MarcaPortal.tsx:10,12`: la insignia del encabezado usa 8 px de radio, y los mockups de A5 y B2, 6 px.
+- [x] **H-113 (baja, DC-04 y DC-05)** Desde H-48 el lector abre A3.3 y A3.4, y ve «Registrar una API», la zona de carga y «Guardar rutas expuestas». 04 §3 dice que el frontend oculta las opciones no permitidas.
+- [x] **H-114 (baja, DC-05)** `A3-3-Especificacion.tsx:97`: `bg-principal-claro` no existe, así que la zona de arrastre no se tiñe.
+- [x] **H-115 (baja, DC-03)** `frontend/apps/portal/src/layouts/MarcaPortal.tsx:10,12`: la insignia del encabezado usa 8 px de radio, y los mockups de A5 y B2, 6 px.
 
 **Infraestructura y E2E (JZ-06 y JZ-07)**
 - [ ] **H-116 (baja, JZ-06)** H-45 no tiene prueba: nada comprueba que Caddy corra como `caddy`. Corrección: en `verificar.mjs`, `stat -c %U /proc/1` dentro del borde, o como mínimo exigir `su-exec caddy:caddy` en `reglas-repositorio.test.mjs`.

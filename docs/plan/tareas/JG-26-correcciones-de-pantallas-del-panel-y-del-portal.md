@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P3
-estado: pendiente
+estado: hecha
 programada: 2026-10-27
 depende_de: []
 requisitos: [RF-07, RF-09, RF-10, RF-15, RF-18, RF-37, RF-38, RF-39, RNF-12]
@@ -66,3 +66,12 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - La revisión visual completa contra los mockups (DC-16).
+
+## Resultado
+
+- Corregidos H-C25, H-C26, H-C28, H-108, H-111, H-113, H-114 y H-115: A4.1 recupera el espacio superior del encabezado y exige un precio positivo para planes de pago; A6.2 muestra `fin − 1 día`; una carga OpenAPI invalida las rutas compartidas; el arrastre usa un color existente y la marca del portal tiene radio de 6 px.
+- Conforme a la decisión de Jordin del 28 oct, el lector ve como texto los datos de APIs, rutas, configuración, planes, dominios y marca. Se ocultan sus controles de escritura y el secreto de origen, conservando las operaciones permitidas de perfil y soporte. Propietario y editor mantienen sus acciones. La precisión de 11 se alinea con 04 §3 y la duda 9 queda resuelta en la auditoría del 3 oct.
+- RF-37 tiene una integración con compuerta Kestrel, origen HTTP real, PostgreSQL y Redis: tres peticiones de peso 5 comparan el portal con cada cabecera y, después de consolidar, comprueban las 15 llamadas y 3 peticiones. B2.1 y B3.1 tienen pruebas que adelantan los intervalos de 10 y 30 segundos y comprueban los cambios visibles; esos intervalos ya estaban implementados.
+- Archivos principales: `A3-1`, `A3-3` a `A3-7`, `A4-1`, `A6-2`, `usePuedeConfigurarApi.ts`, `MarcaPortal.tsx`, las pruebas de permisos, organizaciones, estado y consumo y `ConsumoConsumidorTests.cs`. No se agregaron dependencias ni se cambiaron endpoints.
+- Verificación: plan válido (89 tareas), compilación completa sin errores ni advertencias, formato completo correcto, 87 pruebas de Consumo y 537 pruebas frontend aprobadas sin omisiones; lint sin errores (11 avisos previos), tipos y builds correctos. Se confirmó la fase roja de permisos, precio y fechas, y la regresión de caché contra A3.3 de `main`. El ciclo de la prueba real se mantiene vigente para el reloj de expiración de Redis.
+- Ensayo productivo aislado `shapi-jg26` con los builds actuales: propietario, lector, editor, administrador y consumidor, 21 capturas reales y 12 referencias en `.shapi/jg26/`. Verifica 20 px superiores en A4.1, tinte de arrastre, radio de 6 px en ambas marcas, consulta sin controles para el lector y perfil aún editable. Se compararon los cambios con sus mockups, respetando las precisiones de la especificación y las fechas de demostración.
