@@ -7,8 +7,6 @@ namespace Shapi.Aplicacion.Suscripciones;
 public interface IVerificadorLimitesPlan
 {
     Task<Error?> VerificarRegistroApi(Guid organizacionId, CancellationToken cancelacion = default);
-
-    Task<bool> PermiteDominioPropio(Guid organizacionId, CancellationToken cancelacion = default);
 }
 
 public sealed class VerificadorLimitesPlan(IRepositorioApis repositorio) : IVerificadorLimitesPlan
@@ -21,7 +19,4 @@ public sealed class VerificadorLimitesPlan(IRepositorioApis repositorio) : IVeri
             ? new Error(CodigosError.LimiteDelPlan, "Su plan llegó al límite de APIs.", new { limite = "apis" })
             : null;
     }
-
-    public Task<bool> PermiteDominioPropio(Guid organizacionId, CancellationToken cancelacion = default) =>
-        repositorio.PlanPermiteDominioPropio(organizacionId, cancelacion);
 }

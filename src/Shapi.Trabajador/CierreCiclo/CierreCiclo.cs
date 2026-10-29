@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shapi.Aplicacion.Comun;
 using Shapi.Aplicacion.Pagos;
+using Shapi.Contratos;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Bitacora;
 using Shapi.Dominio.Identidad;
@@ -142,7 +143,7 @@ public sealed class CerrarCiclo(
         else
         {
             db.Add(Pago.PlataformaRechazado(suscripcion.Id, ConceptoPago.Renovacion, plan.Precio,
-                $"Renovación · {plan.Nombre}", resultado.Error ?? "pago_rechazado"));
+                $"Renovación · {plan.Nombre}", resultado.Error ?? CodigosError.PagoRechazado));
             suscripcion.EntrarEnGracia(opciones.DiasGracia, ahora);
             await EncolarCorreoPlataformaAsync(suscripcion, "pago_rechazado", plan.Nombre, ct);
             await EncolarCorreoPlataformaAsync(suscripcion, "suscripcion_en_gracia", plan.Nombre, ct);
@@ -216,7 +217,7 @@ public sealed class CerrarCiclo(
         else
         {
             db.Add(Pago.ApiRechazado(suscripcion.Id, ConceptoPago.Renovacion, plan.Precio,
-                $"Renovación · {plan.Nombre}", resultado.Error ?? "pago_rechazado"));
+                $"Renovación · {plan.Nombre}", resultado.Error ?? CodigosError.PagoRechazado));
             suscripcion.EntrarEnGracia(opciones.DiasGracia, ahora);
             await EncolarCorreoApiAsync(suscripcion, "pago_rechazado", plan.Nombre, ct);
             await EncolarCorreoApiAsync(suscripcion, "suscripcion_en_gracia", plan.Nombre, ct);

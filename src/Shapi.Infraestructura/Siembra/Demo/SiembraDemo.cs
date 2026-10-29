@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shapi.Aplicacion.Comun;
+using Shapi.Contratos.Redis;
 using Shapi.Dominio.Apis;
 using Shapi.Dominio.Bitacora;
 using Shapi.Dominio.Claves;
@@ -16,6 +17,7 @@ using Shapi.Dominio.Suscripciones;
 using Shapi.Infraestructura.Apis;
 using Shapi.Infraestructura.Persistencia;
 using Shapi.Infraestructura.Siembra.Base;
+using StackExchange.Redis;
 using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 
 namespace Shapi.Infraestructura.Siembra.Demo;
@@ -25,7 +27,8 @@ public sealed class SiembraDemo(
     ShapiDbContext db,
     IReloj reloj,
     IProtectorSecretoOrigen protector,
-    ILogger<SiembraDemo> registro)
+    ILogger<SiembraDemo> registro,
+    IConnectionMultiplexer redis)
 {
     public const string Contrasena = "Shapi2026!demo";
 
@@ -70,7 +73,8 @@ public sealed class SiembraDemo(
         if (!reiniciar && await db.Set<Organizacion>().IgnoreQueryFilters()
             .AnyAsync(o => o.Nombre == OrganizacionesDemo[0], cancelacion))
         {
-            registro.LogInformation("La siembra de demostración ya existe; no se hicieron cambios.");
+            await InicializarCuotasAsync(false, cancelacion);
+            registro.LogInformation("La siembra de demostración ya existe; solo se completaron cuotas ausentes.");
             return false;
         }
 
@@ -328,6 +332,7 @@ public sealed class SiembraDemo(
             $"SELECT setval('{ShapiDbContext.SecuenciaNumeroCaso}', GREATEST((SELECT COALESCE(MAX(numero), 99) FROM caso), 99), true)",
             cancelacion);
         await transaccion.CommitAsync(cancelacion);
+        await InicializarCuotasAsync(true, cancelacion);
 
         registro.LogInformation("Datos de demostración creados para {Fecha}.", ahora);
         return true;
@@ -723,8 +728,7 @@ public sealed class SiembraDemo(
         db.ChangeTracker.Clear();
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TEMP TABLE demo_org ON COMMIT DROP AS
-            SELECT id FROM organizacion WHERE nombre IN
-              ('Envíos Xelajú, S.A.','Agro Precios, S.A.','Cafetalera del Altiplano, S.A.','Transportes Petén, S.A.','Datos Chapines, S.A.');
+            SELECT id FROM organizacion WHERE tipo <> 'plataforma';
             DELETE FROM token WHERE organizacion_id IN (SELECT id FROM demo_org);
             DELETE FROM consumo_diario WHERE api_id IN (SELECT id FROM api WHERE organizacion_id IN (SELECT id FROM demo_org));
             DELETE FROM clave WHERE suscripcion_id IN (SELECT id FROM suscripcion_api WHERE api_id IN (SELECT id FROM api WHERE organizacion_id IN (SELECT id FROM demo_org)));
@@ -741,6 +745,8 @@ public sealed class SiembraDemo(
             DELETE FROM consumidor WHERE organizacion_id IN (SELECT id FROM demo_org);
             DELETE FROM membresia WHERE organizacion_id IN (SELECT id FROM demo_org);
             DELETE FROM api WHERE organizacion_id IN (SELECT id FROM demo_org);
+            DELETE FROM organizacion WHERE id IN (SELECT id FROM demo_org) AND nombre NOT IN
+              ('Envíos Xelajú, S.A.','Agro Precios, S.A.','Cafetalera del Altiplano, S.A.','Transportes Petén, S.A.','Datos Chapines, S.A.');
             """, cancelacion);
         // Las cuentas de la demostración no se borran: pueden ser autoras de casos, mensajes o reversiones en otras
         // organizaciones (FK sin cascada). Se quitan sus sesiones, sus enlaces y sus membresías, y la siembra las
@@ -753,6 +759,57 @@ public sealed class SiembraDemo(
             .ExecuteDeleteAsync(cancelacion);
         await db.Set<Membresia>().IgnoreQueryFilters().Where(x => cuentas.Contains(x.UsuarioId))
             .ExecuteDeleteAsync(cancelacion);
+        // Las cuentas de ensayos ya no deben poder iniciar sesión ni reclamar sus organizaciones borradas.
+        await db.Set<Usuario>().IgnoreQueryFilters()
+            .Where(u => !CorreosUsuariosDemo.Contains(u.Correo)
+                && !db.Set<Membresia>().IgnoreQueryFilters().Any(m => m.UsuarioId == u.Id))
+            .ExecuteDeleteAsync(cancelacion);
+    }
+
+    // La siembra es un comando del trabajador: escribe contadores de demostración después del commit.
+    // La resincronización normal nunca reconstruye ni rebaja cuotas (07 §4).
+    private async Task InicializarCuotasAsync(bool reemplazar, CancellationToken cancelacion)
+    {
+        var organizaciones = db.Set<Organizacion>().IgnoreQueryFilters()
+            .Where(o => OrganizacionesDemo.Contains(o.Nombre)).Select(o => o.Id);
+        var apis = db.Set<Api>().IgnoreQueryFilters().Where(a => organizaciones.Contains(a.OrganizacionId));
+        var suscripciones = await db.Set<SuscripcionApi>().IgnoreQueryFilters()
+            .Where(s => apis.Select(a => a.Id).Contains(s.ApiId)).ToListAsync(cancelacion);
+        foreach (var s in suscripciones)
+        {
+            var inicio = Dia(s.Inicio);
+            var fin = Dia(s.Fin);
+            var llamadas = await db.Set<ConsumoDiario>().IgnoreQueryFilters()
+                .Where(c => c.SuscripcionId == s.Id && c.Entorno == EntornoConsumo.Produccion
+                    && c.Fecha >= inicio && c.Fecha < fin)
+                .SumAsync(c => c.Llamadas, cancelacion);
+            await Escribir(LlavesRedis.CuotaSuscripcion(s.Id, s.Inicio.ToUnixTimeSeconds()), llamadas, s.Fin);
+        }
+        var plataformas = await db.Set<SuscripcionPlataforma>().IgnoreQueryFilters()
+            .Where(s => organizaciones.Contains(s.OrganizacionId)).ToListAsync(cancelacion);
+        foreach (var s in plataformas)
+        {
+            var inicio = Dia(s.Inicio);
+            var fin = Dia(s.Fin);
+            var apisOrganizacion = apis.Where(a => a.OrganizacionId == s.OrganizacionId).Select(a => a.Id);
+            var peticiones = await db.Set<ConsumoDiario>().IgnoreQueryFilters()
+                .Where(c => apisOrganizacion.Contains(c.ApiId) && c.Entorno == EntornoConsumo.Produccion
+                    && c.Fecha >= inicio && c.Fecha < fin)
+                .SumAsync(c => c.Peticiones, cancelacion);
+            await Escribir(LlavesRedis.CuotaOrganizacion(s.OrganizacionId, s.Inicio.ToUnixTimeSeconds()), peticiones, s.Fin);
+        }
+        return;
+
+        static DateOnly Dia(DateTimeOffset fecha) => DateOnly.FromDateTime(fecha.ToOffset(TimeSpan.FromHours(-6)).Date);
+
+        async Task Escribir(string llave, long cantidad, DateTimeOffset fin)
+        {
+            // Redis expira con la hora real, incluso si IReloj está adelantado o las pruebas usan fechas pasadas.
+            var restante = fin - TimeProvider.System.GetUtcNow();
+            var ttl = TimeSpan.FromDays(8) + (restante > TimeSpan.Zero ? restante : TimeSpan.Zero);
+            await redis.GetDatabase().StringSetAsync(llave, cantidad, ttl,
+                when: reemplazar ? When.Always : When.NotExists).WaitAsync(cancelacion);
+        }
     }
 
     private static T Crear<T>(params (string Propiedad, object? Valor)[] valores) where T : class

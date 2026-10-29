@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Shapi.Api.Tests.Cache;
 using Shapi.Api.Tests.Persistencia;
 using Shapi.Aplicacion.Comun;
 using Shapi.Contratos.Redis;
@@ -29,9 +30,94 @@ using EntradaBitacoraDominio = Shapi.Dominio.Bitacora.EntradaBitacora;
 namespace Shapi.Api.Tests.Siembra;
 
 // RNF-14 · La demostración se puede reconstruir de forma determinista antes de cada presentación.
-[Collection(nameof(PostgresPersistencia))]
-public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrueba(postgres)
+[Collection(nameof(RedisCache))]
+public sealed class SiembraDemoTests(PostgresPersistencia postgres, RedisCache redisReal) : BaseDePrueba(postgres)
 {
+    // RNF-14, RF-37: el encabezado de B2.1 y el consumo del ciclo cuentan las mismas llamadas de producción.
+    [Theory]
+    [InlineData(-90)]
+    [InlineData(0)]
+    [InlineData(90)]
+    public async Task RNF_14_CuotasDeCadaConsumidor_CoincidenConElConsumoDelCiclo(int desplazamientoDias)
+    {
+        Reloj.Ahora = DateTimeOffset.UtcNow.AddDays(desplazamientoDias);
+        await using var db = CrearDb();
+        await CrearSiembra(db).EjecutarAsync(true, false, "http://envios", "http://agro");
+        var suscripciones = await db.Set<SuscripcionApi>().IgnoreQueryFilters().ToListAsync();
+        suscripciones.Should().HaveCount(5);
+        foreach (var s in suscripciones)
+        {
+            var inicio = DateOnly.FromDateTime(s.Inicio.ToOffset(TimeSpan.FromHours(-6)).Date);
+            var fin = DateOnly.FromDateTime(s.Fin.ToOffset(TimeSpan.FromHours(-6)).Date);
+            var total = await db.Set<ConsumoDiario>().IgnoreQueryFilters()
+                .Where(c => c.SuscripcionId == s.Id && c.Entorno == EntornoConsumo.Produccion && c.Fecha >= inicio && c.Fecha < fin)
+                .SumAsync(c => c.Llamadas);
+            var llave = LlavesRedis.CuotaSuscripcion(s.Id, s.Inicio.ToUnixTimeSeconds());
+            var redis = redisReal.Conexion.GetDatabase();
+            ((long?)await redis.StringGetAsync(llave)).Should().Be(total);
+            var ttlEsperado = TimeSpan.FromDays(8) + (s.Fin > DateTimeOffset.UtcNow ? s.Fin - DateTimeOffset.UtcNow : TimeSpan.Zero);
+            (await redis.KeyTimeToLiveAsync(llave)).Should().BeCloseTo(ttlEsperado, TimeSpan.FromSeconds(10));
+        }
+    }
+
+    // RNF-14: repetir la siembra no rebaja una cuota real; sí rellena contadores ausentes de una siembra anterior.
+    [Fact]
+    public async Task RNF_14_RepetirSiembra_ConservaCuotasExistentesYCompletaLasAusentes()
+    {
+        await using var db = CrearDb();
+        var siembra = CrearSiembra(db);
+        await siembra.EjecutarAsync(true, false, "http://envios", "http://agro");
+        var suscripciones = await db.Set<SuscripcionApi>().IgnoreQueryFilters().ToListAsync();
+        var llave = LlavesRedis.CuotaSuscripcion(suscripciones[0].Id, suscripciones[0].Inicio.ToUnixTimeSeconds());
+        var ausente = LlavesRedis.CuotaSuscripcion(suscripciones[1].Id, suscripciones[1].Inicio.ToUnixTimeSeconds());
+        var redis = redisReal.Conexion.GetDatabase();
+        await redis.StringSetAsync(llave, 98765, TimeSpan.FromDays(2));
+        await redis.KeyDeleteAsync(ausente);
+        await siembra.EjecutarAsync(true, false, "http://envios", "http://agro");
+        ((long)await redis.StringGetAsync(llave)).Should().Be(98765);
+        (await redis.KeyExistsAsync(ausente)).Should().BeTrue();
+    }
+
+    // RNF-14, RF-41: se borran organizaciones de ensayos y sus datos, conservando literalmente el historial.
+    [Fact]
+    public async Task RNF_14_Reiniciar_BorraOrganizacionesDeEnsayosYSusDatos_ConservaBitacora()
+    {
+        await using var db = CrearDb();
+        var siembra = CrearSiembra(db);
+        await siembra.EjecutarAsync(true, false, "http://envios", "http://agro");
+        var org = await NuevaOrganizacion();
+        var usuario = await NuevoUsuario();
+        await NuevaMembresia(usuario, org, "propietario");
+        var consumidor = await NuevoConsumidor(org);
+        var api = await NuevaApi(org);
+        var ruta = await NuevaRuta(api);
+        var plan = await NuevoPlanApi(api);
+        var suscripcion = await NuevaSuscripcionApi(consumidor, api, plan);
+        await NuevaClave(suscripcion);
+        await NuevoPago(null, suscripcion);
+        await NuevoConsumoDiario(api, ruta, suscripcion);
+        var caso = await NuevoCaso(org, usuario);
+        await NuevoCasoMensaje(caso, usuario);
+        var entrada = await NuevaEntradaBitacora(org);
+        db.Add(Sesion.IniciarPersonal(new string('1', 64), usuario, "shapi.localhost", null, null, Reloj.Ahora));
+        db.Add(Token.InvitacionConsumidor(new string('2', 64), org, "invitado@ensayo.test", Reloj.Ahora));
+        await db.SaveChangesAsync();
+        var historial = await Escalar<string>($"SELECT row_to_json(b)::text FROM bitacora b WHERE id = {entrada}");
+
+        await siembra.EjecutarAsync(true, true, "http://envios", "http://agro");
+
+        (await db.Set<Organizacion>().IgnoreQueryFilters().AnyAsync(o => o.Id == org)).Should().BeFalse();
+        (await db.Set<Usuario>().IgnoreQueryFilters().AnyAsync(u => u.Id == usuario)).Should().BeFalse();
+        (await db.Set<ApiDominio>().IgnoreQueryFilters().AnyAsync(a => a.Id == api)).Should().BeFalse();
+        (await db.Set<Consumidor>().IgnoreQueryFilters().AnyAsync(c => c.Id == consumidor)).Should().BeFalse();
+        (await db.Set<Pago>().IgnoreQueryFilters().AnyAsync(p => p.SuscripcionApiId == suscripcion)).Should().BeFalse();
+        (await db.Set<Caso>().IgnoreQueryFilters().AnyAsync(c => c.Id == caso)).Should().BeFalse();
+        (await db.Set<Sesion>().IgnoreQueryFilters().AnyAsync(s => s.UsuarioId == usuario)).Should().BeFalse();
+        (await db.Set<Token>().IgnoreQueryFilters().AnyAsync(t => t.OrganizacionId == org)).Should().BeFalse();
+        (await Escalar<string>($"SELECT row_to_json(b)::text FROM bitacora b WHERE id = {entrada}")).Should().Be(historial);
+        (await db.Set<Organizacion>().IgnoreQueryFilters().CountAsync()).Should().Be(6);
+    }
+
     // RF-47: todas las APIs reciben un secreto aleatorio aunque no se configure el origen.
     [Fact]
     public async Task RF_47_SembrarSinSecretos_GeneraSecretosValidosYDistintos()
@@ -68,7 +154,7 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         database.StringGetAsync(LlavesRedis.DemoRelojDesplazamiento, CommandFlags.None).Returns((RedisValue)(30L * 86400));
         using var reloj = new RelojSistema(TimeProvider.System, configuracion, redis);
         await using var db = CrearDb();
-        var siembra = new SiembraDemo(db, reloj, new ProtectorPrueba(), NullLogger<SiembraDemo>.Instance);
+        var siembra = new SiembraDemo(db, reloj, new ProtectorPrueba(), NullLogger<SiembraDemo>.Instance, redisReal.Conexion);
         DateTimeOffset? horaResincronizacion = null;
         string? hashRotada = null;
         IReadOnlyList<ClaveCache>? clavesVigentes = null;
@@ -231,7 +317,8 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         sofiaDespues.Nombre.Should().Be("Sofía Menchú Cojtí");
         (await db.Set<Membresia>().IgnoreQueryFilters().SingleAsync(m => m.UsuarioId == sofia.Id)).Rol.Should().Be(Rol.Soporte);
         (await db.Set<CasoMensaje>().IgnoreQueryFilters().CountAsync(m => m.AutorId == sofia.Id && m.Cuerpo == "Con gusto le ayudo."))
-            .Should().Be(1);
+            .Should().Be(0, "el reinicio borra los casos de organizaciones de ensayos, conservando la cuenta del personal");
+        (await db.Set<Organizacion>().IgnoreQueryFilters().AnyAsync(o => o.Id == tienda.Id)).Should().BeFalse();
     }
 
     [Fact]
@@ -338,7 +425,7 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
             db,
             Reloj,
             new ProtectorQueFalla(),
-            NullLogger<SiembraDemo>.Instance);
+            NullLogger<SiembraDemo>.Instance, redisReal.Conexion);
 
         var accion = () => siembraQueFalla.EjecutarAsync(true, true, "http://envios", "http://agro");
 
@@ -728,7 +815,7 @@ public sealed class SiembraDemoTests(PostgresPersistencia postgres) : BaseDePrue
         db,
         Reloj,
         new ProtectorPrueba(),
-        NullLogger<SiembraDemo>.Instance);
+        NullLogger<SiembraDemo>.Instance, redisReal.Conexion);
 
     private static async Task<object> Conteos(ShapiDbContext db)
     {
