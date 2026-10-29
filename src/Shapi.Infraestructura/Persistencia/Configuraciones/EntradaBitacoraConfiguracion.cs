@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shapi.Dominio.Bitacora;
-using Shapi.Dominio.Organizaciones;
 
 namespace Shapi.Infraestructura.Persistencia.Configuraciones;
 
@@ -14,11 +13,8 @@ public class EntradaBitacoraConfiguracion : IEntityTypeConfiguration<EntradaBita
 
         builder.Property(x => x.Id).UseIdentityByDefaultColumn();
 
-        builder.HasOne<Organizacion>()
-            .WithMany()
-            .HasForeignKey(x => x.OrganizacionId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Restrict);
+        // RF-41: referencia histórica, también después de borrar organizaciones de ensayos (JG-27).
+        builder.HasIndex(x => x.OrganizacionId);
 
         builder.Property(x => x.Fecha).IsRequired().HasDefaultValueSql("now()");
 

@@ -33,7 +33,7 @@ Crear el proyecto de pruebas E2E con Playwright, la herramienta de capturas que 
 1. `pnpm captura <url> <archivo.png>` (en `tests/e2e`) guarda una captura de página completa a 1440 × 900.
 2. Un ayudante lee los correos de Mailpit (`/api/v1/messages`) y extrae los enlaces.
 3. La prueba `registro-y-acceso.spec.ts` recorre: registro del proveedor → correo de verificación en Mailpit → abrir el enlace → entrar → ver la barra lateral del panel.
-4. `e2e.yml` levanta el ambiente productivo simulado en el *runner*, ejecuta las pruebas y adjunta el informe como artefacto. **No** es una verificación obligatoria. Corre en *push* a `main` y a mano (`workflow_dispatch`).
+4. `e2e.yml` levanta el ambiente productivo simulado en el *runner*, ejecuta las pruebas y adjunta el informe como artefacto. Corre en *push* a `main` y a mano (`workflow_dispatch`). Además, desde JG-18, las mismas E2E corren antes de integrar cada PR en el check obligatorio `ambiente-productivo`, de `publicar-imagenes.yml`.
 
 ## Pruebas obligatorias
 - La propia E2E
@@ -53,7 +53,7 @@ cd tests/e2e && pnpm install && pnpm exec playwright install chromium && pnpm te
 - Se creó el proyecto independiente `tests/e2e` con Playwright, `baseURL` en `https://shapi.localhost`, aceptación del certificado local y un viewport de 1440 × 900.
 - `pnpm captura <url> <archivo.png>` guarda capturas de página completa; una prueba comprueba el comando y las dimensiones del PNG.
 - El ayudante de Mailpit consulta `/api/v1/messages`, espera por destinatario y extrae enlaces del contenido HTML o de texto. La primera E2E recorre el registro del proveedor, abre el enlace recibido y comprueba la barra lateral del panel.
-- `.github/workflows/e2e.yml` levanta el ambiente productivo simulado al llegar a `main` o por ejecución manual, corre Playwright y adjunta el informe como artefacto sin convertirse en una verificación obligatoria del PR.
+- `.github/workflows/e2e.yml` levanta el ambiente productivo simulado al llegar a `main` o por ejecución manual, corre Playwright y adjunta el informe como artefacto. Desde JG-18 también se ejecutan en el check obligatorio `ambiente-productivo` de cada PR (`publicar-imagenes.yml`).
 - Se resolvieron los hosts `*.localhost` a `127.0.0.1` dentro del ayudante, porque el proceso de Node no usa necesariamente la misma resolución especial de nombres que Chromium.
 
 Archivos principales: `tests/e2e/playwright.config.ts`, `tests/e2e/scripts/captura.ts`, `tests/e2e/soporte/mailpit.ts`, `tests/e2e/tests/registro-y-acceso.spec.ts` y `.github/workflows/e2e.yml`.

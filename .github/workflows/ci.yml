@@ -32,7 +32,7 @@ jobs:
         run: node scripts/tareas.mjs --validar
       # Node no recorre directorios con --test: se le pasa el patrón entre comillas y lo expande él.
       - name: Pruebas de los scripts
-        run: node --test "scripts/*.test.mjs"
+        run: node --test "scripts/*.test.mjs" "tests/carga/*.test.js"
 
   backend:
     name: backend

@@ -316,9 +316,9 @@ Resultados:
 - [x] **H-115 (baja, DC-03)** `frontend/apps/portal/src/layouts/MarcaPortal.tsx:10,12`: la insignia del encabezado usa 8 px de radio, y los mockups de A5 y B2, 6 px.
 
 **Infraestructura y E2E (JZ-06 y JZ-07)**
-- [ ] **H-116 (baja, JZ-06)** H-45 no tiene prueba: nada comprueba que Caddy corra como `caddy`. Corrección: en `verificar.mjs`, `stat -c %U /proc/1` dentro del borde, o como mínimo exigir `su-exec caddy:caddy` en `reglas-repositorio.test.mjs`.
-- [ ] **H-117 (baja, JZ-06)** `.github/workflows/publicar-imagenes.yml:35`: `docker/setup-buildx-action@v4` no está fijada por SHA y corre en el job con `packages: write` (el *builder* que crea es el que hace el *push*). La excepción de `reglas-repositorio.test.mjs:219` se justifica con un argumento que no es cierto. Corrección: fijarla por SHA y quitar la excepción.
-- [ ] **H-118 (baja, JZ-07, documentación)** El criterio 4 de JZ-07 y su `## Resultado` dicen que las E2E no son obligatorias, pero desde JG-18 corren en el check obligatorio `ambiente-productivo`. Además, `instalacion.md` no explica cómo preparar las E2E (H-47 lo citaba).
+- [x] **H-116 (baja, JZ-06)** H-45 no tiene prueba: nada comprueba que Caddy corra como `caddy`. Corrección: en `verificar.mjs`, `stat -c %U /proc/1` dentro del borde, o como mínimo exigir `su-exec caddy:caddy` en `reglas-repositorio.test.mjs`.
+- [x] **H-117 (baja, JZ-06)** `.github/workflows/publicar-imagenes.yml:35`: `docker/setup-buildx-action@v4` no está fijada por SHA y corre en el job con `packages: write` (el *builder* que crea es el que hace el *push*). La excepción de `reglas-repositorio.test.mjs:219` se justifica con un argumento que no es cierto. Corrección: fijarla por SHA y quitar la excepción.
+- [x] **H-118 (baja, JZ-07, documentación)** El criterio 4 de JZ-07 y su `## Resultado` dicen que las E2E no son obligatorias, pero desde JG-18 corren en el check obligatorio `ambiente-productivo`. Además, `instalacion.md` no explica cómo preparar las E2E (H-47 lo citaba).
 
 **❓ Dudas para Jordin**
 1. **Tiempo de respuesta y COMMIT (EM-04, EM-05).** Si la cuenta existe, el COMMIT escribe a disco; si no, no. El tiempo puede diferir unos milisegundos en `recuperar` y en `entrar`. Recomiendo (a), aceptar que basta con igualar los comandos y anotarlo en 10 §8, porque el límite por IP impide medirlo en masa.

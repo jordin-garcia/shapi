@@ -1876,15 +1876,6 @@ namespace Shapi.Infraestructura.Persistencia.Migraciones
                         .HasConstraintName("fk_ruta_api_api_id");
                 });
 
-            modelBuilder.Entity("Shapi.Dominio.Bitacora.EntradaBitacora", b =>
-                {
-                    b.HasOne("Shapi.Dominio.Organizaciones.Organizacion", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizacionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_bitacora_organizacion_organizacion_id");
-                });
-
             modelBuilder.Entity("Shapi.Dominio.Claves.Clave", b =>
                 {
                     b.HasOne("Shapi.Dominio.Suscripciones.SuscripcionApi", null)
