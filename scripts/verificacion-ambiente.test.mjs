@@ -23,15 +23,15 @@ test("JG-27: el dominio no verificado admite rechazo TLS o 404, nunca acceso int
 });
 
 // RF-39, RF-45: se calienta tráfico real de pruebas; no se alteran las cuotas de producción ni el histograma.
-test("JG-27: calentamiento con tres claves de pruebas, diez peticiones por clave", async () => {
+test("JG-27: calentamiento con tres claves de pruebas, treinta peticiones por clave", async () => {
   const llamadas = [];
   await calentarCompuerta(async (clave) => { llamadas.push(clave); return { statusCode: 200 }; });
-  assert.equal(llamadas.length, 30);
+  assert.equal(llamadas.length, 90);
   const claves = [...new Set(llamadas)];
   assert.equal(claves.length, 3);
   for (const clave of claves) {
     assert.ok(clave.startsWith("shp_prueba_"));
-    assert.equal(llamadas.filter((c) => c === clave).length, 10);
+    assert.equal(llamadas.filter((c) => c === clave).length, 30);
   }
 });
 
@@ -42,7 +42,7 @@ test("JG-27: calentamiento respeta Retry-After y no acepta fallos del origen", a
   await calentarCompuerta(async () => ++llamadas === 1
     ? { statusCode: 429, headers: { "retry-after": "12" } }
     : { statusCode: 200 }, async (ms) => esperas.push(ms));
-  assert.equal(llamadas, 31);
+  assert.equal(llamadas, 91);
   assert.deepEqual(esperas, [12000]);
   await assert.rejects(calentarCompuerta(async () => ({ statusCode: 502 })));
   await assert.rejects(calentarCompuerta(async () => ({ statusCode: 429, headers: { "retry-after": "1" } }), async () => {}));

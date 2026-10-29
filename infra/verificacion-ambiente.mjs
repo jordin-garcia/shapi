@@ -24,17 +24,20 @@ export async function calentarCompuerta(cotizar, esperar = (ms) => new Promise((
     "shp_prueba_BoutiqueCayalaDem0000031c7",
     "shp_prueba_FerreteriaZona11De00005e28",
   ];
-  for (const clave of claves) {
-    for (let i = 0; i < 10; i++) {
-      let respuesta;
-      for (let intento = 0; intento < 3; intento++) {
-        respuesta = await cotizar(clave);
-        if (respuesta.statusCode !== 429) break;
-        const segundos = Number(respuesta.headers?.["retry-after"]);
-        assert.ok(Number.isFinite(segundos) && segundos > 0 && segundos <= 60, "Retry-After debe ser de 1 a 60 segundos");
-        if (intento < 2) await esperar(segundos * 1000);
+  // Tres rondas de diez por clave: al cambiar de minuto todas recuperan su límite, sin modificarlo.
+  for (let ronda = 0; ronda < 3; ronda++) {
+    for (const clave of claves) {
+      for (let i = 0; i < 10; i++) {
+        let respuesta;
+        for (let intento = 0; intento < 3; intento++) {
+          respuesta = await cotizar(clave);
+          if (respuesta.statusCode !== 429) break;
+          const segundos = Number(respuesta.headers?.["retry-after"]);
+          assert.ok(Number.isFinite(segundos) && segundos > 0 && segundos <= 60, "Retry-After debe ser de 1 a 60 segundos");
+          if (intento < 2) await esperar(segundos * 1000);
+        }
+        assert.equal(respuesta.statusCode, 200, `El calentamiento con clave de pruebas respondió ${respuesta.statusCode}`);
       }
-      assert.equal(respuesta.statusCode, 200, `El calentamiento con clave de pruebas respondió ${respuesta.statusCode}`);
     }
   }
 }

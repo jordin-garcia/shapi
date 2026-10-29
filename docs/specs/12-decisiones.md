@@ -160,7 +160,7 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
 - **Consecuencias:** se corrigieron las fechas de A2, A6 y B1. El prorrateo de A2.5 (13 días) no cambia.
 
 ### ADR-31 · Las especificaciones viven en el repositorio y se verifican automáticamente
-- **Decisión:** `docs/specs/*.md` es la **fuente de verdad**. Los diagramas están en Mermaid, que GitHub muestra directamente. Los documentos Word y PDF que se entregan se generan desde ahí. Nada se integra a `main` sin CI en verde (RNF-15).
+- **Decisión:** `docs/specs/*.md` es la **fuente de verdad**. Los diagramas están en Mermaid, que GitHub muestra directamente. Los documentos Word y PDF que se entregan se generan desde ahí. La integración ordinaria a `main` exige CI en verde (RNF-15). La precisión aprobada por Jordin en JG-27 (28 oct) conserva únicamente la excepción manual del coordinador ante un falso positivo documentado de `revision-claude`, con las demás verificaciones aprobadas y sin pruebas fallidas; los agentes nunca usan `--admin` (protocolo B11).
 - **Consecuencias:** los agentes de IA trabajan contra texto que pueden versionar y revisar. Desaparece la marca "Text is not SVG" de los diagramas exportados.
 
 ### ADR-32 · La variante 4 es el sistema visual oficial

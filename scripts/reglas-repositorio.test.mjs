@@ -258,4 +258,5 @@ test("JG-27: el trabajador evita el ruido de SQL y GSSAPI en producción simulad
   const compose = leer("infra", "compose.prod.yml");
   const trabajador = compose.slice(compose.indexOf("  trabajador:"), compose.indexOf("  siembra-demo:"));
   assert.match(trabajador, /SHAPI_POSTGRES_CADENA: .*;GSS Encryption Mode=Disable/);
+  assert.match(trabajador, /depends_on:\r?\n {6}api:\r?\n {8}condition: service_healthy/, "el trabajador espera las migraciones de la API");
 });

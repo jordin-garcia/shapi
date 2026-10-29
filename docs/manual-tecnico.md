@@ -207,7 +207,7 @@ comparte la imagen, configuración y volumen `dpkeys` del trabajador, ejecuta
 `sembrar-demo` y termina. `up -d` devuelve el control antes de terminar la siembra:
 compruebe que el servicio termina con código 0 mediante
 `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo ps -a siembra-demo`.
-Luego ejecute `node infra/verificar.mjs --demo` para comprobar la compuerta y el portal. El verificador calienta la compuerta con 30 cotizaciones reales usando tres claves de pruebas (10 por clave); respeta `Retry-After` y no descuenta cuotas de producción. Antes de grabar B3.1, ejecute este paso y espere su actualización de 30 segundos. El p95 sigue incluyendo todas las muestras de la última hora, incluso las del arranque; el calentamiento no garantiza ocultar una degradación real ni borra métricas.
+Luego ejecute `node infra/verificar.mjs --demo` para comprobar la compuerta y el portal. El verificador calienta la compuerta con 90 cotizaciones reales usando tres claves de pruebas (30 por clave, en tres rondas de diez); respeta `Retry-After` y no descuenta cuotas de producción. Puede tardar unos dos minutos por los límites de las claves. Antes de grabar B3.1, ejecute este paso y espere su actualización de 30 segundos. El p95 sigue incluyendo todas las muestras de la última hora, incluso las del arranque; el calentamiento no garantiza ocultar una degradación real ni borra métricas.
 Repetir el comando no duplica datos. Sin el perfil `demo`, no se ejecuta la siembra;
 los datos existentes se conservan en los volúmenes.
 

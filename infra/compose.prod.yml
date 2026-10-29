@@ -88,6 +88,8 @@ services:
       dockerfile: src/Shapi.Trabajador/Dockerfile
     restart: unless-stopped
     depends_on:
+      api:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       redis:

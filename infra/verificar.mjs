@@ -218,7 +218,7 @@ async function verificarDemo() {
     { origen: "Quetzaltenango", destino: "Antigua Guatemala", peso_kg: 2 },
     { "X-Api-Key": clave },
   ));
-  console.log("✓ Compuerta calentada con 30 cotizaciones de pruebas, sin descontar cuotas de producción");
+  console.log("✓ Compuerta calentada con 90 cotizaciones de pruebas, sin descontar cuotas de producción");
   const cotizacion = await cotizarConClaveDemo();
   assert.equal(cotizacion.statusCode, 200,
     `La compuerta con la clave de la siembra respondió ${cotizacion.statusCode}: ${cotizacion.cuerpo}`);
@@ -571,6 +571,8 @@ try {
   );
 
   const entornoTrabajador = configuracionProduccion.services.trabajador.environment;
+  assert.equal(configuracionProduccion.services.trabajador.depends_on.api.condition, "service_healthy",
+    "El trabajador debe esperar a que la API termine las migraciones");
   // RNF-14 (JZ-18): el arranque real excluye la siembra; solo el perfil demo la habilita.
   assert.ok(!configuracionProduccion.services["siembra-demo"], "Sin perfil demo no debe ejecutarse la siembra");
   const configuracionDemo = JSON.parse(ejecutarDocker([
