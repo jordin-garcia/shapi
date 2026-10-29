@@ -100,7 +100,7 @@ Están ordenados según ISO/IEC 25010 y cada uno tiene un criterio que se puede 
 | <a id="rnf-12"></a>RNF-12 | Usabilidad | Las interfaces estarán en español y funcionarán en la versión actual de Chrome, Edge y Firefox de escritorio, desde 1280 px de ancho. |
 | <a id="rnf-13"></a>RNF-13 | Mantenibilidad | Agregar una regla de validación a la compuerta consistirá en **agregar un filtro** a la tubería sin modificar los demás. La cuota de plataforma ([RF-30]) sirve de ejemplo. |
 | <a id="rnf-14"></a>RNF-14 | Portabilidad | Todo el sistema se levantará en cualquier equipo con **un solo comando** (`docker compose up`), con los datos de siembra de los mockups. |
-| <a id="rnf-15"></a>RNF-15 | Mantenibilidad | Las reglas de negocio del dominio, cada filtro de la compuerta y el aislamiento entre organizaciones tendrán pruebas automatizadas que se ejecutan en la integración continua. No se integra a `main` nada que tenga pruebas fallidas. |
+| <a id="rnf-15"></a>RNF-15 | Mantenibilidad | Las reglas de negocio del dominio, cada filtro de la compuerta y el aislamiento entre organizaciones tendrán pruebas automatizadas que se ejecutan en la integración continua. La integración ordinaria a `main` exige todos los checks en verde. La protección conserva `enforce_admins: false` para que únicamente el coordinador, a mano y ante un falso positivo documentado de `revision-claude`, pueda usar la excepción de protocolo B11; los agentes nunca la usan ni omiten pruebas. Los jobs que construyen código de PR no reciben `packages: write`; solo la publicación tras un push a `main` lo recibe (JG-27). |
 
 ## 3. Trazabilidad con los lineamientos
 

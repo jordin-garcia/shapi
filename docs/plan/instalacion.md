@@ -90,6 +90,11 @@ rm caddy-root.crt
 ```
 En Firefox: Ajustes → Privacidad y seguridad → Certificados → Ver certificados → Autoridades → Importar.
 
+### 5.2 Pruebas de extremo a extremo
+
+Con el ambiente productivo simulado recién sembrado y aislado, en `tests/e2e/` ejecute `pnpm install`, `pnpm exec playwright install chromium` y `pnpm test`. Las pruebas adelantan el reloj global al final; vuelva a preparar el ambiente antes de repetirlas o grabar. En cada PR las ejecuta el check obligatorio `ambiente-productivo`; en `main` y a mano, `e2e.yml`.
+
+
 ---
 
 ## 6. Instalar y configurar tu agente de IA

@@ -351,7 +351,7 @@ El perfil `demo` agrega `siembra-demo`, de una sola ejecución: espera la salud 
 la API tras las migraciones y reutiliza la imagen, configuración y llaves del
 trabajador. Repetir el comando no duplica datos. Como el arranque es separado
 (`-d`), la demostración está lista cuando `siembra-demo` termina con código 0;
-`node infra/verificar.mjs --demo` verifica la clave fija y el portal de Envíos Xelajú.
+`node infra/verificar.mjs --demo` calienta la compuerta con 30 cotizaciones de pruebas y verifica la clave fija y el portal de Envíos Xelajú. Respeta los límites de pruebas y no altera cuotas de producción ni descarta muestras de RF-39.
 Sin el perfil no se siembra; un despliegue real usa `SHAPI_MODO_DEMO=false` y
 volúmenes sin datos de demostración. La siembra rechaza ese modo aunque se active
 el perfil por error.

@@ -146,6 +146,8 @@ El guion 3 se recorrió el 23 de octubre en la convergencia (`docs/plan/converge
 | Dominique | DC-16 (revisión visual contra los mockups), DC-18 (elemento de código para el video) |
 | José Pablo | JZ-13 (E2E de los flujos principales), JZ-19 (elemento de código para el video), JZ-15 (manual técnico), JZ-16 (manual de usuario). JZ-14 ya está hecha |
 
+**Preparación antes de grabar (JG-27):** ejecute `node infra/verificar.mjs --demo` para calentar la compuerta con cotizaciones de pruebas sin gastar cuotas de producción. Espere la actualización de B3.1 (30 s); el p95 conserva también las muestras del arranque.
+
 **Video del Avance 3 (grabación el viernes 30, entrega el sábado 31):** con el guion de JG-29, recorre toda la funcionalidad por la interfaz (los guiones 1, 2 y 3, con el reloj de demostración de JG-22) y explica al menos 4 elementos del código, uno por persona (EM-22, DC-18, JZ-19 y JG-29), con sus características de *Clean Code* y sus patrones de diseño. Dura 25 minutos como máximo y participan las cuatro personas.
 
 **Guion final (exposición):** el guion del video, más un arranque limpio del ambiente productivo simulado, las pruebas E2E en verde, el resultado de las pruebas de carga (RNF-01 y RNF-03) y la defensa de la arquitectura con `docs/specs/12-decisiones.md`.

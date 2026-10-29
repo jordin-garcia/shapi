@@ -207,7 +207,7 @@ comparte la imagen, configuración y volumen `dpkeys` del trabajador, ejecuta
 `sembrar-demo` y termina. `up -d` devuelve el control antes de terminar la siembra:
 compruebe que el servicio termina con código 0 mediante
 `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo ps -a siembra-demo`.
-Luego ejecute `node infra/verificar.mjs --demo` para comprobar la compuerta y el portal.
+Luego ejecute `node infra/verificar.mjs --demo` para comprobar la compuerta y el portal. El verificador calienta la compuerta con 30 cotizaciones reales usando tres claves de pruebas (10 por clave); respeta `Retry-After` y no descuenta cuotas de producción. Antes de grabar B3.1, ejecute este paso y espere su actualización de 30 segundos. El p95 sigue incluyendo todas las muestras de la última hora, incluso las del arranque; el calentamiento no garantiza ocultar una degradación real ni borra métricas.
 Repetir el comando no duplica datos. Sin el perfil `demo`, no se ejecuta la siembra;
 los datos existentes se conservan en los volúmenes.
 
@@ -218,11 +218,12 @@ productivo simulado, `infra/compose.prod.yml` las fija en `origen-envios:8080` y
 `origen-agro:8080`, sin tomar las del `.env`, que son las de desarrollo. Ese
 ambiente es el de la exposición, así que `SHAPI_MODO_DEMO` vale `true` por defecto
 (06 §7.1); en un despliegue real se cambia a `false`. Para recrear
-únicamente los datos de demostración, conservando los datos base y la bitácora
+el ambiente de demostración, conservando los datos base y la bitácora
 append-only, ejecute
 `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar`.
-Al terminar resincroniza la configuración de
-la compuerta en Redis. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o
+Este reinicio borra todas las organizaciones ajenas a la siembra y sus datos de ensayos (APIs, consumidores, suscripciones, pagos, casos, sesiones y enlaces). Las cuentas del personal y los identificadores históricos de la bitácora se conservan. Úselo solo en un ambiente de demostración; el comando rechaza `SHAPI_MODO_DEMO=false`.
+
+Al terminar inicializa las cuotas de Redis con el consumo de producción de los ciclos sembrados y resincroniza la configuración de la compuerta. Repetir sin `--reiniciar` completa cuotas ausentes sin rebajar contadores existentes. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o
 `SHAPI_SECRETO_ORIGEN_AGRO`, la siembra cifra esos mismos secretos para que la
 compuerta pueda autenticarse ante cada origen.
 

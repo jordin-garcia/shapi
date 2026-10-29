@@ -44,6 +44,11 @@ Es P3: si no cabe antes del jueves 29, queda fuera, salvo H-C27 y H-C30, que se 
 2. **Datos de ensayos (H-C30).** (2a, recomendada) Que `--reiniciar` borre todas las organizaciones que no son de la siembra, junto con sus datos, pero sin tocar la bitácora (append-only). (2b) La otra opción es documentar que, para grabar, se borran los volúmenes.
 3. **`enforce_admins` (H-C35, duda 14 del 3 oct incluida).** Recomiendo dejarlo así y precisarlo en RNF-15 y en el protocolo («solo el coordinador, ante un falso positivo de `revision-claude`»). Separar el job de construcción sin `packages: write` en los PR, como pedía la duda 14, sí se hace.
 
+### Decidido por Jordin (2026-10-28)
+- H-C29: calentar desde el verificador y documentarlo, conservando RF-39.
+- H-C30: borrar organizaciones ajenas a la siembra y sus datos, conservando la bitácora. Autorizó además quitar mediante migración únicamente la FK de `bitacora.organizacion_id`, conservando sus UUID y filas históricas, para permitir el borrado.
+- H-C35: conservar `enforce_admins: false`, precisar la excepción manual del coordinador y separar la construcción de PR de la publicación con permisos.
+
 ## Contexto que debes leer
 - `docs/specs/06-arquitectura.md` §7 y §8
 - `docs/specs/07-modelo-de-datos.md` §4 (llaves de cuota)

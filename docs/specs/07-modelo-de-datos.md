@@ -198,7 +198,7 @@ erDiagram
   CONSUMIDOR ||--o{ SESION : "abre"
   USUARIO ||--o{ TOKEN : "recibe"
   CONSUMIDOR ||--o{ TOKEN : "recibe"
-  ORGANIZACION ||--o{ BITACORA : "registra"
+  ORGANIZACION |o..o{ BITACORA : "referencia histórica sin FK"
 
   ORGANIZACION {
     uuid id PK
@@ -391,7 +391,7 @@ erDiagram
     timestamptz fecha
     text actor_tipo
     uuid actor_id
-    uuid organizacion_id FK
+    uuid organizacion_id
     text accion
     jsonb detalle
   }
@@ -692,12 +692,14 @@ UNIQUE **`NULLS NOT DISTINCT`** `(fecha, api_id, ruta_id, suscripcion_id, entorn
 | actor_tipo | text | `CHECK IN ('usuario','consumidor','sistema')` |
 | actor_id | uuid | null (si el actor es el sistema) |
 | actor_nombre | text | not null (una copia, para que se pueda leer aunque la cuenta cambie) |
-| organizacion_id | uuid | FK null |
+| organizacion_id | uuid | null; identificador histórico sin FK |
 | accion | text | not null (del catálogo de [10 §7](10-identidad-y-seguridad.md#7-bitacora)) |
 | objetivo_tipo, objetivo_id | text, uuid | null |
 | descripcion | text | not null (el texto que se ve en B3.2) |
 | detalle | jsonb | null |
 | ip | inet | null |
+
+El identificador de organización de la bitácora es histórico: se conserva incluso si `sembrar-demo --reiniciar` borra una organización de ensayo. No tiene clave foránea; el reinicio no modifica ninguna fila histórica (decisión de Jordin, JG-27, 28 oct).
 
 La bitácora solo admite inserciones: dos disparadores rechazan cualquier UPDATE, DELETE o TRUNCATE sobre `bitacora`, con el mensaje "La bitácora solo admite inserciones: no se permite <operación>.". La aplicación y las migraciones usan el mismo rol de base de datos (decisión de Jordin del 26 sep, auditoría H-40). Por eso los disparadores protegen contra errores de la aplicación, pero no contra alguien con acceso de dueño a la base.
 
@@ -731,6 +733,8 @@ El formato de cada llave está en `Shapi.Contratos.LlavesRedis`, y es la **únic
 **Normalización de las llaves:** los UUID van en minúsculas con guiones, el `{host}` en minúsculas y el `{sha256}` de la clave en hex minúsculas. En `cache:`, el hash se calcula sobre el método en mayúsculas seguido del camino y de la query tal como llega (con su `?` inicial), en UTF-8. Las fechas `{aaaammdd}` son el día en la zona America/Guatemala, el mismo que se guarda en `consumo_diario.fecha`.
 
 **Escritura:** cada hash se reemplaza completo, con `DEL` y luego `HSET` en una misma transacción, para que no quede un campo viejo (por ejemplo, un secreto borrado). `PublicarApi` solo escribe los hosts actuales, así que, cuando un dominio propio se desconecta o se reemplaza por otro, la API de control llama además a `EliminarHost(host, apiId)`, que borra `api:host:{host}` en el momento si todavía apunta a esa API. La resincronización solo es el respaldo, si Redis falló. Si Redis falla después del *commit* en PostgreSQL, el publicador reintenta 3 veces con espera (200 ms, 500 ms y 1 s), registra el error y no revierte ni hace fallar la operación de negocio: la resincronización la corrige ([06 §5.2](06-arquitectura.md#52-contratacion-de-un-plan-de-api)).
+
+**Cuotas de demostración (JG-27):** después de confirmar la siembra, se inicializan `cuota:susc:*` con las llamadas de producción de `consumo_diario` de cada suscripción sembrada y su ciclo, y `cuota:org:*` con las peticiones de producción del ciclo de plataforma. Se aplica el TTL de fin de ciclo más ocho días (ocho días desde ahora si ya terminó). Repetir la siembra solo completa contadores ausentes y conserva el consumo vivo; `--reiniciar` recrea los datos y sus contadores. La resincronización ordinaria sigue sin tocar cuotas.
 
 **Resincronización:** cada 5 minutos, y al arrancar, el trabajador recalcula desde PostgreSQL todas las llaves de configuración (`api:*`, `clave:*`, `susc:*` y `org:*`) y las reescribe: las APIs publicadas, las claves activas y las rotadas vigentes, las suscripciones de API sin finalizar y todas las organizaciones. Los contadores no se tocan. Si Redis se vació, la compuerta vuelve a funcionar en cuanto termina la resincronización. También borra las llaves de configuración que ya no corresponden (una clave revocada o un dominio propio quitado mientras Redis fallaba, una API despublicada, una suscripción finalizada). Para no borrar una llave que otro proceso publique durante la resincronización, las llaves existentes se leen con `SCAN` **antes** de leer PostgreSQL. Al final vuelve a leer las claves que escribió, y corrige las que se revocaron o rotaron mientras tanto. Lo demás que cambie entre la lectura de PostgreSQL y la escritura en Redis (por ejemplo, una API que se despublica o se vuelve a publicar en ese instante) se corrige en la siguiente resincronización, 5 minutos después como máximo. Si el trabajador no puede descifrar el secreto de una API publicada, no la reescribe ni borra sus llaves, y registra el error.
 
