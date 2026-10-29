@@ -6,6 +6,7 @@ import http from "node:http";
 import https from "node:https";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { exigirPersistenciaRedis, verificarDominioNoVerificado, calentarCompuerta } from "./verificacion-ambiente.mjs";
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), "..");
 const rutaCompose = join(raiz, "infra", "compose.yml");
@@ -167,7 +168,7 @@ function enviarJson(url, cuerpo, cabeceras = {}) {
         let texto = "";
         respuesta.setEncoding("utf8");
         respuesta.on("data", (parte) => (texto += parte));
-        respuesta.on("end", () => resolve({ statusCode: respuesta.statusCode, cuerpo: texto }));
+        respuesta.on("end", () => resolve({ statusCode: respuesta.statusCode, cuerpo: texto, headers: respuesta.headers }));
       },
     );
 
@@ -212,6 +213,12 @@ function contarDatosDemo() {
 }
 
 async function verificarDemo() {
+  await calentarCompuerta((clave) => enviarJson(
+    "https://envios.api.shapi.localhost/cotizaciones",
+    { origen: "Quetzaltenango", destino: "Antigua Guatemala", peso_kg: 2 },
+    { "X-Api-Key": clave },
+  ));
+  console.log("✓ Compuerta calentada con 30 cotizaciones de pruebas, sin descontar cuotas de producción");
   const cotizacion = await cotizarConClaveDemo();
   assert.equal(cotizacion.statusCode, 200,
     `La compuerta con la clave de la siembra respondió ${cotizacion.statusCode}: ${cotizacion.cuerpo}`);
@@ -531,6 +538,7 @@ try {
     ], entornoSinPuerto),
   );
   const puertoPostgres = configuracionDesarrollo.services.postgres.ports?.[0];
+  exigirPersistenciaRedis(configuracionDesarrollo.services.redis.command);
   assert.equal(
     String(puertoPostgres?.published),
     "5999",
@@ -708,10 +716,10 @@ if (produccionActiva) {
     solicitar("http://localhost:8080/salud"),
     "La API de control no debe publicar el puerto 8080 en el host",
   );
-  await assert.rejects(
-    solicitar("https://api.enviosxelaju.localhost/interno/tls/autorizar?domain=x.localhost"),
-    "Un dominio propio no verificado no debe obtener certificado ni acceder a /interno/*",
-  );
+  const usuarioBorde = ejecutarDocker([...argumentosCompose, "exec", "-T", "borde", "stat", "-c", "%U", "/proc/1"]).trim();
+  assert.equal(usuarioBorde, "caddy", "El proceso real de Caddy debe correr sin privilegios (H-116)");
+  await verificarDominioNoVerificado(() =>
+    solicitar("https://api.enviosxelaju.localhost/interno/tls/autorizar?domain=x.localhost"));
 } else {
   const servidores = [];
   try {

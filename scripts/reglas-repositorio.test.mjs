@@ -216,7 +216,6 @@ test("auditoría 2026-10-03, H-43 y H-44: publicar-imagenes fija por SHA build-p
   const flujo = leer(".github", "workflows", "publicar-imagenes.yml");
   // Toda acción de docker/ corre con las credenciales de GHCR: va fijada por un SHA de 40 caracteres.
   for (const uso of flujo.match(/uses: docker\/[\w-]+@\S+/g) ?? []) {
-    if (uso.includes("setup-buildx-action")) continue; // no recibe credenciales ni el token
     assert.match(uso, /@[0-9a-f]{40}$/, `${uso} debe ir fijada por SHA`);
   }
   assert.match(flujo, /uses: docker\/build-push-action@[0-9a-f]{40}/);
@@ -227,4 +226,36 @@ test("auditoría 2026-10-03, H-43 y H-44: publicar-imagenes fija por SHA build-p
   assert.match(publicar, /^ {4}permissions:\n {6}contents: read\n {6}packages: write$/m);
   assert.match(ambiente, /^ {4}permissions:\n {6}contents: read$/m);
   assert.doesNotMatch(ambiente, /packages: write/);
+});
+
+// RNF-15: el código de los PR se construye sin permiso para publicar paquetes (H-C35).
+test("JG-27: solo el job de push a main recibe packages write", () => {
+  const flujo = jobs(leer(".github", "workflows", "publicar-imagenes.yml"));
+  assert.match(flujo.publicar, /^ {4}if: github\.event_name == 'push'$/m);
+  assert.match(flujo.construir, /^ {4}if: github\.event_name == 'pull_request'$/m);
+  assert.match(flujo.construir, /^ {4}permissions:\n {6}contents: read$/m);
+  assert.doesNotMatch(flujo.construir, /packages: write|secrets\.|docker\/login-action/);
+  assert.match(flujo.construir, /push: false/);
+  assert.match(flujo["verificar-ambiente"], /^ {4}needs: construir$/m);
+});
+
+// RNF-15: las pruebas de carga de Node forman parte del check plan (H-C32).
+test("JG-27: la CI ejecuta también las pruebas de tests carga", () => {
+  assert.match(jobs(ci).plan, /node --test "scripts\/\*\.test\.mjs" "tests\/carga\/\*\.test\.js"/);
+});
+
+// RNF-15: Caddy debe soltar privilegios antes de servir tráfico (H-116).
+test("JG-27: el borde ejecuta Caddy con el usuario caddy y se verifica el proceso real", () => {
+  const dockerfile = leer("infra", "borde", "Dockerfile");
+  assert.match(dockerfile, /exec su-exec caddy:caddy/);
+  assert.match(leer("infra", "verificar.mjs"), /stat.*%U.*\/proc\/1/);
+});
+
+// RNF-14: el ambiente simulado no intenta usar Kerberos ni registra cada consulta SQL (H-C33).
+test("JG-27: el trabajador evita el ruido de SQL y GSSAPI en producción simulada", () => {
+  const niveles = JSON.parse(leer("src", "Shapi.Trabajador", "appsettings.json")).Logging.LogLevel;
+  assert.equal(niveles["Microsoft.EntityFrameworkCore.Database.Command"], "Warning");
+  const compose = leer("infra", "compose.prod.yml");
+  const trabajador = compose.slice(compose.indexOf("  trabajador:"), compose.indexOf("  siembra-demo:"));
+  assert.match(trabajador, /SHAPI_POSTGRES_CADENA: .*;GSS Encryption Mode=Disable/);
 });
