@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P3
-estado: pendiente
+estado: hecha
 programada: 2026-10-27
 depende_de: [JG-23, JG-24]
 requisitos: [RNF-05, RNF-14, RNF-15, RF-39]
@@ -91,3 +91,18 @@ node infra/verificar.mjs --demo
 
 ## Fuera de alcance
 - Volver a medir las pruebas de carga: si la compuerta cambió mucho, lo decide JG-17.
+
+## Resultado
+
+- H-C27: la siembra inicializa después del commit las cuotas de suscripción y organización con consumo de producción del ciclo. Aplica el TTL de 07 §4 incluso con fechas pasadas o adelantadas. Repetir sin reiniciar completa cuotas ausentes y conserva contadores existentes.
+- H-C30: el reinicio transaccional borra las organizaciones de ensayos y sus datos y restablece la demostración. La migración autorizada `ReferenciaHistoricaBitacora` quita únicamente la FK de `bitacora.organizacion_id`, conservando el índice, los UUID y todas las filas históricas. Conserva la comparación de descripciones con o sin punto final.
+- H-C29: el verificador calienta con 90 cotizaciones reales de pruebas, en tres rondas de diez por cada una de tres claves, respetando `Retry-After`. Manual, arquitectura y preparación del video lo documentan. La ventana y el cálculo de RF-39 conservan todas las muestras: en este equipo el ensayo final midió 36,5 ms y mostró correctamente la compuerta degradada y los otros seis componentes en servicio; el calentamiento no promete ocultar una degradación real.
+- H-C31: exige AOF `yes` y fsync `everysec`, incluso si una opción se repite. Un certificado almacenado permite completar TLS, pero los endpoints internos siguen devolviendo 404.
+- H-C32: el check `plan` ejecuta también `tests/carga/*.test.js`.
+- H-C33: el trabajador espera las migraciones de la API, registra comandos SQL desde `Warning` y usa `GSS Encryption Mode=Disable` en el ambiente simulado. El ensayo desde volúmenes vacíos terminó sin errores ni consultas SQL en los registros del trabajador y sin el aviso de GSSAPI.
+- H-C34: se eliminó `PaginaRelleno.tsx` del portal y el método sin consumidores de `IVerificadorLimitesPlan`; los errores de renovación usan `CodigosError.PagoRechazado`.
+- H-116 y H-117: el verificador comprueba al usuario real de Caddy en `/proc/1`; las acciones de Docker quedan fijadas por SHA y se elimina la excepción de Buildx en las reglas.
+- H-118 y H-C35: JZ-07 e instalación explican las E2E obligatorias; la construcción de PR usa solo lectura y la publicación con permiso de paquetes corre solo en push a `main`. RNF-15, ADR-31 y B11 precisan la excepción manual aprobada de Jordin ante un falso positivo de revisión, con los demás checks aprobados y sin pruebas fallidas. La protección existente conserva `enforce_admins: false` y sus seis checks obligatorios.
+- Verificación: plan válido (89 tareas), 125 pruebas Node, compilación completa con cero errores y advertencias, formato completo correcto, 33 pruebas de siembra y las 1117 pruebas de API aprobadas sin omisiones. Frontend: lint sin errores (11 avisos previos), typecheck y builds correctos y 537 pruebas en 43 archivos aprobadas. La regresión aislada de Perfil pasó de 1/10 fallida a 10/10 correctas preparando su módulo real antes de comprobar el formulario, sin cambiar aserciones ni plazos.
+- Ensayo real aislado `shapi-jg27`: borrado de una organización con historial conservando literalmente su bitácora, repetición idempotente, certificado emitido y reutilizado tras reiniciar, verificador `--demo` aprobado y comparación de B2.1 y B3.1 con sus mockups y las precisiones de 06 §8. Los cinco totales de cuota y tabla coincidieron: 31481, 4116, 69600, 1436 y 0. El primero incluye la llamada de producción del verificador. Capturas, resultados y registros locales en `.shapi/jg27/`.
+- Sin dependencias nuevas ni cambios de endpoints o contratos HTTP.
