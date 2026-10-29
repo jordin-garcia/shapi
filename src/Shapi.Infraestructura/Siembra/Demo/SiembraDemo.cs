@@ -371,8 +371,7 @@ public sealed class SiembraDemo(
 
     /// <summary>
     /// Crea la cuenta o, si ya existe, la restablece: el nombre, la contraseña de la demostración, el correo
-    /// verificado, sin bloqueo y en su estado. No se borra al reiniciar, porque pudo dejar casos, mensajes o
-    /// reversiones en otras organizaciones (auditoría 2026-10-03, H-29).
+    /// verificado, sin bloqueo y en su estado. Conserva su identidad al reiniciar y en el historial (H-29, JG-27).
     /// </summary>
     private static Usuario CrearUsuario(string nombre, string correo, PasswordHasher<Usuario> hasher,
         DateTimeOffset ahora, IReadOnlyDictionary<string, Usuario> existentes, bool desactivado = false)
@@ -748,9 +747,8 @@ public sealed class SiembraDemo(
             DELETE FROM organizacion WHERE id IN (SELECT id FROM demo_org) AND nombre NOT IN
               ('Envíos Xelajú, S.A.','Agro Precios, S.A.','Cafetalera del Altiplano, S.A.','Transportes Petén, S.A.','Datos Chapines, S.A.');
             """, cancelacion);
-        // Las cuentas de la demostración no se borran: pueden ser autoras de casos, mensajes o reversiones en otras
-        // organizaciones (FK sin cascada). Se quitan sus sesiones, sus enlaces y sus membresías, y la siembra las
-        // restablece (auditoría 2026-10-03, H-29).
+        // Las cuentas conocidas de la demostración conservan su identidad histórica. Se quitan sus sesiones,
+        // enlaces y membresías antes de restablecerlas (auditoría 2026-10-03, H-29; JG-27).
         var cuentas = await db.Set<Usuario>().IgnoreQueryFilters()
             .Where(u => CorreosUsuariosDemo.Contains(u.Correo)).Select(u => u.Id).ToListAsync(cancelacion);
         await db.Set<Sesion>().IgnoreQueryFilters().Where(x => x.UsuarioId != null && cuentas.Contains(x.UsuarioId.Value))

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 export function exigirPersistenciaRedis(comando) {
   for (const [opcion, valor] of [["--appendonly", "yes"], ["--appendfsync", "everysec"]]) {
-    const indice = comando.indexOf(opcion);
+    const indice = comando.lastIndexOf(opcion);
     assert.ok(indice >= 0 && comando[indice + 1] === valor, `Redis debe usar ${opcion} ${valor} (RNF-05)`);
   }
 }

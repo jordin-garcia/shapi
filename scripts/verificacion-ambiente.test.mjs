@@ -9,6 +9,7 @@ test("JG-27: Redis exige AOF yes y fsync everysec", () => {
     ["redis-server", "--appendonly", "no", "--appendfsync", "everysec"],
     ["redis-server", "--appendonly", "yes", "--appendfsync", "no"],
     ["redis-server", "--appendonly", "yes"],
+    ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--appendonly", "no"],
   ]) assert.throws(() => exigirPersistenciaRedis(comando));
 });
 
@@ -34,6 +35,7 @@ test("JG-27: calentamiento con tres claves de pruebas, diez peticiones por clave
   }
 });
 
+// RF-39, RF-45: el calentamiento conserva los límites y hace visibles los fallos reales.
 test("JG-27: calentamiento respeta Retry-After y no acepta fallos del origen", async () => {
   const esperas = [];
   let llamadas = 0;

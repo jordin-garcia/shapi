@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider } from 'react-router';
@@ -12,6 +12,10 @@ const API = 'http://localhost/api';
 
 let cliente: QueryClient;
 const peticiones: { ruta: string; cuerpo: unknown; csrf: string | null }[] = [];
+
+// RF-04, RNF-12: la compilación en frío de la ruta no forma parte del comportamiento del formulario.
+// Se conserva la navegación real y las aserciones de la pantalla, sin ampliar sus tiempos de espera.
+beforeAll(async () => { await import('../paginas/A8-1-Perfil'); });
 
 async function registrar(request: Request, ruta: string) {
   peticiones.push({ ruta, cuerpo: await request.clone().json().catch(() => null), csrf: request.headers.get('X-Requested-With') });
