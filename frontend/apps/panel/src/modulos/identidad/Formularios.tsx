@@ -1,5 +1,5 @@
 import { useId, type ComponentPropsWithoutRef, type ReactNode } from 'react';
-import { Campo, CampoContrasena } from '@shapi/ui';
+import { Boton, Campo, CampoContrasena } from '@shapi/ui';
 
 /** Tarjeta centrada de las pantallas de acceso (A1): 520 px o 460 px de ancho, 40 px de relleno. */
 export function MarcoAcceso({ ancho = 520, children }: { ancho?: 460 | 520; children: ReactNode }) {
@@ -41,9 +41,9 @@ export function AvisoError({ mensaje, reintentar }: { mensaje: string; reintenta
     <div role="alert" className="bg-alerta-fondo border border-alerta-borde text-alerta rounded-base py-4 px-[18px] text-sm leading-[1.5] flex items-start justify-between gap-3">
       <p className="m-0">{mensaje}</p>
       {reintentar && (
-        <button type="button" onClick={reintentar} className="shrink-0 underline font-medium bg-transparent border-0 p-0 cursor-pointer text-alerta">
+        <Boton type="button" principal={false} onClick={reintentar} className="shrink-0">
           Reintentar
-        </button>
+        </Boton>
       )}
     </div>
   );

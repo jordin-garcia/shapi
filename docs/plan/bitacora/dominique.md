@@ -160,3 +160,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: se eligió un patrón creacional para no coincidir con los elementos de Jordin, Emilio y José Pablo.
 - Pendiente o aviso para otros:
   - **JG-29:** la tabla de funcionalidades de Dominique está al final de `docs/video/elementos/dominique.md`.
+
+## 2026-10-29 · DC-16 · Revisión visual contra los mockups
+- Hecho: revisión de 48 rutas a 1280 px con la siembra (`docs/plan/revision-visual.md`); corrección de A3.5 y del botón «Reintentar» del panel y del portal.
+- Decisiones: las diferencias que vienen de los datos de la siembra o de precisiones ya documentadas no se corrigen.
+- Pendiente o aviso para otros:
+  - **EM-24:** A2.1 sin «Plan actual», «sept» en A6.3 y encabezado y fecha de B1.4.
+  - **JZ-20:** acción «Suspender» en organizaciones suspendidas (A6.2), tabla recortada en A6.5 y texto del aviso de B3.1.
+  - **Emilio:** `AvisoError` de `modulos/identidad/Formularios.tsx` ahora usa `Boton` secundario (criterio 4 de DC-16).
