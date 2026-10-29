@@ -265,8 +265,9 @@ paths:
         "400":
           description: |
             Datos inválidos (`datos_invalidos`), con el error en cada campo de `errores`: falta la tarjeta que pide un
-            plan de pago (`tarjeta`), o el vencimiento o el titular no son válidos (`tarjeta.vencimiento` y
-            `tarjeta.titular`).
+            plan de pago (`tarjeta`), o el mes, el año de vencimiento o el titular no son válidos
+            (`tarjeta.mesVencimiento`, `tarjeta.anioVencimiento` y `tarjeta.titular`). El formato del vencimiento
+            se valida antes de enviar la tarjeta a la pasarela.
           content:
             application/problem+json:
               schema:
@@ -292,7 +293,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problema"
         "404":
-          description: Portal, plan o consumidor no encontrado
+          description: |
+            Portal o consumidor no encontrado (`api_no_encontrada`), o plan que no es de esta API
+            (`plan_no_encontrado`)
           content:
             application/problem+json:
               schema:
@@ -317,7 +320,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuscripcionActual"
         "404":
-          description: No existe una suscripción vigente
+          description: |
+            No existe una suscripción vigente (`suscripcion_no_encontrada`), o portal o consumidor no encontrado
+            (`api_no_encontrada`)
           content:
             application/problem+json:
               schema:
@@ -334,7 +339,13 @@ paths:
         "403":
           description: Sin permiso o falta la cabecera X-Requested-With
         "404":
-          description: Portal, consumidor o suscripción vigente no encontrado
+          description: |
+            Portal o consumidor no encontrado (`api_no_encontrada`), o no hay una suscripción vigente
+            (`suscripcion_no_encontrada`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problema"
   /api/portal/suscripcion/pagar:
     post:
       summary: Reactiva la suscripción API del consumidor en gracia o suspendida
@@ -355,7 +366,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ResultadoReactivacionSuscripcionApi" }
         "400":
-          description: Falta la tarjeta o sus datos no son válidos
+          description: |
+            Falta la tarjeta (`tarjeta`), o el mes, el año de vencimiento o el titular no son válidos
+            (`tarjeta.mesVencimiento`, `tarjeta.anioVencimiento` o `tarjeta.titular`)
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
@@ -365,7 +378,9 @@ paths:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
         "404":
-          description: Portal, consumidor o suscripción por reactivar no encontrado
+          description: |
+            Portal o consumidor no encontrado (`api_no_encontrada`), o no hay una suscripción por reactivar
+            (`suscripcion_no_encontrada`)
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
@@ -404,7 +419,9 @@ paths:
                   - $ref: "#/components/schemas/ResultadoCambioProgramado"
                   - $ref: "#/components/schemas/ResultadoSinCambios"
         "400":
-          description: Falta la tarjeta o sus datos no son válidos
+          description: |
+            Falta la tarjeta (`tarjeta`), o el mes, el año de vencimiento o el titular no son válidos
+            (`tarjeta.mesVencimiento`, `tarjeta.anioVencimiento` o `tarjeta.titular`)
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
@@ -414,7 +431,9 @@ paths:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }
         "404":
-          description: Portal, consumidor, suscripción o plan no encontrado
+          description: |
+            Portal o consumidor no encontrado (`api_no_encontrada`), sin suscripción activa
+            (`suscripcion_no_encontrada`) o plan activo no encontrado (`plan_no_encontrado`)
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problema" }

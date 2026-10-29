@@ -973,8 +973,9 @@ export interface operations {
             };
             /**
              * @description Datos inválidos (`datos_invalidos`), con el error en cada campo de `errores`: falta la tarjeta que pide un
-             *     plan de pago (`tarjeta`), o el vencimiento o el titular no son válidos (`tarjeta.vencimiento` y
-             *     `tarjeta.titular`).
+             *     plan de pago (`tarjeta`), o el mes, el año de vencimiento o el titular no son válidos
+             *     (`tarjeta.mesVencimiento`, `tarjeta.anioVencimiento` y `tarjeta.titular`). El formato del vencimiento
+             *     se valida antes de enviar la tarjeta a la pasarela.
              */
             400: {
                 headers: {
@@ -993,7 +994,10 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description Portal, plan o consumidor no encontrado */
+            /**
+             * @description Portal o consumidor no encontrado (`api_no_encontrada`), o plan que no es de esta API
+             *     (`plan_no_encontrado`)
+             */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1055,7 +1059,10 @@ export interface operations {
                     "application/json": components["schemas"]["SuscripcionActual"];
                 };
             };
-            /** @description No existe una suscripción vigente */
+            /**
+             * @description No existe una suscripción vigente (`suscripcion_no_encontrada`), o portal o consumidor no encontrado
+             *     (`api_no_encontrada`)
+             */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1096,12 +1103,17 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Portal, consumidor o suscripción vigente no encontrado */
+            /**
+             * @description Portal o consumidor no encontrado (`api_no_encontrada`), o no hay una suscripción vigente
+             *     (`suscripcion_no_encontrada`)
+             */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["Problema"];
+                };
             };
         };
     };
@@ -1129,7 +1141,10 @@ export interface operations {
                     "application/json": components["schemas"]["ResultadoReactivacionSuscripcionApi"];
                 };
             };
-            /** @description Falta la tarjeta o sus datos no son válidos */
+            /**
+             * @description Falta la tarjeta (`tarjeta`), o el mes, el año de vencimiento o el titular no son válidos
+             *     (`tarjeta.mesVencimiento`, `tarjeta.anioVencimiento` o `tarjeta.titular`)
+             */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1147,7 +1162,10 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description Portal, consumidor o suscripción por reactivar no encontrado */
+            /**
+             * @description Portal o consumidor no encontrado (`api_no_encontrada`), o no hay una suscripción por reactivar
+             *     (`suscripcion_no_encontrada`)
+             */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1202,7 +1220,10 @@ export interface operations {
                     "application/json": components["schemas"]["ResultadoCambioSuscripcionApi"] | components["schemas"]["ResultadoCambioProgramado"] | components["schemas"]["ResultadoSinCambios"];
                 };
             };
-            /** @description Falta la tarjeta o sus datos no son válidos */
+            /**
+             * @description Falta la tarjeta (`tarjeta`), o el mes, el año de vencimiento o el titular no son válidos
+             *     (`tarjeta.mesVencimiento`, `tarjeta.anioVencimiento` o `tarjeta.titular`)
+             */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1220,7 +1241,10 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problema"];
                 };
             };
-            /** @description Portal, consumidor, suscripción o plan no encontrado */
+            /**
+             * @description Portal o consumidor no encontrado (`api_no_encontrada`), sin suscripción activa
+             *     (`suscripcion_no_encontrada`) o plan activo no encontrado (`plan_no_encontrado`)
+             */
             404: {
                 headers: {
                     [name: string]: unknown;

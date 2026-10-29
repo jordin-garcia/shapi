@@ -53,7 +53,9 @@ public sealed class RepositorioApis(ShapiDbContext db) : IRepositorioApis
 
     public async Task BloquearApi(Api api, CancellationToken cancelacion = default)
     {
-        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM api WHERE id = {api.Id} FOR UPDATE", cancelacion);
+        // Auditoría 2026-10-03, H-112: FOR NO KEY UPDATE no choca con el FOR KEY SHARE que toman las FK de las tablas
+        // hijas (consumo_diario, plan_api, ruta...), así que insertar en ellas no espera ni se cruza con este bloqueo.
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM api WHERE id = {api.Id} FOR NO KEY UPDATE", cancelacion);
         await db.Entry(api).ReloadAsync(cancelacion);
     }
 

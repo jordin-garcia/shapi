@@ -71,19 +71,31 @@ public class ServicioRecuperacion : IServicioRecuperacion
             }
         }
 
-        // 10 §1: como máximo 3 solicitudes por hora por cuenta. La consulta se hace también si la cuenta no existe,
-        // sobre un ID que no existe, para que las dos rutas hagan el mismo trabajo (10 §8).
+        var valorToken = SeguridadTokens.GenerarToken();
+        var hash = SeguridadTokens.HashearToken(valorToken);
+
+        // Las dos ramas trabajan dentro de una transacción, para hacer los mismos viajes a la base, incluido el COMMIT.
+        await using var transaccion = await _db.Database.BeginTransactionAsync(cancelacion);
+
+        // 10 §1: como máximo 3 solicitudes por hora por cuenta. Las solicitudes simultáneas de una cuenta se serializan
+        // bloqueando su fila: si no, leerían el mismo conteo y crearían más de 3 enlaces (auditoría 2026-10-03, H-98).
+        // Si la cuenta no existe, el bloqueo y el conteo se hacen sobre un ID que no existe, para que las dos rutas
+        // hagan el mismo trabajo (10 §8).
         var cuentaId = usuarioId ?? consumidorId ?? Guid.Empty;
+        if (ambito == AmbitoSesion.Personal)
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM usuario WHERE id = {cuentaId} FOR UPDATE", cancelacion);
+        }
+        else
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM consumidor WHERE id = {cuentaId} FOR UPDATE", cancelacion);
+        }
+
         var desde = ahora - TimeSpan.FromHours(1);
         var recientes = await _db.Set<Token>().IgnoreQueryFilters()
             .CountAsync(t => t.Tipo == TipoToken.Recuperacion && (t.UsuarioId == cuentaId || t.ConsumidorId == cuentaId)
                 && t.CreadoEn > desde, cancelacion);
 
-        var valorToken = SeguridadTokens.GenerarToken();
-        var hash = SeguridadTokens.HashearToken(valorToken);
-
-        // Las dos ramas escriben dentro de una transacción, para hacer los mismos viajes a la base, incluido el COMMIT.
-        await using var transaccion = await _db.Database.BeginTransactionAsync(cancelacion);
         if (nombre is null || recientes >= SolicitudesPorHora)
         {
             // 10 §8: el mismo tiempo de respuesta exista o no la cuenta. En vez de guardar el token y el correo, una

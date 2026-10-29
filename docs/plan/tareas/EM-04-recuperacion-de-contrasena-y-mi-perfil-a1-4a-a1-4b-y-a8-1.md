@@ -61,7 +61,7 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - `POST /api/perfil/contrasena` valida la política (10-128 chars, distinta del correo), verifica la contraseña actual y revoca las demás sesiones (mantiene la activa).
 - La lógica de recuperación está en `IServicioRecuperacion` con parámetro `ambito` para reutilización en EM-05.
 - A1.4a, A1.4b y A8.1 implementadas según mockups. A1.4b muestra enlace (via `<Link>`) a `/recuperar` cuando el token es inválido o está vencido.
-- **Precisión (§C):** A1.4b no muestra el correo porque el enlace solo lleva `?token=`. Usa el texto fijo "Defina una contraseña nueva para su cuenta." Documentado en `docs/specs/11-interfaz.md §Precisiones`.
+- **Precisión (§C):** A1.4b no muestra el correo porque el enlace solo lleva `?token=`. Usa el texto fijo "Defina una contraseña nueva para su cuenta." Documentado en `docs/specs/11-interfaz.md` §4, «Comportamiento de la recuperación y de Mi perfil (EM-04)».
 - Contrato OpenAPI actualizado: `POST /api/auth/restablecer` 400 → `DatosInvalidos` (con `errores.contrasena`). Tipos TypeScript regenerados.
 - Pruebas Vitest de las 3 pantallas y pruebas de integración backend (criterios 1-4, incluye validación contraseña=correo).
 

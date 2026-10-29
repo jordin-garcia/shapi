@@ -306,6 +306,32 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
+    // RF-20 (auditoría 2026-10-03, H-105): si el plan se desactiva mientras se contrata, la contratación espera el
+    // COMMIT, vuelve a leer el plan y no lo contrata.
+    [Fact]
+    public async Task RF_20_Contratar_MientrasSeDesactivaElPlan_EsperaYResponde422SinCobrar()
+    {
+        var e = await CrearEscenario(verificado: true);
+        await using var desactivacion = new Npgsql.NpgsqlConnection(Cadena);
+        await desactivacion.OpenAsync();
+        await using var transaccion = await desactivacion.BeginTransactionAsync();
+        await using (var comando = new Npgsql.NpgsqlCommand(
+            $"SELECT 1 FROM plan_api WHERE id = '{e.PlanId}' FOR UPDATE; UPDATE plan_api SET activo = false WHERE id = '{e.PlanId}'",
+            desactivacion, transaccion))
+        {
+            await comando.ExecuteNonQueryAsync();
+        }
+
+        var contratacion = Portal(HttpMethod.Post, "/api/portal/suscripciones", e, new { planId = e.PlanId, tarjeta = Tarjeta });
+        await EsperaDeBloqueos.EsperarAsync(Cadena, TimeSpan.FromSeconds(3));
+        await transaccion.CommitAsync();
+        using var respuesta = await contratacion;
+
+        await AfirmarProblema(respuesta, HttpStatusCode.UnprocessableEntity, "plan_no_encontrado");
+        (await Escalar<long>("SELECT count(*) FROM suscripcion_api")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+    }
+
     // RF-20: el consumidor consulta el periodo, renovación, límites y tarjeta enmascarada.
     [Fact]
     public async Task ObtenerSuscripcion_DevuelvePeriodoMostradoProximaRenovacionYLimites()
@@ -389,6 +415,29 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
             .Should().Equal(e.PlanId.ToString(), "activa");
         (await Escalar<long>($"SELECT count(*) FROM pago WHERE suscripcion_api_id = '{suscripcion}' AND concepto = 'cambio_plan' AND estado = 'rechazado'"))
             .Should().Be(1);
+    }
+
+    // RF-25 (auditoría 2026-10-03, H-103): el cambio de plan valida el vencimiento igual que la contratación.
+    [Fact]
+    public async Task RF_25_CambiarPlanApi_AnioMalEscrito_Responde400EnSuCampoSinCambiar()
+    {
+        var e = await CrearEscenario(verificado: true);
+        var destino = await Escalar<Guid>($"""
+            INSERT INTO plan_api (id, api_id, nombre, descripcion, precio, es_gratuito, vigencia_dias, cuota_llamadas, limite_minuto, activo)
+            VALUES (gen_random_uuid(), '{e.ApiId}', 'Superior', 'Plan superior', 900, false, 30, 9000, 120, true)
+            RETURNING id
+            """);
+        var suscripcion = await NuevaSuscripcionApiEn(e.ConsumidorId, e.ApiId, e.PlanId, "activa",
+            Reloj.Ahora.AddDays(-17), Reloj.Ahora.AddDays(13));
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/cambiar", e,
+            new { planId = destino, tarjeta = Tarjeta with { AnioVencimiento = "203" } });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.BadRequest, await respuesta.Content.ReadAsStringAsync());
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        problema.GetProperty("errores").EnumerateObject().Select(x => x.Name).Should().Equal("tarjeta.anioVencimiento");
+        (await Fila($"SELECT plan_id::text FROM suscripcion_api WHERE id = '{suscripcion}'")).Should().Equal(e.PlanId.ToString());
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
     }
 
     // RF-25: bajar o igualar precio diario programa el plan para el próximo cierre sin cobrar.
@@ -518,6 +567,69 @@ public sealed class ContratacionTests(PostgresPersistencia postgres, RedisCache 
         var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
         problema.GetProperty("codigo").GetString().Should().Be("datos_invalidos");
         problema.GetProperty("errores").GetProperty("tarjeta").GetArrayLength().Should().BeGreaterThan(0);
+    }
+
+    // RF-20 (auditoría 2026-10-03, H-103): un vencimiento mal escrito es 400 datos_invalidos en su campo, antes de que
+    // la pasarela responda 422 tarjeta_vencida (convenciones §5).
+    [Theory]
+    [InlineData("13", "2030", "tarjeta.mesVencimiento")]
+    [InlineData("0", "2030", "tarjeta.mesVencimiento")]
+    [InlineData("ab", "2030", "tarjeta.mesVencimiento")]
+    [InlineData("12", "20x0", "tarjeta.anioVencimiento")]
+    [InlineData("12", "-1", "tarjeta.anioVencimiento")]
+    [InlineData("12", "203", "tarjeta.anioVencimiento")]
+    [InlineData("12", "5", "tarjeta.anioVencimiento")]
+    public async Task RF_20_Contratar_VencimientoMalEscrito_Responde400EnSuCampo(string mes, string anio, string campo)
+    {
+        var e = await CrearEscenario(verificado: true);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripciones", e,
+            new { planId = e.PlanId, tarjeta = Tarjeta with { MesVencimiento = mes, AnioVencimiento = anio } });
+
+        respuesta.StatusCode.Should().Be(HttpStatusCode.BadRequest, "respuesta API: {0}", await respuesta.Content.ReadAsStringAsync());
+        var problema = await respuesta.Content.ReadFromJsonAsync<JsonElement>();
+        problema.GetProperty("codigo").GetString().Should().Be("datos_invalidos");
+        problema.GetProperty("errores").EnumerateObject().Select(x => x.Name).Should().Equal(campo);
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+        (await Escalar<long>("SELECT count(*) FROM medio_pago")).Should().Be(0);
+    }
+
+    // RF-22 (auditoría 2026-10-03, H-103): la reactivación valida el vencimiento igual que la contratación.
+    [Fact]
+    public async Task RF_22_PagarSuscripcionApi_MesMalEscrito_Responde400EnSuCampo()
+    {
+        var e = await CrearEscenario(verificado: true);
+        await Ejecutar($"""
+            INSERT INTO suscripcion_api (id, consumidor_id, api_id, plan_id, estado, inicio, fin, gracia_hasta)
+            VALUES (gen_random_uuid(), '{e.ConsumidorId}', '{e.ApiId}', '{e.PlanId}', 'suspendida',
+                    '{Reloj.Ahora.AddDays(-37):O}', '{Reloj.Ahora.AddDays(-7):O}', '{Reloj.Ahora:O}')
+            """);
+
+        using var respuesta = await Portal(HttpMethod.Post, "/api/portal/suscripcion/pagar", e,
+            new { tarjeta = Tarjeta with { MesVencimiento = "13" } });
+
+        await AfirmarProblema(respuesta, HttpStatusCode.BadRequest, "datos_invalidos");
+        (await Escalar<long>("SELECT count(*) FROM pago")).Should().Be(0);
+    }
+
+    // RF-20 (auditoría 2026-10-03, H-106): todo 404 de la contratación trae su código (convenciones §5).
+    [Theory]
+    [InlineData("GET", "/api/portal/suscripcion", false, "suscripcion_no_encontrada")]
+    [InlineData("DELETE", "/api/portal/suscripcion/cambio-programado", false, "suscripcion_no_encontrada")]
+    [InlineData("POST", "/api/portal/suscripciones", false, "plan_no_encontrado")]
+    [InlineData("POST", "/api/portal/suscripciones", true, "api_no_encontrada")]
+    [InlineData("GET", "/api/portal/suscripcion", true, "api_no_encontrada")]
+    [InlineData("POST", "/api/portal/suscripcion/cambiar", true, "api_no_encontrada")]
+    [InlineData("POST", "/api/portal/suscripcion/pagar", true, "api_no_encontrada")]
+    public async Task RF_20_NoEncontrado_TraeSuCodigo(string metodo, string ruta, bool deOtraOrganizacion, string codigo)
+    {
+        var e = await CrearEscenario(verificado: true);
+        var quien = deOtraOrganizacion ? await CrearEscenario(verificado: true, subdominio: "agro") : e;
+        object? cuerpo = metodo == "POST" ? new { planId = Guid.NewGuid(), tarjeta = Tarjeta } : null;
+
+        using var respuesta = await Portal(new HttpMethod(metodo), ruta, quien, cuerpo);
+
+        await AfirmarProblema(respuesta, HttpStatusCode.NotFound, codigo);
     }
 
     // RNF-08: la sesión de otra organización no revela ni modifica datos del portal.

@@ -64,7 +64,7 @@ dotnet format Shapi.slnx --verify-no-changes
 - Una sola llamada por petición (criterio 8): `EVALSHA` con el SHA-1 del script. Si Redis responde `NOSCRIPT` porque se reinició o vació su caché de scripts, se ejecuta una vez con `EVAL`, que lo deja cargado. StackExchange.Redis, con el texto del script, mandaba `EVAL` en la primera llamada de cada conexión.
 - Rechazos 429 con el contrato de 08 §4: `limite_por_minuto` (plan o ruta, `Retry-After` hasta el siguiente minuto), `cuota_agotada` (`Retry-After` hasta el fin del ciclo, con el mensaje de 08 §4) y `cuota_plataforma_agotada` (`Retry-After` hasta el fin del ciclo de plataforma).
 - Las siete cabeceras de 08 §5 se ponen al responder (`OnStarting`), en el reenvío y en todos los rechazos desde el filtro 6, incluidos los 429, 502 y 504. Reemplazan las del origen con el mismo nombre. Los nombres quedaron en `CabecerasCompuerta`.
-- 502: `ReenvioOrigen` llama a `ContextoPeticion.DevolverReserva`, que hace `DECRBY` de la cuota y `DECR` de la cuota de plataforma en un lote. Si Redis falla, solo se registra. Los 4xx y 5xx del origen y los 504 descuentan.
+- 502 sin conexión: `ReenvioOrigen` llama a `ContextoPeticion.DevolverReserva` solo si la petición no llegó al origen (desde #65; auditoría 2026-10-03, H-102). El 502 de un origen que cortó la conexión después de recibirla descuenta. `DevolverReserva` hace `DECRBY` de la cuota y `DECR` de la cuota de plataforma en un lote. Si Redis falla, solo se registra. Los 4xx y 5xx del origen y los 504 descuentan.
 - Clave de pruebas: el mismo script, con `rl:p` (10 por minuto) y `dia:p` (1,000 por día de Guatemala) en el lugar de la cuota. No usa el límite de la ruta ni toca `cuota:*`, y responde `X-Shapi-Plan: Pruebas`.
 - Pruebas: 21 de integración con Redis real y un reloj fijo (`Tuberia/LimitesYCuotasTests.cs`), incluida la de 50 peticiones simultáneas con cuota 30, y unitarias del cálculo de `Retry-After` y del día de Guatemala (`Filtros/CalculoLimitesTests.cs`). `RNF_01_ContextoDeRedis_TresViajesPorPeticion` comprueba ahora los tres viajes de 08 §8.
 
@@ -72,7 +72,7 @@ dotnet format Shapi.slnx --verify-no-changes
 - Con la clave de pruebas, pasar las 1,000 peticiones del día responde 429 `cuota_agotada`, con `Retry-After` hasta la medianoche de Guatemala. Las `X-Cuota-*` informan ese límite diario. La especificación no decía qué código usar.
 - Si el `fin` del ciclo ya pasó, por ejemplo con el trabajador caído, los contadores de cuota vencen 8 días después de ahora en vez de `fin + 8 días`. Si no, el `EXPIREAT` en el pasado borraría el contador y la cuota se reiniciaría en cada petición. En ese caso, `Retry-After` es 1.
 - `X-RateLimit-Remaining` es lo que queda del menor de los dos límites. `X-Cuota-Reinicio` va en UTC (`2026-10-31T06:00:00Z`).
-- Un 502 devuelve las cuotas, pero no los contadores por minuto, como dice 08 §3.
+- Un 502 sin conexión devuelve las cuotas, pero no los contadores por minuto, como dice 08 §3. Desde #65, un 502 después de enviar la petición no las devuelve (H-102).
 - Criterio 7, precisado en 08 §5: "toda respuesta con una clave válida" son las que llegan al filtro 6 (el reenvío, sus 502 y 504, y los 429). Los rechazos de los filtros 1 a 5, como un 403 `ruta_no_permitida` con una clave válida, no llevan las cabeceras: el filtro 6 no se ejecutó y calcularlas costaría otro viaje a Redis.
 - Los mensajes escriben las fechas y los miles sin depender de la cultura del sistema, porque la imagen Alpine no trae ICU.
 

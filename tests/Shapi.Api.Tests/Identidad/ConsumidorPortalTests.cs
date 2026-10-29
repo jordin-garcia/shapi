@@ -151,6 +151,91 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
     }
 
     [Fact]
+    public async Task RF_03_RecuperarEnElPortal_ExistaONoLaCuenta_HacenLasMismasConsultas()
+    {
+        // 10 §8 (auditoría 2026-10-03, H-99): el portal usa el mismo servicio que el panel y debe hacer el mismo trabajo.
+        const string host = "recuperar-consultas.shapi.localhost";
+        await InsertarApi("recuperar-consultas");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", host,
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@consultas.test", contrasena = "ContrasenaValida123" });
+        var contador = new ContadorComandos();
+        await using var fabrica = _fabrica.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
+            s.ConfigureDbContext<ShapiDbContext>(o => o.AddInterceptors(contador))));
+        using var cliente = fabrica.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+
+        async Task<int> Contar(string correo)
+        {
+            contador.Comandos = 0;
+            var peticion = new HttpRequestMessage(HttpMethod.Post, "/api/portal/auth/recuperar") { Content = JsonContent.Create(new { correo }) };
+            peticion.Headers.Host = host;
+            peticion.Headers.Add("X-Requested-With", "shapi");
+            Assert.Equal(HttpStatusCode.OK, (await cliente.SendAsync(peticion)).StatusCode);
+            return contador.Comandos;
+        }
+
+        var inexistente = await Contar("nadie@consultas.test");
+        var existente = await Contar("ana@consultas.test");
+        await Contar("ana@consultas.test");
+        await Contar("ana@consultas.test");
+        var cuarta = await Contar("ana@consultas.test");
+
+        Assert.Equal(inexistente, existente);
+        Assert.Equal(inexistente, cuarta);
+        Assert.True(existente > 1);
+    }
+
+    [Fact]
+    public async Task RF_03_RecuperarEnElPortal_MasDeTresEnUnaHora_NoEncolaMasYRespondeIgual()
+    {
+        // 10 §1 (auditoría 2026-10-03, H-99): como máximo 3 solicitudes por hora por consumidor, también en el portal.
+        const string host = "recuperar-limite.shapi.localhost";
+        await InsertarApi("recuperar-limite");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", host,
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@limite.test", contrasena = "ContrasenaValida123" });
+
+        var respuestas = await Task.WhenAll(Enumerable.Range(0, 5)
+            .Select(_ => Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", host, new { correo = "ana@limite.test" })));
+
+        Assert.All(respuestas, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
+        Assert.Equal(3, await CorreosDeRecuperacion("ana@limite.test"));
+        _reloj.Avanzar(TimeSpan.FromMinutes(61));
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", host, new { correo = "ana@limite.test" })).StatusCode);
+        Assert.Equal(4, await CorreosDeRecuperacion("ana@limite.test"));
+    }
+
+    [Fact]
+    public async Task RF_03_RestablecerEnElPortal_InvalidaLosDemasEnlacesYReiniciaElBloqueo()
+    {
+        // 10 §1 (auditoría 2026-10-03, H-99).
+        const string host = "restablecer-otros.shapi.localhost";
+        await InsertarApi("restablecer-otros");
+        await Enviar(HttpMethod.Post, "/api/portal/auth/registro", host,
+            new { nombre = "Ana", nombreEmpresa = "Tienda", correo = "ana@otros.test", contrasena = "ContrasenaValida123" });
+        await Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", host, new { correo = "ana@otros.test" });
+        await Enviar(HttpMethod.Post, "/api/portal/auth/recuperar", host, new { correo = "ana@otros.test" });
+        var tokens = await TokensDeRecuperacion("ana@otros.test");
+        Assert.Equal(2, tokens.Count);
+        await using (var alcance = _fabrica.Services.CreateAsyncScope())
+        {
+            var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+            var hasta = _reloj.Ahora + Consumidor.DuracionBloqueo;
+            await db.Set<Consumidor>().IgnoreQueryFilters().Where(c => c.Correo == "ana@otros.test")
+                .ExecuteUpdateAsync(c => c.SetProperty(x => x.BloqueadoHasta, hasta));
+        }
+
+        Assert.Equal(HttpStatusCode.Locked, (await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", host,
+            new { correo = "ana@otros.test", contrasena = "ContrasenaValida123" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/portal/auth/restablecer", host,
+            new { token = tokens[1], contrasena = "NuevaContrasena456" })).StatusCode);
+        var anterior = await Enviar(HttpMethod.Post, "/api/portal/auth/restablecer", host,
+            new { token = tokens[0], contrasena = "OtraContrasena789" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, anterior.StatusCode);
+        Assert.Equal("token_invalido", (await anterior.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("codigo").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await Enviar(HttpMethod.Post, "/api/portal/auth/entrar", host,
+            new { correo = "ana@otros.test", contrasena = "NuevaContrasena456" })).StatusCode);
+    }
+
+    [Fact]
     public async Task RF_03_Recuperar_EnlaceVenceALos60Minutos()
     {
         await InsertarApi("recuperar-expira");
@@ -741,6 +826,23 @@ public sealed class ConsumidorPortalTests(ContenedorPostgresConsumidor postgres)
         }
 
         throw new Xunit.Sdk.XunitException($"No se encontró correo para {host}.");
+    }
+
+    private async Task<int> CorreosDeRecuperacion(string correo) => (await TokensDeRecuperacion(correo)).Count;
+
+    /// <summary>Los tokens de los correos de recuperación del consumidor (con el reloj falso, el orden no es el de envío).</summary>
+    private async Task<List<string>> TokensDeRecuperacion(string correo)
+    {
+        await using var alcance = _fabrica.Services.CreateAsyncScope();
+        var db = alcance.ServiceProvider.GetRequiredService<ShapiDbContext>();
+        var datos = await db.Set<CorreoSaliente>().IgnoreQueryFilters()
+            .Where(c => c.Destinatario == correo && c.Plantilla == "recuperacion")
+            .OrderBy(c => c.CreadoEn).ThenBy(c => c.Id).Select(c => c.Datos).ToListAsync();
+        return datos.Select(d =>
+        {
+            using var json = JsonDocument.Parse(d);
+            return json.RootElement.GetProperty("token").GetString()!;
+        }).ToList();
     }
 
     private Task<HttpResponseMessage> Enviar(HttpMethod metodo, string ruta, string host, object? cuerpo = null, string? cookie = null)
