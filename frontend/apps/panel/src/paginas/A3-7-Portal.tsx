@@ -4,6 +4,7 @@ import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/apis';
 import { Aviso, Boton, EstadoCargando, EstadoError, Tarjeta } from '@shapi/ui';
 import { useParams } from 'react-router';
+import { usePuedeConfigurarApi } from '../modulos/sesion/usePuedeConfigurarApi';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type PersonalizacionPortal = components['schemas']['PersonalizacionPortal'];
@@ -41,6 +42,7 @@ function Codigo({ valor }: { valor: unknown }) {
 }
 
 export default function PaginaA37Portal() {
+  const puedeConfigurar = usePuedeConfigurarApi();
   const { id = '' } = useParams();
   const cache = useQueryClient();
   const selectorLogo = useRef<HTMLInputElement>(null);
@@ -175,7 +177,7 @@ export default function PaginaA37Portal() {
         <Tarjeta className="flex flex-col p-5">
           <h2 className="font-display text-[21px] leading-[1.3]">Marca del portal</h2>
 
-          <div className="mt-5 flex flex-col gap-[18px] border-t border-borde-fila pt-5">
+          {puedeConfigurar ? <div className="mt-5 flex flex-col gap-[18px] border-t border-borde-fila pt-5">
             <div className="flex flex-col gap-[7px]">
               <span className="text-[13px] font-semibold text-tinta">Logotipo</span>
               <div className="flex items-center justify-between gap-[14px] rounded-base border border-borde-campo py-[10px] pl-[10px] pr-[14px]">
@@ -264,12 +266,17 @@ export default function PaginaA37Portal() {
                 <p key={detalle} className="text-[13px] text-alerta">{detalle}</p>
               ))}
             </div>
-          </div>
+          </div> : <dl className="mt-5 grid gap-4 border-t border-borde-fila pt-5 text-[15px]">
+            <div><dt className="text-tinta-suave">Logotipo</dt><dd>{urlLogoVivo ? <img src={urlLogoVivo} alt={nombreVivo} className="size-11 object-contain" /> : etiquetaArchivoLogo}</dd></div>
+            <div><dt className="text-tinta-suave">Color principal</dt><dd>{valorColor}</dd></div>
+            <div><dt className="text-tinta-suave">Nombre del portal</dt><dd>{valorNombre}</dd></div>
+            <div><dt className="text-tinta-suave">Texto de bienvenida</dt><dd>{valorBienvenida}</dd></div>
+          </dl>}
 
           {mensaje && <div className="mt-4"><Aviso estado="exito">{mensaje}</Aviso></div>}
           {error && <div className="mt-4"><Aviso estado="error">{error}</Aviso></div>}
 
-          <div className="mt-6">
+          {puedeConfigurar && <div className="mt-6">
             <Boton
               type="button"
               className="w-full"
@@ -282,7 +289,7 @@ export default function PaginaA37Portal() {
             >
               Guardar personalización
             </Boton>
-          </div>
+          </div>}
         </Tarjeta>
 
         <Tarjeta className="flex flex-col p-5">

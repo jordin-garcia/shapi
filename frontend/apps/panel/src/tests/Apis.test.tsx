@@ -25,6 +25,7 @@ function envolver(contenido: React.ReactNode, ruta = '/panel/apis') {
 }
 
 beforeEach(() => {
+  server.use(http.get('http://localhost/api/auth/sesion', () => HttpResponse.json({ usuario: { nombre: 'Ana' }, organizacion: { id: 'org-1' }, rol: 'propietario' })));
   cliente = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 });
 

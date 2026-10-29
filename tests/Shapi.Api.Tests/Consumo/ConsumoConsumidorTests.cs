@@ -1,8 +1,12 @@
+extern alias compuerta;
+
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +18,8 @@ using Shapi.Aplicacion.Comun;
 using Shapi.Contratos.Redis;
 using Shapi.Dominio.Identidad;
 using Shapi.Infraestructura.Identidad;
+using Shapi.Trabajador.Consolidacion;
+using ProgramaCompuerta = compuerta::Program;
 
 namespace Shapi.Api.Tests.Consumo;
 
@@ -71,6 +77,82 @@ public sealed class ConsumoConsumidorTests(PostgresPersistencia postgres, RedisC
             await _fabrica.DisposeAsync();
         }
         await base.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task RF_37_CompuertaReal_TrasConsolidarElPortalCoincideConLaUltimaCabeceraDeCuota()
+    {
+        const string clave = "shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e";
+        // Redis aplica EXPIREAT con su reloj real: el ciclo debe seguir vigente también para ese servidor.
+        Reloj.Ahora = DateTimeOffset.UtcNow;
+        var inicio = Reloj.Ahora.AddDays(-1);
+        var fin = inicio.AddDays(30);
+        await Ejecutar($"UPDATE suscripcion_api SET inicio = '{inicio:O}', fin = '{fin:O}' WHERE id = '{_suscripcion}'");
+        var peticionesOrigen = 0;
+        var constructor = WebApplication.CreateSlimBuilder();
+        constructor.WebHost.UseUrls("http://127.0.0.1:0");
+        await using var origen = constructor.Build();
+        origen.Run(http =>
+        {
+            Interlocked.Increment(ref peticionesOrigen);
+            return http.Response.WriteAsync("{\"guia\":\"GT123\"}");
+        });
+        await origen.StartAsync();
+        var puerto = new Uri(origen.Urls.Single()).Port;
+        await Ejecutar($"UPDATE api SET url_origen = 'http://localhost:{puerto}' WHERE id = '{_api}'");
+        var claveId = await NuevaClaveCon(_suscripcion, clave);
+        var planPlataforma = await NuevoPlanPlataformaCon(100_000);
+        await NuevaSuscripcionPlataformaEn(_organizacion, planPlataforma, "activa", inicio, fin);
+        using (var alcance = Servicios.CreateScope())
+        {
+            var publicador = Publicador(alcance);
+            await publicador.PublicarOrganizacion(_organizacion);
+            await publicador.PublicarApi(_api);
+            await publicador.PublicarSuscripcion(_suscripcion);
+            await publicador.PublicarClave(claveId);
+        }
+
+        await using var fabrica = new WebApplicationFactory<ProgramaCompuerta>().WithWebHostBuilder(web =>
+        {
+            web.UseSetting("SHAPI_REDIS", RedisCache.Cadena);
+            web.UseSetting("SHAPI_MODO_DEMO", "true");
+            web.UseSetting("SHAPI_ORIGENES_PERMITIDOS", $"localhost:{puerto}");
+            web.ConfigureTestServices(servicios => servicios.AddSingleton<TimeProvider>(new HoraCompuerta(Reloj.Ahora)));
+        });
+        fabrica.UseKestrel(opciones => opciones.Listen(IPAddress.Loopback, 0));
+        using var cliente = fabrica.CreateClient();
+        cliente.DefaultRequestHeaders.Host = "envios.api.shapi.localhost";
+        cliente.DefaultRequestHeaders.Add("X-Api-Key", clave);
+        long restante = 0;
+        for (var i = 1; i <= 3; i++)
+        {
+            using var respuesta = await cliente.PostAsync("/guias", new StringContent("{}"));
+            Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+            Assert.Equal("{\"guia\":\"GT123\"}", await respuesta.Content.ReadAsStringAsync());
+            restante = long.Parse(respuesta.Headers.GetValues("X-Cuota-Restante").Single(), System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Equal(50_000 - i * 5, restante);
+            Assert.Equal(restante, (await Obtener()).GetProperty("restante").GetInt64());
+        }
+        // Barrera en la misma conexión de la compuerta: sus métricas FireAndForget ya llegaron antes de consolidar.
+        await fabrica.Services.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>().GetDatabase().PingAsync();
+        await using var servicios = CrearServicios(ajustar: s => s.AgregarConsolidacion());
+        using (var alcance = servicios.CreateScope())
+        {
+            await alcance.ServiceProvider.GetRequiredService<ConsolidarConsumo>().EjecutarAsync(CancellationToken.None);
+        }
+        var consumo = await Obtener();
+        Assert.Equal(3, peticionesOrigen);
+        Assert.Equal(restante, consumo.GetProperty("restante").GetInt64());
+        Assert.Equal(15, consumo.GetProperty("llamadas").GetInt64());
+        Assert.Equal(15, consumo.GetProperty("llamadasConsolidadas").GetInt64());
+        Assert.Equal(3, consumo.GetProperty("peticiones").GetInt64());
+        Assert.Equal(_ruta, consumo.GetProperty("rutas")[0].GetProperty("rutaId").GetGuid());
+        Assert.Equal(15, consumo.GetProperty("rutas")[0].GetProperty("llamadas").GetInt64());
+    }
+
+    private sealed class HoraCompuerta(DateTimeOffset ahora) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => ahora;
     }
 
     [Fact]

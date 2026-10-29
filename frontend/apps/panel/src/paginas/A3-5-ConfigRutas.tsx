@@ -4,6 +4,7 @@ import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/apis';
 import { Aviso, Boton, EstadoCargando, EstadoError, Selector, Tarjeta } from '@shapi/ui';
 import { useParams } from 'react-router';
+import { usePuedeConfigurarApi } from '../modulos/sesion/usePuedeConfigurarApi';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type Ruta = components['schemas']['RutaAdministrada'];
@@ -30,6 +31,7 @@ function desdeRuta(ruta: Ruta): Edicion {
 const claseCampo = 'h-10 rounded-base border border-borde-campo bg-panel px-3 text-[14px] text-tinta outline-none focus:border-principal focus:ring-[3px] focus:ring-anillo-foco disabled:border-borde-inactivo disabled:bg-fondo disabled:text-tinta-inactiva';
 
 export default function PaginaA35ConfigRutas() {
+  const puedeConfigurar = usePuedeConfigurarApi();
   const { id = '' } = useParams();
   const cache = useQueryClient();
   const [ediciones, setEdiciones] = useState<Record<string, Edicion>>({});
@@ -99,9 +101,9 @@ export default function PaginaA35ConfigRutas() {
             return <tr key={ruta.id} className="border-b border-borde-fila">
               <td className="py-3 pr-4 text-[12px] font-semibold tracking-[0.06em] text-tinta-suave">{ruta.metodo}</td>
               <td className="py-3 pr-4 text-[15px]">{ruta.patron}</td>
-              <td className="py-3 pr-4"><label className="flex items-center gap-3"><input aria-label={`Límite por minuto de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[110px]`} type="number" min="1" value={edicion.limiteMinuto} onChange={evento => cambiar(ruta, 'limiteMinuto', evento.target.value)} /><span className="text-[13px] text-tinta-suave">peticiones</span></label></td>
-              <td className="py-3 pr-4"><Selector aria-label={`Caché de ${ruta.metodo} ${ruta.patron}`} className="w-[200px]" value={ruta.metodo === 'GET' ? edicion.cacheSegundos : '0'} disabled={ruta.metodo !== 'GET'} opciones={opcionesCache} onChange={evento => cambiar(ruta, 'cacheSegundos', evento.target.value)} /></td>
-              <td className="py-3"><label className="flex items-center gap-3"><input aria-label={`Peso en llamadas de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[72px]`} type="number" min="1" max="1000" value={edicion.pesoLlamadas} onChange={evento => cambiar(ruta, 'pesoLlamadas', evento.target.value)} /><span className="text-[13px] text-tinta-suave">{edicion.pesoLlamadas === '1' ? 'llamada' : 'llamadas'} por petición</span></label></td>
+              <td className="py-3 pr-4">{puedeConfigurar ? <label className="flex items-center gap-3"><input aria-label={`Límite por minuto de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[110px]`} type="number" min="1" value={edicion.limiteMinuto} onChange={evento => cambiar(ruta, 'limiteMinuto', evento.target.value)} /><span className="text-[13px] text-tinta-suave">peticiones</span></label> : ruta.limiteMinuto === null ? 'Sin límite por ruta' : `${ruta.limiteMinuto} peticiones`}</td>
+              <td className="py-3 pr-4">{puedeConfigurar ? <Selector aria-label={`Caché de ${ruta.metodo} ${ruta.patron}`} className="w-[200px]" value={ruta.metodo === 'GET' ? edicion.cacheSegundos : '0'} disabled={ruta.metodo !== 'GET'} opciones={opcionesCache} onChange={evento => cambiar(ruta, 'cacheSegundos', evento.target.value)} /> : opcionesCache.find(opcion => opcion.valor === String(ruta.cacheSegundos))?.etiqueta ?? `${ruta.cacheSegundos} segundos`}</td>
+              <td className="py-3">{puedeConfigurar ? <label className="flex items-center gap-3"><input aria-label={`Peso en llamadas de ${ruta.metodo} ${ruta.patron}`} className={`${claseCampo} w-[72px]`} type="number" min="1" max="1000" value={edicion.pesoLlamadas} onChange={evento => cambiar(ruta, 'pesoLlamadas', evento.target.value)} /><span className="text-[13px] text-tinta-suave">{edicion.pesoLlamadas === '1' ? 'llamada' : 'llamadas'} por petición</span></label> : `${ruta.pesoLlamadas} ${ruta.pesoLlamadas === 1 ? 'llamada' : 'llamadas'} por petición`}</td>
             </tr>;
           })}</tbody>
         </table>
@@ -109,7 +111,7 @@ export default function PaginaA35ConfigRutas() {
       {rutas.length === 0 && <Aviso estado="neutro">Exponga al menos una ruta antes de configurarla.</Aviso>}
       <div className="mt-2 flex items-center justify-between gap-8 border-t border-borde pt-5">
         <p className="max-w-[72ch] text-[14px] leading-[1.5] text-tinta-suave">El peso indica cuántas llamadas descuenta de la cuota del consumidor cada petición a esa ruta. El límite por minuto se cuenta en peticiones de cada consumidor y se aplica además del límite de su plan. La caché solo está disponible en rutas GET.</p>
-        <Boton className="shrink-0" type="button" deshabilitado={guardar.isPending || rutas.length === 0} onClick={() => guardar.mutate()}>{guardar.isPending ? 'Guardando…' : 'Guardar configuración'}</Boton>
+        {puedeConfigurar && <Boton className="shrink-0" type="button" deshabilitado={guardar.isPending || rutas.length === 0} onClick={() => guardar.mutate()}>{guardar.isPending ? 'Guardando…' : 'Guardar configuración'}</Boton>}
       </div>
       {mensaje && <div className="mt-4"><Aviso estado="exito">{mensaje}</Aviso></div>}
       {error && <div className="mt-4"><Aviso estado="error">{error}</Aviso></div>}
