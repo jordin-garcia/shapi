@@ -93,8 +93,9 @@ export default function PaginaA62Organizaciones() {
               <td className="py-3 pr-4 text-[14px] tabular-nums">{ciclo(organizacion)}</td>
               <td className="py-3 pr-4"><span className={`inline-block rounded-base border px-2.5 py-1 text-[12px] font-semibold uppercase tracking-[.06em] ${organizacion.estado === 'suspendida' ? 'border-[#EDC3B4] bg-[#FBE9E3] text-[#8E3315]' : organizacion.estado === 'en_gracia' ? 'border-borde bg-fondo text-tinta-suave' : 'border-[#B6DCC9] bg-[#E4F3EC] text-[#146542]'}`}>{tituloEstado(organizacion.estado)}</span></td>
               <td className="py-3 text-right">
-                {sesion?.rol === 'administrador' && (organizacion.suspendidaAdministrativamente
-                  ? <button type="button" aria-label={`Reactivar ${organizacion.nombre}`} onClick={() => mutacion.mutate({ organizacion, accion: 'reactivar' })} className="font-medium text-principal hover:underline">Reactivar</button>
+                {sesion?.rol === 'administrador' && (organizacion.estado === 'suspendida' || organizacion.suspendidaAdministrativamente
+                  ? <><button type="button" aria-label={`Reactivar ${organizacion.nombre}`} disabled={!organizacion.suspendidaAdministrativamente || mutacion.isPending} aria-describedby={!organizacion.suspendidaAdministrativamente ? `pago-${organizacion.id}` : undefined} onClick={() => mutacion.mutate({ organizacion, accion: 'reactivar' })} className="font-medium text-principal hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline">Reactivar</button>
+                    {!organizacion.suspendidaAdministrativamente && <p id={`pago-${organizacion.id}`} className="mt-1 text-[12px] text-tinta-suave">La suscripción requiere pago.</p>}</>
                   : <button type="button" aria-label={`Suspender ${organizacion.nombre}`} onClick={() => { mutacion.reset(); setSeleccionada(organizacion); }} className="font-medium text-principal hover:underline">Suspender</button>)}
               </td>
             </tr>)}</tbody>}

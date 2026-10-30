@@ -28,6 +28,15 @@ function abrir() {
   render(<QueryClientProvider client={cache}><RouterProvider router={createMemoryRouter([{ path: '/', element: <Cuentas /> }])} /></QueryClientProvider>);
 }
 
+it('JZ-20 · RNF-12 conserva las columnas y acciones completas con las cuentas de demostración', async () => {
+  abrir();
+  await screen.findByText('Julio Estrada Ixcot');
+  expect(screen.getAllByRole('columnheader').map(celda => celda.textContent)).toEqual(['Persona', 'Rol', 'Estado', 'Acción']);
+  expect(screen.getByText('Desactivada')).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Activar Julio Estrada Ixcot' })).toBeDefined();
+  expect(screen.getAllByRole('button', { name: /^Desactivar / })).toHaveLength(2);
+});
+
 it('RF-42 reproduce A6.5 y oculta la desactivación propia', async () => {
   abrir();
   expect(await screen.findByText('Lucía Ramírez Pineda')).toBeDefined();

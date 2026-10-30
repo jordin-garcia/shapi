@@ -57,7 +57,7 @@ export default function PaginaA65Cuentas() {
       <h1 className="font-display text-[32px] leading-[1.2]">Cuentas de administración y soporte</h1>
       <p className="text-[15px] leading-[1.55] text-tinta-suave">Personal de Shapi con acceso a la plataforma y el rol de cada persona.</p>
     </header>
-    <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+    <div className="mt-8 grid items-start gap-6 min-[1440px]:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_440px]">
       <section className="rounded-base border border-borde bg-panel p-5" aria-label="Cuentas de plataforma">
         {consulta.isPending && <EstadoCargando />}
         {consulta.isError && <EstadoError reintentar={() => void consulta.refetch()} />}

@@ -26,11 +26,18 @@ function fechaHora(valor: string) {
 }
 function Aviso({ componente, compuertaSana }: { componente: Componente; compuertaSana: boolean }) {
   const correo = componente.id === 'correo';
+  const nombres: Record<Componente['id'], string> = {
+    compuerta: 'La compuerta de APIs', api_control: 'La API de control',
+    trabajador: 'El trabajador en segundo plano', redis: 'La caché (Redis)',
+    postgres: 'La base de datos (PostgreSQL)', pasarela: 'La pasarela de pagos simulada',
+    correo: 'El envío de correo',
+  };
+  const femenino = componente.id !== 'trabajador' && !correo;
   const desde = componente.incidenciaDesde ? fechaHora(componente.incidenciaDesde) : null;
   return <div role="alert" className="mt-8 flex items-start gap-4 rounded-base border border-[#EDC3B4] bg-[#FBE9E3] p-5">
     <svg aria-hidden="true" className="mt-[2px] shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="#C2481F" strokeWidth="1.5" /><path d="M12 6.5 V13 M12 17 V17" stroke="#C2481F" strokeWidth="2" strokeLinecap="round" /></svg>
     <div className="flex flex-col gap-2">
-      <h2 className="font-display text-[21px] leading-[1.3] text-[#8E3315]">{correo ? 'El envío de correo' : catalogo[componente.id].nombre} está {componente.estado === 'degradado' ? 'degradado' : 'fuera de servicio'}</h2>
+      <h2 className="font-display text-[21px] leading-[1.3] text-[#8E3315]">{nombres[componente.id]} está {componente.estado === 'degradado' ? (femenino ? 'degradada' : 'degradado') : 'fuera de servicio'}</h2>
       <p className="text-[15px] leading-[1.55] text-tinta-suave">{correo ? <>{desde ? `Desde las ${desde.hora} del ${desde.fecha} los` : 'Los'} correos de verificación de cuenta y de invitación al equipo pueden tardar en llegar.{compuertaSana && ' La compuerta no está afectada: las APIs de los proveedores siguen respondiendo con normalidad.'}</> : 'El componente requiere atención. El estado se volverá a comprobar automáticamente.'}</p>
     </div>
   </div>;
