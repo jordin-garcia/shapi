@@ -131,3 +131,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **JG-29:** el elemento ya está en `docs/video/elementos/jose-pablo.md`; vuelva a comprobar las líneas después de JG-25 y JG-27 y mida la narración durante el ensayo. La estimación es de 2 min 45 s.
   - **DC-18:** José Pablo eligió bandeja de salida transaccional para evitar repetir el patrón entre los cuatro elementos.
+
+## 2026-10-29 · JZ-20 · Diferencias visuales de la revisión DC-16
+- Hecho: A6.2 ofrece «Reactivar» según el estado efectivo suspendido; A6.5 muestra todas las columnas a 1280 px sin desplazamiento horizontal; B3.1 concuerda los avisos con el artículo y género del componente y conserva el texto del correo del mockup.
+- Decisiones: la reactivación sigue siendo administrativa y no elimina una suspensión por falta de pago. En cuentas se apilan lista y formulario por debajo de 1440 px; desde allí el formulario usa 340 px y desde 1536 px, 440 px. Se documentó en interfaz.
+- Verificación: fase roja confirmada con 7 regresiones Vitest y la E2E de ancho; 545 pruebas del frontend aprobadas, lint sin errores (11 avisos existentes), typecheck y builds correctos. E2E a 1280 px aprobada y capturas reales comprobadas a 1280, 1440 y 1536 px; los avisos degradados se simularon solo en el navegador para conservar los servicios. Revisión independiente LISTO, sin hallazgos.
+- Pendiente o aviso para otros:
+  - **DC-16 / Dominique:** corregidas las tres diferencias asignadas a JZ-20 en A6.2, A6.5 y B3.1; la E2E nueva protege el encaje de cuentas a 1280 px.

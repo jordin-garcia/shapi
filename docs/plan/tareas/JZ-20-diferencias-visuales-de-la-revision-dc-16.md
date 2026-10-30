@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-31
 depende_de: [DC-16]
 requisitos: [RNF-12]
@@ -43,3 +43,12 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Rediseños
+
+## Resultado
+
+- A6.2 ofrece «Reactivar» para el estado efectivo suspendido y conserva la reactivación administrativa existente, sin alterar la suspensión por falta de pago.
+- A6.5 apila lista y formulario a 1280 px; a partir de 1440 px usa dos columnas con formulario de 340 px y desde 1536 px conserva los 440 px. Estado y Acción quedan completos sin desplazamiento horizontal.
+- B3.1 usa el artículo y género de cada componente; conserva el texto y el impacto del correo del mockup `Degradado`.
+- Regresiones en `Organizaciones.test.tsx`, `CuentasPlataforma.test.tsx` y `Estado.test.tsx`; comprobación real de ancho y visibilidad en `tests/e2e/tests/administracion-visual.spec.ts`. La precisión visual queda en `docs/specs/11-interfaz.md`.
+- Verificación local: fase roja con 7 fallos Vitest y el desbordamiento E2E confirmado; después, 545 pruebas del frontend aprobadas (43 archivos), lint sin errores (11 avisos existentes), typecheck y builds correctos. La E2E pasó a 1280 px; Chromium confirmó también ausencia de desbordamiento a 1440 y 1536 px y se compararon las tres pantallas con sus mockups.
+- Revisión independiente en contexto limpio según B9: LISTO, sin hallazgos de corrección ni opcionales.
