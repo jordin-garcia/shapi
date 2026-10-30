@@ -162,7 +162,7 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **JG-29:** la tabla de funcionalidades de Dominique está al final de `docs/video/elementos/dominique.md`.
 
 ## 2026-10-29 · DC-16 · Revisión visual contra los mockups
-- Hecho: revisión de 48 rutas a 1280 px con la siembra (`docs/plan/revision-visual.md`); corrección de A3.5 y del botón «Reintentar» del panel y del portal.
+- Hecho: revisión de 53 rutas a 1280 px con la siembra (`docs/plan/revision-visual.md`); corrección de A3.5 y del botón «Reintentar» del panel y del portal.
 - Decisiones: las diferencias que vienen de los datos de la siembra o de precisiones ya documentadas no se corrigen.
 - Pendiente o aviso para otros:
   - **EM-24:** A2.1 sin «Plan actual», «sept» en A6.3 y encabezado y fecha de B1.4.

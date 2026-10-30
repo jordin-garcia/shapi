@@ -48,7 +48,7 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 - Rediseños
 
 ## Resultado
-- Se creó `docs/plan/revision-visual.md` con las 48 rutas del catálogo capturadas a 1280 px en el ambiente productivo simulado con la siembra, y comparadas con sus mockups. Ninguna tiene desplazamiento horizontal (RNF-12).
+- Se creó `docs/plan/revision-visual.md` con las 53 rutas del catálogo capturadas a 1280 px en el ambiente productivo simulado con la siembra, y comparadas con sus mockups. Ninguna tiene desplazamiento horizontal (RNF-12).
 - Pantallas propias: A3.5 recortaba la columna «Peso en llamadas»; se corrigió con `whitespace-nowrap` en `A3-5-ConfigRutas.tsx`.
 - Criterio 4: «Reintentar» es el `Boton` secundario en `AvisoError` del panel (`modulos/identidad/Formularios.tsx`) y del portal (`modulos/sesion/FormulariosAcceso.tsx`).
 - Diferencias de otros: EM-24 (A2.1, A6.3 y B1.4) y JZ-20 (A6.2, A6.5 y B3.1), ambas P2.

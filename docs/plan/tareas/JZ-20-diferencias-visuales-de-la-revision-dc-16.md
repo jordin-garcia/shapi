@@ -23,6 +23,8 @@ Corregir las diferencias contra el mockup que encontró la revisión visual de D
 - `docs/plan/revision-visual.md` (filas A6.2, A6.5 y B3.1)
 - Mockups: `mockups/A6/Organizaciones.dc.html`, `mockups/A6/Cuentas.dc.html` y `mockups/B3/Degradado.dc.html`
 
+- Capturas a 1280 px con la siembra: `docs/plan/capturas/dc-16/A6.2.png`, `docs/plan/capturas/dc-16/A6.5.png`, `docs/plan/capturas/dc-16/B3.1.png`
+
 ## Archivos que creas o modificas
 - Las páginas de A6.2, A6.5 y B3.1 en `frontend/apps/panel/src/paginas/` y sus pruebas
 
