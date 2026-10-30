@@ -47,7 +47,10 @@ export default function PaginaA21PlanesPlataforma() {
     <section aria-label="Planes de plataforma" className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
       {visibles.map((plan: Plan) => <article key={plan.id} className={'flex flex-col gap-5 rounded-base border p-6 ' + (plan.nombre === 'Producto' ? 'border-principal bg-white' : 'border-borde bg-panel')}>
         <div>
-          {plan.nombre === 'Producto' && <p className="text-etiqueta uppercase tracking-[0.16em] text-principal">Recomendado</p>}
+          <div className="flex h-8 items-center gap-3">
+            {plan.id === actual.data?.plan.id && <p className="text-etiqueta uppercase tracking-[0.16em] text-tinta-suave">Plan actual</p>}
+            {plan.nombre === 'Producto' && <p className="text-etiqueta uppercase tracking-[0.16em] text-principal">Recomendado</p>}
+          </div>
           <h2 className="mt-2 font-display text-[21px]">{plan.nombre.startsWith('Escala') ? 'Escala' : plan.nombre}</h2>
           <p className="mt-2 min-h-10 text-sm text-tinta-suave">{plan.descripcion}</p>
         </div>

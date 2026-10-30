@@ -5,7 +5,7 @@ persona: emilio
 responsable: Emilio Méndez
 avance: final
 prioridad: P2
-estado: pendiente
+estado: hecha
 programada: 2026-10-31
 depende_de: [DC-16]
 requisitos: [RNF-12]
@@ -43,3 +43,11 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## Fuera de alcance
 - Rediseños
+
+## Resultado
+- A2.1 coloca «Plan actual» en el encabezado de la tarjeta del plan vigente y conserva el indicador «Recomendado» de Producto.
+- A6.3 usa abreviaturas de mes consistentes con el resto de la aplicación (por ejemplo, «23 sep 2026»).
+- B1.4 reproduce el encabezado de Organización del mockup, ubica «Cambiar de plan» junto al título y muestra la renovación con fecha larga («23 de septiembre de 2026»).
+- Se agregó `DiferenciasVisuales.test.tsx`, con una prueba por criterio. Las tres fallaban antes de la implementación; pasan después. La revisión en contexto limpio pidió hacer explícita la prueba de la etiqueta superior de A2.1; se ajustó y se repitieron las verificaciones.
+- `node scripts/tareas.mjs --validar`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (44 archivos, 548 pruebas) y `pnpm build` pasan después de corregir el hallazgo de CI; las pruebas dirigidas de suscripción y diferencias visuales pasan (29 pruebas). Lint conserva 11 avisos existentes en el portal; build conserva el aviso de tamaño del paquete del portal.
+- Se contrastaron los textos y la estructura con los mockups y las capturas de DC-16. No se pudo recapturar el entorno con datos sembrados: el daemon de Docker no es accesible en este equipo (`permission denied` en el socket) y este worktree no tiene `.env`.

@@ -7,6 +7,7 @@ import PaginaA63bRevertirPago from './A6-3b-RevertirPago';
 
 const cliente = crearCliente<paths>(window.location.origin);
 type Pago = components['schemas']['PagoPlataformaAdministracion'];
+const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 async function listar() {
   const { data, response } = await cliente.GET('/api/admin/pagos');
@@ -14,7 +15,13 @@ async function listar() {
   return data;
 }
 function dinero(monto: number) { return `Q ${monto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
-function fecha(valor: string) { return new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala' }).format(new Date(valor)); }
+function fecha(valor: string) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'America/Guatemala',
+  }).formatToParts(new Date(valor));
+  const dato = (tipo: Intl.DateTimeFormatPartTypes) => Number(partes.find(parte => parte.type === tipo)!.value);
+  return `${dato('day')} ${meses[dato('month') - 1]} ${dato('year')}`;
+}
 
 export default function PaginaA63Pagos() {
   const cache = useQueryClient();
