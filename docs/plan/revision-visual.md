@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-29. Ambiente productivo simulado con la siembra de demostración (`infra/compose.prod.yml`), Chromium de Playwright a **1280 × 800**. Cada pantalla se capturó y se comparó contra su mockup principal de `mockups/` (textos, datos, orden y estados; no pixel a pixel). Las precisiones de `docs/specs/11-interfaz.md` §4 y de las tareas prevalecen sobre el mockup.
 
-**RNF-12:** en ninguna de las 53 rutas revisadas `document.documentElement.scrollWidth` supera el ancho de la ventana. Dentro de la página, dos tablas recortaban contenido: A3.5 (corregida aquí) y A6.5 (JZ-20).
+**RNF-12:** en ninguna de las 53 capturas (52 pantallas; A5.4 con y sin sesión) `document.documentElement.scrollWidth` supera el ancho de la ventana. Dentro de la página, dos tablas recortaban contenido: A3.5 (corregida aquí) y A6.5 (JZ-20).
 
 **Reintentar (criterio 4):** los avisos de error de las pantallas de acceso del panel (`AvisoError` de `frontend/apps/panel/src/modulos/identidad/Formularios.tsx`) y del portal (`frontend/apps/portal/src/modulos/sesion/FormulariosAcceso.tsx`) usan ahora `Boton` secundario, igual que `EstadoError`.
 
