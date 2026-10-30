@@ -64,6 +64,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Mar 27 oct | **JG-26** Correcciones de pantallas del panel y del portal (fechas, tablas, permisos y estilos)<br>**JG-27** Correcciones de la siembra, el ambiente y la CI | — | — | **JZ-16** Manual de usuario |
 | Mié 28 oct | **JG-28** Pendientes de la auditoría del 3 de octubre (identidad, planes, contratación y compuerta) | — | — | — |
 | Jue 29 oct | **JG-17** Convergencia final y congelamiento del código<br>**JG-29** Guion del video del Avance 3 y elemento de código de Jordin | — | — | — |
+| Sáb 31 oct | — | **EM-24** Diferencias visuales de la revisión DC-16 (A2.1, A6.3 y B1.4) | — | **JZ-20** Diferencias visuales de la revisión DC-16 (A6.2, A6.5 y B3.1) |
 
 <!-- calendario:fin -->
 

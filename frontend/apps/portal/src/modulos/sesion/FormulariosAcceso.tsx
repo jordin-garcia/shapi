@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Aviso } from '@shapi/ui';
+import { Aviso, Boton } from '@shapi/ui';
 import { useMarcaPortal } from '../configuracion/useConfiguracionPortal';
 
 /** Los colores de la marca los define la raíz del portal (`coloresMarca`, en App), para todas las pantallas. */
@@ -32,7 +32,7 @@ export function AvisoError({ mensaje, reintentar }: { mensaje: string; reintenta
   return (
     <Aviso estado="error">
       <span>{mensaje}</span>
-      {reintentar && <button type="button" onClick={reintentar} className="font-medium underline">Reintentar</button>}
+      {reintentar && <Boton type="button" principal={false} onClick={reintentar} className="shrink-0">Reintentar</Boton>}
     </Aviso>
   );
 }
