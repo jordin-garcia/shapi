@@ -166,3 +166,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: `node scripts/tareas.mjs --validar` pasa (89 tareas); el fragmento de 21 líneas coincide con `origin/main`; las pruebas de tarjeta 0341 y token entre instancias pasan (1 y 3 casos). La revisión independiente detectó una atribución de pantallas imprecisa y se corrigió.
 - Pendiente o aviso para otros:
   - **JG-29:** use este elemento para mi intervención de 2 a 3 minutos y los flujos de la tabla para repartir la narración; compruebe las líneas citadas contra `main` antes de grabar, como pide su criterio 7.
+
+## 2026-10-30 · EM-24 · Diferencias visuales de la revisión DC-16
+- Hecho: ajusté A2.1 para mostrar «Plan actual» en el encabezado de la tarjeta vigente, A6.3 para usar «sep» en las fechas y B1.4 para incluir el rótulo «Organización», el botón «Cambiar de plan» en el encabezado y la fecha larga de renovación. Agregué una prueba Vitest por criterio.
+- Decisiones: mantuve «Recomendado» en la tarjeta Producto, incluso cuando es el plan vigente. El formato de fechas de A6.3 usa la zona America/Guatemala y una tabla explícita de abreviaturas como el helper compartido de soporte. La revisión independiente motivó que la prueba de A2.1 seleccione el rótulo de la cabecera, no el botón con el mismo texto.
+- Verificación: la fase roja falló en los tres criterios; después pasaron las 3 pruebas dirigidas, lint, typecheck, las 548 pruebas de frontend en 44 archivos y build. `node scripts/tareas.mjs --validar` pasa. Lint conserva 11 avisos de Fast Refresh ya existentes en portal y build el aviso existente de tamaño del paquete. La comparación de contenido/estructura usa mockups y capturas DC-16; no se pudo recapturar con el ambiente sembrado porque Docker negó acceso al socket y el worktree no contiene `.env`.
+- Pendiente o aviso para otros:
+  - **Todos:** EM-24 agrega los ajustes visuales de A2.1, A6.3 y B1.4; actualicen su rama desde `main` cuando se integre.

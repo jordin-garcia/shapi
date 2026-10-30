@@ -9,6 +9,7 @@ import { AvisoPrueba } from '../modulos/suscripciones/AvisoPrueba';
 
 const cliente = crearCliente<paths>(window.location.origin);
 const fecha = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guatemala' }).format(new Date(value));
+const fechaLarga = (value: string) => new Intl.DateTimeFormat('es-GT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' }).format(new Date(value));
 const dinero = (monto: number) => 'Q ' + monto.toLocaleString('es-GT', { minimumFractionDigits: 2 });
 
 export default function PaginaB14Suscripcion() {
@@ -64,8 +65,14 @@ export default function PaginaB14Suscripcion() {
   const estado = gracia ? 'En gracia' : suspendida ? 'Suspendida' : 'Activa';
   const revertido = s.pagoRevertido;
   return <main className="mx-auto max-w-[880px]">
-    <h1 className="font-display text-[32px]">Suscripción de plataforma</h1>
-    <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">Su plan de Shapi, su vigencia y la tarjeta con la que se renueva.</p>
+    <header className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Organización</p>
+        <h1 className="mt-2 font-display text-[32px]">Suscripción de plataforma</h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">Su plan de Shapi, su vigencia y la tarjeta con la que se renueva.</p>
+      </div>
+      {puedeGestionar && <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-5 font-medium text-white hover:bg-principal-hover" to="/panel/suscripcion/planes">Cambiar de plan</Link>}
+    </header>
     {puedeGestionar && s.avisoPrueba && <div className="mt-6"><AvisoPrueba venceEn={s.avisoPrueba.venceEn} /></div>}
     {gracia && <section className="mt-6 rounded-base border border-[#D9A42E] bg-[#FFF9E8] p-5">
       <h2 className="font-display text-[22px]">Quedan {s.diasRestantes || 0} días antes de que sus APIs dejen de responder</h2>
@@ -90,7 +97,7 @@ export default function PaginaB14Suscripcion() {
       <p className="mt-5 text-sm">{s.periodoVigente ?? !(gracia || suspendida) ? 'Periodo activo' : 'Periodo vencido'}</p>
       <p className="mt-1 text-[15px]">{fecha(s.periodo.inicio || s.proximaRenovacion)} – {fecha(s.periodo.fin || s.proximaRenovacion)}</p>
       <div className="mt-5 grid gap-4 border-t border-borde pt-5 sm:grid-cols-2">
-        <div><p className="text-sm text-tinta-suave">{gratuito ? 'Fin del periodo' : 'Renovación automática'}</p><p className="mt-1">{fecha(s.proximaRenovacion)}</p></div>
+        <div><p className="text-sm text-tinta-suave">{gratuito ? 'Fin del periodo' : 'Renovación automática'}</p><p className="mt-1">{fechaLarga(s.proximaRenovacion)}</p></div>
         <div><p className="text-sm text-tinta-suave">Tarjeta registrada</p><p className="mt-1">{s.tarjetaEnmascarada || 'Sin tarjeta registrada'}</p></div>
       </div>
       {gracia && <p className="mt-5 text-sm">Periodo de gracia hasta {s.graciaHasta ? fecha(s.graciaHasta) : '—'} · {s.diasRestantes || 0} días restantes</p>}
@@ -121,7 +128,6 @@ export default function PaginaB14Suscripcion() {
       <Boton type="submit" className="mt-5" deshabilitado={pagar.isPending}>{pagar.isPending ? 'Procesando…' : 'Pagar y reactivar'}</Boton>
     </form>}
     <div className="mt-6 flex flex-wrap gap-4 text-sm">
-      {puedeGestionar && <Link className="font-medium text-principal" to="/panel/suscripcion/planes">Cambiar plan</Link>}
       {puedeGestionar && s.cambioProgramado && <button className="font-medium text-principal underline" onClick={async () => {
         const { response } = await cliente.DELETE('/api/suscripcion/cambio-programado');
         if (!response.ok) setError('No se pudo cancelar el cambio programado.');
