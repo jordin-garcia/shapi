@@ -35,7 +35,7 @@ Si el video pasa de 24 minutos al editar, se acorta en este orden: el paso opcio
 
 ## Antes de grabar
 
-Hacerlo en este orden la mañana de la grabación. Los pasos 1 a 5 los puede hacer el agente de Jordin, salvo el borrado de volúmenes, que hace Jordin con `!` porque el modo automático no lo permite.
+Hacerlo en este orden la mañana de la grabación. Los pasos 1 a 3 los puede hacer el agente de Jordin, salvo el borrado de volúmenes, que hace Jordin con `!` porque el modo automático no lo permite. Los pasos 4 a 7 son manuales.
 
 1. **Ambiente desde cero con la siembra (RNF-14).** Con `main` actualizado, en la raíz del repositorio:
    ```powershell

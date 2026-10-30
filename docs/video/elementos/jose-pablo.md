@@ -64,14 +64,14 @@ En este código se ven dos características de Clean Code. Primero, las responsa
 
 Finalmente, estas pruebas comprueban las cinco esperas, el estado final y la eliminación del token. Usan una fecha controlada, por lo que verifican la regla sin esperar una hora real. Así puedo explicar el diseño y demostrar automáticamente la política de reintentos que lo acompaña.»
 
-**Orden de lo que se muestra en pantalla** (duración objetivo: 2 min 45 s; estimación para lectura pausada, pendiente del ensayo de JG-29):
+**Orden de lo que se muestra en pantalla** (duración objetivo: 2 min 15 s, la que le da el guion de JG-29; la narración tiene 337 palabras):
 
 | Tiempo | Archivo y líneas | Qué resaltar |
 |---|---|---|
-| 0:00–0:40 | `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188`, `:257-283`; `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` | Mensaje y aviso pendiente dentro de la transacción; confirmación al final. |
-| 0:40–1:20 | `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-35`; `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-62`, `:64-90` | Revisión periódica, bloqueo por fila, envío y persistencia; límite ante una caída después de SMTP. |
-| 1:20–2:15 | `src/Shapi.Dominio/Correo/CorreoSaliente.cs:8-15`, `:58-89` | Esperas, fragmento anterior, nombres y transición al sexto fallo; eliminación del token. |
-| 2:15–2:45 | `tests/Shapi.Dominio.Tests/Correo/CorreoSalienteTests.cs:9-50`, `:76-90` | Aserciones de fechas, estado y token; mostrar la salida de las cinco pruebas. |
+| 0:00–0:35 | `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188`, `:257-283`; `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` | Mensaje y aviso pendiente dentro de la transacción; confirmación al final. |
+| 0:35–1:10 | `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-35`; `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-62`, `:64-90` | Revisión periódica, bloqueo por fila, envío y persistencia; límite ante una caída después de SMTP. |
+| 1:10–1:50 | `src/Shapi.Dominio/Correo/CorreoSaliente.cs:8-15`, `:58-89` | Esperas, fragmento anterior, nombres y transición al sexto fallo; eliminación del token. |
+| 1:50–2:15 | `tests/Shapi.Dominio.Tests/Correo/CorreoSalienteTests.cs:9-50`, `:76-90` | Aserciones de fechas, estado y token; mostrar la salida de las cinco pruebas. |
 
 ## Funcionalidades de José Pablo para el recorrido del video
 
@@ -93,7 +93,7 @@ JG-29 puede repartir la narración con esta tabla. Las pantallas corresponden al
 
 ## Referencias antes de grabar
 
-Las líneas y el fragmento se toman de `main` en el commit `30b14fee9d6f2aba0302e61b0f168e88a09c9570`. Emilio ya eligió puertos y adaptadores; Jordin tiene asignada la cadena de responsabilidad. El elemento de Dominique aún no está creado en esta revisión; su tarea propone otros patrones. Se reserva aquí la bandeja de salida transaccional para evitar repetirla.
+Las líneas y el fragmento se toman de `main` en el commit `30b14fee9d6f2aba0302e61b0f168e88a09c9570`. Emilio ya eligió puertos y adaptadores; Jordin tiene asignada la cadena de responsabilidad. Dominique eligió después el método de fábrica con objeto resultado (DC-18). Se reserva aquí la bandeja de salida transaccional para evitar repetirla.
 
 Según el aviso de Jordin para JZ-19, JG-25 y JG-27 pueden cambiar parte de este código. JG-29 debe volver a comprobar estas referencias y el fragmento contra `main` actualizado antes de la grabación del viernes 30 de octubre. No se cambió código para preparar el video.
 
