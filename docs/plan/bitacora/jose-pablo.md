@@ -134,7 +134,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
 ## 2026-10-29 · JZ-20 · Diferencias visuales de la revisión DC-16
 - Hecho: A6.2 ofrece «Reactivar» según el estado efectivo suspendido; A6.5 muestra todas las columnas a 1280 px sin desplazamiento horizontal; B3.1 concuerda los avisos con el artículo y género del componente y conserva el texto del correo del mockup.
-- Decisiones: la reactivación sigue siendo administrativa y no elimina una suspensión por falta de pago. En cuentas se apilan lista y formulario por debajo de 1440 px; desde allí el formulario usa 340 px y desde 1536 px, 440 px. Se documentó en interfaz.
+- Decisiones: la reactivación sigue siendo administrativa. Si la suspensión es solo por falta de pago, «Reactivar» queda deshabilitado con el motivo visible; no envía una operación sin efecto ni genera una entrada engañosa en la bitácora. En cuentas se apilan lista y formulario por debajo de 1440 px; desde allí el formulario usa 340 px y desde 1536 px, 440 px. Se documentó en interfaz.
 - Verificación: fase roja confirmada con 7 regresiones Vitest y la E2E de ancho; 545 pruebas del frontend aprobadas, lint sin errores (11 avisos existentes), typecheck y builds correctos. E2E a 1280 px aprobada y capturas reales comprobadas a 1280, 1440 y 1536 px; los avisos degradados se simularon solo en el navegador para conservar los servicios. Revisión independiente LISTO, sin hallazgos.
 - Pendiente o aviso para otros:
   - **DC-16 / Dominique:** corregidas las tres diferencias asignadas a JZ-20 en A6.2, A6.5 y B3.1; la E2E nueva protege el encaje de cuentas a 1280 px.
+  - **Jordin:** `docs/specs/11-interfaz.md` precisa el botón deshabilitado cuando solo existe suspensión por falta de pago y el encaje de A6.5 a 1280 px, con dos columnas desde 1440 px. Actualice su rama desde `main` al integrarse.
+- Revisión automática del PR #135: corregido el hallazgo de Reactivar sin efecto cuando solo falta pagar la suscripción. La regresión exige el botón deshabilitado, motivo accesible, cero solicitudes y ningún aviso de éxito; fase roja confirmada antes de corregir. Segunda revisión independiente LISTO.

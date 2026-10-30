@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe('RF-38 · A6.2 Administración de organizaciones', () => {
-  it('JZ-20 · RNF-12 ofrece reactivar una organización con estado efectivo suspendido', async () => {
+  it('JZ-20 · RNF-12 explica y deshabilita la reactivación de una suspensión solo por falta de pago', async () => {
     let reactivaciones = 0;
     server.use(
       sesion(),
@@ -59,8 +59,12 @@ describe('RF-38 · A6.2 Administración de organizaciones', () => {
       }),
     );
     mostrar();
-    await userEvent.click(await screen.findByRole('button', { name: 'Reactivar Transportes Petén, S.A.' }));
-    await waitFor(() => expect(reactivaciones).toBe(1));
+    const reactivar = await screen.findByRole('button', { name: 'Reactivar Transportes Petén, S.A.' });
+    expect((reactivar as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('La suscripción requiere pago.')).toBeDefined();
+    await userEvent.click(reactivar);
+    expect(reactivaciones).toBe(0);
+    expect(screen.queryByText('Estado de la organización actualizado.')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Suspender Transportes Petén, S.A.' })).toBeNull();
     expect(screen.getByText('Suspendida')).toBeDefined();
   });

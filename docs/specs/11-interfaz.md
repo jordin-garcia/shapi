@@ -301,6 +301,6 @@ B3.1 agrega al final una tarjeta «Modo demostración», aprobada por Jordin el 
 
 ### Ajustes de la revisión visual (JZ-20)
 
-- **A6.2:** una organización con estado efectivo `suspendida` ofrece «Reactivar», también cuando la causa es su suscripción. La acción conserva el endpoint de reactivación administrativa de RF-38: no cobra ni elimina una suspensión por falta de pago (07 §3.1, RF-23).
+- **A6.2:** una organización con estado efectivo `suspendida` muestra «Reactivar». Si no hay suspensión administrativa, el botón queda deshabilitado con el motivo visible «La suscripción requiere pago.»: no se envía una reactivación sin efecto ni se registra una entrada administrativa engañosa. Si existe suspensión administrativa, conserva el endpoint de RF-38, que no cobra ni elimina una suspensión por falta de pago (07 §3.1, RF-23).
 - **A6.5:** a 1280 px, la lista y el formulario se apilan para mostrar completas las columnas Estado y Acción sin desplazamiento horizontal. Desde 1440 px se muestran en dos columnas, con el formulario de 340 px; desde 1536 px recupera los 440 px.
 - **B3.1:** los avisos usan el artículo y género del componente («La compuerta de APIs está degradada»); el aviso de correo conserva el texto y el impacto del mockup `Degradado`.
