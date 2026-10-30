@@ -71,7 +71,7 @@ export default function PaginaB14Suscripcion() {
         <h1 className="mt-2 font-display text-[32px]">Suscripción de plataforma</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">Su plan de Shapi, su vigencia y la tarjeta con la que se renueva.</p>
       </div>
-      {puedeGestionar && <Link className="inline-flex h-[46px] items-center justify-center rounded-base bg-principal px-5 font-medium text-white hover:bg-principal-hover" to="/panel/suscripcion/planes">Cambiar de plan</Link>}
+      {puedeGestionar && <Link className="inline-flex h-[46px] items-center justify-center rounded-base border border-borde-campo bg-white px-[23px] font-medium text-tinta hover:bg-panel" to="/panel/suscripcion/planes">Cambiar de plan</Link>}
     </header>
     {puedeGestionar && s.avisoPrueba && <div className="mt-6"><AvisoPrueba venceEn={s.avisoPrueba.venceEn} /></div>}
     {gracia && <section className="mt-6 rounded-base border border-[#D9A42E] bg-[#FFF9E8] p-5">

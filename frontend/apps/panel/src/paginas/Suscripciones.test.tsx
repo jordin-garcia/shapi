@@ -226,7 +226,7 @@ describe('RF-19, RF-20 y RF-25 · Suscripción de plataforma', () => {
     expect(await screen.findByText('En gracia')).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Pagar con otra tarjeta' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Cancelar cambio programado' })).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Cambiar plan' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Cambiar de plan' })).toBeNull();
   });
 
   it('A2.4 informa del rechazo y mantiene el plan vigente', async () => {
