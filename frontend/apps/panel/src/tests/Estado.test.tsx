@@ -25,6 +25,21 @@ beforeEach(() => {
 afterEach(() => { cleanup(); cliente.clear(); vi.useRealTimers(); });
 
 describe('RF-39 · B3.1', () => {
+  it.each([
+    ['compuerta', 'La compuerta de APIs está degradada'],
+    ['api_control', 'La API de control está degradada'],
+    ['trabajador', 'El trabajador en segundo plano está degradado'],
+    ['redis', 'La caché (Redis) está degradada'],
+    ['postgres', 'La base de datos (PostgreSQL) está degradada'],
+    ['pasarela', 'La pasarela de pagos simulada está degradada'],
+  ])('JZ-20 · RNF-12 concuerda el aviso de %s', async (id, titulo) => {
+    const respuesta = datos();
+    respuesta.componentes.find(c => c.id === id)!.estado = 'degradado';
+    server.use(http.get('http://localhost/api/admin/estado', () => HttpResponse.json(respuesta)));
+    mostrar();
+    expect(await screen.findByRole('heading', { name: titulo })).toBeDefined();
+  });
+
   it('JG-26 · RF-39 consulta cada 30 segundos y actualiza la latencia visible', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     let consultas = 0;

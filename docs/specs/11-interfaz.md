@@ -298,3 +298,9 @@ Todas las fechas de negocio proceden del servidor: A2.2 usa `inicioCicloPrevisto
 B3.2 obtiene `ahora` del servidor antes de su primera consulta y abre con el día de Guatemala correspondiente y sus seis días anteriores, inclusivos. Al volver después de adelantar el reloj se consultan y muestran las acciones del periodo nuevo. El selector, la paginación y las variantes con datos y vacía conservan los textos y la estructura de sus mockups.
 
 B3.1 agrega al final una tarjeta «Modo demostración», aprobada por Jordin el 25 de octubre de 2026, solo para administrador y con `SHAPI_MODO_DEMO=true`. Muestra fecha y hora en Guatemala, botones «Adelantar 30 días» y «Adelantar 7 días», y el campo «Días que desea adelantar» con «Adelantar días». Explica que ejecuta los procesos de negocio, que no se puede deshacer y que las sesiones conservan su duración real. Los controles se bloquean durante el avance y la fecha se vuelve a consultar al terminar. La tabla, latencia y estados normal, degradado y de soporte conservan el contenido y estructura de los mockups de B3.
+
+### Ajustes de la revisión visual (JZ-20)
+
+- **A6.2:** una organización con estado efectivo `suspendida` ofrece «Reactivar», también cuando la causa es su suscripción. La acción conserva el endpoint de reactivación administrativa de RF-38: no cobra ni elimina una suspensión por falta de pago (07 §3.1, RF-23).
+- **A6.5:** a 1280 px, la lista y el formulario se apilan para mostrar completas las columnas Estado y Acción sin desplazamiento horizontal. Desde 1440 px se muestran en dos columnas, con el formulario de 340 px; desde 1536 px recupera los 440 px.
+- **B3.1:** los avisos usan el artículo y género del componente («La compuerta de APIs está degradada»); el aviso de correo conserva el texto y el impacto del mockup `Degradado`.

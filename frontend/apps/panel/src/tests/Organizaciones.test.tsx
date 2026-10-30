@@ -48,6 +48,23 @@ afterEach(() => {
 });
 
 describe('RF-38 · A6.2 Administración de organizaciones', () => {
+  it('JZ-20 · RNF-12 ofrece reactivar una organización con estado efectivo suspendido', async () => {
+    let reactivaciones = 0;
+    server.use(
+      sesion(),
+      http.get(API, () => HttpResponse.json([{ ...organizacion, estado: 'suspendida', suspendidaAdministrativamente: false }])),
+      http.post(`${API}/${organizacion.id}/reactivar`, () => {
+        reactivaciones++;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    mostrar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Reactivar Transportes Petén, S.A.' }));
+    await waitFor(() => expect(reactivaciones).toBe(1));
+    expect(screen.queryByRole('button', { name: 'Suspender Transportes Petén, S.A.' })).toBeNull();
+    expect(screen.getByText('Suspendida')).toBeDefined();
+  });
+
   it('muestra los textos, columnas y datos del mockup', async () => {
     const envios = {
       ...organizacion,
