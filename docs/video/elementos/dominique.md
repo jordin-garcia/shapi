@@ -4,7 +4,7 @@
 
 **Método de fábrica con objeto resultado (patrón creacional).** `ResultadoValidacionDireccionOrigen` se crea, por convención, solo con dos métodos de fábrica con nombre, `Valida` y `Fallo` (`src/Shapi.Contratos/Red/ValidadorDireccionOrigen.cs:15-31`). Cada uno arma un resultado coherente: uno válido siempre trae la URL y sus direcciones IP, y uno fallido siempre trae el error y un detalle para la persona. `ValidadorDireccionOrigen.Validar` (`:55-108`) solo devuelve resultados creados por esas fábricas.
 
-Problema que resuelve aquí: el proveedor escribe la URL de origen de su API, y Shapi luego se conecta a ella. Sin control, alguien podría registrar `http://10.0.0.5` o un dominio que resuelve a la red interna y usar la compuerta para atacar servicios internos (SSRF). La validación tiene tres salidas posibles (formato inválido, DNS fallido o dirección interna) y cada una debe llegar con su mensaje. Se eligió un objeto resultado con fábricas en vez de excepciones porque un rechazo es un caso esperado del negocio, no un error del programa. Además, el mismo validador vive en `Shapi.Contratos` y lo reutilizan la API de control, al registrar la API (`src/Shapi.Aplicacion/Apis/RegistrarApi.cs:32`), y la compuerta, al conectarse (`src/Shapi.Compuerta/Reenvio/ConexionOrigen.cs:13`). La compuerta se conecta a una de las direcciones ya comprobadas, lo que evita el *DNS rebinding*.
+Problema que resuelve aquí: el proveedor escribe la URL de origen de su API, y Shapi luego se conecta a ella. Sin control, alguien podría registrar `http://10.0.0.5` o un dominio que resuelve a la red interna y usar la compuerta para atacar servicios internos (SSRF). La validación tiene tres salidas posibles (formato inválido, DNS fallido o dirección interna) y cada una debe llegar con su mensaje. Se eligió un objeto resultado con fábricas en vez de excepciones porque un rechazo es un caso esperado del negocio, no un error del programa. Además, el mismo validador vive en `Shapi.Contratos` y lo reutilizan la API de control, al registrar la API (`src/Shapi.Aplicacion/Apis/RegistrarApi.cs:74-84`), y la compuerta, al conectarse (`src/Shapi.Compuerta/Reenvio/ConexionOrigen.cs:22-28`, y la conexión a las direcciones validadas en `:30-49`). La compuerta se conecta a una de las direcciones ya comprobadas, lo que evita el *DNS rebinding*.
 
 **Clean Code que se ve en este elemento:**
 
@@ -60,7 +60,7 @@ Por último, esta prueba recorre doce direcciones internas, de IPv4 y de IPv6, y
 2. `src/Shapi.Contratos/Red/ValidadorDireccionOrigen.cs:110-142`: `EsDireccionNoPermitida`.
 3. `src/Shapi.Contratos/Red/ValidadorDireccionOrigen.cs:13-31`: el fragmento anterior; resaltar `Valida` y `Fallo`.
 4. `src/Shapi.Contratos/Red/ValidadorDireccionOrigen.cs:45-53`: el resolver inyectado.
-5. `src/Shapi.Aplicacion/Apis/RegistrarApi.cs:30-39` y `src/Shapi.Compuerta/Reenvio/ConexionOrigen.cs:13`: los dos usos.
+5. `src/Shapi.Aplicacion/Apis/RegistrarApi.cs:74-84` y `src/Shapi.Compuerta/Reenvio/ConexionOrigen.cs:22-49`: los dos usos.
 6. `tests/Shapi.Api.Tests/Apis/ValidadorDireccionOrigenTests.cs:21-51`: las pruebas de direcciones internas.
 
 ## Funcionalidades de Dominique para el recorrido de la interfaz

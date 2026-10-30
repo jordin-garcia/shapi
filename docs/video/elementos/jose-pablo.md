@@ -4,14 +4,14 @@
 
 **Bandeja de salida transaccional (Transactional Outbox), patrón de arquitectura.** La notificación se guarda en PostgreSQL, en `correo_saliente`, y el trabajador la entrega después por SMTP. Resuelve la coordinación entre un cambio de negocio y su aviso sin hacer depender la petición HTTP de la disponibilidad del servidor de correo. Se eligió según ADR-27 y RF-46: permite conservar el aviso pendiente y reintentar su envío en otro proceso.
 
-Un ejemplo de mi código es soporte: `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188` abre la transacción, guarda el mensaje y solicita la notificación antes de confirmar. `NotificadorCasos` encola `respuesta_caso` en ese mismo archivo, líneas 252-272. `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` usa el contexto compartido para guardar la fila dentro de esa transacción. Después, `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-61` toma correos pendientes en transacciones individuales con `FOR UPDATE SKIP LOCKED`; las líneas 64-89 renderizan, envían y registran el resultado. `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-19` establece el intervalo de revisión de cinco segundos y llama al procesador.
+Un ejemplo de mi código es soporte: `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188` abre la transacción, guarda el mensaje y solicita la notificación antes de confirmar. `NotificadorCasos` encola `respuesta_caso` en ese mismo archivo, líneas 257-283. `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` usa el contexto compartido para guardar la fila dentro de esa transacción. Después, `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-62` toma correos pendientes en transacciones individuales con `FOR UPDATE SKIP LOCKED`; las líneas 64-90 renderizan, envían y registran el resultado. `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-35` establece el intervalo de revisión de cinco segundos y llama al procesador.
 
 La transacción de negocio comprende el mensaje y su notificación pendiente; SMTP ocurre después. El bloqueo evita que dos procesadores tomen simultáneamente la misma fila. Esto no garantiza entrega exactamente una vez: si SMTP acepta el correo y el proceso cae antes de confirmar el estado en PostgreSQL, un envío posterior puede repetirlo. No se presenta el patrón como una transacción distribuida con SMTP.
 
 **Clean Code que se ve en este elemento:**
 
 1. **Responsabilidades delimitadas y nombres que revelan intención.** `ColaCorreoBaseDatos.Encolar` persiste el aviso; `ProcesadorCorreos` coordina el envío; `CorreoSaliente.RegistrarFallo` decide la transición y la próxima fecha. Los nombres `EsperasReintento`, `ProximoIntentoEn`, `MarcarEnviado` y `RegistrarFallo` expresan las reglas sin tener que deducirlas del código SMTP (`src/Shapi.Dominio/Correo/CorreoSaliente.cs:8-15`, `:49-77`).
-2. **Manejo explícito de errores y reglas comprobables.** `ProcesadorCorreos.cs:76-88` propaga la cancelación solicitada y registra los otros fallos mediante la entidad. `CorreoSaliente.cs:58-77` rechaza una transición desde un estado que no es pendiente, cuenta el fallo y programa el próximo intento con `ahora`, sin consultar el reloj por su cuenta. Las esperas son 5 s, 30 s, 2 min, 10 min y 1 h: hay un intento inicial y cinco reintentos; al fallar el sexto intento se marca `fallido` y se elimina el token de los datos (`:79-89`).
+2. **Manejo explícito de errores y reglas comprobables.** `ProcesadorCorreos.cs:76-89` propaga la cancelación solicitada y registra los otros fallos mediante la entidad. `CorreoSaliente.cs:58-77` rechaza una transición desde un estado que no es pendiente, cuenta el fallo y programa el próximo intento con `ahora`, sin consultar el reloj por su cuenta. Las esperas son 5 s, 30 s, 2 min, 10 min y 1 h: hay un intento inicial y cinco reintentos; al fallar el sexto intento se marca `fallido` y se elimina el token de los datos (`:79-89`).
 
 Fragmento de `main`, `src/Shapi.Dominio/Correo/CorreoSaliente.cs:58-77` (20 líneas, copiado sin cambios):
 
@@ -68,8 +68,8 @@ Finalmente, estas pruebas comprueban las cinco esperas, el estado final y la eli
 
 | Tiempo | Archivo y líneas | Qué resaltar |
 |---|---|---|
-| 0:00–0:40 | `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188`, `:252-272`; `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` | Mensaje y aviso pendiente dentro de la transacción; confirmación al final. |
-| 0:40–1:20 | `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-19`; `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-61`, `:64-89` | Revisión periódica, bloqueo por fila, envío y persistencia; límite ante una caída después de SMTP. |
+| 0:00–0:40 | `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188`, `:257-283`; `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` | Mensaje y aviso pendiente dentro de la transacción; confirmación al final. |
+| 0:40–1:20 | `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-35`; `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-62`, `:64-90` | Revisión periódica, bloqueo por fila, envío y persistencia; límite ante una caída después de SMTP. |
 | 1:20–2:15 | `src/Shapi.Dominio/Correo/CorreoSaliente.cs:8-15`, `:58-89` | Esperas, fragmento anterior, nombres y transición al sexto fallo; eliminación del token. |
 | 2:15–2:45 | `tests/Shapi.Dominio.Tests/Correo/CorreoSalienteTests.cs:9-50`, `:76-90` | Aserciones de fechas, estado y token; mostrar la salida de las cinco pruebas. |
 
@@ -96,3 +96,5 @@ JG-29 puede repartir la narración con esta tabla. Las pantallas corresponden al
 Las líneas y el fragmento se toman de `main` en el commit `30b14fee9d6f2aba0302e61b0f168e88a09c9570`. Emilio ya eligió puertos y adaptadores; Jordin tiene asignada la cadena de responsabilidad. El elemento de Dominique aún no está creado en esta revisión; su tarea propone otros patrones. Se reserva aquí la bandeja de salida transaccional para evitar repetirla.
 
 Según el aviso de Jordin para JZ-19, JG-25 y JG-27 pueden cambiar parte de este código. JG-29 debe volver a comprobar estas referencias y el fragmento contra `main` actualizado antes de la grabación del viernes 30 de octubre. No se cambió código para preparar el video.
+
+**Comprobación de JG-29 (30 oct 2026).** Se compararon el fragmento y todas las referencias con `main` en `8dc94e0`. El fragmento sigue igual. Se corrigieron cinco rangos que cortaban un método o señalaban otras líneas: `GestionarCasos.cs:257-283` (`NotificadorCasos` completo), `ProcesadorCorreos.cs:19-62`, `:64-90` y `:76-89`, y `DespachadorCorreos.cs:8-35`, que ahora llega al `Task.Delay` de cinco segundos.
