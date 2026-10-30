@@ -154,3 +154,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Decisiones: `GET /api/apis/{id}/portal` reutiliza `IConsultorDocumentacionPortal` y los planes activos de la API para alimentar la vista previa sin requerir que la API esté publicada; el logotipo SVG del panel también se sirve con `Content-Security-Policy: sandbox` y `X-Content-Type-Options: nosniff`, y solo se muestra mediante `<img>`.
 - Pendiente o aviso para otros:
   - **Todos:** la pantalla A3.7 (`/panel/apis/:id/portal`) ya está implementada y registrada en `rutas.test.tsx`.
+
+## 2026-10-29 · DC-18 · Elemento de código para el video del Avance 3
+- Hecho: se creó `docs/video/elementos/dominique.md` con el validador de direcciones de origen (RNF-10) como método de fábrica con objeto resultado, texto para narrar y funcionalidades para el recorrido.
+- Decisiones: se eligió un patrón creacional para no coincidir con los elementos de Jordin, Emilio y José Pablo.
+- Pendiente o aviso para otros:
+  - **JG-29:** la tabla de funcionalidades de Dominique está al final de `docs/video/elementos/dominique.md`.

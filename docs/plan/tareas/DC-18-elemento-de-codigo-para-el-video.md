@@ -5,7 +5,7 @@ persona: dominique
 responsable: Dominique Contreras
 avance: 3
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-26
 depende_de: []
 requisitos: []
@@ -52,3 +52,8 @@ Además, ejecutar la prueba que cita el archivo (`dotnet test … --filter …` 
 
 ## Fuera de alcance
 - Cambiar el código para que se vea mejor en el video. Si el agente encuentra algo que corregir, lo anota como aviso para Jordin en la bitácora.
+
+## Resultado
+- Se creó `docs/video/elementos/dominique.md` con el elemento del video: el método de fábrica con objeto resultado de `ValidadorDireccionOrigen` (`src/Shapi.Contratos/Red/ValidadorDireccionOrigen.cs`), contra SSRF (RNF-10).
+- Explica tres características de *Clean Code* (nombres que revelan la intención, funciones pequeñas y dependencias inyectables), cita el fragmento de `main` (`:13-31`), la prueba `ValidadorDireccionOrigenTests`, el texto para narrar, el orden de pantalla y las funcionalidades de Dominique con sus pantallas.
+- Decisión: no repetir los patrones de los demás (puertos y adaptadores, bandeja de salida transaccional, cadena de responsabilidad).
