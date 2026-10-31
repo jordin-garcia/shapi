@@ -312,9 +312,28 @@ describe('JG-30 · encabezado y pie del portal con la sesión abierta', () => {
     server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
     montar('/');
 
-    expect(await screen.findByRole('link', { name: 'Crear cuenta' })).toBeDefined();
+    await screen.findByRole('heading', { name: 'Cotice envíos a todo el país.' });
+    expect(within(screen.getAllByRole('banner')[0]).getByRole('link', { name: 'Crear cuenta' })).toBeDefined();
+    // La portada del mockup también invita a crear una cuenta cuando no hay sesión.
+    expect(screen.getAllByRole('link', { name: 'Crear cuenta' })).toHaveLength(2);
     expect(screen.getByRole('contentinfo')).toBeDefined();
     expect(screen.queryByRole('navigation', { name: 'Barra lateral del portal' })).toBeNull();
+  });
+
+  it('RF-16 A5.0 con la sesión en 5xx muestra el aviso con Reintentar, sin encabezado ni pie públicos (11 §4)', async () => {
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 500 })));
+    montar('/');
+
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeDefined();
+    expect(screen.queryByRole('link', { name: 'Entrar' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Crear cuenta' })).toBeNull();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
+  });
+
+  it('RF-16 «Página no encontrada» con sesión también usa la estructura interna', async () => {
+    montar('/no-existe');
+
+    await esperarEstructuraInterna('Página no encontrada');
   });
 });
 

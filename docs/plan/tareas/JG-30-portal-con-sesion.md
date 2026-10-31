@@ -63,13 +63,15 @@ Además, comprobar A5.0 y A5.2 con y sin sesión en el ambiente productivo simul
 Con la sesión abierta, todo el portal del consumidor se ve con la estructura interna, como pidió Jordin: arriba solo la marca, la barra lateral «API» y «Mi cuenta» y, al pie, el nombre, la empresa y el botón para cerrar sesión. Ya no aparecen «Entrar», «Crear cuenta» ni el pie público.
 
 - **A5.2:** la ruta `/consola` pasó del grupo de `LayoutPublico` al de `LayoutPortal`, y la página ya no dibuja su propia barra lateral. Con y sin sesión tiene la estructura de su mockup, igual que la documentación.
-- **A5.0:** con la sesión abierta, `LayoutPublico` muestra el inicio dentro de `LayoutPortal` y la portada deja solo «Ver documentación». Mientras se consulta la sesión se muestra el estado de carga, para no mostrar un instante el encabezado público. Sin sesión, el inicio no cambia.
+- **A5.0:** con la sesión abierta, `LayoutPublico` muestra el inicio dentro de `LayoutPortal` y la portada deja solo «Ver documentación». «Página no encontrada» sigue la misma regla. Mientras se consulta la sesión se muestra el estado de carga, para no mostrar un instante el encabezado público; si la sesión responde 5xx, se muestra el aviso con «Reintentar» (11 §4). Sin sesión, el inicio no cambia.
 - **Especificación:** `docs/specs/11-interfaz.md` §4 agrega A5.2 a la barra del portal y precisa el portal con la sesión abierta. Se quitó del guion del video la advertencia sobre el encabezado.
 
 ### Verificación (30 oct 2026)
 - Fase roja: antes del cambio fallaron las 3 pruebas nuevas de la estructura interna (A5.2 con y sin sesión, y A5.0 con sesión); la de A5.0 sin sesión pasaba.
-- 132 pruebas del portal y 552 del frontend aprobadas; lint sin errores (11 advertencias previas); tipos y compilación correctos. Tres pruebas que validan el encabezado y el pie públicos de A5.0 ahora declaran la visita sin sesión, que es la de su mockup.
+- 134 pruebas del portal y 554 del frontend aprobadas; lint sin errores (11 advertencias previas); tipos y compilación correctos. Tres pruebas que validan el encabezado y el pie públicos de A5.0 ahora declaran la visita sin sesión, que es la de su mockup.
 - Ambiente productivo simulado con el borde reconstruido: capturas a 1440 × 900 de A5.0 y A5.2 con y sin sesión, comparadas con los mockups `A5/Main`, `A5/Consola` y `A5/Documentacion`. Con sesión no aparecen «Entrar», «Crear cuenta» ni el pie.
+
+- Revisión en contexto limpio: se corrigieron el 5xx de la sesión en `/`, que caía a la vista pública, y la 404 con sesión, que conservaba el encabezado público. Cada corrección tiene su prueba, con fase roja confirmada. En `/` no se usa `LayoutPortal` para el error, porque su consulta reintenta al montarse y entraba en un ciclo de carga.
 
 ### Archivos principales
 - `frontend/apps/portal/src/rutas.tsx`, `layouts/LayoutPublico.tsx`, `paginas/A5-2-Consola.tsx` y `paginas/A5-0-Inicio.tsx`
