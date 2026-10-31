@@ -1088,3 +1088,12 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **Dominique:** cambié `frontend/apps/portal/src/rutas.tsx` (`/consola` pasa a `LayoutPortal`), `layouts/LayoutPublico.tsx`, `paginas/A5-2-Consola.tsx` (sin barra lateral propia), `paginas/A5-0-Inicio.tsx` («Crear cuenta» solo sin sesión) y `tests/Estructura.test.tsx`. Actualiza tu rama desde `main`.
   - **JG-17:** el aviso de JG-29 sobre el encabezado del portal con sesión queda resuelto aquí.
+
+## 2026-10-30 · JG-29 · Guion del video por integrante
+- Hecho: `docs/video/guion.md` reorganizado en cuatro partes seguidas, una por integrante (Jordin, Emilio, Dominique y José Pablo), cada una con su funcionalidad y su elemento de código, para grabarlas por separado y unirlas. Total: 22:45.
+- Decisiones: cada parte es independiente y se graba en un ambiente recién sembrado. Abre Jordin y cierra José Pablo. El reloj va al final de la parte de Emilio.
+- Verificación: plan válido; las cuatro duraciones suman 22:45; se confirmó que la siembra tiene pagos que se pueden revertir para el bloque 4.2.
+- Pendiente o aviso para otros:
+  - **Todos:** cada uno graba su parte de `docs/video/guion.md` en su computadora, después de los pasos 1 a 3 de «Antes de grabar», y la entrega como `parte-<n>-<nombre>.mp4`. Orden: 1 Jordin, 2 Emilio, 3 Dominique y 4 José Pablo.
+  - **Emilio:** tu parte termina con el reloj de demostración (2.3), que no se puede retroceder: grábalo al final. Si alguien graba después en tu misma computadora, debe levantar el ambiente desde cero.
+  - **José Pablo:** graba la terminal del `up` del paso 1 para tu bloque 4.3, y al final de tu parte va el cierre del video.
