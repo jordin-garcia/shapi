@@ -1091,9 +1091,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 
 ## 2026-10-30 · JG-29 · Guion del video por integrante
 - Hecho: `docs/video/guion.md` reorganizado en cuatro partes seguidas, una por integrante (Jordin, Emilio, Dominique y José Pablo), cada una con su funcionalidad y su elemento de código, para grabarlas por separado y unirlas. Total: 22:45.
-- Decisiones: cada parte es independiente y se graba en un ambiente recién sembrado. Abre Jordin y cierra José Pablo. El reloj va al final de la parte de Emilio.
+- Decisiones: cada parte es independiente y se graba en un ambiente recién sembrado. Abre Jordin y cierra José Pablo. El reloj de demostración pasa a la parte de Jordin (1.4), que lo construyó en JG-22.
 - Verificación: plan válido; las cuatro duraciones suman 22:45; se confirmó que la siembra tiene pagos que se pueden revertir para el bloque 4.2.
 - Pendiente o aviso para otros:
   - **Todos:** cada uno graba su parte de `docs/video/guion.md` en su computadora, después de los pasos 1 a 3 de «Antes de grabar», y la entrega como `parte-<n>-<nombre>.mp4`. Orden: 1 Jordin, 2 Emilio, 3 Dominique y 4 José Pablo.
-  - **Emilio:** tu parte termina con el reloj de demostración (2.3), que no se puede retroceder: grábalo al final. Si alguien graba después en tu misma computadora, debe levantar el ambiente desde cero.
+  - **Emilio:** tu parte (4:45) es el registro de Carmen con su plan de plataforma y la recuperación, el consumo y el cambio de plan de María José, más tu elemento de código. El ciclo de cobro con el reloj lo graba Jordin.
   - **José Pablo:** graba la terminal del `up` del paso 1 para tu bloque 4.3, y al final de tu parte va el cierre del video.

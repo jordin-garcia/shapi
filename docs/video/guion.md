@@ -6,8 +6,8 @@ Video de **22 min 45 s** como máximo planeado (límite del curso: 25 min, con 2
 
 | Orden | Parte | Integrante | Duración | Acumulado |
 |---|---|---|---|---|
-| 1 | Presentación, la compuerta, las claves y el consumo | Jordin | 5:30 | 5:30 |
-| 2 | La cuenta del proveedor y los cobros | Emilio | 6:30 | 12:00 |
+| 1 | Presentación, la compuerta, el consumo y el ciclo de cobro | Jordin | 7:15 | 7:15 |
+| 2 | La cuenta del proveedor, los pagos y el cambio de plan | Emilio | 4:45 | 12:00 |
 | 3 | Publicar una API y su portal de marca blanca | Dominique | 5:30 | 17:30 |
 | 4 | Soporte, administración, el ambiente y el cierre | José Pablo | 5:15 | **22:45** |
 
@@ -39,7 +39,7 @@ Si al unir el video pasa de 24 minutos, se recorta en este orden: el paso opcion
 7. **Prueba de audio** de 10 segundos.
 8. **Formato del video:** MP4, 1920 × 1080 (o la resolución de su pantalla), 30 cuadros por segundo. Nombre del archivo: `parte-<n>-<nombre>.mp4`. Empiece y termine con un segundo de pantalla quieta, para unir las partes sin cortes bruscos.
 
-**Si varias personas graban en la misma computadora,** repitan los pasos 1 a 3 entre una parte y otra. Es obligatorio después de la parte de Emilio, porque adelanta el reloj y el reloj no se puede retroceder.
+**Si varias personas graban en la misma computadora,** repitan los pasos 1 a 3 entre una parte y otra. Es obligatorio después de la parte de Jordin, porque adelanta el reloj y el reloj no se puede retroceder.
 
 ### Datos que usa cada parte
 
@@ -47,15 +47,15 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 
 | Parte | Cuentas | Datos nuevos que crea |
 |---|---|---|
-| 1 · Jordin | Ana Lucía Morales (ana.morales@enviosxelaju.com) | Ninguno |
-| 2 · Emilio | Carmen Ixchop (nueva), María José Quiñónez (mariajose@mercaditoantigua.com), Lucía Pérez (nueva), Rodrigo Alvarado (rodrigo.alvarado@shapi.localhost) | «Café del Volcán», Lucía y su suscripción |
+| 1 · Jordin | Ana Lucía Morales (ana.morales@enviosxelaju.com), Lucía Pérez (nueva), Rodrigo Alvarado (rodrigo.alvarado@shapi.localhost) | Lucía y su suscripción |
+| 2 · Emilio | Carmen Ixchop (nueva), María José Quiñónez (mariajose@mercaditoantigua.com) | «Café del Volcán» |
 | 3 · Dominique | Ana Lucía Morales, Pedro Ajú (nuevo) | API «Rastreo de Paquetes», dominio verificado y Pedro con su suscripción |
 | 4 · José Pablo | Ana Lucía Morales, Sofía Menchú Cojtí (sofia.menchu@shapi.localhost), Rodrigo Alvarado | Un caso de soporte |
 
 | Persona nueva | Correo | Contraseña | Papel |
 |---|---|---|---|
 | Carmen Ixchop | carmen@cafedelvolcan.com | `CafeVolcan2026` | Propietaria de «Café del Volcán» (parte 2) |
-| Lucía Pérez | lucia@tiendazunil.com | `TiendaZunil2026` | Consumidora de «Tienda Zunil» (parte 2) |
+| Lucía Pérez | lucia@tiendazunil.com | `TiendaZunil2026` | Consumidora de «Tienda Zunil» (parte 1) |
 | Pedro Ajú | pedro@libreriaxela.com | `LibreriaXela2026` | Consumidor de «Librería Xela» (parte 3) |
 
 | Tarjeta (pasarela simulada) | Resultado |
@@ -73,9 +73,9 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 
 ---
 
-## Parte 1 · Jordin · Presentación, la compuerta, las claves y el consumo (5:30)
+## Parte 1 · Jordin · Presentación, la compuerta, el consumo y el ciclo de cobro (7:15)
 
-**Ventanas:** una normal, con https://shapi.localhost, https://envios.shapi.localhost y el editor.
+**Ventanas:** una normal, con https://shapi.localhost, https://envios.shapi.localhost, https://correo.shapi.localhost y el editor, y una de incógnito para Rodrigo (bloque 1.4). **El bloque 1.4 adelanta el reloj: grábelo después de los bloques 1.1 a 1.3.** El código (1.5) no usa el ambiente y se puede grabar en cualquier momento.
 
 ### 1.1 · Presentación y sitio público · 0:40
 **Pantalla:** https://shapi.localhost (A0.1). **Datos:** los cuatro planes de plataforma de la siembra.
@@ -86,7 +86,7 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 **Pantalla:** A5.2 en https://envios.shapi.localhost/consola, sin sesión. **Datos:** la clave de pruebas de Mercadito Antigua.
 1. `POST /cotizaciones`, origen `0901`, destino `0301`, peso_kg `2.5`, pegue la clave de pruebas → **Enviar petición** → **200**, el JSON del origen y **Límites y cuota** (`X-RateLimit-*` y `X-Cuota-*`). *Qué decir:* «cada petición a una API publicada pasa por la compuerta de Shapi, que valida la clave, el plan y los límites antes de llegar al servidor del proveedor».
 2. Cambie el último carácter de la clave → **Enviar petición** → **401** `clave_invalida`. Restaure la clave.
-3. Pulse **Enviar petición** unas 10 veces seguidas, hasta el **429** `limite_por_minuto` con `Retry-After`. *Qué decir:* «la clave de pruebas admite 10 peticiones por minuto; el límite y la cuota se evalúan en Redis con un script atómico. El 403 lo mostrará Emilio al suspender una suscripción».
+3. Pulse **Enviar petición** unas 10 veces seguidas, hasta el **429** `limite_por_minuto` con `Retry-After`. *Qué decir:* «la clave de pruebas admite 10 peticiones por minuto; el límite y la cuota se evalúan en Redis con un script atómico. El 403 lo veremos al suspender una suscripción, al final de esta parte».
 
 ### 1.3 · El proveedor: equipo, claves, consumo y facturación · 1:35
 **Pantallas:** A1.3, A4.2, A4.3, B1.1, B1.2 y B1.5. **Datos:** Envíos Xelajú de la siembra: Diego (editor), Karla (lectora) y cuatro consumidores.
@@ -95,14 +95,22 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 3. **Consumo (B1.1):** peticiones, latencia p95, errores por código y consumo por ruta. *Qué decir:* «la compuerta mide cada petición en Redis y un trabajador lo consolida en PostgreSQL».
 4. **Consumidores (B1.2):** consumo y facturación por consumidor → **Invitar consumidores** (B1.5).
 
-### 1.4 · Código: cadena de responsabilidad en la compuerta · 2:15
+### 1.4 · El ciclo de cobro con el reloj: renovación, gracia, suspensión (403) y reactivación · 1:45
+**Pantallas:** A5.3, A5.4, A5.6, A5.4b, B3.1 (tarjeta «Modo demostración»), B2.3 y A5.2. **Datos:** Lucía (nueva), la tarjeta 0341 y Rodrigo.
+1. https://envios.shapi.localhost → **Crear cuenta (A5.3):** «Lucía Pérez», lucia@tiendazunil.com, «Tienda Zunil», `TiendaZunil2026` → correo «Verifique su correo» → **Planes (A5.4)** → **Contratar** en **Básico** → **Pago (A5.6):** **4000 0000 0000 0341**, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y contratar el plan** → **Plan contratado (A5.4b)**. **Copie** la clave de **Pruebas** en el Bloc de notas, fuera de cámara. *Qué decir:* «esta tarjeta se aprueba al contratar y falla al renovar».
+2. Incógnito → https://shapi.localhost/entrar con Rodrigo → **Estado de los componentes (B3.1)** → tarjeta **Modo demostración** → **Adelantar 30 días**.
+3. Ventana normal → **Suscripción y claves (B2.3):** **en gracia**, «Quedan 7 días antes de que sus claves dejen de responder». Si no aparece, recargue unos segundos después. *Qué decir:* «el trabajador intentó renovar, el cobro falló y empezaron 7 días de gracia en los que la API sigue funcionando».
+4. Incógnito → **Adelantar 7 días**. Ventana normal → recargue B2.3: **Suspendida** → **Consola de pruebas (A5.2)** con la clave de pruebas → **403** `suscripcion_inactiva`.
+5. B2.3 → **Pagar con otra tarjeta** → 4242 4242 4242 4242, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y reactivar** → espere a que termine «Procesando…» y diga **Activa** → Consola → **200**. Si sale de la página mientras dice «Procesando…», el pago puede no completarse.
+
+### 1.5 · Código: cadena de responsabilidad en la compuerta · 2:15
 Texto, archivos y orden de la pantalla en [elementos/jordin.md](elementos/jordin.md).
 
 ---
 
-## Parte 2 · Emilio · La cuenta del proveedor y los cobros (6:30)
+## Parte 2 · Emilio · La cuenta del proveedor, los pagos y el cambio de plan (4:45)
 
-**Ventanas:** una normal, con https://shapi.localhost, https://envios.shapi.localhost y https://correo.shapi.localhost, y una de incógnito para Rodrigo (bloque 2.3). **El bloque 2.3 adelanta el reloj: grábelo al final.**
+**Ventanas:** una normal, con https://shapi.localhost, https://envios.shapi.localhost y https://correo.shapi.localhost.
 
 ### 2.1 · Una proveedora nueva se registra y contrata su plan · 1:30
 **Pantallas:** A1.1, A1.2, el correo, B1.4, A2.1, A2.2, A2.4, A2.3 y B1.3. **Datos:** Carmen (nueva) y las tarjetas 0002 y 4242.
@@ -120,15 +128,7 @@ Texto, archivos y orden de la pantalla en [elementos/jordin.md](elementos/jordin
 3. **Suscripción y claves** → **Cambiar de plan (B2.7)** → **Elegir Volumen**: crédito por los días de Comercio, cargo por los de Volumen y **A pagar hoy** → **Pagar Q 225.00 y cambiar de plan**. *Qué decir:* «al subir de plan se cobra solo la diferencia prorrateada; al bajar, el cambio se programa para la renovación».
 4. **Cerrar sesión.**
 
-### 2.3 · El ciclo de cobro con el reloj: renovación, gracia, suspensión (403) y reactivación · 1:45
-**Pantallas:** A5.3, A5.4, A5.6, A5.4b, B3.1 (tarjeta «Modo demostración»), B2.3 y A5.2. **Datos:** Lucía (nueva), la tarjeta 0341 y Rodrigo.
-1. https://envios.shapi.localhost → **Crear cuenta (A5.3):** «Lucía Pérez», lucia@tiendazunil.com, «Tienda Zunil», `TiendaZunil2026` → correo «Verifique su correo» → **Planes (A5.4)** → **Contratar** en **Básico** → **Pago (A5.6):** **4000 0000 0000 0341**, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y contratar el plan** → **Plan contratado (A5.4b)**. **Copie** la clave de **Pruebas** en el Bloc de notas, fuera de cámara. *Qué decir:* «esta tarjeta se aprueba al contratar y falla al renovar».
-2. Incógnito → https://shapi.localhost/entrar con Rodrigo → **Estado de los componentes (B3.1)** → tarjeta **Modo demostración** → **Adelantar 30 días**.
-3. Ventana normal → **Suscripción y claves (B2.3):** **en gracia**, «Quedan 7 días antes de que sus claves dejen de responder». Si no aparece, recargue unos segundos después. *Qué decir:* «el trabajador intentó renovar, el cobro falló y empezaron 7 días de gracia en los que la API sigue funcionando».
-4. Incógnito → **Adelantar 7 días**. Ventana normal → recargue B2.3: **Suspendida** → **Consola de pruebas (A5.2)** con la clave de pruebas → **403** `suscripcion_inactiva`.
-5. B2.3 → **Pagar con otra tarjeta** → 4242 4242 4242 4242, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y reactivar** → espere a que termine «Procesando…» y diga **Activa** → Consola → **200**. Si sale de la página mientras dice «Procesando…», el pago puede no completarse.
-
-### 2.4 · Código: puertos y adaptadores en los pagos · 2:15
+### 2.3 · Código: puertos y adaptadores en los pagos · 2:15
 Texto, archivos y orden de la pantalla en [elementos/emilio.md](elementos/emilio.md).
 
 ---
@@ -203,8 +203,8 @@ Cada elemento dura 2:15 y va al final de la parte de su autor. Su narración tie
 
 | Bloque | Integrante | Elemento | Archivo |
 |---|---|---|---|
-| 1.4 | Jordin | Cadena de responsabilidad en la tubería de la compuerta (RNF-13) | [elementos/jordin.md](elementos/jordin.md) |
-| 2.4 | Emilio | Puertos y adaptadores: `IPasarelaPagos` y `PasarelaSimulada` (ADR-12 y ADR-13) | [elementos/emilio.md](elementos/emilio.md) |
+| 1.5 | Jordin | Cadena de responsabilidad en la tubería de la compuerta (RNF-13) | [elementos/jordin.md](elementos/jordin.md) |
+| 2.3 | Emilio | Puertos y adaptadores: `IPasarelaPagos` y `PasarelaSimulada` (ADR-12 y ADR-13) | [elementos/emilio.md](elementos/emilio.md) |
 | 3.4 | Dominique | Método de fábrica con objeto resultado en `ValidadorDireccionOrigen` (RNF-10) | [elementos/dominique.md](elementos/dominique.md) |
 | 4.4 | José Pablo | Bandeja de salida transaccional del correo (RF-46, ADR-27) | [elementos/jose-pablo.md](elementos/jose-pablo.md) |
 
@@ -214,20 +214,20 @@ Cada elemento dura 2:15 y va al final de la parte de su autor. Su narración tie
 
 | Lineamiento o requisito | Bloque |
 |---|---|
-| Lineamientos 4.1 · Registro y validación de correo (RF-01, RF-02, RF-05) | 2.1 (proveedor), 2.3 y 3.3 (consumidores) |
+| Lineamientos 4.1 · Registro y validación de correo (RF-01, RF-02, RF-05) | 2.1 (proveedor), 1.4 y 3.3 (consumidores) |
 | Lineamientos 4.1 · Recuperación de contraseña (RF-03) | 2.2 |
 | Lineamientos 4.1 · Autenticación segura y sesiones (RF-04) | 1.3, 2.1, 2.2, 3.1, 4.1 y 4.2 (entrar y cerrar sesión) |
 | Lineamientos 4.1 · Roles: administrador, cliente y soporte (RF-06, 04 §2) | 1.3 (propietario, editor y lector), 4.1 (soporte), 4.2 (administración y cuentas) |
-| Lineamientos 4.2 · Planes con nombre, descripción, precio y vigencia; visualización de planes (RF-17, RF-18, RF-19) | 1.1 (A0.1), 2.1 (A2.1), 3.1 (A4.1), 2.3 y 3.3 (A5.4), 4.2 (A6.1) |
-| Lineamientos 4.2 · Contratación de servicios (RF-20) | 2.1 (plataforma), 2.3 y 3.3 (API) |
+| Lineamientos 4.2 · Planes con nombre, descripción, precio y vigencia; visualización de planes (RF-17, RF-18, RF-19) | 1.1 (A0.1), 2.1 (A2.1), 3.1 (A4.1), 1.4 y 3.3 (A5.4), 4.2 (A6.1) |
+| Lineamientos 4.2 · Contratación de servicios (RF-20) | 2.1 (plataforma), 1.4 y 3.3 (API) |
 | Lineamientos 4.2 · Historial de pagos (RF-21, RF-24) | 2.1 (B1.3), 2.2 (B2.2), 4.2 (A6.3) |
-| Lineamientos 4.2 · Renovación, gracia, suspensión y reactivación (RF-22, RF-23) | 2.3 |
+| Lineamientos 4.2 · Renovación, gracia, suspensión y reactivación (RF-22, RF-23) | 1.4 |
 | Cambio de plan con prorrateo (RF-25) | 2.2 (B2.7) |
 | Lineamientos 4.3 (opción C) · Crear entornos: publicar una API con su especificación, rutas y configuración (RF-08, RF-09, RF-10, RF-13, RF-14) | 3.1 |
 | Lineamientos 4.3 · Gestión de dominios simulados (RF-11, RF-12) | 3.2 (A3.6) |
 | Personalización del portal de marca blanca (RF-15, RF-16) | 3.2 (A3.7, A5.0, A5.1, A5.5) |
 | Claves: emisión, rotación y revocación (RF-26, RF-27, RF-28) | 1.3 (A4.3), 3.3 (A5.4b, B2.4 y B2.5) |
-| Compuerta: 200, 401, 403 y 429 (RF-29, RF-30, RF-31, RF-45) | 1.2 (200, 401 y 429), 2.3 (403) |
+| Compuerta: 200, 401, 403 y 429 (RF-29, RF-30, RF-31, RF-45) | 1.2 (200, 401 y 429), 1.4 (403) |
 | Lineamientos 4.3 · Monitorear consumo: consumo y facturación (RF-35, RF-36, RF-37) | 1.3 (B1.1 y B1.2), 2.2 (B2.1) |
 | Invitar consumidores (RF-05) | 1.3 (B1.5) |
 | Administración de organizaciones (RF-38) | 4.2 (A6.2 y A6.2b) |
@@ -236,13 +236,13 @@ Cada elemento dura 2:15 y va al final de la parte de su autor. Su narración tie
 | Bitácora de acciones sensibles (RF-41) | 4.2 (B3.2) |
 | Cuentas de administración y soporte (RF-42) | 4.2 (A6.5) |
 | Protección del origen contra SSRF (RNF-10) | 3.1 (A3.2), 3.4 |
-| Agregar una regla a la compuerta sin tocar las demás (RNF-13) | 1.4 |
+| Agregar una regla a la compuerta sin tocar las demás (RNF-13) | 1.5 |
 | Lineamientos 6 y 8 · Despliegue: el ambiente productivo con un solo comando (RNF-14) | 4.3 |
-| Lineamientos (Avance 3) · 4 elementos de código con Clean Code y patrones | 1.4, 2.4, 3.4 y 4.4 |
+| Lineamientos (Avance 3) · 4 elementos de código con Clean Code y patrones | 1.5, 2.3, 3.4 y 4.4 |
 
 ## Qué evitar
 
-- **Repetir un bloque de la parte 2 después del 2.3:** el reloj ya está adelantado y no se puede retroceder.
+- **Repetir un bloque de la parte 1 después del 1.4:** el reloj ya está adelantado y no se puede retroceder.
 - **Registrar a la misma persona nueva dos veces:** la segunda vez da «ya existe». Use otro correo (agregue un 2) o vuelva a sembrar.
 - **Entrar con una contraseña incorrecta cinco veces:** bloquea la cuenta 15 minutos.
 - **Más de 10 inicios de sesión o registros por minuto desde el mismo equipo:** el límite de las pantallas de acceso responde «demasiados intentos»; espere un minuto.
@@ -256,12 +256,12 @@ Cada elemento dura 2:15 y va al final de la parte de su autor. Su narración tie
 
 ### Repetir una toma
 
-- **Partes 1, 3 y 4, y los bloques 2.1 y 2.2:** vuelva a sembrar sin reconstruir:
+- **Partes 2, 3 y 4, y los bloques 1.1 a 1.3:** vuelva a sembrar sin reconstruir:
   ```powershell
   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
   ```
   Borra las organizaciones y los consumidores que no son de la siembra (Café del Volcán, Lucía, Pedro, la API «Rastreo de Paquetes») y deja los datos sembrados como al principio. Conserva el personal y la bitácora, que es solo de inserción. Después, `node infra/verificar.mjs --demo`.
-- **Bloque 2.3, o si ya se adelantó el reloj:** empiece desde cero, con los pasos 1 a 3 de «Antes de grabar».
+- **Bloque 1.4, o si ya se adelantó el reloj:** empiece desde cero, con los pasos 1 a 3 de «Antes de grabar».
 
 ---
 
@@ -276,9 +276,9 @@ El ensayo se hizo antes de reorganizar el guion por integrante. Las pantallas, l
 | 1.1 | 2 s | Correcto: los cuatro planes |
 | 1.2 | 9 s | 200 con `X-RateLimit-*` y `X-Cuota-*`; 401 `clave_invalida`; 429 `limite_por_minuto` en el décimo envío, con `Retry-After` |
 | 1.3 | 8 s | Correcto: propietario, editor y lector; claves rotada y revocada; consumo; consumidores |
+| 1.4 | 25 s más el registro (unos 8 s) | Contratación con 0341; gracia visible 2,5 s después de +30 días; suspensión 0,6 s después de +7; 403 `suscripcion_inactiva`; pago 200 en 1,5 s y consola 200 |
 | 2.1 | 16 s | Correcto: rechazo con 0002, activación con 4242 y Visa •••• 4242 en B1.4 |
 | 2.2 | 15 s | Correcto: recuperación, Mastercard •••• 3057 y «Pagar Q 225.00 y cambiar de plan» |
-| 2.3 | 25 s más el registro (unos 8 s) | Contratación con 0341; gracia visible 2,5 s después de +30 días; suspensión 0,6 s después de +7; 403 `suscripcion_inactiva`; pago 200 en 1,5 s y consola 200 |
 | 3.1 | 9 s | Correcto. «Plan gratuito» viene marcado; la pantalla dice «Rutas encontradas 5» |
 | 3.2 | 9 s | Correcto: la siembra trae el dominio pendiente; A5.1 muestra `https://api.enviosxelaju.localhost/cotizaciones` |
 | 3.3 | 15 s | Registro, verificación y contratación por el portal (el ensayo lo hizo con 0341; con 4242 lo cubren las pruebas E2E); rotación de la clave de pruebas correcta |

@@ -92,8 +92,8 @@ Se escribieron el guion del video (`docs/video/guion.md`) y el elemento de códi
 - `docs/video/elementos/emilio.md`, `dominique.md` y `jose-pablo.md` (referencias de líneas)
 
 ### Cambio del 30 oct 2026: una parte por integrante
-Jordin decidió que cada integrante grabe su parte por su cuenta y que después se unan los cuatro videos. Por eso el guion pasó de 16 bloques intercalados a cuatro partes seguidas, una por persona, cada una con su funcionalidad y su elemento de código: Jordin 5:30, Emilio 6:30, Dominique 5:30 y José Pablo 5:15, en total 22:45.
-- Cada parte se graba en un ambiente recién sembrado y solo usa la siembra y los datos que crea ella misma. Ya no hay datos compartidos entre partes: la consola de Jordin usa la clave de pruebas de la siembra; Emilio registra su propia consumidora con 0341 para el reloj; Dominique registra a un consumidor distinto (Pedro); el soporte de José Pablo usa la API sembrada.
-- Abre Jordin con la presentación y cierra José Pablo. El bloque del reloj va al final de la parte de Emilio.
+Jordin decidió que cada integrante grabe su parte por su cuenta y que después se unan los cuatro videos. Por eso el guion pasó de 16 bloques intercalados a cuatro partes seguidas, una por persona, cada una con su funcionalidad y su elemento de código: Jordin 7:15, Emilio 4:45, Dominique 5:30 y José Pablo 5:15, en total 22:45.
+- Cada parte se graba en un ambiente recién sembrado y solo usa la siembra y los datos que crea ella misma. Ya no hay datos compartidos entre partes: la consola de Jordin usa la clave de pruebas de la siembra; Jordin registra su propia consumidora con 0341 para el reloj; Dominique registra a un consumidor distinto (Pedro); el soporte de José Pablo usa la API sembrada.
+- Abre Jordin con la presentación y cierra José Pablo. Jordin pidió quedarse con el bloque del reloj (lo construyó en JG-22), que va al final de su funcionalidad, antes de su elemento de código.
 - «Antes de grabar» quedó como lista para cada integrante. El certificado se importa con `certutil`, porque `Import-Certificate` falló desde Git Bash. Se agregaron el formato y el nombre de los archivos de video.
 - No se repitió el ensayo: las pantallas, los botones y los datos son los mismos. La tabla del ensayo indica a qué bloque nuevo corresponde cada resultado.
