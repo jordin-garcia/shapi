@@ -1,15 +1,15 @@
 # Guion del video del Avance 3
 
-Video de **22 min 45 s** como máximo planeado (límite del curso: 25 min; quedan 2:15 de margen). Se entrega el **sábado 31 de octubre a las 23:59**. Muestra el proyecto terminado y lo narran las cuatro personas.
+Video de **22 min 35 s** como máximo planeado (límite del curso: 25 min; quedan 2:25 de margen). Se entrega el **sábado 31 de octubre a las 23:59**. Muestra el proyecto terminado y lo narran las cuatro personas. **Solo se muestran la interfaz gráfica y el código en el editor; nada de la consola o la terminal.**
 
 **Cada integrante graba su parte por su cuenta y después se unen los cuatro videos en este orden:**
 
 | Orden | Parte | Integrante | Duración | Acumulado |
 |---|---|---|---|---|
-| 1 | Presentación, la compuerta, el consumo y el ciclo de cobro | Jordin | 7:15 | 7:15 |
-| 2 | La cuenta del proveedor, los pagos y el cambio de plan | Emilio | 4:45 | 12:00 |
-| 3 | Publicar una API y su portal de marca blanca | Dominique | 5:30 | 17:30 |
-| 4 | Soporte, administración, el ambiente y el cierre | José Pablo | 5:15 | **22:45** |
+| 1 | Presentación, la compuerta, el consumo y el ciclo de cobro | Jordin | 6:05 | 6:05 |
+| 2 | La cuenta del proveedor, su equipo, los pagos y el cambio de plan | Emilio | 5:30 | 11:35 |
+| 3 | Publicar una API y su portal de marca blanca | Dominique | 5:30 | 17:05 |
+| 4 | Soporte, administración, cuentas y el cierre | José Pablo | 5:30 | **22:35** |
 
 Cada parte está completa: tiene la funcionalidad que construyó esa persona y su elemento de código, en ese orden. **Cada parte se graba en un ambiente recién levantado y sembrado** y solo usa los datos de la siembra y los que crea esa misma parte, así que no depende de lo que grabaron los demás. Dentro de una parte se puede pausar entre bloques y repetir solo el bloque que salió mal (ver «Repetir una toma»).
 
@@ -25,7 +25,7 @@ Si al unir el video pasa de 24 minutos, se recorta en este orden: el paso opcion
    docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build
    docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo ps -a siembra-demo
    ```
-   `down -v` borra la base, Redis, el reloj de demostración y la autoridad certificadora, así que no quedan datos de ensayos ni el reloj adelantado. `siembra-demo` debe terminar con `Exited (0)`. **José Pablo graba la terminal en este momento para su bloque 4.3** (el segundo comando y el `ps`); al editar se corta la espera.
+   `down -v` borra la base, Redis, el reloj de demostración y la autoridad certificadora, así que no quedan datos de ensayos ni el reloj adelantado. `siembra-demo` debe terminar con `Exited (0)`.
 2. **Verificar y calentar la compuerta:** `node infra/verificar.mjs --demo`. Tarda unos dos minutos. Luego espere 30 segundos, para que B3.1 muestre la compuerta sana.
 3. **Importar el certificado.** `down -v` crea una autoridad certificadora nueva. En Windows:
    ```powershell
@@ -48,14 +48,16 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 | Parte | Cuentas | Datos nuevos que crea |
 |---|---|---|
 | 1 · Jordin | Ana Lucía Morales (ana.morales@enviosxelaju.com), Lucía Pérez (nueva), Rodrigo Alvarado (rodrigo.alvarado@shapi.localhost) | Lucía y su suscripción |
-| 2 · Emilio | Carmen Ixchop (nueva), María José Quiñónez (mariajose@mercaditoantigua.com) | «Café del Volcán»; María José cambia de contraseña y pasa al plan Volumen |
+| 2 · Emilio | Carmen Ixchop (nueva), Tomás Chávez (nuevo), María José Quiñónez (mariajose@mercaditoantigua.com) | «Café del Volcán» con Tomás de editor; María José cambia de contraseña y pasa al plan Volumen |
 | 3 · Dominique | Ana Lucía Morales, Pedro Ajú (nuevo) | API «Rastreo de Paquetes» con su plan «Gratis», dominio verificado y Pedro con su suscripción |
-| 4 · José Pablo | Ana Lucía Morales, Sofía Menchú Cojtí (sofia.menchu@shapi.localhost), Rodrigo Alvarado | Un caso de soporte |
+| 4 · José Pablo | Ana Lucía Morales, Sofía Menchú Cojtí (sofia.menchu@shapi.localhost), Rodrigo Alvarado, Mónica Tuyuc (nueva) | Un caso de soporte y la cuenta de soporte de Mónica |
 
 | Persona nueva | Correo | Contraseña | Papel |
 |---|---|---|---|
 | Carmen Ixchop | carmen@cafedelvolcan.com | `CafeVolcan2026` | Propietaria de «Café del Volcán» (parte 2) |
 | Lucía Pérez | lucia@tiendazunil.com | `TiendaZunil2026` | Consumidora de «Tienda Zunil» (parte 1) |
+| Tomás Chávez | tomas@cafedelvolcan.com | `TomasChavez2026` | Editor de «Café del Volcán» (parte 2) |
+| Mónica Tuyuc | monica.tuyuc@shapi.localhost | `MonicaTuyuc2026` | Soporte de Shapi (parte 4) |
 | Pedro Ajú | pedro@libreriaxela.com | `LibreriaXela2026` | Consumidor de «Librería Xela» (parte 3) |
 
 | Tarjeta (pasarela simulada) | Resultado |
@@ -73,27 +75,27 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 
 ---
 
-## Parte 1 · Jordin · Presentación, la compuerta, el consumo y el ciclo de cobro (7:15)
+## Parte 1 · Jordin · Presentación, la compuerta, el consumo y el ciclo de cobro (6:05)
 
 **Ventanas:** una normal, con https://shapi.localhost, https://envios.shapi.localhost, https://correo.shapi.localhost y el editor, y una de incógnito para Rodrigo (bloque 1.4). **El bloque 1.4 adelanta el reloj: grábelo después de los bloques 1.1 a 1.3.** El código (1.5) no usa el ambiente y se puede grabar en cualquier momento.
 
-### 1.1 · Presentación y sitio público · 0:40
+### 1.1 · Presentación y sitio público · 0:30
 **Pantalla:** https://shapi.localhost (A0.1). **Datos:** los cuatro planes de plataforma de la siembra.
 1. Baje despacio por «Tres pasos para publicar y cobrar por su API» hasta «Los planes de Shapi».
 - *Qué decir:* «Shapi es una plataforma como servicio para publicar APIs, controlar quién las usa y cobrar por ellas. Somos Jordin, Emilio, Dominique y José Pablo; cada uno les muestra lo que construyó y una decisión de diseño de su código.» Señale los planes: «estos planes, con su precio y su vigencia, se leen de la base de datos».
 
-### 1.2 · La compuerta desde la consola: 200, 401 y 429 · 1:00
+### 1.2 · La compuerta desde la consola: 200, 401 y 429 · 0:50
 **Pantalla:** A5.2 en https://envios.shapi.localhost/consola, sin sesión. **Datos:** la clave de pruebas de Mercadito Antigua.
 1. `POST /cotizaciones`, origen `0901`, destino `0301`, peso_kg `2.5`, pegue la clave de pruebas → **Enviar petición** → **200**, el JSON del origen y **Límites y cuota** (`X-RateLimit-*` y `X-Cuota-*`). *Qué decir:* «cada petición a una API publicada pasa por la compuerta de Shapi, que valida la clave, el plan y los límites antes de llegar al servidor del proveedor».
 2. Cambie el último carácter de la clave → **Enviar petición** → **401** `clave_invalida`. Restaure la clave.
 3. Pulse **Enviar petición** unas 10 veces seguidas, hasta el **429** `limite_por_minuto` con `Retry-After`. El verificador del paso 2 usa esta misma clave: si el 429 sale antes de tiempo, espere un minuto y repita el bloque. *Qué decir:* «la clave de pruebas admite 10 peticiones por minuto; el límite y la cuota se evalúan en Redis con un script atómico. El 403 lo veremos al suspender una suscripción, al final de esta parte».
 
-### 1.3 · El proveedor: equipo, claves, consumo y facturación · 1:35
-**Pantallas:** A1.3, A4.2, A4.3, B1.1, B1.2 y B1.5. **Datos:** Envíos Xelajú de la siembra: Diego (editor), Karla (lectora) y cuatro consumidores.
-1. https://shapi.localhost/entrar → **Entrar** con Ana → **Miembros y roles (A4.2):** Ana propietaria, Diego editor y Karla lectora, y el formulario **Invitar miembro**. *Qué decir:* «el editor configura APIs y planes; el lector solo consulta; el cobro y los miembros son del propietario».
-2. Selector de API: **API de Cotización de Envíos** → **Claves (A4.3):** solo los últimos 4 caracteres, una **rotada** y una **revocada**. *Qué decir:* «Shapi solo guarda el hash de cada clave; revocarla tarda menos de 10 segundos en la compuerta».
-3. **Consumo (B1.1):** peticiones, latencia p95, errores por código y consumo por ruta. *Qué decir:* «la compuerta mide cada petición en Redis y un trabajador lo consolida en PostgreSQL».
-4. **Consumidores (B1.2):** consumo y facturación por consumidor → **Invitar consumidores** (B1.5).
+### 1.3 · El proveedor: claves, consumo y facturación · 0:45
+**Pantallas:** A1.3, A4.3, B1.1, B1.2 y B1.5. **Datos:** Envíos Xelajú de la siembra y sus cuatro consumidores.
+1. https://shapi.localhost/entrar → **Entrar** con Ana → selector de API: **API de Cotización de Envíos** → **Claves (A4.3):** solo los últimos 4 caracteres, una **rotada** y una **revocada**. *Qué decir:* «Shapi solo guarda el hash de cada clave; revocarla tarda menos de 10 segundos en la compuerta».
+2. **Consumo (B1.1):** peticiones, latencia p95, errores por código y consumo por ruta. *Qué decir:* «la compuerta mide cada petición en Redis y un trabajador lo consolida en PostgreSQL».
+3. **Consumidores (B1.2):** consumo y facturación por consumidor → **Invitar consumidores** (B1.5).
+4. **Cerrar sesión.**
 
 ### 1.4 · El ciclo de cobro con el reloj: renovación, gracia, suspensión (403) y reactivación · 1:45
 **Pantallas:** A5.3, A5.4, A5.6, A5.4b, B3.1 (tarjeta «Modo demostración»), B2.3 y A5.2. **Datos:** Lucía (nueva), la tarjeta 0341 y Rodrigo.
@@ -108,7 +110,7 @@ Texto, archivos y orden de la pantalla en [elementos/jordin.md](elementos/jordin
 
 ---
 
-## Parte 2 · Emilio · La cuenta del proveedor, los pagos y el cambio de plan (4:45)
+## Parte 2 · Emilio · La cuenta del proveedor, su equipo, los pagos y el cambio de plan (5:30)
 
 **Ventanas:** una normal, con https://shapi.localhost, https://envios.shapi.localhost y https://correo.shapi.localhost.
 
@@ -119,16 +121,21 @@ Texto, archivos y orden de la pantalla en [elementos/jordin.md](elementos/jordin
 3. **Suscripción de plataforma (B1.4)** → **Cambiar de plan** → **Planes (A2.1)** → **Contratar** en **Lanzamiento** (Q 199).
 4. **Contratación (A2.2):** **4000 0000 0000 0002**, «Carmen Ixchop», `12`, `28`, `123` → **Pagar Q 199.00 y activar el plan** → **Tarjeta rechazada (A2.4)**. *Qué decir:* «la pasarela es simulada; esta tarjeta simula fondos insuficientes y el plan no cambia».
 5. **Usar otra tarjeta** → **4242 4242 4242 4242** → **Plan activado (A2.3)** → **Suscripción de plataforma**: Lanzamiento y Visa •••• 4242 → **Historial de pagos (B1.3)**. *Qué decir:* «Shapi no guarda el número, solo un token, la marca y los últimos cuatro dígitos; la renovación se cobra sola cada 30 días».
-6. **Cerrar sesión.**
 
-### 2.2 · Una consumidora con historia: recuperación, consumo y cambio de plan · 1:00
+### 2.2 · Su equipo: miembros y roles · 0:45
+**Pantallas:** A4.2, el correo y A8.2. **Datos:** Carmen, con el plan Lanzamiento del bloque 2.1 (3 miembros), y Tomás (nuevo).
+1. Panel de Carmen → **Miembros y roles (A4.2):** «Su plan Lanzamiento permite 3 miembros» → **Invitar miembro:** tomas@cafedelvolcan.com, rol **Editor** → **Enviar invitación** → «Acción confirmada» y «tiene 2». *Qué decir:* «el propietario invita a su equipo; el editor configura APIs y planes, el lector solo consulta, y el cobro y los miembros son del propietario».
+2. **Cerrar sesión** → correo de la invitación para tomas@cafedelvolcan.com → el enlace abre **Aceptar la invitación (A8.2):** «Tomás Chávez», `TomasChavez2026` → **Aceptar la invitación** → «Ya es parte de la organización» → **Entrar a Shapi** → entre con Tomás.
+3. La barra lateral de Tomás no tiene «Miembros y roles», «Suscripción de plataforma» ni «Historial de pagos», y abajo dice **Editor**. *Qué decir:* «cada rol ve solo lo que puede hacer». → **Cerrar sesión.**
+
+### 2.3 · Una consumidora con historia: recuperación, consumo y cambio de plan · 1:00
 **Pantallas:** A5.7, A5.9, A5.10, B2.1, B2.2 y B2.7. **Datos:** María José, plan Comercio y Mastercard •••• 3057.
 1. https://envios.shapi.localhost/entrar → **¿Olvidó su contraseña?** (A5.9) → mariajose@mercaditoantigua.com → **Enviar el enlace** → correo «Recupere su contraseña» → **Contraseña nueva (A5.10)** `Mercadito2026` → entra a su cuenta. *Qué decir:* «la respuesta es la misma aunque el correo no exista, y el enlace es de un solo uso».
 2. **Consumo (B2.1):** el consumo por ruta del ciclo. **Pagos (B2.2):** su historial.
 3. **Suscripción y claves** → **Cambiar de plan (B2.7)** → **Elegir Volumen**: crédito por los días de Comercio, cargo por los de Volumen y **A pagar hoy** → **Pagar Q 225.00 y cambiar de plan**. *Qué decir:* «al subir de plan se cobra solo la diferencia prorrateada; al bajar, el cambio se programa para la renovación».
 4. **Cerrar sesión.**
 
-### 2.3 · Código: puertos y adaptadores en los pagos · 2:15
+### 2.4 · Código: puertos y adaptadores en los pagos · 2:15
 Texto, archivos y orden de la pantalla en [elementos/emilio.md](elementos/emilio.md).
 
 ---
@@ -165,7 +172,7 @@ Texto, archivos y orden de la pantalla en [elementos/dominique.md](elementos/dom
 
 ---
 
-## Parte 4 · José Pablo · Soporte, administración, el ambiente y el cierre (5:15)
+## Parte 4 · José Pablo · Soporte, administración, cuentas y el cierre (5:30)
 
 **Ventanas:** una normal, con https://shapi.localhost y https://correo.shapi.localhost, y una de incógnito para Sofía y Rodrigo.
 
@@ -177,34 +184,33 @@ Texto, archivos y orden de la pantalla en [elementos/dominique.md](elementos/dom
 4. Incógnito: **Cerrar sesión** de Sofía.
 
 ### 4.2 · Administración, estado y bitácora · 1:15
-**Pantallas:** A6.2, A6.2b, A6.1, A6.3, A6.3b, A6.5, B3.1 y B3.2. **Datos:** organizaciones de la siembra (Transportes Petén en gracia, Datos Chapines suspendida) y Agro Precios.
+**Pantallas:** A6.2, A6.2b, A6.1, A6.3, A6.3b, B3.1 y B3.2. **Datos:** organizaciones de la siembra (Transportes Petén en gracia, Datos Chapines suspendida) y Agro Precios.
 1. Incógnito → **Entrar** con Rodrigo → **Organizaciones (A6.2):** plan, ciclo y estado → **Suspender** en **Agro Precios** (A6.2b): APIs y consumidores afectados y un motivo → **Suspender organización** → **Reactivar**. *Qué decir:* «mientras está suspendida, la compuerta responde 403 a todas sus APIs».
 2. **Planes de plataforma (A6.1).** **Pagos (A6.3):** **Revertir** en un pago (A6.3b): la advertencia → **Cancelar**.
-3. **Cuentas (A6.5):** administradores y soporte; Julio Estrada, desactivado.
-4. **Estado de los componentes (B3.1):** los siete componentes y el p95 de la compuerta. **Bitácora (B3.2):** las acciones de hoy, como la reactivación y la suspensión de Agro Precios y el caso.
+3. **Estado de los componentes (B3.1):** los siete componentes y el p95 de la compuerta. **Bitácora (B3.2):** las acciones de hoy, como la reactivación y la suspensión de Agro Precios y el caso.
 
-### 4.3 · El ambiente con un solo comando · 0:30
-**Pantalla:** la terminal grabada en el paso 1 de «Antes de grabar».
-1. El comando `docker compose … --profile demo up -d --build`, los contenedores en `Started` y el `ps` con `siembra-demo` en `Exited (0)`.
-- *Qué decir:* «todo lo que vieron corre en un ambiente productivo simulado que se levanta con un solo comando: PostgreSQL, Redis, la API de control, la compuerta, el trabajador, los portales, el correo y los orígenes de demostración, detrás de un borde con HTTPS».
+### 4.3 · Cuentas de administración y soporte · 0:45
+**Pantallas:** A6.5, el correo y A6.5b. **Datos:** Rodrigo, Julio Estrada (desactivado) de la siembra y Mónica (nueva).
+1. Incógnito (Rodrigo) → **Cuentas de plataforma (A6.5):** administradores y soporte; Julio Estrada, **desactivado** → **Crear cuenta:** «Mónica Tuyuc», monica.tuyuc@shapi.localhost, rol **Soporte** → **Crear cuenta**. *Qué decir:* «el administrador crea las cuentas del personal; la persona define su contraseña con un enlace de un solo uso».
+2. Correo: el mensaje para monica.tuyuc@shapi.localhost → abra el enlace en la ventana normal, donde Ana ya terminó → **Contraseña nueva** (A6.5b): `MonicaTuyuc2026` → **Guardar la contraseña** → Mónica entra a **Casos**, con el menú de soporte.
 
 ### 4.4 · Código: bandeja de salida transaccional del correo · 2:15
 Texto, archivos y orden de la pantalla en [elementos/jose-pablo.md](elementos/jose-pablo.md).
 
 ### 4.5 · Cierre · 0:15
 **Pantalla:** https://shapi.localhost.
-- *Qué decir:* «Eso es Shapi: publicar una API, protegerla y cobrar por ella, todo funcionando y con pruebas automáticas en cada cambio. Gracias.»
+- *Qué decir:* «Eso es Shapi: publicar una API, protegerla y cobrar por ella, todo funcionando en un ambiente productivo simulado y con pruebas automáticas en cada cambio. Gracias.»
 
 ---
 
 ## Los elementos de código
 
-Cada elemento dura 2:15 y va después de la funcionalidad de su autor; en la parte 4, el cierre va después del elemento. Su narración tiene entre 285 y 340 palabras, unos 2 minutos a ritmo de presentación; si una toma pasa de 2:30, se acorta su penúltimo párrafo. Las líneas citadas se comprobaron contra `main` el 30 de octubre.
+Cada elemento dura 2:15 y va después de la funcionalidad de su autor; en la parte 4, el cierre va después del elemento. Se muestra en el editor: el código y las pruebas, sin ejecutarlas en la terminal. Su narración tiene entre 285 y 340 palabras, unos 2 minutos a ritmo de presentación; si una toma pasa de 2:30, se acorta su penúltimo párrafo. Las líneas citadas se comprobaron contra `main` el 30 de octubre.
 
 | Bloque | Integrante | Elemento | Archivo |
 |---|---|---|---|
 | 1.5 | Jordin | Cadena de responsabilidad en la tubería de la compuerta (RNF-13) | [elementos/jordin.md](elementos/jordin.md) |
-| 2.3 | Emilio | Puertos y adaptadores: `IPasarelaPagos` y `PasarelaSimulada` (ADR-12 y ADR-13) | [elementos/emilio.md](elementos/emilio.md) |
+| 2.4 | Emilio | Puertos y adaptadores: `IPasarelaPagos` y `PasarelaSimulada` (ADR-12 y ADR-13) | [elementos/emilio.md](elementos/emilio.md) |
 | 3.4 | Dominique | Método de fábrica con objeto resultado en `ValidadorDireccionOrigen` (RNF-10) | [elementos/dominique.md](elementos/dominique.md) |
 | 4.4 | José Pablo | Bandeja de salida transaccional del correo (RF-46, ADR-27) | [elementos/jose-pablo.md](elementos/jose-pablo.md) |
 
@@ -215,30 +221,29 @@ Cada elemento dura 2:15 y va después de la funcionalidad de su autor; en la par
 | Lineamiento o requisito | Bloque |
 |---|---|
 | Lineamientos 4.1 · Registro y validación de correo (RF-01, RF-02, RF-05) | 2.1 (proveedor), 1.4 y 3.3 (consumidores) |
-| Lineamientos 4.1 · Recuperación de contraseña (RF-03) | 2.2 |
-| Lineamientos 4.1 · Autenticación segura y sesiones (RF-04) | 1.3, 2.1, 2.2, 3.1, 4.1 y 4.2 (entrar y cerrar sesión) |
-| Lineamientos 4.1 · Roles: administrador, cliente y soporte (RF-06, 04 §2) | 1.3 (propietario, editor y lector), 4.1 (soporte), 4.2 (administración y cuentas) |
+| Lineamientos 4.1 · Recuperación de contraseña (RF-03) | 2.3 |
+| Lineamientos 4.1 · Autenticación segura y sesiones (RF-04) | 1.3, 2.1, 2.2, 2.3, 3.1, 4.1 y 4.2 (entrar y cerrar sesión) |
+| Lineamientos 4.1 · Roles: administrador, cliente y soporte (RF-06, 04 §2) | 2.2 (propietario y editor, A4.2 y A8.2), 4.1 (soporte), 4.3 (administrador y soporte, A6.5 y A6.5b) |
 | Lineamientos 4.2 · Planes con nombre, descripción, precio y vigencia; visualización de planes (RF-17, RF-18, RF-19) | 1.1 (A0.1), 2.1 (A2.1), 3.1 (A4.1), 1.4 y 3.3 (A5.4), 4.2 (A6.1) |
 | Lineamientos 4.2 · Contratación de servicios (RF-20) | 2.1 (plataforma), 1.4 y 3.3 (API) |
-| Lineamientos 4.2 · Historial de pagos (RF-21, RF-24) | 2.1 (B1.3), 2.2 (B2.2), 4.2 (A6.3) |
+| Lineamientos 4.2 · Historial de pagos (RF-21, RF-24) | 2.1 (B1.3), 2.3 (B2.2), 4.2 (A6.3) |
 | Lineamientos 4.2 · Renovación, gracia, suspensión y reactivación (RF-22, RF-23) | 1.4 |
-| Cambio de plan con prorrateo (RF-25) | 2.2 (B2.7) |
+| Cambio de plan con prorrateo (RF-25) | 2.3 (B2.7) |
 | Lineamientos 4.3 (opción C) · Crear entornos: publicar una API con su especificación, rutas y configuración (RF-08, RF-09, RF-10, RF-13, RF-14) | 3.1 |
 | Lineamientos 4.3 · Gestión de dominios simulados (RF-11, RF-12) | 3.2 (A3.6) |
 | Personalización del portal de marca blanca (RF-15, RF-16) | 3.2 (A3.7, A5.0, A5.1, A5.5) |
 | Claves: emisión, rotación y revocación (RF-26, RF-27, RF-28) | 1.3 (A4.3), 3.3 (A5.4b, B2.4 y B2.5) |
 | Compuerta: 200, 401, 403 y 429 (RF-29, RF-30, RF-31, RF-45) | 1.2 (200, 401 y 429), 1.4 (403) |
-| Lineamientos 4.3 · Monitorear consumo: consumo y facturación (RF-35, RF-36, RF-37) | 1.3 (B1.1 y B1.2), 2.2 (B2.1) |
+| Lineamientos 4.3 · Monitorear consumo: consumo y facturación (RF-35, RF-36, RF-37) | 1.3 (B1.1 y B1.2), 2.3 (B2.1) |
 | Invitar consumidores (RF-05) | 1.3 (B1.5) |
 | Administración de organizaciones (RF-38) | 4.2 (A6.2 y A6.2b) |
 | Estado de los componentes (RF-39) | 4.2 (B3.1) |
 | Soporte (RF-40) y correo con reintentos (RF-46) | 4.1, 4.4 |
 | Bitácora de acciones sensibles (RF-41) | 4.2 (B3.2) |
-| Cuentas de administración y soporte (RF-42) | 4.2 (A6.5) |
+| Cuentas de administración y soporte (RF-42) | 4.3 (A6.5 y A6.5b) |
 | Protección del origen contra SSRF (RNF-10) | 3.1 (A3.2), 3.4 |
 | Agregar una regla a la compuerta sin tocar las demás (RNF-13) | 1.5 |
-| Lineamientos 6 y 8 · Despliegue: el ambiente productivo con un solo comando (RNF-14) | 4.3 |
-| Lineamientos (Avance 3) · 4 elementos de código con Clean Code y patrones | 1.5, 2.3, 3.4 y 4.4 |
+| Lineamientos (Avance 3) · 4 elementos de código con Clean Code y patrones | 1.5, 2.4, 3.4 y 4.4 |
 
 ## Qué evitar
 
@@ -260,7 +265,7 @@ Cada elemento dura 2:15 y va después de la funcionalidad de su autor; en la par
   ```powershell
   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
   ```
-  Borra las organizaciones y los consumidores que no son de la siembra (Café del Volcán, Lucía, Pedro, la API «Rastreo de Paquetes») y deja los datos sembrados como al principio. Conserva el personal y la bitácora, que es solo de inserción. Después, `node infra/verificar.mjs --demo`.
+  Borra las organizaciones y los consumidores que no son de la siembra (Café del Volcán, Lucía, Pedro, la API «Rastreo de Paquetes») y deja los datos sembrados como al principio. Conserva el personal y la bitácora, que es solo de inserción: si repite 4.3, cree la cuenta con otro correo (por ejemplo, monica.tuyuc2@shapi.localhost), y si al repetir 2.2 el correo de Tomás ya existe, use otro. Después, `node infra/verificar.mjs --demo`.
 - **Bloque 1.4, o si ya se adelantó el reloj:** empiece desde cero, con los pasos 1 a 3 de «Antes de grabar».
 
 ---
@@ -275,15 +280,16 @@ El ensayo se hizo antes de reorganizar el guion por integrante. Las pantallas y 
 |---|---|---|
 | 1.1 | 2 s | Correcto: los cuatro planes |
 | 1.2 | 9 s | Con la clave de Lucía y su sesión: 200 con `X-RateLimit-*` y `X-Cuota-*`; 401 `clave_invalida`; 429 `limite_por_minuto` en el décimo envío, con `Retry-After` |
-| 1.3 | 8 s | Correcto: propietario, editor y lector; claves rotada y revocada; consumo; consumidores |
+| 1.3 | 8 s | Correcto: claves rotada y revocada; consumo; consumidores (el mismo recorrido incluía A4.2 de Ana) |
 | 1.4 | 25 s más el registro (unos 8 s) | Contratación con 0341; gracia visible 2,5 s después de +30 días; suspensión 0,6 s después de +7; 403 `suscripcion_inactiva`; pago 200 en 1,5 s y consola 200 |
 | 2.1 | 16 s | Correcto: rechazo con 0002, activación con 4242 y Visa •••• 4242 en B1.4 |
-| 2.2 | 15 s | Correcto: recuperación, Mastercard •••• 3057 y «Pagar Q 225.00 y cambiar de plan» |
+| 2.2 | 14 s | Ensayado el 30 oct, después de reorganizar, con una proveedora en Lanzamiento creada por el recorrido: invitación como Editor, «tiene 2», aceptación desde el correo, «Ya es parte de la organización» y entrada como Editor, sin «Miembros y roles» ni «Suscripción de plataforma» en la barra |
+| 2.3 | 15 s | Correcto: recuperación, Mastercard •••• 3057 y «Pagar Q 225.00 y cambiar de plan» |
 | 3.1 | 9 s | Correcto. «Plan gratuito» viene marcado; la pantalla dice «Rutas encontradas 5» |
 | 3.2 | 9 s | Correcto: la siembra trae el dominio pendiente; A5.1 muestra `https://api.enviosxelaju.localhost/cotizaciones` |
 | 3.3 | 15 s | Con otros datos: registro, verificación y contratación de Lucía con 0341 y rotación de la clave de pruebas de María José. Con Pedro y 4242 no se ensayó; la contratación con 4242 la cubren las pruebas E2E |
 | 4.1 | 15 s | Con el caso sobre «Rastreo de Paquetes»: aparece sin recargar; llegan «Nuevo caso» y «Nueva respuesta en su caso» |
-| 4.2 | 14 s | Con el pago de Carmen en A6.3. B3.1 marcó la compuerta degradada (p95 de 38 ms tras siete corridas; ver «Si algo falla») |
-| 4.3 | — | Arranque desde cero: `siembra-demo` en `Exited (0)` y el verificador en verde (unos 2 min, que se cortan) |
+| 4.2 | 14 s | Con el pago de Carmen en A6.3; incluía A6.5, que ahora va en 4.3. B3.1 marcó la compuerta degradada (p95 de 38 ms tras siete corridas; ver «Si algo falla») |
+| 4.3 | 10 s | Ensayado el 30 oct, después de reorganizar: cuenta de soporte creada por Rodrigo, contraseña definida desde el correo y entrada directa a «Casos» |
 
 También se comprobó «Repetir una toma»: `sembrar-demo --reiniciar` tardó 16 s, borró las organizaciones y los consumidores nuevos y las APIs «rastreo», y conservó a María José.

@@ -63,7 +63,7 @@ Fragmento de `main`, `src/Shapi.Compuerta/TuberiaCompuerta.cs:93-108` (16 línea
 - `RNF_13_Orden_DefinidoEnUnSoloLugar` (`:128-135`): fija el orden de 08 §3 y exige que cada tipo de `Orden` implemente `IFiltroCompuerta`.
 - Los filtros de validación se prueban por separado, sin Redis: por ejemplo, `Shapi.Compuerta.Tests.Filtros.FiltrosValidacionTests.RF_29_FiltroOrganizacion_Suspendida_Rechaza403ApiNoDisponible` (`tests/Shapi.Compuerta.Tests/Filtros/FiltrosValidacionTests.cs:23-32`) y `RF_29_FiltroSuscripcion_ActivaConElCicloVencido_ContinuaPorqueNoComparaFechas` (`:73-82`). También se prueba la cadena completa, con Redis real, en `Shapi.Compuerta.Tests.Tuberia.ValidacionesCompuertaTests` (`tests/Shapi.Compuerta.Tests/Tuberia/ValidacionesCompuertaTests.cs:16-27`, organización suspendida → 403 y el origen no recibe nada).
 
-Para mostrarlas en el video:
+Para comprobarlas antes de grabar (el video no muestra la terminal, solo el código de las pruebas en el editor):
 
 ```powershell
 dotnet test tests/Shapi.Compuerta.Tests --filter "FullyQualifiedName~Shapi.Compuerta.Tests.Tuberia.TuberiaCompuertaTests|FullyQualifiedName~Shapi.Compuerta.Tests.Filtros.FiltrosValidacionTests"
@@ -85,7 +85,7 @@ Lo hicimos así por un requisito de mantenibilidad, RNF-13: agregar una validaci
 
 En Clean Code: cada clase tiene una sola responsabilidad, y los rechazos son constantes con nombre, con su estado HTTP y su código de error, sin números mágicos. Los filtros de validación no van a Redis: un lector trae los datos antes de la cadena, así que se prueban sin red.
 
-Por último, esta prueba arma tres filtros, el segundo rechaza, y comprueba que el tercero nunca se ejecuta y que no se reenvía nada. Esta otra fija el orden. Aquí corren las 27, todas en verde.»
+Por último, esta prueba arma tres filtros, el segundo rechaza, y comprueba que el tercero nunca se ejecuta y que no se reenvía nada. Esta otra fija el orden. Estas pruebas y las de cada filtro corren en cada cambio, en la integración continua.»
 
 **Orden de lo que se muestra en pantalla** (duración objetivo: 2 min 15 s; unas 320 palabras):
 
@@ -95,7 +95,7 @@ Por último, esta prueba arma tres filtros, el segundo rechaza, y comprueba que 
 | 0:25–0:50 | `src/Shapi.Compuerta/Filtros/IFiltroCompuerta.cs:3-10` y `src/Shapi.Compuerta/Filtros/FiltroOrganizacion.cs:9-17` | La interfaz de un solo método y un filtro de una línea. |
 | 0:50–1:25 | `src/Shapi.Compuerta/TuberiaCompuerta.cs:39-52` y `:93-108` | El orden en un solo lugar; el `foreach` y el `return` en el primer rechazo. |
 | 1:25–1:50 | `src/Shapi.Compuerta/Filtros/FiltroClave.cs:19-29` y `src/Shapi.Compuerta/Filtros/ResultadoFiltro.cs:40-45` | Rechazos con nombre, código y mensaje; `Rechazar` y `Responder`. |
-| 1:50–2:15 | `tests/Shapi.Compuerta.Tests/Tuberia/TuberiaCompuertaTests.cs:19-42`, `:128-135` y la terminal | Las aserciones y la salida: 27 correctas. |
+| 1:50–2:15 | `tests/Shapi.Compuerta.Tests/Tuberia/TuberiaCompuertaTests.cs:19-42`, `:128-135` | Las aserciones: el tercer filtro no se evalúa, no se reenvía y el orden queda fijo. |
 
 ## Funcionalidades de Jordin para el recorrido de la interfaz
 

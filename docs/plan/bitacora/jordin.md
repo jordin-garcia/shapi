@@ -1090,10 +1090,11 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **JG-17:** el aviso de JG-29 sobre el encabezado del portal con sesión queda resuelto aquí.
 
 ## 2026-10-30 · JG-29 · Guion del video por integrante
-- Hecho: `docs/video/guion.md` reorganizado en cuatro partes seguidas, una por integrante (Jordin, Emilio, Dominique y José Pablo), cada una con su funcionalidad y su elemento de código, para grabarlas por separado y unirlas. Total: 22:45.
+- Hecho: `docs/video/guion.md` reorganizado en cuatro partes seguidas, una por integrante (Jordin, Emilio, Dominique y José Pablo), cada una con su funcionalidad y su elemento de código, para grabarlas por separado y unirlas. Equilibradas: Jordin 6:05, Emilio 5:30, Dominique 5:30 y José Pablo 5:30, en total 22:35. El video solo muestra la interfaz y el código, sin consola.
 - Decisiones: cada parte es independiente y se graba en un ambiente recién sembrado. Abre Jordin y cierra José Pablo. El reloj de demostración pasa a la parte de Jordin (1.4), que lo construyó en JG-22.
 - Verificación: plan válido; las cuatro duraciones suman 22:45; se confirmó que la siembra tiene pagos que se pueden revertir para el bloque 4.2.
 - Pendiente o aviso para otros:
   - **Todos:** cada uno graba su parte de `docs/video/guion.md` en su computadora, después de los pasos 1 a 3 de «Antes de grabar», y la entrega como `parte-<n>-<nombre>.mp4`. Orden: 1 Jordin, 2 Emilio, 3 Dominique y 4 José Pablo.
-  - **Emilio:** tu parte (4:45) es el registro de Carmen con su plan de plataforma y la recuperación, el consumo y el cambio de plan de María José, más tu elemento de código. El ciclo de cobro con el reloj lo graba Jordin.
-  - **José Pablo:** graba la terminal del `up` del paso 1 para tu bloque 4.3, y al final de tu parte va el cierre del video.
+  - **Emilio:** tu parte (5:30) es el registro de Carmen con su plan de plataforma, la invitación de Tomás como Editor con su aceptación desde el correo, y la recuperación, el consumo y el cambio de plan de María José, más tu elemento de código. El ciclo de cobro con el reloj lo graba Jordin.
+  - **José Pablo:** tu parte ya no incluye la terminal: el bloque 4.3 ahora es crear la cuenta de soporte de Mónica y definir su contraseña desde el correo. Al final de tu parte va el cierre del video. En tu elemento de código, muestra las pruebas en el editor, sin ejecutarlas.
+  - **Todos:** el video solo muestra la interfaz y el código en el editor; nada de consola o terminal.
