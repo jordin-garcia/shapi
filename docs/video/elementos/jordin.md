@@ -109,4 +109,4 @@ Por último, esta prueba arma tres filtros, el segundo rechaza, y comprueba que 
 | Consumo del consumidor y facturación por consumidor | JG-12, JG-13 | B2.1 y B1.2 |
 | Publicación de la configuración en Redis y la compuerta sin PostgreSQL | JG-04, JG-19 | Se explica al publicar la API (A3.1): la compuerta enruta sin consultar la base de datos |
 | Modo demostración: reloj desde el panel | JG-21, JG-22 | B3.1, tarjeta «Modo demostración» (+30 y +7 días) |
-| CI, revisión automática y tablero del plan | JG-01, JG-03, JG-18 | GitHub: checks en verde de un PR (opcional, solo si sobra tiempo) |
+| CI, revisión automática y tablero del plan | JG-01, JG-03, JG-18 | No se graba: el video solo muestra la interfaz de Shapi y el código |

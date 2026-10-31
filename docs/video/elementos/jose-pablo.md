@@ -75,7 +75,7 @@ Finalmente, estas pruebas comprueban las cinco esperas, el estado final y la eli
 
 ## Funcionalidades de José Pablo para el recorrido del video
 
-JG-29 puede repartir la narración con esta tabla. Las pantallas corresponden al catálogo de `docs/specs/11-interfaz.md`; los pasos sin pantalla propia se muestran en la terminal, Mailpit o el informe indicado.
+JG-29 puede repartir la narración con esta tabla. Las pantallas corresponden al catálogo de `docs/specs/11-interfaz.md`; los pasos sin pantalla propia se muestran en la terminal, Mailpit o el informe indicado. **En el video del Avance 3 solo se graban la interfaz y el código** (decisión de Jordin, 30 oct): las filas cuya evidencia es la terminal o un informe no se graban; sus datos se ven en A6.2, A6.4 y B3.2.
 
 | Funcionalidad construida | Tareas | Pantallas o evidencia que conviene mostrar |
 |---|---|---|

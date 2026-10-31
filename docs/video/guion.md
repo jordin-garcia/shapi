@@ -181,7 +181,7 @@ Texto, archivos y orden de la pantalla en [elementos/dominique.md](elementos/dom
 1. Ventana normal → **Entrar** con Ana → **Casos de soporte (A7.1)** → «Abrir un caso»: «¿Cómo cambio el color de mi portal?», API «API de Cotización de Envíos» y una descripción → **Abrir caso**: aparece en la lista.
 2. Incógnito → **Entrar** con Sofía → **Casos (A6.4)** → **Abrir** el caso nuevo (A6.4b): la conversación y los datos de la organización en solo lectura → **Asignarme el caso** → una respuesta → **Enviar respuesta**.
 3. Correo: «Nuevo caso» para Sofía y «Nueva respuesta en su caso» para Ana. Ventana normal: recargue el caso; Ana ve la respuesta (A7.2). *Qué decir:* «el correo se guarda junto con la respuesta y el trabajador lo envía después; lo explico en mi parte del código».
-4. Incógnito: **Cerrar sesión** de Sofía.
+4. **Cerrar sesión** de Sofía (incógnito) y de Ana (ventana normal).
 
 ### 4.2 · Administración, estado y bitácora · 1:15
 **Pantallas:** A6.2, A6.2b, A6.1, A6.3, A6.3b, B3.1 y B3.2. **Datos:** organizaciones de la siembra (Transportes Petén en gracia, Datos Chapines suspendida) y Agro Precios.
@@ -192,14 +192,14 @@ Texto, archivos y orden de la pantalla en [elementos/dominique.md](elementos/dom
 ### 4.3 · Cuentas de administración y soporte · 0:45
 **Pantallas:** A6.5, el correo y A6.5b. **Datos:** Rodrigo, Julio Estrada (desactivado) de la siembra y Mónica (nueva).
 1. Incógnito (Rodrigo) → **Cuentas de plataforma (A6.5):** administradores y soporte; Julio Estrada, **desactivado** → **Crear cuenta:** «Mónica Tuyuc», monica.tuyuc@shapi.localhost, rol **Soporte** → **Crear cuenta**. *Qué decir:* «el administrador crea las cuentas del personal; la persona define su contraseña con un enlace de un solo uso».
-2. Correo: el mensaje para monica.tuyuc@shapi.localhost → abra el enlace en la ventana normal, donde Ana ya terminó → **Contraseña nueva** (A6.5b): `MonicaTuyuc2026` → **Guardar la contraseña** → Mónica entra a **Casos**, con el menú de soporte.
+2. Correo: el mensaje para monica.tuyuc@shapi.localhost → abra el enlace en la ventana normal, donde Ana ya cerró sesión → **Contraseña nueva** (A6.5b): `MonicaTuyuc2026` → **Guardar la contraseña** → Mónica entra a **Casos**, con el menú de soporte.
 
 ### 4.4 · Código: bandeja de salida transaccional del correo · 2:15
 Texto, archivos y orden de la pantalla en [elementos/jose-pablo.md](elementos/jose-pablo.md).
 
 ### 4.5 · Cierre · 0:15
 **Pantalla:** https://shapi.localhost.
-- *Qué decir:* «Eso es Shapi: publicar una API, protegerla y cobrar por ella, todo funcionando en un ambiente productivo simulado y con pruebas automáticas en cada cambio. Gracias.»
+- *Qué decir:* «Eso es Shapi: publicar una API, protegerla y cobrar por ella, todo funcionando en un ambiente productivo simulado que se levanta con un solo comando, y con pruebas automáticas en cada cambio. Gracias.»
 
 ---
 
@@ -222,7 +222,7 @@ Cada elemento dura 2:15 y va después de la funcionalidad de su autor; en la par
 |---|---|
 | Lineamientos 4.1 · Registro y validación de correo (RF-01, RF-02, RF-05) | 2.1 (proveedor), 1.4 y 3.3 (consumidores) |
 | Lineamientos 4.1 · Recuperación de contraseña (RF-03) | 2.3 |
-| Lineamientos 4.1 · Autenticación segura y sesiones (RF-04) | 1.3, 2.1, 2.2, 2.3, 3.1, 4.1 y 4.2 (entrar y cerrar sesión) |
+| Lineamientos 4.1 · Autenticación segura y sesiones (RF-04) | 1.3, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2 y 4.3 (entrar y cerrar sesión) |
 | Lineamientos 4.1 · Roles: administrador, cliente y soporte (RF-06, 04 §2) | 2.2 (propietario y editor, A4.2 y A8.2), 4.1 (soporte), 4.3 (administrador y soporte, A6.5 y A6.5b) |
 | Lineamientos 4.2 · Planes con nombre, descripción, precio y vigencia; visualización de planes (RF-17, RF-18, RF-19) | 1.1 (A0.1), 2.1 (A2.1), 3.1 (A4.1), 1.4 y 3.3 (A5.4), 4.2 (A6.1) |
 | Lineamientos 4.2 · Contratación de servicios (RF-20) | 2.1 (plataforma), 1.4 y 3.3 (API) |

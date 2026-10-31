@@ -52,7 +52,7 @@ El equipo graba el proyecto terminado (`docs/plan/convergencia/2026-10-22.md` §
    - cambio de plan con prorrateo;
    - administración de organizaciones, pagos, cuentas, soporte, bitácora y estado de los componentes;
    - dominio propio y personalización del portal;
-   - el ambiente productivo levantado con un solo comando.
+   - el ambiente productivo levantado con un solo comando. *(El 30 oct, Jordin decidió que el video solo muestre la interfaz y el código: este punto ya no se graba y el cierre lo menciona de palabra.)*
 4. **Código.** El guion incluye los 4 elementos de código, uno por persona, con su tiempo.
 5. **Participación.** Las cuatro personas narran: cada una, su elemento de código y una parte de la funcionalidad, en lo posible la que construyó.
 6. **Antes de grabar.** El guion trae una lista de pasos: levantar el ambiente desde cero con la siembra (RNF-14); `node infra/verificar.mjs --demo`; calentar la compuerta; importar el certificado; resolución de 1366 × 768 o 1920 × 1080; cerrar las notificaciones; el orden de las cuentas que se usan; y cómo volver a sembrar si hay que repetir una toma.
