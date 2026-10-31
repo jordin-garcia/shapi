@@ -233,7 +233,6 @@ Cada narración tiene entre 285 y 340 palabras, unos 2 minutos a ritmo de presen
 - **Registrar a Carmen o a Lucía dos veces:** la segunda vez da «ya existe». Use otro correo (agregue un 2) o vuelva a sembrar.
 - **Entrar con una contraseña incorrecta cinco veces:** bloquea la cuenta 15 minutos.
 - **Más de 10 inicios de sesión o registros por minuto desde el mismo equipo:** el límite de las pantallas de acceso responde «demasiados intentos»; espere un minuto.
-- **Señalar el encabezado del portal en la consola o en el inicio:** con la sesión abierta, sigue mostrando «Entrar» y «Crear cuenta» (la barra lateral sí muestra a la consumidora). Señale la barra lateral.
 
 ## Si algo falla
 

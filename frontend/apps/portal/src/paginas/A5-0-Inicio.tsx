@@ -7,6 +7,7 @@ import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal'
 import { rutaDocumentacion, textoPeso, useDocumentacionPortal } from './A5-1-Documentacion';
 import { PlanCard, PlanVacio, useElegirPlan, usePlanesPortal, type Contratacion, type PlanApi } from '../modulos/suscripcion/planes';
 import Confirmacion from './A5-4b-Confirmacion';
+import { useSesionConsumidor } from '../modulos/sesion/useSesionConsumidor';
 
 function Codigo({ valor }: { valor: unknown }) {
   if (valor === null || valor === undefined) return <p className="p-5 text-[14px] text-tinta-suave">Sin ejemplo.</p>;
@@ -15,6 +16,8 @@ function Codigo({ valor }: { valor: unknown }) {
 
 export default function Inicio() {
   const marca = useMarcaPortal();
+  // JG-30: con la sesión abierta no se invita a crear una cuenta.
+  const sesion = useSesionConsumidor();
   const consulta = useDocumentacionPortal();
   const planes = usePlanesPortal();
   const { elegir } = useElegirPlan();
@@ -40,7 +43,7 @@ export default function Inicio() {
             </h1>
             {marca.descripcionApi && <p className="mt-5 max-w-[52ch] text-[20px] leading-[1.55] text-tinta-suave">{marca.descripcionApi}</p>}
             <div className="mt-8 flex gap-3">
-              <Link to="/registro" className="rounded-base bg-[var(--marca-principal)] px-6 py-[13px] text-[15px] font-medium text-white">Crear cuenta</Link>
+              {!sesion.data && <Link to="/registro" className="rounded-base bg-[var(--marca-principal)] px-6 py-[13px] text-[15px] font-medium text-white">Crear cuenta</Link>}
               <Link to="/documentacion" className="rounded-base border border-[#C9D2E1] bg-panel px-6 py-3 text-[15px] font-medium text-tinta">Ver documentación</Link>
             </div>
           </div>

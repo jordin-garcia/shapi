@@ -140,6 +140,8 @@ describe('RF-15 · marca dinámica del portal', () => {
 
   // H-73: el pie lleva la insignia de 24 px (radio de 6 px) con las iniciales y el nombre de la organización (mockup A5).
   it('el pie muestra la insignia y el nombre de la organización', async () => {
+    // El pie público es de A5.0 sin sesión (JG-30).
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
     montar('/');
 
     const pie = await screen.findByRole('contentinfo');
@@ -203,6 +205,8 @@ describe('RF-16 · rutas y navegación pública', () => {
 
   // 11 §4: «Documentación» lleva a /documentacion y DC-07 redirige a la primera ruta expuesta.
   it('los enlaces de Documentación llevan a la primera ruta expuesta', async () => {
+    // Encabezado público de A5.0, que es el de una visita sin sesión (JG-30).
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
     const { enrutador } = montar('/');
 
     const enlace = within(await screen.findByRole('banner')).getByRole('link', { name: 'Documentación' });
@@ -253,12 +257,83 @@ describe('RF-16 · rutas y navegación pública', () => {
   });
 
   it('el encabezado público conserva el orden del mockup A5', async () => {
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
     montar('/');
 
     const encabezado = await screen.findByRole('banner');
     expect(within(encabezado).getAllByRole('link').map(enlace => enlace.textContent)).toEqual([
       'EXEnvíos Xelajú', 'Documentación', 'Planes', 'Entrar', 'Crear cuenta',
     ]);
+  });
+});
+
+// JG-30: con la sesión abierta, el portal se ve por dentro con la estructura de la documentación (mockups A5 Consola
+// y Documentacion): solo la marca arriba, la barra lateral con el consumidor y sin «Entrar», «Crear cuenta» ni pie.
+describe('JG-30 · encabezado y pie del portal con la sesión abierta', () => {
+  async function esperarEstructuraInterna(titulo: string) {
+    await screen.findByRole('heading', { name: titulo });
+    const barra = await screen.findByRole('navigation', { name: 'Barra lateral del portal' });
+    expect(screen.queryByRole('link', { name: 'Entrar' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Crear cuenta' })).toBeNull();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
+    // El primer banner es el encabezado del diseño; la página puede tener su propio <header> dentro de main.
+    expect(within(screen.getAllByRole('banner')[0]).getAllByRole('link').map(enlace => enlace.textContent)).toEqual(['EXEnvíos Xelajú']);
+    expect(screen.getAllByRole('link', { name: 'Consola de pruebas' })).toHaveLength(1);
+    return barra;
+  }
+
+  it('RF-16 A5.2 con sesión usa la barra compartida, con el consumidor al pie y la consola activa', async () => {
+    montar('/consola');
+
+    const barra = await esperarEstructuraInterna('Consola de pruebas');
+    expect(await within(barra).findByText('María José Quiñónez')).toBeDefined();
+    expect(within(barra).getByText('Mercadito Antigua')).toBeDefined();
+    expect(within(barra).getByRole('button', { name: 'Cerrar sesión' })).toBeDefined();
+    expect(within(barra).getByRole('link', { name: 'Consola de pruebas' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('RF-16 A5.2 sin sesión también usa la estructura de la documentación', async () => {
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
+    montar('/consola');
+
+    const barra = await esperarEstructuraInterna('Consola de pruebas');
+    expect(within(barra).queryByRole('button', { name: 'Cerrar sesión' })).toBeNull();
+  });
+
+  it('RF-15 y RF-16 A5.0 con sesión se muestra dentro de la estructura interna, sin encabezado ni pie públicos', async () => {
+    montar('/');
+
+    const barra = await esperarEstructuraInterna('Cotice envíos a todo el país.');
+    expect(await within(barra).findByText('María José Quiñónez')).toBeDefined();
+    expect(within(barra).getByRole('button', { name: 'Cerrar sesión' })).toBeDefined();
+  });
+
+  it('RF-15 A5.0 sin sesión conserva el encabezado y el pie públicos de su mockup', async () => {
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 401 })));
+    montar('/');
+
+    await screen.findByRole('heading', { name: 'Cotice envíos a todo el país.' });
+    expect(within(screen.getAllByRole('banner')[0]).getByRole('link', { name: 'Crear cuenta' })).toBeDefined();
+    // La portada del mockup también invita a crear una cuenta cuando no hay sesión.
+    expect(screen.getAllByRole('link', { name: 'Crear cuenta' })).toHaveLength(2);
+    expect(screen.getByRole('contentinfo')).toBeDefined();
+    expect(screen.queryByRole('navigation', { name: 'Barra lateral del portal' })).toBeNull();
+  });
+
+  it('RF-16 A5.0 con la sesión en 5xx muestra el aviso con Reintentar, sin encabezado ni pie públicos (11 §4)', async () => {
+    server.use(http.get('http://localhost/api/portal/auth/sesion', () => new HttpResponse(null, { status: 500 })));
+    montar('/');
+
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeDefined();
+    expect(screen.queryByRole('link', { name: 'Entrar' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Crear cuenta' })).toBeNull();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
+  });
+
+  it('RF-16 «Página no encontrada» con sesión también usa la estructura interna', async () => {
+    montar('/no-existe');
+
+    await esperarEstructuraInterna('Página no encontrada');
   });
 });
 

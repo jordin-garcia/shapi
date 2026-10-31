@@ -28,7 +28,6 @@ export function crearRutas(): RouteObject[] {
       errorElement: <ErrorRuta />,
       children: [
         { path: '/', element: <A50Inicio /> },
-        { path: '/consola', element: <A52Consola /> },
         { path: '/registro', element: <A53Registro /> },
         { path: '/invitacion', element: <A53bInvitacion /> },
         { path: '/entrar', element: <A57Acceso /> },
@@ -44,6 +43,7 @@ export function crearRutas(): RouteObject[] {
       children: [
         { path: '/documentacion', element: <A51Documentacion /> },
         { path: '/documentacion/:ruta', element: <A51Documentacion /> },
+        { path: '/consola', element: <A52Consola /> },
         { path: '/planes', element: <A54Planes /> },
         { path: '/contratar/:plan', element: <A56Pago /> },
       ],
