@@ -1,6 +1,6 @@
 # Guion del video del Avance 3
 
-Video de **22 min 45 s** como máximo planeado (límite del curso: 25 min, con 2 min de margen). Se entrega el **sábado 31 de octubre a las 23:59**. Muestra el proyecto terminado y lo narran las cuatro personas.
+Video de **22 min 45 s** como máximo planeado (límite del curso: 25 min; quedan 2:15 de margen). Se entrega el **sábado 31 de octubre a las 23:59**. Muestra el proyecto terminado y lo narran las cuatro personas.
 
 **Cada integrante graba su parte por su cuenta y después se unen los cuatro videos en este orden:**
 
@@ -48,8 +48,8 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 | Parte | Cuentas | Datos nuevos que crea |
 |---|---|---|
 | 1 · Jordin | Ana Lucía Morales (ana.morales@enviosxelaju.com), Lucía Pérez (nueva), Rodrigo Alvarado (rodrigo.alvarado@shapi.localhost) | Lucía y su suscripción |
-| 2 · Emilio | Carmen Ixchop (nueva), María José Quiñónez (mariajose@mercaditoantigua.com) | «Café del Volcán» |
-| 3 · Dominique | Ana Lucía Morales, Pedro Ajú (nuevo) | API «Rastreo de Paquetes», dominio verificado y Pedro con su suscripción |
+| 2 · Emilio | Carmen Ixchop (nueva), María José Quiñónez (mariajose@mercaditoantigua.com) | «Café del Volcán»; María José cambia de contraseña y pasa al plan Volumen |
+| 3 · Dominique | Ana Lucía Morales, Pedro Ajú (nuevo) | API «Rastreo de Paquetes» con su plan «Gratis», dominio verificado y Pedro con su suscripción |
 | 4 · José Pablo | Ana Lucía Morales, Sofía Menchú Cojtí (sofia.menchu@shapi.localhost), Rodrigo Alvarado | Un caso de soporte |
 
 | Persona nueva | Correo | Contraseña | Papel |
@@ -86,7 +86,7 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 **Pantalla:** A5.2 en https://envios.shapi.localhost/consola, sin sesión. **Datos:** la clave de pruebas de Mercadito Antigua.
 1. `POST /cotizaciones`, origen `0901`, destino `0301`, peso_kg `2.5`, pegue la clave de pruebas → **Enviar petición** → **200**, el JSON del origen y **Límites y cuota** (`X-RateLimit-*` y `X-Cuota-*`). *Qué decir:* «cada petición a una API publicada pasa por la compuerta de Shapi, que valida la clave, el plan y los límites antes de llegar al servidor del proveedor».
 2. Cambie el último carácter de la clave → **Enviar petición** → **401** `clave_invalida`. Restaure la clave.
-3. Pulse **Enviar petición** unas 10 veces seguidas, hasta el **429** `limite_por_minuto` con `Retry-After`. *Qué decir:* «la clave de pruebas admite 10 peticiones por minuto; el límite y la cuota se evalúan en Redis con un script atómico. El 403 lo veremos al suspender una suscripción, al final de esta parte».
+3. Pulse **Enviar petición** unas 10 veces seguidas, hasta el **429** `limite_por_minuto` con `Retry-After`. El verificador del paso 2 usa esta misma clave: si el 429 sale antes de tiempo, espere un minuto y repita el bloque. *Qué decir:* «la clave de pruebas admite 10 peticiones por minuto; el límite y la cuota se evalúan en Redis con un script atómico. El 403 lo veremos al suspender una suscripción, al final de esta parte».
 
 ### 1.3 · El proveedor: equipo, claves, consumo y facturación · 1:35
 **Pantallas:** A1.3, A4.2, A4.3, B1.1, B1.2 y B1.5. **Datos:** Envíos Xelajú de la siembra: Diego (editor), Karla (lectora) y cuatro consumidores.
@@ -100,8 +100,8 @@ Las cuentas de la siembra usan la contraseña **`Shapi2026!demo`**.
 1. https://envios.shapi.localhost → **Crear cuenta (A5.3):** «Lucía Pérez», lucia@tiendazunil.com, «Tienda Zunil», `TiendaZunil2026` → correo «Verifique su correo» → **Planes (A5.4)** → **Contratar** en **Básico** → **Pago (A5.6):** **4000 0000 0000 0341**, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y contratar el plan** → **Plan contratado (A5.4b)**. **Copie** la clave de **Pruebas** en el Bloc de notas, fuera de cámara. *Qué decir:* «esta tarjeta se aprueba al contratar y falla al renovar».
 2. Incógnito → https://shapi.localhost/entrar con Rodrigo → **Estado de los componentes (B3.1)** → tarjeta **Modo demostración** → **Adelantar 30 días**.
 3. Ventana normal → **Suscripción y claves (B2.3):** **en gracia**, «Quedan 7 días antes de que sus claves dejen de responder». Si no aparece, recargue unos segundos después. *Qué decir:* «el trabajador intentó renovar, el cobro falló y empezaron 7 días de gracia en los que la API sigue funcionando».
-4. Incógnito → **Adelantar 7 días**. Ventana normal → recargue B2.3: **Suspendida** → **Consola de pruebas (A5.2)** con la clave de pruebas → **403** `suscripcion_inactiva`.
-5. B2.3 → **Pagar con otra tarjeta** → 4242 4242 4242 4242, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y reactivar** → espere a que termine «Procesando…» y diga **Activa** → Consola → **200**. Si sale de la página mientras dice «Procesando…», el pago puede no completarse.
+4. Incógnito → **Adelantar 7 días**. Ventana normal → recargue B2.3: **Suspendida** → **Consola de pruebas (A5.2)** → borre la clave del campo, que todavía tiene la de Mercadito Antigua del bloque 1.2, y pegue la de Lucía del Bloc de notas → **Enviar petición** → **403** `suscripcion_inactiva`.
+5. B2.3 → **Pagar con otra tarjeta** → 4242 4242 4242 4242, «Lucía Pérez», `12/28`, `123` → **Pagar Q 149.00 y reactivar** → espere a que termine «Procesando…» y diga **Activa** → Consola, con la clave de Lucía → **200**. Si sale de la página mientras dice «Procesando…», el pago puede no completarse.
 
 ### 1.5 · Código: cadena de responsabilidad en la compuerta · 2:15
 Texto, archivos y orden de la pantalla en [elementos/jordin.md](elementos/jordin.md).
@@ -199,7 +199,7 @@ Texto, archivos y orden de la pantalla en [elementos/jose-pablo.md](elementos/jo
 
 ## Los elementos de código
 
-Cada elemento dura 2:15 y va al final de la parte de su autor. Su narración tiene entre 285 y 340 palabras, unos 2 minutos a ritmo de presentación; si una toma pasa de 2:30, se acorta su penúltimo párrafo. Las líneas citadas se comprobaron contra `main` el 30 de octubre.
+Cada elemento dura 2:15 y va después de la funcionalidad de su autor; en la parte 4, el cierre va después del elemento. Su narración tiene entre 285 y 340 palabras, unos 2 minutos a ritmo de presentación; si una toma pasa de 2:30, se acorta su penúltimo párrafo. Las líneas citadas se comprobaron contra `main` el 30 de octubre.
 
 | Bloque | Integrante | Elemento | Archivo |
 |---|---|---|---|
@@ -269,21 +269,21 @@ Cada elemento dura 2:15 y va al final de la parte de su autor. Su narración tie
 
 El guion se ensayó completo, solo por la interfaz, en un ambiente productivo simulado recién levantado y sembrado (proyecto `shapi-jg29`, imágenes construidas desde `main` en `8dc94e0`, `node infra/verificar.mjs --demo` en verde). Lo recorrió un navegador automatizado (Playwright, 1366 × 768) que seguía los pasos de cada bloque. El tiempo medido es el de la interfaz, sin escribir a mano ni narrar. **Cada integrante cronometra su primera toma real** y, si pasa de lo planeado, aplica el orden de recortes del inicio.
 
-El ensayo se hizo antes de reorganizar el guion por integrante. Las pantallas, los botones y los datos son los mismos; solo cambió el orden y quién los narra.
+El ensayo se hizo antes de reorganizar el guion por integrante. Las pantallas y los botones son los mismos, pero algunos pasos ahora usan otros datos y **no se ensayaron con ellos**; se revisaron en el código y en la siembra: 1.2 usa la clave de pruebas de la siembra y entra sin sesión; 3.3 registra a Pedro, contrata con 4242 y rota su clave; 4.1 abre el caso sobre «API de Cotización de Envíos»; 4.2 revierte, y cancela, un pago de la siembra. La primera toma de esos bloques sirve de ensayo.
 
 | Bloque actual | Interfaz medida | Resultado del ensayo |
 |---|---|---|
 | 1.1 | 2 s | Correcto: los cuatro planes |
-| 1.2 | 9 s | 200 con `X-RateLimit-*` y `X-Cuota-*`; 401 `clave_invalida`; 429 `limite_por_minuto` en el décimo envío, con `Retry-After` |
+| 1.2 | 9 s | Con la clave de Lucía y su sesión: 200 con `X-RateLimit-*` y `X-Cuota-*`; 401 `clave_invalida`; 429 `limite_por_minuto` en el décimo envío, con `Retry-After` |
 | 1.3 | 8 s | Correcto: propietario, editor y lector; claves rotada y revocada; consumo; consumidores |
 | 1.4 | 25 s más el registro (unos 8 s) | Contratación con 0341; gracia visible 2,5 s después de +30 días; suspensión 0,6 s después de +7; 403 `suscripcion_inactiva`; pago 200 en 1,5 s y consola 200 |
 | 2.1 | 16 s | Correcto: rechazo con 0002, activación con 4242 y Visa •••• 4242 en B1.4 |
 | 2.2 | 15 s | Correcto: recuperación, Mastercard •••• 3057 y «Pagar Q 225.00 y cambiar de plan» |
 | 3.1 | 9 s | Correcto. «Plan gratuito» viene marcado; la pantalla dice «Rutas encontradas 5» |
 | 3.2 | 9 s | Correcto: la siembra trae el dominio pendiente; A5.1 muestra `https://api.enviosxelaju.localhost/cotizaciones` |
-| 3.3 | 15 s | Registro, verificación y contratación por el portal (el ensayo lo hizo con 0341; con 4242 lo cubren las pruebas E2E); rotación de la clave de pruebas correcta |
-| 4.1 | 15 s | Correcto: el caso aparece sin recargar; llegan «Nuevo caso» y «Nueva respuesta en su caso» |
-| 4.2 | 14 s | Correcto. B3.1 marcó la compuerta degradada (p95 de 38 ms tras siete corridas; ver «Si algo falla») |
+| 3.3 | 15 s | Con otros datos: registro, verificación y contratación de Lucía con 0341 y rotación de la clave de pruebas de María José. Con Pedro y 4242 no se ensayó; la contratación con 4242 la cubren las pruebas E2E |
+| 4.1 | 15 s | Con el caso sobre «Rastreo de Paquetes»: aparece sin recargar; llegan «Nuevo caso» y «Nueva respuesta en su caso» |
+| 4.2 | 14 s | Con el pago de Carmen en A6.3. B3.1 marcó la compuerta degradada (p95 de 38 ms tras siete corridas; ver «Si algo falla») |
 | 4.3 | — | Arranque desde cero: `siembra-demo` en `Exited (0)` y el verificador en verde (unos 2 min, que se cortan) |
 
 También se comprobó «Repetir una toma»: `sembrar-demo --reiniciar` tardó 16 s, borró las organizaciones y los consumidores nuevos y las APIs «rastreo», y conservó a María José.
