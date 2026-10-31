@@ -44,7 +44,7 @@ Fragmento de `main`, `src/Shapi.Dominio/Correo/CorreoSaliente.cs:58-77` (20 lín
 - `RF_46_RegistrarFallo_AlFallarElQuintoReintentoQuedaFallido` (misma clase y archivo, `:35-50`) comprueba el sexto intento fallido y la ausencia de una próxima fecha.
 - `RF_46_RegistrarFallo_AlQuedarFallidoQuitaElTokenDeLosDatos` (misma clase y archivo, `:76-90`) verifica que el token se conserva durante los reintentos y se borra al terminar en fallo.
 
-Desde la raíz, ejecutar:
+Para comprobarlas antes de grabar, desde la raíz (el video no muestra la terminal, solo el código de las pruebas en el editor):
 
 ```powershell
 dotnet test tests/Shapi.Dominio.Tests --filter "FullyQualifiedName~Shapi.Dominio.Tests.Correo.CorreoSalienteTests"
@@ -71,11 +71,11 @@ Finalmente, estas pruebas comprueban las cinco esperas, el estado final y la eli
 | 0:00–0:35 | `src/Shapi.Aplicacion/Soporte/GestionarCasos.cs:165-188`, `:257-283`; `src/Shapi.Infraestructura/Correo/ColaCorreoBaseDatos.cs:8-21` | Mensaje y aviso pendiente dentro de la transacción; confirmación al final. |
 | 0:35–1:10 | `src/Shapi.Trabajador/Correo/DespachadorCorreos.cs:8-35`; `src/Shapi.Trabajador/Correo/ProcesadorCorreos.cs:19-62`, `:64-90` | Revisión periódica, bloqueo por fila, envío y persistencia; límite ante una caída después de SMTP. |
 | 1:10–1:50 | `src/Shapi.Dominio/Correo/CorreoSaliente.cs:8-15`, `:58-89` | Esperas, fragmento anterior, nombres y transición al sexto fallo; eliminación del token. |
-| 1:50–2:15 | `tests/Shapi.Dominio.Tests/Correo/CorreoSalienteTests.cs:9-50`, `:76-90` | Aserciones de fechas, estado y token; mostrar la salida de las cinco pruebas. |
+| 1:50–2:15 | `tests/Shapi.Dominio.Tests/Correo/CorreoSalienteTests.cs:9-50`, `:76-90` | Aserciones de fechas, estado y token. |
 
 ## Funcionalidades de José Pablo para el recorrido del video
 
-JG-29 puede repartir la narración con esta tabla. Las pantallas corresponden al catálogo de `docs/specs/11-interfaz.md`; los pasos sin pantalla propia se muestran en la terminal, Mailpit o el informe indicado.
+JG-29 puede repartir la narración con esta tabla. Las pantallas corresponden al catálogo de `docs/specs/11-interfaz.md`; los pasos sin pantalla propia se muestran en la terminal, Mailpit o el informe indicado. **En el video del Avance 3 solo se graban la interfaz y el código** (decisión de Jordin, 30 oct): las filas cuya evidencia es la terminal o un informe no se graban; sus datos se ven en A6.2, A6.4 y B3.2.
 
 | Funcionalidad construida | Tareas | Pantallas o evidencia que conviene mostrar |
 |---|---|---|
