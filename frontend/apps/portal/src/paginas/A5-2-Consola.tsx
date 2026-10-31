@@ -1,9 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Aviso, Boton, EstadoCargando, EstadoError, Selector } from '@shapi/ui';
-import { Link } from 'react-router';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
-import { CerrarSesionConsumidor } from '../modulos/sesion/CerrarSesionConsumidor';
-import { useSesionConsumidor } from '../modulos/sesion/useSesionConsumidor';
 import {
   CLAVE_PRUEBAS_SESION,
   enviarACompuerta,
@@ -15,40 +12,6 @@ import {
 import { useRutasConsola } from '../modulos/consola/useRutasConsola';
 
 function identificador(ruta: RutaConsola) { return `${ruta.metodo} ${ruta.patron}`; }
-
-function BarraLateral() {
-  const sesion = useSesionConsumidor();
-  const enlace = 'block rounded-base px-3 py-[7px] text-[14px] leading-[1.5] text-[#2B3547]';
-  return (
-    <aside className="flex w-[272px] shrink-0 flex-col justify-between border-r border-borde bg-panel px-4 pb-5 pt-6">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <span className="px-3 text-[11px] font-semibold uppercase leading-[1.2] tracking-[.14em] text-tinta-suave">API</span>
-          <nav className="flex flex-col gap-px" aria-label="API">
-            <Link to="/documentacion" className={enlace}>Documentación</Link>
-            <Link to="/consola" aria-current="page" className={`${enlace} bg-[color-mix(in_srgb,var(--marca-principal)_8%,#FFFFFF)] font-medium text-[var(--marca-principal)]`}>Consola de pruebas</Link>
-            <Link to="/planes" className={enlace}>Planes</Link>
-          </nav>
-        </div>
-        <div className="flex flex-col gap-2">
-          <span className="px-3 text-[11px] font-semibold uppercase leading-[1.2] tracking-[.14em] text-tinta-suave">Mi cuenta</span>
-          <nav className="flex flex-col gap-px" aria-label="Mi cuenta">
-            <Link to="/cuenta/suscripcion" className={enlace}>Suscripción y claves</Link>
-            <Link to="/cuenta/consumo" className={enlace}>Consumo</Link>
-            <Link to="/cuenta/pagos" className={enlace}>Pagos</Link>
-          </nav>
-        </div>
-      </div>
-      {sesion.data && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-borde px-3 pt-4">
-        <div className="min-w-0 flex-1 basis-0">
-          <p className="truncate text-[14px] font-medium text-tinta">{sesion.data.consumidor.nombre}</p>
-          <p className="truncate text-[13px] text-tinta-suave">{sesion.data.consumidor.nombreEmpresa}</p>
-        </div>
-        <CerrarSesionConsumidor />
-      </div>}
-    </aside>
-  );
-}
 
 function CampoParametro({ parametro, valor, cambiar, error }: {
   parametro: RutaConsola['parametros'][number]; valor: string;
@@ -187,15 +150,13 @@ export default function Consola() {
   if (consulta.data.length === 0) return <section className="p-11"><h1 className="font-display text-[32px]">Consola de pruebas</h1><p className="mt-3 text-tinta-suave">No hay rutas expuestas para probar.</p></section>;
   const ruta = consulta.data.find(item => identificador(item) === rutaElegida) ?? consulta.data[0];
 
-  return <div className="grid min-h-[720px] grid-cols-[272px_minmax(0,1fr)] bg-fondo">
-    <BarraLateral />
-    <section className="min-w-0 px-11 pb-11 pt-10">
-      <header>
-        <p className="text-[12px] font-medium uppercase tracking-[.16em] text-[var(--marca-principal)]">{marca.nombreApi}</p>
-        <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Consola de pruebas</h1>
-        <p className="mt-3 text-[15px] leading-[1.55] text-tinta-suave">Complete los parámetros de una ruta, envíe la petición y revise la respuesta.</p>
-      </header>
-      <FormularioConsola key={identificador(ruta)} ruta={ruta} rutas={consulta.data} seleccionar={setRutaElegida} />
-    </section>
-  </div>;
+  // JG-30: la barra lateral, el encabezado y la sesión los pone LayoutPortal, igual que en la documentación (mockup A5 Consola).
+  return <section className="min-w-0 px-11 pb-11 pt-10">
+    <header>
+      <p className="text-[12px] font-medium uppercase tracking-[.16em] text-[var(--marca-principal)]">{marca.nombreApi}</p>
+      <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Consola de pruebas</h1>
+      <p className="mt-3 text-[15px] leading-[1.55] text-tinta-suave">Complete los parámetros de una ruta, envíe la petición y revise la respuesta.</p>
+    </header>
+    <FormularioConsola key={identificador(ruta)} ruta={ruta} rutas={consulta.data} seleccionar={setRutaElegida} />
+  </section>;
 }

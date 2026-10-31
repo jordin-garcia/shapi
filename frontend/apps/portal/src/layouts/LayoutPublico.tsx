@@ -1,12 +1,21 @@
 import { Link, Outlet, useLocation } from 'react-router';
+import { EstadoCargando } from '@shapi/ui';
+import { LayoutPortal } from './LayoutPortal';
 import { MarcaPortal } from './MarcaPortal';
 import { iniciales } from './iniciales';
 import { useMarcaPortal } from '../modulos/configuracion/useConfiguracionPortal';
+import { useSesionConsumidor } from '../modulos/sesion/useSesionConsumidor';
 
 export function LayoutPublico() {
   const marca = useMarcaPortal();
   const { pathname } = useLocation();
   const esAcceso = ['/registro', '/invitacion', '/entrar', '/verificar-correo', '/recuperar', '/restablecer'].includes(pathname);
+  // JG-30: con la sesión abierta, el inicio se ve por dentro como la documentación y la cuenta, sin «Entrar»,
+  // «Crear cuenta» ni el pie público. Sin sesión conserva el encabezado y el pie de su mockup (A5 Main).
+  const esInicio = pathname === '/';
+  const sesion = useSesionConsumidor({ enabled: esInicio });
+  if (esInicio && sesion.isPending) return <EstadoCargando />;
+  if (esInicio && sesion.data) return <LayoutPortal />;
   return (
     <div className="min-h-screen bg-panel flex flex-col">
       <header className="h-[76px] shrink-0 border-b border-borde bg-panel flex items-center justify-between px-20">
