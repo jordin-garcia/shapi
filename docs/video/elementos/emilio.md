@@ -2,11 +2,11 @@
 
 ## Patrón y código que mostraré
 
-**Puertos y adaptadores (patrón de arquitectura).** `IPasarelaPagos` es el puerto que ofrece tokenización, cobro y reembolso (`src/Shapi.Aplicacion/Pagos/IPasarelaPagos.cs:3-8`). `PasarelaSimulada` es el adaptador que lo implementa (`src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs:11-11`); `PagosModulo` lo conecta por inyección de dependencias (`src/Shapi.Api/Modulos/PagosModulo.cs:8-11`). Los flujos de contratación, renovación y reversión necesitan cobrar sin depender de los detalles de una pasarela concreta. Elegimos este diseño por ADR-12: permite demostrar pagos completos con tarjetas de prueba y deja un punto de extensión para conectar una pasarela real sin reescribir los flujos de negocio. La tarjeta se sustituye por un token; no guardamos su número ni CVV (ADR-13).
+**Puertos y adaptadores (patrón de arquitectura).** `IPasarelaPagos` es el puerto que ofrece tokenización, cobro y reembolso (`src/Shapi.Aplicacion/Pagos/IPasarelaPagos.cs:3-8`). `PasarelaSimulada` es el adaptador que lo implementa (`src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs:11-11`); `PagosModulo` lo conecta por inyección de dependencias (`src/Shapi.Api/Modulos/PagosModulo.cs:8-15`). Los flujos de contratación, renovación y reversión necesitan cobrar sin depender de los detalles de una pasarela concreta. Elegimos este diseño por ADR-12: permite demostrar pagos completos con tarjetas de prueba y deja un punto de extensión para conectar una pasarela real sin reescribir los flujos de negocio. La tarjeta se sustituye por un token; no guardamos su número ni CVV (ADR-13).
 
 **Clean Code que se ve en este elemento:**
 
-1. **Inversión de dependencias y responsabilidad delimitada.** Los consumidores reciben `IPasarelaPagos`, no construyen `PasarelaSimulada`: por ejemplo, `src/Shapi.Api/Suscripciones/ContratacionApi.cs:29-29` y `src/Shapi.Trabajador/CierreCiclo/CierreCiclo.cs:29-29`. La interfaz dice *qué* operaciones necesita el negocio y la implementación se ocupa de *cómo* simularlas. La prueba sustituye el puerto para observar cobros (`tests/Shapi.Api.Tests/Suscripciones/ContratacionTests.cs:928-930`).
+1. **Inversión de dependencias y responsabilidad delimitada.** Los consumidores reciben `IPasarelaPagos`, no construyen `PasarelaSimulada`: por ejemplo, `src/Shapi.Api/Suscripciones/ContratacionApi.cs:29-29` y `src/Shapi.Trabajador/CierreCiclo/CierreCiclo.cs:30-30`. La interfaz dice *qué* operaciones necesita el negocio y la implementación se ocupa de *cómo* simularlas. La prueba sustituye el puerto para observar cobros (`tests/Shapi.Api.Tests/Suscripciones/ContratacionTests.cs:130-137`, con la pasarela espía de `:927-961`).
 2. **Nombres que revelan la intención y errores explícitos.** `esRenovacion` distingue el cobro inicial del recurrente; `motivoRechazo` deja visible la decisión, y `CodigosError.FondosInsuficientes` y `CodigosError.TarjetaVencida` evitan números o textos de error dispersos (`src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs:84-104`). La validación de la tarjeta queda en `TokenizarAsync`, mientras `CobrarAsync` decide el resultado del cobro.
 
 Fragmento de `main`, `src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs:84-104` (21 líneas, copiado sin cambios):
@@ -50,8 +50,8 @@ Finalmente, esta prueba ejecuta los dos cobros: confirma que el primero es exito
 **Orden de lo que se muestra en pantalla:**
 
 1. `src/Shapi.Aplicacion/Pagos/IPasarelaPagos.cs:3-8`: las tres operaciones del puerto.
-2. `src/Shapi.Api/Modulos/PagosModulo.cs:8-11`: la unión del puerto con el adaptador.
-3. `src/Shapi.Api/Suscripciones/ContratacionApi.cs:24-30` y `src/Shapi.Trabajador/CierreCiclo/CierreCiclo.cs:25-31`: los consumidores del puerto.
+2. `src/Shapi.Api/Modulos/PagosModulo.cs:8-15`: la unión del puerto con el adaptador.
+3. `src/Shapi.Api/Suscripciones/ContratacionApi.cs:26-33` y `src/Shapi.Trabajador/CierreCiclo/CierreCiclo.cs:27-34`: los consumidores del puerto.
 4. `src/Shapi.Infraestructura/Pagos/PasarelaSimulada.cs:84-104`: el fragmento anterior; resaltar `esRenovacion`, `motivoRechazo` y los códigos de error.
 5. `tests/Shapi.Api.Tests/Pagos/PasarelaSimuladaTests.cs:60-89`: primero la prueba del cobro inicial y la renovación, después la de la otra instancia.
 
