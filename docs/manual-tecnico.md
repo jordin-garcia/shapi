@@ -1,3 +1,5 @@
+# Manual técnico
+
 # 1. Introducción
 
 Este manual técnico describe **Shapi**, la plataforma como servicio que el equipo 6 desarrolló como proyecto final de Ingeniería de Software I de la Universidad Rafael Landívar, campus de Quetzaltenango, en el segundo ciclo de 2026.
@@ -2208,100 +2210,234 @@ La tabla `bitacora` guarda la organización y el actor como referencias históri
 
 # 11. Tecnologías utilizadas
 
-_Pendiente: se completa en el paso 6 del plan._
+Todas las tecnologías son gratuitas y de código abierto, porque el presupuesto del proyecto es Q 0.00. Las versiones son las que fijan los archivos del repositorio (`Directory.Packages.props`, `frontend/package.json`, los `Dockerfile` e `infra/compose.yml`) al 1 de noviembre de 2026.
+
+## 11.1 Backend
+
+| Tecnología | Versión | Por qué se eligió | Dónde se usa |
+|---|---|---|---|
+| .NET con ASP.NET Core (Minimal APIs) | 10 (SDK 10.0) | Todo el backend queda en un solo lenguaje, C#. Trae de fábrica inyección de dependencias, autenticación, limitación de peticiones y servicios en segundo plano. Es la versión con soporte de largo plazo | API de control, compuerta y trabajador |
+| YARP (`Yarp.ReverseProxy`) | 2.3.0 | Biblioteca de Microsoft para construir proxies inversos. Resuelve el reenvío al origen, las cabeceras y el cambio de rutas sin reiniciar; sobre ella se monta la tubería de filtros | Compuerta |
+| Entity Framework Core + Npgsql | 10.0.12 y 10.0.3 | Traduce las clases del dominio a tablas, maneja las migraciones y aplica el filtro global por organización (RNF-08) | Capa de acceso a datos |
+| EFCore.NamingConventions | 10.0.1 | Nombres de tablas y columnas en `snake_case`, como en el diseño físico | Capa de acceso a datos |
+| StackExchange.Redis | 3.3.1 | Cliente de Redis con *pipelines* y scripts Lua, para resolver cada petición sin consultar PostgreSQL | Compuerta, API y trabajador |
+| Microsoft.OpenApi (+ YamlReader) | 2.12.2 | Lee y valida las especificaciones OpenAPI 3.0 y 3.1 en JSON o YAML y extrae sus rutas | Publicación de APIs |
+| Microsoft.Extensions.Identity.Core | 10.0.12 | El `PasswordHasher` de ASP.NET Core Identity (PBKDF2), sin el resto de Identity | Contraseñas |
+| ASP.NET Data Protection | 10 | Cifra el secreto de origen; la API y el trabajador comparten el anillo de llaves | Secreto de origen |
+| FluentValidation | 12.1.1 | Reglas de validación de las solicitudes, separadas de los endpoints | API de control |
+| MailKit | 4.18.0 | Cliente SMTP con soporte de TLS | Envío de correos |
+| DnsClient.NET | 1.8.0 | Consulta del DNS público, para el modo `SHAPI_DNS_MODO=real` | Dominios propios |
+
+## 11.2 Frontend
+
+| Tecnología | Versión | Por qué se eligió | Dónde se usa |
+|---|---|---|---|
+| React | 19.3 | Componentes reutilizables para el panel y el portal | Frontends `panel` y `portal` |
+| TypeScript | 5.6 | Tipos estáticos; los tipos de la API se generan de los contratos OpenAPI | Todo el frontend |
+| Vite | 8.3 | Servidor de desarrollo con recarga en caliente y compilación rápida | Desarrollo y compilación |
+| React Router | 8.4 | Rutas del panel, de la administración y del portal | Navegación |
+| TanStack Query | 5.103 | Caché y estados de carga y error de las consultas a la API | Llamadas a la API |
+| Tailwind CSS | 4.3 | Utilidades CSS con los tokens de la variante 4; la marca de cada portal se aplica con variables CSS | Estilos |
+| Recharts | 3.10 | Gráficas de consumo y latencia | B1.1 y B2.1 |
+| openapi-fetch y openapi-typescript | 0.17 y 7.13 | Cliente HTTP tipado a partir de `contratos/openapi/` | Llamadas a la API |
+| react-markdown y rehype-sanitize | 10.1 y 6.0 | Muestran las descripciones de la especificación del proveedor sin permitir HTML peligroso | Documentación del portal |
+| pnpm | 11.0 | Administrador de paquetes con *workspaces* (panel, portal y paquetes compartidos) | Todo el frontend |
+| Node.js | 24 LTS | Entorno de ejecución de las herramientas del frontend y de los scripts del plan | Desarrollo, CI y compilación |
+
+## 11.3 Datos, borde e infraestructura
+
+| Tecnología | Versión (imagen) | Por qué se eligió | Dónde se usa |
+|---|---|---|---|
+| PostgreSQL | 16 (`postgres:16-alpine`) | Relacional, transaccional y gratuito. Tiene `NULLS NOT DISTINCT`, arreglos para los histogramas y `jsonb` | Fuente de verdad de los datos de negocio |
+| Redis | 7.4 (`redis:7.4-alpine`), AOF `everysec` | Datos en memoria con operaciones atómicas y scripts Lua, sin condiciones de carrera; persiste con AOF | Vista de lectura de la compuerta, contadores, métricas y caché |
+| Caddy | 2 (`caddy:2` y `caddy:2-alpine`) | HTTPS automático con autoridad certificadora interna y certificados bajo demanda para los dominios propios | Borde |
+| Mailpit | 1.27 (`axllent/mailpit:v1.27`) | Servidor SMTP con bandeja web, gratuito; simula el correo sin depender de terceros | Correo simulado |
+| Docker y Docker Compose | Engine 29, Compose v2 | Levantan todo el sistema con un solo comando, igual en cualquier equipo (RNF-14) | Desarrollo y ambiente productivo simulado |
+| Imágenes base de .NET | `mcr.microsoft.com/dotnet/sdk:10.0` y `aspnet:10.0` | Compilación en varias etapas: la imagen final solo lleva el ejecutable | Imágenes de la API, la compuerta y el trabajador |
+| GitHub Actions y GHCR | — | Integración continua y registro de imágenes, gratis en repositorios públicos | CI y publicación de imágenes |
+
+## 11.4 Pruebas
+
+| Tecnología | Versión | Uso |
+|---|---|---|
+| xUnit | 2.9.3 | Pruebas del dominio, de la API y de la compuerta |
+| Testcontainers | 4.15.0 | Levanta PostgreSQL y Redis reales en contenedores para las pruebas de integración |
+| FluentAssertions y NSubstitute | 7.2.2 y 6.2.0 | Aserciones legibles y dobles de prueba |
+| Microsoft.AspNetCore.Mvc.Testing | 10.0.12 | Levanta la API completa en memoria (`WebApplicationFactory`) |
+| Vitest, Testing Library y MSW | 5.0, 16.3 y 2.15 | Pruebas del frontend, con la API simulada |
+| Playwright | 1.55 | Pruebas de extremo a extremo contra el ambiente productivo simulado y capturas de pantalla |
+| k6 | 1.6.1 (`grafana/k6`) | Pruebas de carga de RNF-01 y RNF-03 |
+
+## 11.5 Herramientas del equipo
+
+| Herramienta | Uso |
+|---|---|
+| Git y GitHub | Control de versiones, *pull requests*, revisión y protección de `main` |
+| GitHub CLI (`gh`) | Crear e integrar *pull requests* y consultar la CI desde la terminal |
+| Agentes de IA (Claude Code, Codex y otros) | Implementación de las tareas según el protocolo (capítulo 7) |
+| Mermaid | Diagramas de las especificaciones y de este manual, versionados como texto |
+| Visual Studio Code | Editor del equipo |
 
 # 12. Manual de instalación
 
-## 12.1 Entorno de desarrollo
+Shapi se puede instalar de dos maneras:
 
-### Requisitos
+- **Ambiente productivo simulado** (12.4): todo el sistema corre en contenedores, en configuración `Release`, con un solo comando. Es la forma recomendada para usar o presentar el sistema, y la que se usa en la exposición.
+- **Entorno de desarrollo** (12.8): la infraestructura corre en contenedores y los procesos .NET y Vite corren en el equipo, con recarga en caliente. Es la forma de trabajar en el código.
 
-- Docker Engine con Docker Compose v2.
-- Node.js 24 o posterior para ejecutar la verificación.
-- .NET 10 y pnpm para ejecutar la aplicación completa.
+Todos los comandos de este capítulo se ejecutaron en Windows 10 con Docker Desktop el 1 de noviembre de 2026, en un proyecto de Compose aislado para no tocar los datos de otros ambientes.
 
-### Configuración inicial
+## 12.1 Requisitos del equipo
 
-Copie la configuración de ejemplo antes de levantar los servicios:
+| Recurso | Mínimo | Recomendado |
+|---|---|---|
+| Procesador | 64 bits, 2 núcleos | 4 núcleos o más |
+| Memoria | 8 GB (4 GB disponibles para Docker) | 16 GB |
+| Disco libre | 15 GB (imágenes, volúmenes y dependencias) | 30 GB |
+| Sistema operativo | Windows 10 u 11 de 64 bits con WSL 2, Ubuntu o Debian recientes, o macOS | — |
+| Navegador | Versión actual de Chrome, Edge o Firefox de escritorio, desde 1280 px de ancho (RNF-12) | — |
+
+| Herramienta | Para qué | Windows (PowerShell) | Linux (Ubuntu o Debian) |
+|---|---|---|---|
+| **Git** | Obtener el código | `winget install --id Git.Git -e` | `sudo apt install -y git` |
+| **Docker** con Compose v2 | Ambos modos | `wsl --install` y luego `winget install --id Docker.DockerDesktop -e` | Docker Engine con el complemento `compose`, y `sudo usermod -aG docker $USER` |
+| **Node.js 24 LTS** | Verificadores y frontend | `winget install --id OpenJS.NodeJS.LTS -e` | `nvm install 24` |
+| **.NET 10 SDK** | Solo desarrollo | `winget install --id Microsoft.DotNet.SDK.10 -e` | `sudo apt install -y dotnet-sdk-10.0` |
+| **pnpm** | Solo desarrollo | `npm install -g pnpm@latest` | `npm install -g pnpm@latest` |
+| **GitHub CLI** (opcional) | Clonar y trabajar con PR | `winget install --id GitHub.cli -e` | Repositorio apt oficial de `gh` |
+
+Después de instalar, cierre y vuelva a abrir la terminal para que se actualice el `PATH`.
+
+## 12.2 Obtener el código
+
+```bash
+git clone https://github.com/jordin-garcia/shapi.git
+cd shapi
+node scripts/verificar-entorno.mjs
+```
+
+Con GitHub CLI, el primer comando también puede ser `gh repo clone jordin-garcia/shapi`. El verificador comprueba las herramientas instaladas y dice qué falta; todo debe aparecer con ✅.
+
+## 12.3 Configuración
+
+Toda la configuración está en variables de entorno, en un archivo `.env` en la raíz del repositorio. Se crea a partir del ejemplo:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-En Linux o macOS, use `cp .env.example .env`. Los valores incluidos son solo para
-desarrollo local. No confirme el archivo `.env` ni use estas credenciales en otro
-ambiente.
+En Linux o macOS, use `cp .env.example .env`. Los valores del ejemplo son solo para un equipo local. El archivo `.env` nunca se sube al repositorio.
 
-Todos los comandos de Compose pasan `--env-file .env`. Sin esa opción, Compose
-busca el `.env` en `infra/`, la carpeta de `compose.yml`, e ignora el de la raíz.
-Si falta el `.env`, Compose se detiene con `couldn't find env file`.
+Todos los comandos de Compose pasan `--env-file .env`. Sin esa opción, Compose busca el `.env` en `infra/`, la carpeta de `compose.yml`, e ignora el de la raíz; si falta el archivo, Compose se detiene con `couldn't find env file`.
 
-Si otro PostgreSQL ya ocupa el puerto 5432 del equipo, cambie
-`SHAPI_POSTGRES_PUERTO` (por ejemplo, a `5433`) y ponga el mismo número en
-`Port=` de `SHAPI_POSTGRES_CADENA`.
+Antes de levantar el sistema, revise estas variables (la lista completa, con su descripción y su valor por defecto, está en el **Anexo A**):
 
-### Levantar y verificar la infraestructura
+- `SHAPI_POSTGRES_CONTRASENA` y `SHAPI_ADMIN_CONTRASENA`: cámbielas fuera de un equipo de pruebas.
+- `SHAPI_ADMIN_CORREO`, `SHAPI_ADMIN_NOMBRE` y `SHAPI_ADMIN_CONTRASENA`: crean la primera cuenta de administrador al iniciar la API, porque el personal de la plataforma no tiene registro público.
+- `SHAPI_POSTGRES_PUERTO`: si otro PostgreSQL ya ocupa el puerto 5432 del equipo, cámbielo (por ejemplo, a `5433`) y ponga el mismo número en `Port=` de `SHAPI_POSTGRES_CADENA`.
+- `SHAPI_MODO_DEMO`: `true` para la demostración (habilita la siembra y el reloj de demostración); `false` en un despliegue real.
 
-Desde la raíz del repositorio, ejecute:
+## 12.4 Ambiente productivo simulado
+
+Este ambiente ejecuta la API de control, la compuerta, el trabajador, el borde con los dos frontends compilados, PostgreSQL, Redis, Mailpit y los dos orígenes de demostración, todos en contenedores, con `ASPNETCORE_ENVIRONMENT=Production`, reinicio automático y verificaciones de salud. Solo el borde publica puertos (80 y 443), y solo en `127.0.0.1`.
+
+### Levantar con los datos de demostración (un solo comando)
+
+Desde la raíz del repositorio, con el `.env` preparado (RNF-14):
 
 ```bash
-docker compose --env-file .env -f infra/compose.yml up -d
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build
+```
+
+La opción `--build` compila las imágenes en el equipo a partir del código. La primera vez tarda varios minutos; con la caché de Docker, menos de un minuto. El perfil `demo` agrega el servicio `siembra-demo`, de una sola ejecución: espera a que la API esté sana (con las migraciones aplicadas), carga los datos de los mockups y termina.
+
+`up -d` devuelve el control antes de que termine la siembra. Compruebe que terminó con código 0:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo ps -a siembra-demo
+```
+
+Después verifique el ambiente completo:
+
+```bash
+node infra/verificar.mjs --demo
+```
+
+El verificador comprueba la configuración, la salud de los contenedores, que solo el borde publique puertos, HTTPS y sus cabeceras de seguridad, el correo, la compuerta con una clave fija de la siembra y el portal de Envíos Xelajú. También calienta la compuerta con 90 cotizaciones de pruebas, que no descuentan cuotas de producción. Tarda unos dos minutos. Repetir el comando de arranque no duplica datos.
+
+### Usar las imágenes publicadas en GHCR
+
+La integración continua publica, en cada integración a `main`, las imágenes `ghcr.io/jordin-garcia/shapi-api`, `shapi-compuerta`, `shapi-trabajador` y `shapi-borde`, con la etiqueta `latest`. Para usarlas en lugar de compilar, descárguelas y levante el ambiente sin `--build`:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml pull api compuerta trabajador borde
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d
+```
+
+Las imágenes son públicas: no hace falta iniciar sesión en GHCR. Los dos orígenes de demostración siempre se compilan en el equipo.
+
+### Levantar sin datos de demostración
+
+Sin el perfil `demo` no se ejecuta la siembra y los datos existentes se conservan en los volúmenes:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build
 node infra/verificar.mjs
 ```
 
-El primer comando inicia PostgreSQL, Redis, Mailpit, Caddy y los dos orígenes de
-demostración. El segundo valida la configuración, la salud de los seis
-contenedores, que solo publiquen puertos en `127.0.0.1`, HTTPS, las cabeceras de
-seguridad y la bandeja de correo. Ejecute la verificación antes de iniciar .NET o
-Vite: el verificador ocupa temporalmente los puertos 5080, 5090, 5173 y 5174 y
-fallará con `EADDRINUSE` si alguno ya está en uso.
+La verificación sin opciones espera un ambiente sin datos de demostración; para un ambiente ya sembrado use `--demo`. Con `node infra/verificar.mjs --sembrar`, el verificador comprueba primero el ambiente sin siembra, luego lo siembra, lo verifica y repite la siembra para comprobar que no duplica datos; así lo ejecuta la CI. En un despliegue real se usa `SHAPI_MODO_DEMO=false`: la siembra rechaza ese modo aunque se active el perfil por error.
 
-Los procesos de Shapi y Vite se ejecutan en el equipo para conservar la recarga
-en caliente. .NET no lee el archivo `.env`: sin sus variables, la API no
-encuentra la base de datos (`SHAPI_POSTGRES_CADENA`) y no puede aplicar las
-migraciones al iniciar. Cargue el `.env` en cada terminal antes de
-`dotnet run`. Los valores no van entre comillas y la cadena de conexión lleva
-`;`, así que no use `source .env`:
+### Contenedores y volúmenes
 
-```powershell
-# PowerShell
-Get-Content .env | ForEach-Object { if ($_ -match '^\s*([A-Z_][A-Z0-9_]*)=(.*)$') { Set-Item "env:$($Matches[1])" $Matches[2] } }
-```
+| Servicio | Imagen | Publica | Volumen |
+|---|---|---|---|
+| `borde` | `ghcr.io/jordin-garcia/shapi-borde` (Caddy con los frontends compilados) | 80 y 443 en `127.0.0.1` | `caddydata` (autoridad certificadora y certificados) |
+| `api` | `ghcr.io/jordin-garcia/shapi-api` | — | `dpkeys` (llaves de Data Protection) |
+| `compuerta` | `ghcr.io/jordin-garcia/shapi-compuerta` | — | — |
+| `trabajador` | `ghcr.io/jordin-garcia/shapi-trabajador` | — | `dpkeys` |
+| `siembra-demo` | La del trabajador, con el comando `sembrar-demo` (solo con el perfil `demo`) | — | `dpkeys` |
+| `postgres` | `postgres:16-alpine` | — | `pgdata` |
+| `redis` | `redis:7.4-alpine`, con AOF | — | `redisdata` |
+| `mailpit` | `axllent/mailpit:v1.27` | — | — |
+| `origen-envios` y `origen-agro` | Compiladas desde `origenes-demo/` | — | — |
 
-```bash
-# bash (Linux, macOS o Git Bash)
-while IFS= read -r linea || [[ -n $linea ]]; do [[ $linea =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] && export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]%$'\r'}"; done < .env
-```
+La API aplica las migraciones de la base de datos al iniciar. La API y el trabajador comparten el volumen `dpkeys`, que conserva las llaves con las que se cifran los secretos de origen: **sin ese volumen, los secretos guardados no se pueden descifrar** (capítulo 14). El trabajador no expone HTTP y aparece como `running`, sin estado de salud; su latido queda en Redis.
 
-Después, en esas mismas terminales:
+El borde comparte el volumen `caddydata` con el entorno de desarrollo, así que usa la misma autoridad certificadora. Caddy corre sin privilegios, con el usuario `caddy`.
+
+### Probar la API
+
+Con el ambiente sembrado, esta llamada usa la clave de pruebas de Mercadito Antigua, que no descuenta cuota. En PowerShell, use `curl.exe` en lugar de `curl`:
 
 ```bash
-dotnet run --project src/Shapi.Api
-dotnet run --project src/Shapi.Compuerta
-dotnet run --project src/Shapi.Trabajador
-cd frontend && pnpm install && pnpm dev
+curl https://envios.api.shapi.localhost/cotizaciones -H "X-Api-Key: shp_prueba_Jp5sX1cV8nB3yG7tQe2Kv0a19d" -H "Content-Type: application/json" -d "@cotizacion.json"
 ```
 
-En Linux con Docker Engine nativo, `host.docker.internal` apunta al puente de
-Docker y no puede alcanzar procesos que escuchen solo en `localhost`. Inicie los
-procesos HTTP en todas las interfaces para que Caddy pueda conectarse:
+El archivo `cotizacion.json` contiene `{"origen":"Quetzaltenango","destino":"Antigua Guatemala","peso_kg":2}`. La respuesta es `200` con la tarifa y las cabeceras `X-Shapi-Plan`, `X-RateLimit-*` y `X-Cuota-*`; con una clave inválida, `401` y el error `clave_invalida`.
+
+### Consultar registros
+
+Los tres procesos .NET escriben registros estructurados en JSON:
 
 ```bash
-dotnet run --project src/Shapi.Api --urls http://0.0.0.0:5080
-dotnet run --project src/Shapi.Compuerta --urls http://0.0.0.0:5090
-cd frontend && pnpm dev -- --host 0.0.0.0
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs -f
 ```
 
-La configuración de Vite usa `server.host: "0.0.0.0"` por la misma razón: en
-Linux, Caddy llega a Vite por el puente de Docker. No fija
-`server.hmr.clientPort`: el navegador abre la recarga en caliente en el puerto
-de la página, 443 detrás de Caddy o 5173 y 5174 sin él. Estos puertos son exclusivamente de desarrollo; no exponga este
-entorno en una red no confiable.
+Puede agregar al final el nombre de un servicio, por ejemplo `api`, `compuerta` o `trabajador`. `Ctrl+C` deja de seguirlos.
 
-### Confiar en la autoridad certificadora local
+### Apagar
 
-Caddy guarda su autoridad certificadora en el volumen `caddydata`. Después de
-levantar el entorno por primera vez, importe la raíz una sola vez.
+Detenga el ambiente sin borrar los datos persistentes:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml down
+```
+
+Para volver a encenderlo, repita el comando de arranque. Los datos siguen en los volúmenes.
+
+## 12.5 Confiar en la autoridad certificadora local
+
+Caddy emite los certificados de `*.shapi.localhost` con su propia autoridad certificadora, guardada en el volumen `caddydata`. Para que el navegador los acepte, importe la raíz **una sola vez**, después de levantar el sistema por primera vez.
 
 En Windows PowerShell:
 
@@ -2311,8 +2447,7 @@ Import-Certificate -FilePath .\caddy-root.crt -CertStoreLocation Cert:\CurrentUs
 Remove-Item .\caddy-root.crt
 ```
 
-Chrome y Edge usan el almacén de certificados de Windows. En Firefox, active
-`security.enterprise_roots.enabled` en `about:config`.
+Windows pide confirmar la instalación del certificado. Chrome y Edge usan el almacén de certificados de Windows. En Firefox, active `security.enterprise_roots.enabled` en `about:config`.
 
 En Linux:
 
@@ -2325,126 +2460,13 @@ certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n caddy-shapi -i caddy-root.crt
 rm caddy-root.crt
 ```
 
-Firefox permite importar `caddy-root.crt` desde **Ajustes → Privacidad y
-seguridad → Certificados → Ver certificados → Autoridades**.
+Firefox permite importar `caddy-root.crt` desde **Ajustes → Privacidad y seguridad → Certificados → Ver certificados → Autoridades**.
 
-Con la raíz instalada, [https://correo.shapi.localhost](https://correo.shapi.localhost)
-abre Mailpit con un certificado confiable.
+Con la raíz instalada, [https://correo.shapi.localhost](https://correo.shapi.localhost) abre Mailpit con un certificado confiable. Si se borra el volumen `caddydata`, Caddy crea otra autoridad y hay que importarla de nuevo.
 
-### Puertos y direcciones
+## 12.6 Siembra y cuentas de demostración
 
-| Servicio | Dirección local | Dirección mediante Caddy |
-|---|---|---|
-| API de control | `http://localhost:5080` | `https://shapi.localhost/api/*` |
-| Compuerta | `http://localhost:5090` | `https://{sub}.api.shapi.localhost` |
-| Panel | `http://localhost:5173` | `https://shapi.localhost` |
-| Portal | `http://localhost:5174` | `https://{sub}.shapi.localhost` |
-| PostgreSQL | `localhost:5432` (o `SHAPI_POSTGRES_PUERTO`) | — |
-| Redis | `localhost:6379` | — |
-| Mailpit SMTP | `localhost:1025` | — |
-| Mailpit web | `http://localhost:8025` | `https://correo.shapi.localhost` |
-| Origen Envíos | `http://localhost:5101` | Mediante la compuerta |
-| Origen Agro | `http://localhost:5102` | Mediante la compuerta |
-
-Todos los puertos de la tabla que publica Compose se abren solo en `127.0.0.1`:
-el entorno no queda expuesto a la red local. Los dominios `*.shapi.localhost`
-resuelven siempre a la propia máquina, así que desde otro equipo no se usarían
-de todos modos.
-
-### Apagar o reiniciar
-
-Detenga los contenedores sin perder los datos:
-
-```bash
-docker compose --env-file .env -f infra/compose.yml down
-```
-
-Para reiniciar, ejecute `down` y luego `docker compose --env-file .env -f infra/compose.yml up -d`.
-Si necesita borrar también PostgreSQL, Redis y los certificados locales, ejecute:
-
-```bash
-docker compose --env-file .env -f infra/compose.yml down -v
-```
-
-Después de `down -v` deberá volver a importar la raíz de Caddy.
-
-## 12.2 Ambiente productivo simulado
-
-Este ambiente ejecuta la API de control, la compuerta, el trabajador y los dos
-frontends dentro de contenedores en configuración `Release`. Antes de levantarlo,
-copie `.env.example` a `.env` y cambie las credenciales de administración y de
-PostgreSQL. El archivo `.env` no se confirma en Git.
-
-### Levantar y verificar
-
-Desde la raíz del repositorio, construya las imágenes y levante todo el ambiente:
-
-```bash
-docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build
-node infra/verificar.mjs
-```
-
-La verificación espera que API, compuerta, borde, PostgreSQL, Redis, Mailpit y
-los dos orígenes estén sanos. El trabajador no expone HTTP y permanece en estado
-`running`; JZ-12 agregará su latido `salud:trabajador` en Redis. Solamente los
-puertos 80 y 443 del borde quedan publicados, ambos en `127.0.0.1`.
-
-Con `node infra/verificar.mjs --sembrar`, después de comprobar el ambiente sin
-siembra, el verificador levanta el perfil `demo` con el comando siguiente,
-espera la siembra y comprueba la clave de producción de Mercadito Antigua y la
-configuración del portal de Envíos Xelajú. Repite el comando y verifica que no
-se duplican los datos. Así lo ejecuta el check `ambiente-productivo` de la CI.
-Este modo y la verificación sin opciones requieren un ambiente inicialmente sin
-datos de demostración; para un ambiente ya sembrado use `--demo`.
-
-La API aplica las migraciones al iniciar. La API y el trabajador comparten el
-volumen `dpkeys`, que conserva las llaves con las que se protegen los secretos de
-origen.
-
-El borde comparte con el entorno de desarrollo el volumen `caddydata`, así que usa
-la misma autoridad certificadora que ya importó. Caddy corre sin privilegios, con el
-usuario `caddy`: al arrancar, el contenedor le da los archivos del volumen, aunque
-los haya creado el borde de desarrollo, que corre como root.
-
-### Sembrar la demostración
-
-Levante todo el ambiente con los datos de los mockups con un solo comando (RNF-14):
-
-```bash
-docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build
-```
-
-El servicio `siembra-demo` espera a que la API esté sana (migraciones terminadas),
-comparte la imagen, configuración y volumen `dpkeys` del trabajador, ejecuta
-`sembrar-demo` y termina. `up -d` devuelve el control antes de terminar la siembra:
-compruebe que el servicio termina con código 0 mediante
-`docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo ps -a siembra-demo`.
-Luego ejecute `node infra/verificar.mjs --demo` para comprobar la compuerta y el portal. El verificador calienta la compuerta con 90 cotizaciones reales usando tres claves de pruebas (30 por clave, en tres rondas de diez); respeta `Retry-After` y no descuenta cuotas de producción. Puede tardar unos dos minutos por los límites de las claves. Antes de grabar B3.1, ejecute este paso y espere su actualización de 30 segundos. El p95 sigue incluyendo todas las muestras de la última hora, incluso las del arranque; el calentamiento no garantiza ocultar una degradación real ni borra métricas.
-Repetir el comando no duplica datos. Sin el perfil `demo`, no se ejecuta la siembra;
-los datos existentes se conservan en los volúmenes.
-
-La siembra exige `SHAPI_MODO_DEMO=true`, es idempotente y toma las URL de los
-orígenes de `SHAPI_URL_ORIGEN_ENVIOS` y `SHAPI_URL_ORIGEN_AGRO`. Sin esas
-variables usa `localhost:5101` y `localhost:5102` en desarrollo. En el ambiente
-productivo simulado, `infra/compose.prod.yml` las fija en `origen-envios:8080` y
-`origen-agro:8080`, sin tomar las del `.env`, que son las de desarrollo. Ese
-ambiente es el de la exposición, así que `SHAPI_MODO_DEMO` vale `true` por defecto
-(06 §7.1); en un despliegue real se cambia a `false`. Para recrear
-el ambiente de demostración, conservando los datos base y la bitácora
-append-only, ejecute
-`docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar`.
-Este reinicio borra todas las organizaciones ajenas a la siembra y sus datos de ensayos (APIs, consumidores, suscripciones, pagos, casos, sesiones y enlaces). Las cuentas del personal y los identificadores históricos de la bitácora se conservan. Úselo solo en un ambiente de demostración; el comando rechaza `SHAPI_MODO_DEMO=false`.
-
-Al terminar inicializa las cuotas de Redis con el consumo de producción de los ciclos sembrados y resincroniza la configuración de la compuerta. Repetir sin `--reiniciar` completa cuotas ausentes sin rebajar contadores existentes. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o
-`SHAPI_SECRETO_ORIGEN_AGRO`, la siembra cifra esos mismos secretos para que la
-compuerta pueda autenticarse ante cada origen.
-
-En desarrollo también se puede ejecutar directamente:
-
-```bash
-dotnet run --project src/Shapi.Trabajador -- sembrar-demo
-dotnet run --project src/Shapi.Trabajador -- sembrar-demo --reiniciar
-```
+La siembra de demostración reproduce los datos de los mockups: la organización de la plataforma, cinco organizaciones proveedoras, dos APIs publicadas (Envíos Xelajú y Agro Precios), sus planes, consumidores, suscripciones, claves, pagos, casos y consumo. Exige `SHAPI_MODO_DEMO=true` y es idempotente. Al terminar inicializa las cuotas de Redis con el consumo de los ciclos sembrados y resincroniza la configuración de la compuerta.
 
 Todas las cuentas siguientes usan la contraseña `Shapi2026!demo`:
 
@@ -2483,56 +2505,342 @@ Claves fijas para llamadas de demostración:
 | Agro Precios · Distribuidora San Lucas | Producción | `shp_prod_AgroPreciosDemo0000000a7f2` |
 | Agro Precios · Distribuidora San Lucas | Pruebas | `shp_prueba_AgroPreciosDemo00000004c8d` |
 
-### Pruebas de extremo a extremo
-
-Las pruebas E2E (Playwright) corren contra el ambiente productivo simulado ya levantado, en `https://shapi.localhost`.
-La primera vez, instale sus dependencias y el navegador:
+Para volver a los datos iniciales de la demostración, por ejemplo antes de presentar:
 
 ```bash
-cd tests/e2e
-pnpm install
-pnpm exec playwright install chromium
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
 ```
 
-Después, con el ambiente levantado, `pnpm test` en `tests/e2e/`. Para una captura de una pantalla, `pnpm captura <url> <archivo.png>`.
+El reinicio borra todas las organizaciones ajenas a la siembra y sus datos de ensayos (APIs, consumidores, suscripciones, pagos, casos, sesiones y enlaces), y recrea los de las cinco organizaciones de demostración. Las cuentas del personal y la bitácora se conservan, porque la bitácora solo admite inserciones. El comando rechaza `SHAPI_MODO_DEMO=false`. Si configura `SHAPI_SECRETO_ORIGEN_ENVIOS` o `SHAPI_SECRETO_ORIGEN_AGRO`, la siembra cifra esos mismos secretos para que la compuerta pueda autenticarse ante cada origen.
 
-### Consultar registros
-
-Muestre los registros estructurados de todos los procesos con:
+En el entorno de desarrollo, la siembra también se puede ejecutar directamente:
 
 ```bash
-docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs -f
+dotnet run --project src/Shapi.Trabajador -- sembrar-demo
+dotnet run --project src/Shapi.Trabajador -- sembrar-demo --reiniciar
 ```
 
-También puede agregar al final el nombre de un servicio, por ejemplo `api`,
-`compuerta` o `trabajador`.
+## 12.7 Modo demostración y reloj
 
-### Apagar
+Con `SHAPI_MODO_DEMO=true`, el sistema tiene un **reloj de negocio** que se puede adelantar, para mostrar en vivo la renovación de una suscripción, el periodo de gracia y la suspensión sin esperar 30 días.
 
-Detenga el ambiente sin borrar los datos persistentes:
+1. Entre como administrador (por ejemplo, `rodrigo.alvarado@shapi.localhost`) y abra **Estado de los componentes** (B3.1).
+2. Al final de la página está la tarjeta **Modo demostración**, con la fecha y hora de Guatemala del reloj de negocio.
+3. Adelante 30 días, 7 días o una cantidad de 1 a 365 días. La API y el trabajador actualizan su reloj en menos de un segundo y el trabajador cierra los ciclos vencidos.
+
+El adelanto es **irreversible**: para volver a la fecha real, reinicie la demostración con `sembrar-demo --reiniciar` (12.6). Las sesiones vencen con la hora real, independiente del reloj de negocio. Con `SHAPI_MODO_DEMO=false` la tarjeta no aparece y el endpoint responde 404.
+
+## 12.8 Entorno de desarrollo
+
+### Levantar y verificar la infraestructura
+
+Desde la raíz del repositorio:
 
 ```bash
-docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml down
+docker compose --env-file .env -f infra/compose.yml up -d
+node infra/verificar.mjs
 ```
 
-Las imágenes publicadas por la integración continua se llaman
-`ghcr.io/jordin-garcia/shapi-{api,compuerta,trabajador,borde}`. Compose usa la
-etiqueta `latest`; la opción `--build` permite construir el mismo contenido
-localmente.
+El primer comando inicia PostgreSQL, Redis, Mailpit, Caddy y los dos orígenes de demostración. El segundo valida la configuración, la salud de los seis contenedores, que solo publiquen puertos en `127.0.0.1`, HTTPS, las cabeceras de seguridad y la bandeja de correo. Ejecute la verificación antes de iniciar .NET o Vite: el verificador ocupa temporalmente los puertos 5080, 5090, 5173 y 5174 y falla con `EADDRINUSE` si alguno ya está en uso.
 
-## 12.3 Pruebas de carga
+### Cargar las variables y ejecutar los procesos
 
-Los resultados de RNF-01 y RNF-03, el equipo y la reproducción de los escenarios
-están en [Pruebas de carga](pruebas-de-carga.md).
+.NET no lee el archivo `.env`: sin sus variables, la API no encuentra la base de datos (`SHAPI_POSTGRES_CADENA`). Cargue el `.env` en cada terminal antes de `dotnet run`. Los valores no van entre comillas y la cadena de conexión lleva `;`, así que no use `source .env`:
+
+```powershell
+# PowerShell
+Get-Content .env | ForEach-Object { if ($_ -match '^\s*([A-Z_][A-Z0-9_]*)=(.*)$') { Set-Item "env:$($Matches[1])" $Matches[2] } }
+```
+
+```bash
+# bash (Linux, macOS o Git Bash)
+while IFS= read -r linea || [[ -n $linea ]]; do [[ $linea =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] && export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]%$'\r'}"; done < .env
+```
+
+Después, cada proceso en su propia terminal, con las variables cargadas:
+
+```bash
+dotnet run --project src/Shapi.Api
+dotnet run --project src/Shapi.Compuerta
+dotnet run --project src/Shapi.Trabajador
+cd frontend && pnpm install && pnpm dev
+```
+
+En desarrollo, la API aplica las migraciones al iniciar. El panel queda en `https://shapi.localhost` y el portal de cada API en `https://{sub}.shapi.localhost`, a través de Caddy.
+
+En Linux con Docker Engine nativo, `host.docker.internal` apunta al puente de Docker y no alcanza procesos que escuchen solo en `localhost`. Inicie los procesos HTTP en todas las interfaces para que Caddy pueda conectarse:
+
+```bash
+dotnet run --project src/Shapi.Api --urls http://0.0.0.0:5080
+dotnet run --project src/Shapi.Compuerta --urls http://0.0.0.0:5090
+cd frontend && pnpm dev -- --host 0.0.0.0
+```
+
+La configuración de Vite usa `server.host: "0.0.0.0"` por la misma razón. Estos puertos son exclusivamente de desarrollo; no exponga este entorno en una red no confiable.
+
+### Puertos y direcciones
+
+| Servicio | Dirección local | Dirección mediante Caddy |
+|---|---|---|
+| API de control | `http://localhost:5080` | `https://shapi.localhost/api/*` |
+| Compuerta | `http://localhost:5090` | `https://{sub}.api.shapi.localhost` |
+| Panel | `http://localhost:5173` | `https://shapi.localhost` |
+| Portal | `http://localhost:5174` | `https://{sub}.shapi.localhost` |
+| PostgreSQL | `localhost:5432` (o `SHAPI_POSTGRES_PUERTO`) | — |
+| Redis | `localhost:6379` | — |
+| Mailpit SMTP | `localhost:1025` | — |
+| Mailpit web | `http://localhost:8025` | `https://correo.shapi.localhost` |
+| Origen Envíos | `http://localhost:5101` | Mediante la compuerta |
+| Origen Agro | `http://localhost:5102` | Mediante la compuerta |
+
+Todos los puertos que publica Compose se abren solo en `127.0.0.1`: el entorno no queda expuesto a la red local. Los dominios `*.shapi.localhost` resuelven siempre a la propia máquina.
+
+### Apagar o reiniciar
+
+Detenga los contenedores sin perder los datos:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml down
+```
+
+Para reiniciar, ejecute `down` y luego `docker compose --env-file .env -f infra/compose.yml up -d`. Si necesita borrar también PostgreSQL, Redis y los certificados locales, ejecute:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml down -v
+```
+
+**Cuidado:** `down -v` borra los volúmenes sin pedir confirmación. Haga antes un respaldo (capítulo 14) y, después, vuelva a importar la raíz de Caddy (12.5).
+
+## 12.9 Pruebas
+
+| Pruebas | Comando | Requisitos |
+|---|---|---|
+| Backend completo | `dotnet test Shapi.slnx` | Docker encendido (Testcontainers levanta PostgreSQL y Redis). En Windows, si falla por errores de Docker, agregue `-m:1` |
+| Backend de un módulo | `dotnet test tests/Shapi.Api.Tests --filter "FullyQualifiedName~Shapi.Api.Tests.Planes"` | Igual que el anterior |
+| Formato del backend | `dotnet format Shapi.slnx --verify-no-changes` | — |
+| Frontend | En `frontend/`: `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build` | `pnpm install` |
+| Extremo a extremo | En `tests/e2e/`: `pnpm install`, `pnpm exec playwright install chromium` (la primera vez) y `pnpm test` | El ambiente productivo simulado levantado, en `https://shapi.localhost` |
+| Captura de una pantalla | En `tests/e2e/`: `pnpm captura <url> <archivo.png>` | — |
+| Carga (RNF-01 y RNF-03) | Ver `tests/carga/README.md` | El ambiente productivo simulado y Docker para k6 |
+
+Las pruebas de carga del 18 de octubre de 2026 cumplieron los dos requisitos. Con 200 peticiones por segundo durante 5 minutos, la compuerta completó 60 001 peticiones con **0 % de errores** (RNF-03). Su p95 adicional sobre el origen directo fue de **8.583 ms**, menor que el máximo de 15 ms (RNF-01). El detalle está en `docs/pruebas-de-carga.md`.
+
+## 12.10 Integración continua y publicación
+
+Cada *pull request* ejecuta en GitHub Actions los checks `plan`, `titulo`, `backend`, `frontend`, `revision-claude` y `ambiente-productivo` (las pruebas E2E sobre el ambiente productivo simulado). Un PR solo se integra a `main` con todos en verde. Cada integración a `main` vuelve a ejecutar todo y publica las cuatro imágenes en GHCR con la etiqueta `latest`, que son las que usa la sección «Usar las imágenes publicadas en GHCR».
 
 # 13. Problemas que se pueden presentar
 
-_Pendiente: se completa en el paso 6 del plan._
+| Problema | Causa probable | Solución |
+|---|---|---|
+| El navegador dice «La conexión no es privada» en `*.shapi.localhost` | La raíz de Caddy no está instalada, o el volumen `caddydata` se borró y Caddy creó otra autoridad | Importe la raíz como dice 12.5. En Firefox, active `security.enterprise_roots.enabled` o importe el certificado en **Autoridades** |
+| `couldn't find env file` al usar Compose | Falta el archivo `.env` en la raíz | Créelo con `Copy-Item .env.example .env` (o `cp` en Linux) y ejecute Compose desde la raíz del repositorio |
+| PostgreSQL no arranca o la API no se conecta: `port is already allocated` en el 5432 | Otro PostgreSQL instalado en el equipo ocupa el puerto | Cambie `SHAPI_POSTGRES_PUERTO` (por ejemplo, a `5433`) y el `Port=` de `SHAPI_POSTGRES_CADENA` en el `.env` |
+| El borde no arranca: puertos 80 o 443 ocupados | Otro servidor web (IIS, otro proxy u otro ambiente de Shapi) usa esos puertos | Detenga el otro servicio. Con `docker ps` vea si hay otro ambiente de Shapi levantado y apáguelo con su `down` |
+| `node infra/verificar.mjs` falla con `EADDRINUSE` | La API, la compuerta o Vite ya están corriendo en 5080, 5090, 5173 o 5174 | Ejecute la verificación antes de iniciar los procesos, o deténgalos primero |
+| `docker` no responde o «Cannot connect to the Docker daemon» | Docker Desktop no está abierto o WSL 2 no está instalado | Abra Docker Desktop y espere a que termine de iniciar. En Windows, `wsl --install` y reinicie. En Linux, `sudo systemctl start docker` y verifique que su usuario esté en el grupo `docker` |
+| La API se detiene al iniciar con un error de conexión a la base de datos | En desarrollo no se cargaron las variables del `.env` en esa terminal | Cargue el `.env` como dice 12.8 en cada terminal antes de `dotnet run` |
+| `dotnet test Shapi.slnx` falla con errores de Docker o tiempos agotados en Windows | Varios proyectos de prueba levantan contenedores a la vez | Repita con `dotnet test Shapi.slnx -m:1`, que corre un proyecto a la vez |
+| En Linux, Caddy responde 502 en desarrollo | Los procesos escuchan solo en `localhost` y Caddy no los alcanza desde Docker | Inicie los procesos con `--urls http://0.0.0.0:<puerto>` y Vite con `--host 0.0.0.0` (12.8) |
+| En desarrollo, la página se recarga sola cada pocos segundos y borra los formularios | Un antivirus que analiza las conexiones cifradas (por ejemplo, Kaspersky) corta el WebSocket de recarga en caliente de Vite | Excluya `*.shapi.localhost` del análisis de conexiones cifradas, o use el ambiente productivo simulado, que sirve el frontend compilado |
+| `siembra-demo` termina con un código distinto de 0 | `SHAPI_MODO_DEMO` no es `true`, o la API todavía no estaba sana | Revise sus registros con `logs siembra-demo`. Ponga `SHAPI_MODO_DEMO=true` y repita el comando de arranque; la siembra es idempotente |
+| La compuerta responde 503 `servicio_no_disponible` | Redis no está disponible | Revise `docker compose ... ps` y los registros de `redis`. Al volver Redis, el trabajador reconstruye la configuración desde PostgreSQL en 5 minutos como máximo, o al reiniciarlo |
+| La compuerta responde 401 `clave_invalida` con una clave correcta | La clave se revocó o rotó, o se usa con la API equivocada | Revise la clave en B2.3 (consumidor) o A4.3 (proveedor). Las claves de producción y de pruebas son distintas |
+| La compuerta responde 403 `api_no_disponible` o `suscripcion_inactiva` | La organización o la suscripción están suspendidas | Pague con otra tarjeta en B1.4 o B2.3, o reactive la organización en A6.2 |
+| El trabajador registra que no puede descifrar el secreto de una API | La API y el trabajador no usan las mismas llaves de Data Protection: en desarrollo, porque `SHAPI_DPKEYS_DIR` es una ruta relativa y cada proyecto crea las suyas; en el ambiente productivo, porque se restauró la base sin su volumen `dpkeys` | En desarrollo, ponga una ruta absoluta en `SHAPI_DPKEYS_DIR` y regenere el secreto de origen en A3.6. En el ambiente productivo, restaure el volumen `dpkeys` del mismo respaldo (14.4) o regenere el secreto |
+| B3.1 muestra la compuerta como «degradada» | El p95 de la última hora pasa de 15 ms, por ejemplo en un equipo lento o justo después de arrancar | Caliente la compuerta con `node infra/verificar.mjs --demo` y espere la actualización de 30 segundos |
+| Los correos no llegan | El trabajador no está corriendo, o Mailpit no está sano | Revise la bandeja en `https://correo.shapi.localhost` y los registros del `trabajador`. Los correos esperan en `correo_saliente` y se reintentan hasta 5 veces |
+| `curl` o PowerShell no resuelven `*.shapi.localhost` | Windows PowerShell 5.1 (`Invoke-WebRequest`) no resuelve `*.localhost` | Use `curl.exe`, que sí lo resuelve, o agregue la entrada al archivo `hosts` |
+| En Git Bash, un comando con una ruta como `/tmp/archivo` falla dentro de un contenedor | Git Bash convierte las rutas que empiezan con `/` en rutas de Windows | Anteponga `MSYS_NO_PATHCONV=1` al comando o use PowerShell |
 
 # 14. Respaldo y recuperación de datos
 
-_Pendiente: se completa en el paso 6 del plan._
+## 14.1 Qué se respalda
+
+| Dato | Dónde está | Importancia | Cómo se respalda |
+|---|---|---|---|
+| Base de datos de negocio | PostgreSQL, volumen `pgdata` | **Crítica**: cuentas, APIs, planes, suscripciones, claves (su hash), pagos, consumo, casos y bitácora | `pg_dump` en formato personalizado (14.2) |
+| Llaves de Data Protection | Volumen `dpkeys` | **Crítica**: cifran los secretos de origen. Un respaldo de la base sin sus llaves deja los secretos sin poder descifrarse | Copia del volumen (14.3), siempre junto con la base |
+| Redis | Volumen `redisdata` (AOF) | Media: la configuración de la compuerta se reconstruye desde PostgreSQL, pero los contadores de cuota del ciclo en curso y las métricas aún no consolidadas solo están en Redis | Copia del volumen (14.3) |
+| Autoridad certificadora | Volumen `caddydata` | Baja: si se pierde, Caddy crea otra y hay que volver a importar la raíz | Copia del volumen, opcional |
+| Configuración | Archivo `.env` | Alta: contraseñas y parámetros del ambiente | Copia del archivo en un lugar seguro, nunca en el repositorio |
+
+El código no se respalda aparte: está en GitHub y las imágenes, en GHCR.
+
+Los comandos de este capítulo usan el ambiente productivo simulado. Con el proyecto por defecto, los volúmenes se llaman `shapi_pgdata`, `shapi_dpkeys`, `shapi_redisdata` y `shapi_caddydata`; `docker volume ls` los muestra. En el entorno de desarrollo, use los mismos comandos con solo `-f infra/compose.yml`: allí las llaves de Data Protection no están en un volumen, sino en la carpeta de `SHAPI_DPKEYS_DIR`, que se respalda copiándola. Con el valor del ejemplo, `.shapi/dpkeys`, la ruta es relativa a la carpeta de cada proyecto (`src/Shapi.Api/.shapi/dpkeys` y `src/Shapi.Trabajador/.shapi/dpkeys`). Si cambió `SHAPI_POSTGRES_USUARIO` o `SHAPI_POSTGRES_BASE_DATOS`, reemplace `shapi` en `-U` y `-d`.
+
+## 14.2 Respaldar la base de datos
+
+Cree una carpeta para los respaldos, fuera del repositorio, y genere el respaldo dentro del contenedor y cópielo al equipo:
+
+```bash
+mkdir ../respaldos-shapi
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec postgres pg_dump -U shapi -d shapi -Fc -f /tmp/shapi.dump
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml cp postgres:/tmp/shapi.dump ../respaldos-shapi/shapi.dump
+```
+
+El formato personalizado (`-Fc`) va comprimido y permite restaurar con `pg_restore`. El respaldo se hace en caliente: el sistema puede seguir funcionando mientras tanto, y `pg_dump` obtiene una copia consistente. Se genera dentro del contenedor y se copia con `cp` para que el archivo binario no pase por la consola, que en Windows PowerShell 5.1 lo corrompería al redirigirlo con `>`.
+
+Para comprobar que el respaldo se puede leer:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec postgres pg_restore --list /tmp/shapi.dump
+```
+
+La salida empieza con la fecha del respaldo, la base `shapi` y el número de entradas.
+
+## 14.3 Respaldar los volúmenes
+
+Las llaves de Data Protection y Redis se respaldan copiando el volumen a un archivo comprimido con un contenedor temporal de Alpine:
+
+```bash
+docker run --rm -v shapi_dpkeys:/datos -v "${PWD}/../respaldos-shapi:/respaldo" alpine tar czf /respaldo/dpkeys.tar.gz -C /datos .
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec redis redis-cli BGREWRITEAOF
+docker run --rm -v shapi_redisdata:/datos -v "${PWD}/../respaldos-shapi:/respaldo" alpine tar czf /respaldo/redisdata.tar.gz -C /datos .
+```
+
+`${PWD}` funciona igual en PowerShell y en bash. `BGREWRITEAOF` compacta el archivo de Redis antes de copiarlo. Respalde la base y las llaves en el mismo momento y guárdelos juntos, junto con una copia del `.env`.
+
+## 14.4 Recuperar después de una pérdida total
+
+Por ejemplo, en un equipo nuevo o después de `down -v`. El orden importa: primero las llaves, después la base y al final los procesos.
+
+1. Cree los contenedores y los volúmenes vacíos, sin iniciarlos:
+
+   ```bash
+   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml create
+   ```
+
+2. Restaure las llaves de Data Protection (y, si lo respaldó, Redis):
+
+   ```bash
+   docker run --rm -v shapi_dpkeys:/datos -v "${PWD}/../respaldos-shapi:/respaldo" alpine tar xzf /respaldo/dpkeys.tar.gz -C /datos
+   docker run --rm -v shapi_redisdata:/datos -v "${PWD}/../respaldos-shapi:/respaldo" alpine tar xzf /respaldo/redisdata.tar.gz -C /datos
+   ```
+
+3. Inicie solo PostgreSQL, copie el respaldo y restáurelo:
+
+   ```bash
+   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d postgres
+   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml cp ../respaldos-shapi/shapi.dump postgres:/tmp/shapi.dump
+   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec postgres pg_restore -U shapi -d shapi --clean --if-exists /tmp/shapi.dump
+   ```
+
+4. Levante el resto del ambiente y verifíquelo:
+
+   ```bash
+   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d
+   node infra/verificar.mjs --demo
+   ```
+
+Al arrancar, el trabajador reconstruye en Redis la configuración de la compuerta (APIs, claves, suscripciones y organizaciones) desde la base restaurada. Si el ambiente no tiene datos de demostración, use `node infra/verificar.mjs` sin opciones. Si se perdió `caddydata`, vuelva a importar la raíz de Caddy (12.5).
+
+## 14.5 Volver a un punto anterior
+
+Por ejemplo, para deshacer un cambio hecho por error. Detenga los procesos que escriben en la base, restaure y vuelva a levantarlos:
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml stop api compuerta trabajador
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml cp ../respaldos-shapi/shapi.dump postgres:/tmp/shapi.dump
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec postgres pg_restore -U shapi -d shapi --clean --if-exists /tmp/shapi.dump
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d
+```
+
+`--clean --if-exists` borra los objetos actuales antes de recrearlos, así que **todo lo que se hizo después del respaldo se pierde**. Los disparadores de la bitácora impiden modificar o borrar sus filas, pero no impiden restaurar la base completa: proteja también los archivos de respaldo.
+
+## 14.6 Recomendaciones
+
+- **Frecuencia:** un respaldo diario de la base y de `dpkeys` en un despliegue real, y uno antes de cada cambio importante (actualizar las imágenes, aplicar migraciones o reiniciar la demostración). Se puede programar con el Programador de tareas de Windows o con `cron` en Linux.
+- **Retención:** conserve al menos los últimos 7 respaldos diarios y uno por semana del último mes, con la fecha en el nombre del archivo.
+- **Copia externa:** guarde una copia fuera del equipo, porque el ambiente productivo simulado corre en un solo equipo.
+- **Prueba de restauración:** restaure periódicamente un respaldo en un proyecto de Compose aparte (por ejemplo, con la variable `COMPOSE_PROJECT_NAME=shapi-prueba`), para comprobar que sirve sin tocar los datos reales.
+- **Confidencialidad:** el respaldo contiene correos, hashes de contraseñas y claves, y datos de pagos (sin números de tarjeta). Guárdelo con el mismo cuidado que la base de datos.
 
 # 15. Anexos
 
-_Pendiente: se completa en el paso 6 del plan._
+## Anexo A · Variables de entorno
+
+El archivo `.env.example` tiene todas las variables con sus valores de desarrollo. La columna «Por defecto» indica el valor del ejemplo. En el ambiente productivo simulado, `infra/compose.prod.yml` fija algunas variables y no las toma del `.env`, porque los servicios se encuentran por su nombre en la red de Docker.
+
+| Variable | Descripción | Por defecto | En el ambiente productivo |
+|---|---|---|---|
+| `SHAPI_DOMINIO_BASE` | Dominio base de los hosts del panel, los portales y las APIs | `shapi.localhost` | Del `.env` |
+| `SHAPI_MODO_DEMO` | Habilita la siembra de demostración, el reloj de demostración y los orígenes de demostración en la red de Docker. `false` en un despliegue real | `true` | Del `.env` (por defecto, `true`) |
+| `SHAPI_APLICAR_MIGRACIONES` | Aplica las migraciones al iniciar la API. En desarrollo se aplican siempre | `false` | Fija: `true` |
+| `SHAPI_POSTGRES_USUARIO` | Usuario de PostgreSQL que crea el contenedor | `shapi` | Del `.env` |
+| `SHAPI_POSTGRES_CONTRASENA` | Contraseña de ese usuario. Cámbiela fuera de un equipo local | `shapi_desarrollo` | Del `.env` |
+| `SHAPI_POSTGRES_BASE_DATOS` | Nombre de la base de datos | `shapi` | Del `.env` |
+| `SHAPI_POSTGRES_PUERTO` | Puerto de PostgreSQL publicado en el equipo (solo desarrollo) | `5432` | No se publica |
+| `SHAPI_POSTGRES_CADENA` | Cadena de conexión de la API y el trabajador | `Host=localhost;Port=5432;Database=shapi;Username=shapi;Password=shapi_desarrollo` | Fija: `Host=postgres`, con el usuario, la contraseña y la base del `.env` |
+| `SHAPI_REDIS` | Dirección de Redis | `localhost:6379` | Fija: `redis:6379` |
+| `SHAPI_SMTP_HOST` | Servidor SMTP | `localhost` | Fija: `mailpit` |
+| `SHAPI_SMTP_PUERTO` | Puerto SMTP | `1025` | Fija: `1025` |
+| `SHAPI_SMTP_USUARIO` | Usuario SMTP; vacío si el servidor no pide autenticación | (vacío) | Del `.env` |
+| `SHAPI_SMTP_CONTRASENA` | Contraseña SMTP | (vacío) | Del `.env` |
+| `SHAPI_SMTP_TLS` | `true`: cifrado obligatorio (SMTPS en el puerto 465, STARTTLS en los demás). `false`: sin cifrar, como Mailpit | `false` | Fija: `false` |
+| `SHAPI_DNS_MODO` | Verificación de dominios propios: `simulado` (tabla `registro_dns_simulado`) o `real` (DNS público) | `simulado` | Del `.env` |
+| `SHAPI_REDES_BORDE` | Redes (CIDR, separadas por comas) desde las que el borde llega a la API; solo de ellas se aceptan `X-Forwarded-For` y `X-Forwarded-Proto`. Vacío: la máquina y la red `shapi` (172.30.0.0/24) | (vacío) | Del `.env` |
+| `SHAPI_ORIGENES_PERMITIDOS` | Hosts que la protección contra SSRF permite aunque sean internos (los orígenes de demostración) | `localhost:5101,localhost:5102,origen-envios:8080,origen-agro:8080` | Fija: `origen-envios:8080,origen-agro:8080` |
+| `SHAPI_DPKEYS_DIR` | Carpeta de las llaves de Data Protection, que la API y el trabajador deben compartir. Una ruta relativa se resuelve desde la carpeta de cada proyecto: en desarrollo, use una ruta absoluta para que los dos usen las mismas llaves | `.shapi/dpkeys` | Fija: `/var/lib/shapi/dpkeys` (volumen `dpkeys`) |
+| `SHAPI_ADMIN_CORREO` | Correo de la primera cuenta de administrador, que se crea al iniciar la API | `admin@shapi.localhost` | Del `.env` |
+| `SHAPI_ADMIN_NOMBRE` | Nombre de esa cuenta | `Administrador Shapi` | Del `.env` |
+| `SHAPI_ADMIN_CONTRASENA` | Contraseña de esa cuenta. Cámbiela fuera de un equipo local | `ShapiLocal2026!` | Del `.env` |
+| `SHAPI_PASARELA_FALLA` | Simula la pasarela de pagos fuera de servicio, para demostraciones | `false` | Del `.env` |
+| `SHAPI_URL_ORIGEN_ENVIOS` | URL del origen de demostración de Envíos Xelajú, que usa la siembra | `http://localhost:5101` | Fija: `http://origen-envios:8080` |
+| `SHAPI_URL_ORIGEN_AGRO` | URL del origen de demostración de Agro Precios | `http://localhost:5102` | Fija: `http://origen-agro:8080` |
+| `SHAPI_SECRETO_ORIGEN_ENVIOS` | Secreto que exige el origen de Envíos en `X-Shapi-Secreto`; vacío: no lo exige | (vacío) | Del `.env` |
+| `SHAPI_SECRETO_ORIGEN_AGRO` | Secreto que exige el origen de Agro | (vacío) | Del `.env` |
+| `SHAPI_DOCKER_BIN` | Ejecutable de Docker que usa `infra/verificar.mjs` (no lo usa la aplicación) | El de Docker Desktop en Windows, si existe; si no, `docker` | — |
+
+Además, `infra/compose.prod.yml` fija `ASPNETCORE_ENVIRONMENT=Production` y `ASPNETCORE_URLS=http://+:8080` en la API y la compuerta, y `DOTNET_ENVIRONMENT=Production` en el trabajador. `COMPOSE_PROJECT_NAME` (de Docker Compose) permite levantar un ambiente aparte, con sus propios volúmenes.
+
+## Anexo B · Estructura del repositorio
+
+```
+shapi/
+├─ docs/
+│  ├─ specs/            ← especificaciones (fuente de verdad)
+│  ├─ plan/             ← protocolo, convenciones, calendario, tareas y bitácoras
+│  ├─ pdf/              ← documentos de requisitos y de diseño en PDF
+│  ├─ manual-tecnico.md ← este manual (y Manual_Tecnico.docx)
+│  └─ lineamientos.md   ← reglas del curso
+├─ mockups/             ← pantallas aprobadas
+├─ contratos/openapi/   ← contratos HTTP de la API de control
+├─ src/
+│  ├─ Shapi.Dominio/          ← entidades, reglas y máquinas de estado
+│  ├─ Shapi.Aplicacion/       ← casos de uso e interfaces
+│  ├─ Shapi.Infraestructura/  ← EF Core, migraciones, Redis, SMTP, DNS y pasarela simulada
+│  ├─ Shapi.Api/              ← API REST
+│  ├─ Shapi.Contratos/        ← llaves de Redis y códigos de error compartidos
+│  ├─ Shapi.Compuerta/        ← YARP y la tubería de filtros
+│  └─ Shapi.Trabajador/       ← procesos en segundo plano y siembra
+├─ tests/                     ← dominio, API, compuerta, E2E (Playwright) y carga (k6)
+├─ frontend/                  ← panel, portal y paquetes compartidos (pnpm)
+├─ origenes-demo/             ← APIs de Envíos Xelajú y Agro Precios
+├─ infra/                     ← compose.yml, compose.prod.yml, Caddy, borde y verificador
+├─ scripts/                   ← tareas, CI, verificación del equipo y PDF
+└─ .github/workflows/         ← integración continua y publicación
+```
+
+## Anexo C · Comandos frecuentes
+
+| Qué | Comando |
+|---|---|
+| Levantar todo con la demostración | `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build` |
+| Verificar el ambiente sembrado | `node infra/verificar.mjs --demo` |
+| Ver el estado de los contenedores | `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml ps` |
+| Ver los registros | `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml logs -f` |
+| Reiniciar la demostración | `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar` |
+| Respaldar la base | `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec postgres pg_dump -U shapi -d shapi -Fc -f /tmp/shapi.dump` |
+| Apagar sin borrar datos | `docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml down` |
+| Estado del plan de tareas | `node scripts/tareas.mjs` |
+
+## Anexo D · Referencias
+
+- Repositorio: [github.com/jordin-garcia/shapi](https://github.com/jordin-garcia/shapi)
+- Especificaciones: `docs/specs/` (visión, glosario, requisitos, roles, casos de uso, arquitectura, modelo de datos, compuerta, cobros, seguridad, interfaz y decisiones)
+- Documento de Requisitos y Documento de Diseño: `docs/pdf/`
+- Plan de desarrollo: `docs/plan/` (protocolo, convenciones, calendario, tareas y bitácoras)
+- Pruebas de carga: `docs/pruebas-de-carga.md` y `tests/carga/README.md`
+- Lineamientos del curso: `docs/lineamientos.md`
+- Documentación de las tecnologías: [.NET](https://learn.microsoft.com/dotnet/), [YARP](https://microsoft.github.io/reverse-proxy/), [PostgreSQL 16](https://www.postgresql.org/docs/16/), [Redis](https://redis.io/docs/), [Caddy](https://caddyserver.com/docs/), [React](https://react.dev/) y [Docker Compose](https://docs.docker.com/compose/)
