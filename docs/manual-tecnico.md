@@ -585,7 +585,219 @@ Al 1 de noviembre de 2026, el plan tiene 92 tareas: 89 integradas en `main` y 3 
 
 # 8. Cronograma
 
-_Pendiente: se completa en el paso 3 del plan._
+Este capítulo compara lo que se planificó con lo que ocurrió. Las fechas salen del historial del repositorio, así que se pueden comprobar:
+
+- **Pronosticado:** la primera fecha programada que tuvo cada tarea (el campo `programada` de su archivo, que existe desde el 28 de septiembre). Las 14 tareas que se terminaron antes de esa fecha toman el cierre de su avance en el calendario original (24 de septiembre para el Avance 1 y 8 de octubre para el Avance 2), o el día en que se creó la tarea, si fue posterior.
+- **Real:** el día en que la tarea quedó marcada como hecha en `main`, es decir, cuando se integró su *pull request*, en la hora de Guatemala.
+- **Diferencia:** días entre las dos fechas. Un número negativo indica que la tarea se adelantó; uno positivo, que se atrasó.
+
+## 8.1 Hitos del curso
+
+| Hito | Pronosticado | Real | Observación |
+|---|---|---|---|
+| Propuesta, alcance y cronograma | vie 28 ago | vie 28 ago | Entregada |
+| Requisitos y diseño preliminar | vie 11 sep | vie 11 sep | Entregado |
+| Avance funcional 1 (30 %) | vie 25 sep | vie 25 sep | Demostración en vivo |
+| Convergencia del Avance 2 (JG-08) | jue 8 oct | jue 8 oct | Informe de brechas y tareas nuevas |
+| Avance funcional 2 (50 %) | vie 9 oct | vie 9 oct | Demostración en vivo, solo por la interfaz |
+| Convergencia del Avance 3 (JG-14) | jue 22 oct | vie 23 oct | Informe de brechas y tareas nuevas |
+| Avance funcional 3 (80 %) | vie 23 oct | sáb 31 oct | El curso lo movió al 31 de octubre y lo convirtió en un video de 25 minutos |
+| Documentos de requisitos y de diseño en PDF (JG-16) | lun 2 nov | dom 25 oct | Se adelantó |
+| Manual técnico (JZ-15) | lun 2 nov | dom 1 nov | Este documento. La tarea JZ-15 estaba programada para el 26 de octubre (8.4.4) |
+| Convergencia final y congelamiento del código (JG-17) | jue 29 oct | pendiente | Se cierra con los dos manuales |
+| Entrega final y exposición | semana del 2 al 6 nov | pendiente | La fecha exacta la confirma el curso |
+
+## 8.2 Diagrama de Gantt
+
+El diagrama resume el proyecto completo. La fase 0 (análisis y diseño) se muestra por semanas, con sus fechas reales: sus dos entregas, la propuesta y los requisitos, se cumplieron en la fecha del curso. Desde el 23 de septiembre, cada barra va de la primera a la última tarea de una persona en ese avance. Las barras oscuras son lo pronosticado y las claras, lo real; los rombos son las entregas del curso.
+
+```mermaid
+%%{init: {'gantt': {'useWidth': 1400, 'barHeight': 18, 'leftPadding': 110, 'fontSize': 13, 'sectionFontSize': 13}}}%%
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %d/%m
+  tickInterval 1week
+  todayMarker off
+  section Fase 0
+  Propuesta, alcance y cronograma :done, 2026-08-24, 2026-08-29
+  Requisitos y diseño preliminar :done, 2026-08-31, 2026-09-12
+  Auditoría de especificaciones y mockups :done, 2026-09-14, 2026-09-23
+  Plan de desarrollo (65 tareas) :done, 2026-09-23, 1d
+  section Avance 1 (30 %)
+  Jordin · pronosticado :2026-09-24, 2026-09-25
+  Jordin · real :active, 2026-09-23, 2026-09-24
+  Emilio · pronosticado :2026-09-24, 2026-09-26
+  Emilio · real :active, 2026-09-25, 2026-09-28
+  Dominique · pronosticado :2026-09-24, 2026-09-25
+  Dominique · real :active, 2026-09-25, 2026-09-26
+  José Pablo · pronosticado :2026-09-24, 2026-09-25
+  José Pablo · real :active, 2026-09-23, 2026-09-26
+  section Avance 2 (50 %)
+  Jordin · pronosticado :2026-09-28, 2026-10-09
+  Jordin · real :active, 2026-09-23, 2026-10-09
+  Emilio · pronosticado :2026-09-28, 2026-10-09
+  Emilio · real :active, 2026-09-27, 2026-10-04
+  Dominique · pronosticado :2026-09-28, 2026-10-07
+  Dominique · real :active, 2026-09-28, 2026-10-07
+  José Pablo · pronosticado :2026-09-29, 2026-10-09
+  José Pablo · real :active, 2026-09-28, 2026-10-09
+  section Avance 3 (80 %)
+  Jordin · pronosticado :2026-10-04, 2026-10-30
+  Jordin · real :active, 2026-10-05, 2026-10-31
+  Emilio · pronosticado :2026-10-05, 2026-10-27
+  Emilio · real :active, 2026-10-07, 2026-10-28
+  Dominique · pronosticado :2026-10-07, 2026-10-27
+  Dominique · real :active, 2026-10-07, 2026-10-30
+  José Pablo · pronosticado :2026-10-05, 2026-10-26
+  José Pablo · real :active, 2026-10-05, 2026-10-28
+  section Entrega final
+  Jordin · pronosticado :2026-10-23, 2026-10-31
+  Jordin · real :active, 2026-10-20, 2026-10-31
+  Emilio · pronosticado :2026-10-23, 2026-11-01
+  Emilio · real :active, 2026-10-24, 2026-10-31
+  Dominique · pronosticado :2026-10-24, 2026-10-25
+  Dominique · real :active, 2026-10-29, 2026-10-30
+  José Pablo · pronosticado :2026-10-17, 2026-11-01
+  José Pablo · real :active, 2026-10-18, 2026-11-02
+  section Hitos
+  Avance 1 :milestone, 2026-09-25, 0d
+  Avance 2 :milestone, 2026-10-09, 0d
+  Avance 3 (video) :milestone, 2026-10-31, 0d
+  Entrega final :milestone, 2026-11-02, 0d
+```
+
+## 8.3 Cumplimiento por avance
+
+| Avance | Tareas | Integradas | A tiempo o antes | Con atraso | Diferencia promedio | Atraso máximo |
+|---|---|---|---|---|---|---|
+| Avance 1 (30 %) | 11 | 11 | 4 | 7 | +0.5 días | 2 días |
+| Avance 2 (50 %) | 24 | 24 | 18 | 6 | −1.2 días | 1 días |
+| Avance 3 (80 %) | 36 | 36 | 19 | 17 | +0.6 días | 3 días |
+| Entrega final | 21 | 19 | 5 | 14 | +1.2 días | 6 días |
+| **Total** | **92** | **90** | **46** | **44** | | |
+
+**Por qué cambió el plan:**
+
+- **El plan creció de 65 a 92 tareas.** Las auditorías del coordinador (25 de septiembre y 3 de octubre) y las convergencias (8 y 22 de octubre) encontraron brechas entre lo construido y las especificaciones, y cada brecha se convirtió en una tarea nueva con su fecha.
+- **El Avance 3 se movió del 23 al 31 de octubre** y pasó de demostración en vivo a video. El equipo decidió grabar el proyecto terminado, así que todas las tareas, incluidos los manuales, se reprogramaron para terminar el 29 de octubre.
+- **Los atrasos fueron cortos.** El mayor fue el de este manual (JZ-15), de 6 días; entre las tareas integradas antes, fue de 5 días (DC-16, la revisión visual contra los mockups, que generó correcciones para tres personas). Varias tareas del Avance 3 se adelantaron al Avance 2 para repartir la carga (JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14).
+- **Pendientes al cierre de este manual:** el manual de usuario (JZ-16) y la convergencia final con el congelamiento del código (JG-17).
+
+## 8.4 Detalle por tarea
+
+Las fechas son de 2026 y la diferencia está en días.
+
+### 8.4.1 Avance 1 (30 %)
+
+| ID | Tarea | Responsable | Pronosticado | Real | Diferencia |
+|---|---|---|---|---|---|
+| JG-01 | Andamiaje del backend, CI y reglas del repositorio | Jordin | jue 24 sep | mié 23 sep | −1 |
+| JG-02 | Compuerta mínima: host → API, clave y reenvío | Jordin | jue 24 sep | mié 23 sep | −1 |
+| JZ-01 | Infraestructura local: Docker Compose, Caddy, TLS y Mailpit | José Pablo | jue 24 sep | mié 23 sep | −1 |
+| JZ-02 | Orígenes de demostración (Envíos Xelajú y Agro Precios) | José Pablo | jue 24 sep | mié 23 sep | −1 |
+| DC-01 | Workspace del frontend y sistema de diseño | Dominique | jue 24 sep | vie 25 sep | +1 |
+| DC-02 | Estructura del panel y del sitio público | Dominique | jue 24 sep | vie 25 sep | +1 |
+| EM-01 | Esquema completo de la base de datos y datos base | Emilio | jue 24 sep | vie 25 sep | +1 |
+| EM-02 | Registro, verificación de correo e inicio de sesión del personal (backend) | Emilio | jue 24 sep | vie 25 sep | +1 |
+| JZ-03 | Envío de correos desde la bandeja de salida | José Pablo | jue 24 sep | vie 25 sep | +1 |
+| EM-03 | Pantallas de registro, verificación y acceso (A1.1 a A1.3) | Emilio | jue 24 sep | sáb 26 sep | +2 |
+| EM-17 | Publicar el contrato OpenAPI de identidad | Emilio | vie 25 sep | dom 27 sep | +2 |
+
+### 8.4.2 Avance 2 (50 %)
+
+| ID | Tarea | Responsable | Pronosticado | Real | Diferencia |
+|---|---|---|---|---|---|
+| DC-03 | Estructura del portal de marca blanca | Dominique | lun 28 sep | lun 28 sep | a tiempo |
+| JG-04 | Publicador de configuración en Redis y resincronización | Jordin | lun 28 sep | lun 28 sep | a tiempo |
+| EM-04 | Recuperación de contraseña y Mi perfil (A1.4a, A1.4b y A8.1) | Emilio | lun 28 sep | mar 29 sep | +1 |
+| DC-04 | Registrar una API y lista de APIs (A3.1 y A3.2) | Dominique | mar 29 sep | mar 29 sep | a tiempo |
+| JG-07 | Servicio de claves: emisión, rotación y revocación (backend) | Jordin | mar 29 sep | mar 29 sep | a tiempo |
+| JZ-06 | Imágenes Docker, ambiente productivo simulado y publicación en GHCR | José Pablo | mar 29 sep | mar 29 sep | a tiempo |
+| EM-05 | Identidad del consumidor (backend del portal) | Emilio | mié 30 sep | mié 30 sep | a tiempo |
+| JG-05 | Compuerta: organización, suscripción, ruta, secreto, SSRF y CORS | Jordin | mié 30 sep | jue 1 oct | +1 |
+| DC-05 | Especificación OpenAPI y rutas expuestas (A3.3 y A3.4) | Dominique | jue 1 oct | jue 1 oct | a tiempo |
+| JZ-07 | Pruebas de extremo a extremo y herramienta de capturas | José Pablo | jue 1 oct | jue 1 oct | a tiempo |
+| EM-07 | Planes de API (A4.1) | Emilio | jue 1 oct | vie 2 oct | +1 |
+| JG-06 | Compuerta: límites por minuto, cuotas y cabeceras (Lua) | Jordin | vie 2 oct | vie 2 oct | a tiempo |
+| DC-08 | Pantallas de acceso del consumidor (A5.3, A5.3b y A5.7 a A5.10) | Dominique | vie 2 oct | sáb 3 oct | +1 |
+| EM-18 | Publicar el destino de la sesión del consumidor | Emilio | vie 2 oct | sáb 3 oct | +1 |
+| EM-08 | Contratación de un plan de API (backend) | Emilio | sáb 3 oct | sáb 3 oct | a tiempo |
+| JG-18 | Optimización de las pruebas y la CI | Jordin | sáb 3 oct | sáb 3 oct | a tiempo |
+| JZ-05 | Siembra de demostración | José Pablo | sáb 3 oct | sáb 3 oct | a tiempo |
+| DC-06 | Configuración por ruta y publicación (A3.5) | Dominique | dom 4 oct | lun 5 oct | +1 |
+| DC-07 | Portal público: inicio y documentación (A5.0, A5.1 y A5.5) | Dominique | mar 6 oct | mar 6 oct | a tiempo |
+| JG-03 | Revisión automática con Claude y tablero del plan | Jordin | jue 8 oct | mié 23 sep | −15 |
+| EM-06 | Pasarela de pagos simulada | Emilio | jue 8 oct | dom 27 sep | −11 |
+| JZ-04 | Bitácora de acciones sensibles (B3.2) | José Pablo | jue 8 oct | lun 28 sep | −10 |
+| JG-08 | Convergencia del Avance 2 | Jordin | jue 8 oct | jue 8 oct | a tiempo |
+| JZ-17 | Siembra de demostración en el ambiente productivo simulado | José Pablo | jue 8 oct | jue 8 oct | a tiempo |
+
+### 8.4.3 Avance 3 (80 %)
+
+| ID | Tarea | Responsable | Pronosticado | Real | Diferencia |
+|---|---|---|---|---|---|
+| JG-09 | Medición en la compuerta y consolidación del consumo | Jordin | dom 4 oct | lun 5 oct | +1 |
+| JZ-11 | Plantillas de correo completas | José Pablo | lun 5 oct | lun 5 oct | a tiempo |
+| EM-09 | Suscripción de plataforma: contratar y cambiar de plan (A2 y B1.4) | Emilio | lun 5 oct | mié 7 oct | +2 |
+| DC-09 | Planes y contratación en el portal (A5.4, A5.6 y A5.4b) | Dominique | mié 7 oct | mié 7 oct | a tiempo |
+| JZ-10 | Casos de soporte (A6.4, A6.4b, A7.1 y A7.2) | José Pablo | mié 7 oct | mié 7 oct | a tiempo |
+| EM-12 | Miembros e invitaciones (A4.2 y A8.2) | Emilio | mié 7 oct | jue 8 oct | +1 |
+| JZ-08 | Administración de organizaciones (A6.2 y A6.2b) | José Pablo | sáb 10 oct | vie 9 oct | −1 |
+| JG-11 | Consumo, latencia y errores por API (B1.1) | Jordin | sáb 10 oct | dom 11 oct | +1 |
+| DC-11 | Suscripción y claves del consumidor (B2.3 a B2.6) | Dominique | sáb 10 oct | lun 12 oct | +2 |
+| EM-10 | Cierre de ciclo: renovación, gracia, suspensión y fin de la Prueba | Emilio | sáb 10 oct | lun 12 oct | +2 |
+| JZ-18 | Levantar el ambiente con la siembra en un solo comando (RNF-14) | José Pablo | dom 11 oct | vie 9 oct | −2 |
+| JG-10 | Pantalla de claves del proveedor (A4.3 y A4.3b) | Jordin | lun 12 oct | lun 12 oct | a tiempo |
+| JZ-09 | Cuentas de administración y soporte (A6.5) | José Pablo | lun 12 oct | lun 12 oct | a tiempo |
+| DC-10 | Consola de pruebas del portal (A5.2) | Dominique | lun 12 oct | mar 13 oct | +1 |
+| EM-11 | Historial de pagos (B1.3 y la API de B2.2) | Emilio | lun 12 oct | mar 13 oct | +1 |
+| DC-17 | Barra lateral del portal en planes y pago, y texto de A5.3 | Dominique | mar 13 oct | mar 13 oct | a tiempo |
+| EM-19 | Pruebas de backend del acceso del consumidor | Emilio | mar 13 oct | mar 13 oct | a tiempo |
+| JZ-12 | Estado de los componentes (B3.1) | José Pablo | mié 14 oct | mar 13 oct | −1 |
+| DC-14 | Dominio propio, DNS simulado y secreto de origen (A3.6) | Dominique | mié 14 oct | mié 14 oct | a tiempo |
+| JG-12 | Consumo del ciclo para el consumidor (B2.1) | Jordin | mié 14 oct | mié 14 oct | a tiempo |
+| EM-13 | Límites del plan de plataforma y cambio de plan del consumidor | Emilio | mié 14 oct | vie 16 oct | +2 |
+| JG-20 | Ajustes de interfaz del ensayo del Avance 2 (tarjeta, barra lateral, cursor y contraseña) | Jordin | jue 15 oct | jue 15 oct | a tiempo |
+| DC-13 | Pagos y cambio de plan del consumidor (B2.2 y B2.7) | Dominique | vie 16 oct | vie 16 oct | a tiempo |
+| EM-14 | Administración: planes de plataforma y pagos (A6.1 y A6.3) | Emilio | vie 16 oct | vie 16 oct | a tiempo |
+| JG-13 | Consumo y facturación por consumidor (B1.2) | Jordin | vie 16 oct | lun 19 oct | +3 |
+| EM-20 | Medio de pago en la confirmación de la contratación (A5.4b) | Emilio | sáb 17 oct | dom 18 oct | +1 |
+| DC-15 | Sitio público: inicio de Shapi (A0.1) | Dominique | dom 18 oct | jue 15 oct | −3 |
+| EM-15 | Invitar consumidores (B1.5) | Emilio | dom 18 oct | dom 18 oct | a tiempo |
+| JG-19 | Prueba de la compuerta sin PostgreSQL, API de control ni trabajador (RNF-02 y RNF-04) | Jordin | dom 18 oct | mar 20 oct | +2 |
+| EM-21 | Disponibilidad del proveedor en la cuenta del consumidor | Emilio | lun 19 oct | lun 19 oct | a tiempo |
+| DC-12 | Personalización del portal (A3.7) | Dominique | mar 20 oct | mar 20 oct | a tiempo |
+| JG-14 | Convergencia del Avance 3 | Jordin | jue 22 oct | vie 23 oct | +1 |
+| JZ-19 | Elemento de código para el video del Avance 3 (Clean Code y patrón de diseño) | José Pablo | dom 25 oct | mar 27 oct | +2 |
+| EM-22 | Elemento de código para el video del Avance 3 (Clean Code y patrón de diseño) | Emilio | lun 26 oct | mar 27 oct | +1 |
+| DC-18 | Elemento de código para el video del Avance 3 (Clean Code y patrón de diseño) | Dominique | lun 26 oct | jue 29 oct | +3 |
+| JG-29 | Guion del video del Avance 3 y elemento de código de Jordin | Jordin | jue 29 oct | vie 30 oct | +1 |
+
+### 8.4.4 Entrega final
+
+| ID | Tarea | Responsable | Pronosticado | Real | Diferencia |
+|---|---|---|---|---|---|
+| JZ-14 | Pruebas de carga (RNF-01 y RNF-03) | José Pablo | sáb 17 oct | dom 18 oct | +1 |
+| JG-21 | Timeout de Redis en el reloj y en los trabajos del trabajador | Jordin | vie 23 oct | dom 25 oct | +2 |
+| EM-23 | Publicar la organización al registrar un proveedor | Emilio | vie 23 oct | lun 26 oct | +3 |
+| EM-16 | Pruebas de aislamiento entre organizaciones y de permisos | Emilio | sáb 24 oct | sáb 24 oct | a tiempo |
+| JG-16 | Generador de PDF y documentos de requisitos y de diseño | Jordin | sáb 24 oct | dom 25 oct | +1 |
+| JG-22 | Modo demostración en la interfaz (reloj, fechas y bitácora) | Jordin | sáb 24 oct | lun 26 oct | +2 |
+| JZ-13 | Pruebas E2E de los flujos principales | José Pablo | sáb 24 oct | lun 26 oct | +2 |
+| DC-16 | Revisión visual contra los mockups | Dominique | sáb 24 oct | jue 29 oct | +5 |
+| JG-23 | Correcciones de cobros y suscripciones (gracia por reversión, aviso de la Prueba, cambio programado y cierre de ciclo) | Jordin | dom 25 oct | lun 26 oct | +1 |
+| JG-24 | Correcciones del portal y del dominio propio (A3.6, consola y marca) | Jordin | dom 25 oct | mar 27 oct | +2 |
+| JG-15 | Caché de respuestas en la compuerta | Jordin | lun 26 oct | mar 20 oct | −6 |
+| JG-25 | Correcciones de soporte, bitácora y miembros | Jordin | lun 26 oct | mié 28 oct | +2 |
+| JZ-15 | Manual técnico | José Pablo | lun 26 oct | dom 1 nov | +6 |
+| JG-26 | Correcciones de pantallas del panel y del portal (fechas, tablas, permisos y estilos) | Jordin | mar 27 oct | mié 28 oct | +1 |
+| JG-27 | Correcciones de la siembra, el ambiente y la CI | Jordin | mar 27 oct | jue 29 oct | +2 |
+| JZ-16 | Manual de usuario | José Pablo | mar 27 oct | — | pendiente |
+| JG-28 | Pendientes de la auditoría del 3 de octubre (identidad, planes, contratación y compuerta) | Jordin | mié 28 oct | jue 29 oct | +1 |
+| JG-17 | Convergencia final y congelamiento del código | Jordin | jue 29 oct | — | pendiente |
+| JG-30 | Encabezado y pie del portal con la sesión abierta (A5.0 y A5.2) | Jordin | vie 30 oct | vie 30 oct | a tiempo |
+| JZ-20 | Diferencias visuales de la revisión DC-16 (A6.2, A6.5 y B3.1) | José Pablo | sáb 31 oct | jue 29 oct | −2 |
+| EM-24 | Diferencias visuales de la revisión DC-16 (A2.1, A6.3 y B1.4) | Emilio | sáb 31 oct | vie 30 oct | −1 |
 
 # 9. Diseño de interfaces
 
