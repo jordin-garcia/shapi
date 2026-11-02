@@ -1,6 +1,50 @@
-# Manual técnico
+# 1. Introducción
 
-## Entorno de desarrollo
+_Pendiente: se completa en el paso 2 del plan._
+
+# 2. Descripción del sistema
+
+_Pendiente: se completa en el paso 2 del plan._
+
+# 3. Objetivos
+
+_Pendiente: se completa en el paso 2 del plan._
+
+# 4. Alcance
+
+_Pendiente: se completa en el paso 2 del plan._
+
+# 5. Requisitos funcionales y no funcionales
+
+_Pendiente: se completa en el paso 2 del plan._
+
+# 6. Arquitectura
+
+_Pendiente: se completa en el paso 2 del plan._
+
+# 7. Definición del modelo
+
+_Pendiente: se completa en el paso 2 del plan._
+
+# 8. Cronograma
+
+_Pendiente: se completa en el paso 3 del plan._
+
+# 9. Diseño de interfaces
+
+_Pendiente: se completa en el paso 4 del plan._
+
+# 10. Diagramas
+
+_Pendiente: se completa en el paso 5 del plan._
+
+# 11. Tecnologías utilizadas
+
+_Pendiente: se completa en el paso 6 del plan._
+
+# 12. Manual de instalación
+
+## 12.1 Entorno de desarrollo
 
 ### Requisitos
 
@@ -156,7 +200,7 @@ docker compose --env-file .env -f infra/compose.yml down -v
 
 Después de `down -v` deberá volver a importar la raíz de Caddy.
 
-## Ambiente productivo simulado
+## 12.2 Ambiente productivo simulado
 
 Este ambiente ejecuta la API de control, la compuerta, el trabajador y los dos
 frontends dentro de contenedores en configuración `Release`. Antes de levantarlo,
@@ -308,7 +352,19 @@ Las imágenes publicadas por la integración continua se llaman
 etiqueta `latest`; la opción `--build` permite construir el mismo contenido
 localmente.
 
-## Pruebas de carga
+## 12.3 Pruebas de carga
 
 Los resultados de RNF-01 y RNF-03, el equipo y la reproducción de los escenarios
 están en [Pruebas de carga](pruebas-de-carga.md).
+
+# 13. Problemas que se pueden presentar
+
+_Pendiente: se completa en el paso 6 del plan._
+
+# 14. Respaldo y recuperación de datos
+
+_Pendiente: se completa en el paso 6 del plan._
+
+# 15. Anexos
+
+_Pendiente: se completa en el paso 6 del plan._

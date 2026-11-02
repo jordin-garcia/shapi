@@ -18,19 +18,22 @@ pantallas: []
 **Responsable:** José Pablo Zúñiga · **Avance:** final · **Prioridad:** P1 · **Depende de:** JG-16 · **No antes del:** 2026-10-24
 
 ## Objetivo
-Completar el manual técnico que exigen los lineamientos y generarlo en PDF.
+Completar el manual técnico que exigen los lineamientos, con la estructura que pidió la docente del curso, y generarlo en PDF.
 
 ## Contexto que debes leer
 - `docs/lineamientos.md` §7 (tecnologías, instalación, configuración y despliegue)
+- `docs/specs/01-vision-y-alcance.md`, `03-requisitos.md`, `05-casos-de-uso.md`, `07-modelo-de-datos.md` y `11-interfaz.md` §3
 - `docs/specs/06-arquitectura.md`
-- `docs/plan/instalacion.md`
+- `docs/plan/instalacion.md` y `docs/plan/calendario.md`
 - `.env.example`
 
 ## Archivos que creas o modificas
 - `docs/manual-tecnico.md` (completar)
+- `docs/manual-tecnico/` (capturas de los mockups que usa el manual)
 - `docs/pdf/Manual_Tecnico.pdf` (generar con `scripts/generar-pdf.mjs`)
 
 ## Criterios de aceptación
+0. Sigue la estructura que pidió la docente (1 nov 2026), en este orden: portada, índice, introducción, descripción del sistema, objetivos (general y específicos), alcance, requisitos funcionales y no funcionales (tablas «ID · Requisito»), arquitectura, definición del modelo, cronograma (pronosticado y real), diseño de interfaces (mockups), diagramas (UML, de flujo y de bases de datos: entidad-relación y relacional), tecnologías utilizadas, manual de instalación, problemas que se pueden presentar, respaldo y recuperación de datos, y anexos. La portada y el índice los genera `scripts/generar-pdf.mjs`.
 1. Tiene: tecnologías usadas (con su versión y su justificación, en resumen), requisitos, instalación en Windows y en Linux, configuración (**todas** las variables de entorno con su descripción y su valor por defecto), despliegue en el ambiente productivo simulado (imágenes de GHCR y compose), siembra y cuentas de demostración, modo demostración y reloj, respaldo y restauración de PostgreSQL (`pg_dump`), disponibilidad (RNF-06 como objetivo de diseño, con los mecanismos que lo respaldan según 03 §2, sin medición) y solución de problemas frecuentes (certificado, puertos ocupados, Docker).
 2. Cada comando del manual se ejecutó al menos una vez para comprobarlo.
 3. El PDF se genera con la carátula del proyecto.
