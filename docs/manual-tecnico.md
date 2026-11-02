@@ -1075,7 +1075,1136 @@ El catálogo lista todas las pantallas aprobadas, con su ruta y los requisitos q
 
 # 10. Diagramas
 
-_Pendiente: se completa en el paso 5 del plan._
+Los diagramas están escritos en Mermaid dentro de las especificaciones (`docs/specs/`), así que se versionan junto al código y GitHub los dibuja. Los de este capítulo son copia fiel de esas fuentes, salvo el modelo relacional, que se generó a partir del modelo real de la base de datos (`ShapiDbContextModelSnapshot.cs`, la instantánea que Entity Framework Core mantiene de las migraciones).
+
+## 10.1 Diagramas UML
+
+### 10.1.1 Casos de uso
+
+Hay un diagrama por grupo de actores. El caso compartido de autenticación (CU-02 y CU-03) aparece en los tres. La descripción de cada caso de uso, con su flujo principal y sus alternativas, está en `docs/specs/05-casos-de-uso.md`.
+
+**Proveedor**
+
+```mermaid
+flowchart LR
+  PROV["🧑‍💼 Proveedor<br/>(propietario · editor · lector)"]
+  subgraph SH["Sistema Shapi — panel del proveedor"]
+    direction TB
+    CU01(["CU-01 Registrarse como proveedor"])
+    CU02(["CU-02 Iniciar y cerrar sesión"])
+    CU03(["CU-03 Recuperar la contraseña"])
+    CU04(["CU-04 Administrar miembros"])
+    CU05(["CU-05 Registrar y publicar una API"])
+    CU06(["CU-06 Configurar rutas"])
+    CU07(["CU-07 Conectar un dominio propio"])
+    CU08(["CU-08 Personalizar el portal"])
+    CU09(["CU-09 Administrar planes de API"])
+    CU10(["CU-10 Contratar o cambiar el plan de plataforma"])
+    CU13P(["CU-13 Revocar claves de consumidores"])
+    CU15P(["CU-15 Consultar consumo, consumidores y pagos"])
+    CU23(["CU-23 Invitar consumidores"])
+    CU20P(["CU-20 Abrir y seguir casos de soporte"])
+  end
+  PROV --- CU01 & CU02 & CU03 & CU04 & CU05 & CU06 & CU07
+  PROV --- CU08 & CU09 & CU10 & CU13P & CU15P & CU23 & CU20P
+  CU05 -. "«include»" .-> CU06
+  CU07 -. "«extend» si el plan lo incluye" .-> CU05
+```
+
+**Consumidor**
+
+```mermaid
+flowchart LR
+  CONS["👩‍💻 Consumidor"]
+  SIS["⚙️ Sistema<br/>(compuerta)"]
+  subgraph PO["Sistema Shapi — portal de marca blanca y compuerta"]
+    direction TB
+    CU11(["CU-11 Registrarse como consumidor"])
+    CU02C(["CU-02 Iniciar y cerrar sesión"])
+    CU03C(["CU-03 Recuperar la contraseña"])
+    CU24(["CU-24 Explorar la documentación y probar en la consola"])
+    CU12(["CU-12 Contratar o cambiar un plan de API"])
+    CU13C(["CU-13 Rotar o revocar sus claves"])
+    CU14(["CU-14 Consumir la API a través de la compuerta"])
+    CU15C(["CU-15 Consultar su consumo y sus pagos"])
+  end
+  CONS --- CU11 & CU02C & CU03C & CU24 & CU12 & CU13C & CU14 & CU15C
+  CU14 --- SIS
+  CU12 -. "«include» emite las claves" .-> CU13C
+```
+
+**Administrador, soporte y procesos automáticos**
+
+```mermaid
+flowchart LR
+  ADM["🛡️ Administrador"]
+  SOP["🎧 Soporte"]
+  SIS["⚙️ Sistema<br/>(trabajador)"]
+  subgraph AD["Sistema Shapi — administración"]
+    direction TB
+    CU02A(["CU-02 Iniciar y cerrar sesión"])
+    CU17(["CU-17 Administrar planes de plataforma"])
+    CU18(["CU-18 Suspender o reactivar una organización"])
+    CU19(["CU-19 Revertir un pago"])
+    CU20(["CU-20 Atender casos de soporte"])
+    CU21(["CU-21 Administrar cuentas de plataforma"])
+    CU22(["CU-22 Consultar el estado y la bitácora"])
+    CU16(["CU-16 Renovar, poner en gracia y suspender suscripciones"])
+    CU25(["CU-25 Consolidar el consumo"])
+    CU26(["CU-26 Enviar correos"])
+  end
+  ADM --- CU02A & CU17 & CU18 & CU19 & CU20 & CU21 & CU22
+  SOP --- CU02A & CU20 & CU22
+  SIS --- CU16 & CU25 & CU26
+```
+
+### 10.1.2 Diagrama de clases del dominio
+
+Las clases del dominio (`src/Shapi.Dominio`) con sus atributos principales, sus métodos y sus relaciones. Hay dos ámbitos de identidad (`Usuario` para el personal y `Consumidor` para los clientes de cada proveedor) y dos jerarquías de suscripción que comparten la misma máquina de estados.
+
+```mermaid
+classDiagram
+  direction LR
+  class Organizacion {
+    +Guid Id
+    +string Nombre
+    +TipoOrganizacion Tipo
+    +EstadoAdmin EstadoAdmin
+    +EstadoEfectivo() EstadoOrganizacion
+    +Suspender(motivo)
+    +Reactivar()
+  }
+  class Usuario {
+    +Guid Id
+    +string Nombre
+    +string Correo
+    +string HashContrasena
+    +DateTime? CorreoVerificadoEn
+    +EstadoCuenta Estado
+    +VerificarCorreo()
+    +CambiarContrasena()
+  }
+  class Membresia {
+    +Rol Rol
+    +TienePermiso(permiso) bool
+  }
+  class Consumidor {
+    +Guid Id
+    +string Nombre
+    +string NombreEmpresa
+    +string Correo
+    +string HashContrasena
+    +DateTime? CorreoVerificadoEn
+  }
+  class Api {
+    +Guid Id
+    +string Nombre
+    +string Subdominio
+    +Uri UrlOrigen
+    +EstadoApi Estado
+    +Portal Portal
+    +CargarEspecificacion(archivo)
+    +Publicar()
+    +Despublicar()
+    +RegenerarSecretoOrigen() string
+  }
+  class Ruta {
+    +string Metodo
+    +string Patron
+    +bool Expuesta
+    +int? LimiteMinuto
+    +int CacheSegundos
+    +int PesoLlamadas
+  }
+  class DominioPropio {
+    +string Dominio
+    +EstadoDominio Estado
+    +Verificar(resolutor)
+  }
+  class PlanPlataforma {
+    +string Nombre
+    +string Descripcion
+    +decimal Precio
+    +int VigenciaDias
+    +int? MaxApis
+    +int? MaxMiembros
+    +long CuotaPeticiones
+    +bool DominioPropio
+    +bool EsPrueba
+  }
+  class PlanApi {
+    +string Nombre
+    +string Descripcion
+    +decimal Precio
+    +int VigenciaDias
+    +long CuotaLlamadas
+    +int LimiteMinuto
+    +bool EsGratuito
+  }
+  class Suscripcion {
+    <<abstract>>
+    +EstadoSuscripcion Estado
+    +DateTime Inicio
+    +DateTime Fin
+    +DateTime? GraciaHasta
+    +Renovar(pago)
+    +EntrarEnGracia()
+    +Suspender()
+    +Reactivar(pago)
+    +CambiarPlan(plan) Prorrateo
+  }
+  class SuscripcionPlataforma
+  class SuscripcionApi
+  class Clave {
+    +TipoClave Tipo
+    +string Prefijo
+    +string Ultimos4
+    +string HashSha256
+    +EstadoClave Estado
+    +DateTime? ExpiraEn
+    +Rotar() Clave
+    +Revocar(por)
+  }
+  class MedioPago {
+    +string TokenPasarela
+    +string Marca
+    +string Ultimos4
+    +int MesVencimiento
+    +int AnioVencimiento
+  }
+  class Pago {
+    +ConceptoPago Concepto
+    +decimal Monto
+    +EstadoPago Estado
+    +Revertir(usuario)
+  }
+  class ConsumoDiario {
+    +DateOnly Fecha
+    +long Peticiones
+    +long Llamadas
+    +long BytesEntrada
+    +long BytesSalida
+    +int[] HistLatenciaTotal
+    +int[] HistLatenciaCompuerta
+    +P95() double
+  }
+  class Caso {
+    +string Codigo
+    +string Asunto
+    +EstadoCaso Estado
+    +Responder(autor, texto)
+    +Cerrar()
+  }
+  class CasoMensaje
+  class EntradaBitacora
+
+  Organizacion "1" *-- "1..*" Membresia
+  Usuario "1" -- "1" Membresia
+  Organizacion "1" *-- "0..*" Api
+  Organizacion "1" *-- "0..*" Consumidor
+  Api "1" *-- "0..*" Ruta
+  Api "1" *-- "0..1" DominioPropio
+  Api "1" *-- "0..*" PlanApi
+  Suscripcion <|-- SuscripcionPlataforma
+  Suscripcion <|-- SuscripcionApi
+  Organizacion "1" -- "1..*" SuscripcionPlataforma
+  PlanPlataforma "1" -- "0..*" SuscripcionPlataforma
+  Consumidor "1" -- "0..*" SuscripcionApi
+  PlanApi "1" -- "0..*" SuscripcionApi
+  SuscripcionApi "1" *-- "2..*" Clave
+  Suscripcion "1" -- "0..*" Pago
+  Pago "0..*" -- "1" MedioPago
+  Api "1" -- "0..*" ConsumoDiario
+  Organizacion "1" -- "0..*" Caso
+  Caso "1" *-- "1..*" CasoMensaje
+```
+
+### 10.1.3 Diagramas de secuencia
+
+**Procesamiento de una petición en la compuerta**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor C as Sistema del consumidor
+  participant B as Borde (Caddy)
+  participant G as Compuerta (YARP)
+  participant R as Redis
+  participant O as Origen del proveedor
+  C->>B: HTTPS POST /cotizaciones<br/>Host envios.api.shapi.localhost · X-Api-Key
+  B->>G: HTTP con el TLS terminado (mismo Host)
+  G->>R: Pipeline: host→API, API, rutas, clave (hash), suscripción, organización
+  R-->>G: Contexto de la petición
+  G->>G: Filtros 1–4: API publicada · clave · organización · suscripción · ruta
+  G->>R: Script Lua: límites por minuto, cuota del consumidor y cuota de plataforma (reserva atómica)
+  R-->>G: Resultado y contadores restantes
+  alt Algún filtro rechaza
+    G-->>C: 401 / 403 / 404 / 429 con error JSON (no llega al origen)
+  else GET con caché vigente
+    G->>R: GET cache:{api}:{ruta}:{hash}
+    R-->>G: Respuesta almacenada
+    G-->>C: 200 desde caché + cabeceras de cuota
+  else Pasa todos los filtros
+    G->>O: Reenvío sin X-Api-Key, con X-Shapi-Consumidor, -Entorno y -Secreto
+    O-->>G: Respuesta
+    G-->>C: Respuesta + cabeceras de cuota
+  end
+  G-)R: Después de responder: HINCRBY de las métricas del día e histogramas
+```
+
+**Contratación de un plan de API**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor C as Consumidor
+  participant P as Portal (React)
+  participant A as API de control
+  participant PS as Pasarela simulada
+  participant DB as PostgreSQL
+  participant R as Redis
+  C->>P: Elige el plan Comercio y escribe los datos de la tarjeta
+  P->>A: POST /api/portal/suscripciones {planId, tarjeta}
+  A->>DB: Verificar que el correo está verificado, el plan está activo y no hay otra suscripción vigente en la API
+  A->>PS: Autorizar Q 450.00
+  alt Tarjeta rechazada
+    PS-->>A: rechazado (motivo)
+    A->>DB: Registrar el pago rechazado
+    A-->>P: 402 pago_rechazado
+    P-->>C: Mensaje de rechazo, sin cambios
+  else Cobro autorizado
+    PS-->>A: autorizado · token · marca · últimos 4
+    A->>DB: Transacción: medio_pago, pago, suscripcion_api, 2 claves (solo el hash)
+    A->>R: Publicar susc:{id} y clave:{hash} ×2
+    Note over A,R: Si Redis falla después del commit, el trabajador resincroniza en ≤ 5 min<br/>y la API reintenta la publicación 3 veces
+    A-->>P: 201 con la suscripción y las claves en claro (solo en esta respuesta)
+    P-->>C: Muestra las claves una sola vez (A5.4b)
+  end
+```
+
+**Publicación de una API**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor PR as Proveedor
+  participant PA as Panel (React)
+  participant A as API de control
+  participant O as Servidor de origen
+  participant DB as PostgreSQL
+  participant R as Redis
+  PR->>PA: Nombre, URL de origen y subdominio
+  PA->>A: POST /api/apis
+  A->>A: Validar formato, subdominio libre y no reservado, límite de APIs del plan
+  A->>A: Resolver el DNS de la URL y rechazar direcciones internas (SSRF)
+  A->>O: Probar la conexión (GET, 5 s)
+  alt Sin respuesta o dirección prohibida
+    A-->>PA: 422 origen_inaccesible / origen_no_permitido (no se guarda nada)
+  else Responde cualquier código HTTP
+    A->>DB: Guardar la API (borrador) + secreto de origen cifrado
+    A-->>PA: 201 + secreto en claro (una sola vez)
+  end
+  PR->>PA: Carga la especificación OpenAPI
+  PA->>A: PUT /api/apis/{id}/especificacion
+  A->>A: Validar y extraer las rutas (Microsoft.OpenApi)
+  A->>DB: Guardar la especificación y las rutas (nuevas = ocultas)
+  PR->>PA: Expone rutas, las configura y crea un plan
+  PR->>PA: Publicar
+  PA->>A: POST /api/apis/{id}/publicar
+  A->>A: Verificar: correo verificado, al menos 1 ruta expuesta y al menos 1 plan activo
+  A->>DB: estado = publicada
+  A->>R: Publicar api:host:{sub}.api…, api:{id}, api:{id}:rutas
+  A-->>PA: 200 con los enlaces del portal y de la API
+  Note over PR,R: No se emite ningún certificado: el comodín del borde ya cubre los dos hosts (RF-11)
+```
+
+**Rotación de una clave**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor C as Consumidor
+  participant P as Portal
+  participant A as API de control
+  participant DB as PostgreSQL
+  participant R as Redis
+  C->>P: Rotar la clave de producción y confirmar (B2.4)
+  P->>A: POST /api/portal/claves/{id}/rotar
+  A->>DB: Transacción: clave anterior → rotada, expira_en = ahora + 24 h · clave nueva activa
+  A->>R: HSET clave:{hash_nuevo} · EXPIREAT clave:{hash_anterior} (ahora + 24 h)
+  A-->>P: 200 con la clave nueva en claro (una sola vez)
+  P-->>C: Muestra la clave nueva (B2.5)
+```
+
+**Cierre de ciclo, renovación, gracia y suspensión**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant W as Trabajador (cada minuto)
+  participant DB as PostgreSQL
+  participant PS as Pasarela simulada
+  participant R as Redis
+  participant M as correo_saliente
+  W->>DB: Suscripciones activas con fin ≤ ahora (FOR UPDATE SKIP LOCKED)
+  loop Por cada suscripción
+    alt Tiene plan_siguiente_id
+      W->>DB: Aplicar el plan programado
+    end
+    alt Plan de pago con medio de pago registrado
+      W->>PS: Cobrar con el token
+      alt Autorizado
+        W->>DB: Pago autorizado · ciclo nuevo (inicio = fin anterior)
+        W->>R: Actualizar susc:{id} (fin, cuota) · nueva llave de cuota
+      else Rechazado
+        W->>DB: Pago rechazado · estado en_gracia · gracia_hasta = fin + 7 días
+        W->>R: susc:{id}.estado = en_gracia (el servicio sigue)
+        W->>M: Correo "pago rechazado"
+      end
+    else Plan gratuito que se renueva
+      W->>DB: Ciclo nuevo sin cobro
+    else Plan Prueba
+      W->>DB: estado en_gracia · gracia_hasta = fin + 7 días
+      W->>M: Correo "su prueba terminó"
+    end
+  end
+  W->>DB: Suscripciones en_gracia con gracia_hasta ≤ ahora
+  W->>DB: estado suspendida
+  W->>R: susc:{id} u org:{id} → suspendida (la compuerta responde 403)
+  W->>M: Correo "suscripción suspendida"
+```
+
+**Verificación de un dominio propio y emisión del certificado**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor PR as Proveedor
+  participant A as API de control
+  participant DNS as IResolutorDns (simulado)
+  participant R as Redis
+  participant B as Borde (Caddy)
+  actor C as Consumidor
+  PR->>A: Conectar api.enviosxelaju.localhost
+  A-->>PR: Registro que debe crear: CNAME → envios.api.shapi.localhost
+  PR->>A: «Simular la creación del registro» (solo en modo simulado)
+  A->>DNS: Insertar un CNAME en registro_dns_simulado
+  PR->>A: Verificar el registro DNS
+  A->>DNS: Resolver el CNAME de api.enviosxelaju.localhost
+  alt Coincide con el destino
+    A->>A: dominio_propio.estado = verificado
+    A->>R: api:host:api.enviosxelaju.localhost → api_id
+  else No existe o no coincide
+    A-->>PR: pendiente, con el motivo
+  end
+  C->>B: Primera petición HTTPS a api.enviosxelaju.localhost
+  B->>A: GET /interno/tls/autorizar?domain=api.enviosxelaju.localhost
+  A-->>B: 200
+  B->>B: Emite el certificado (autoridad interna) y lo guarda
+  B->>B: Enruta a la compuerta
+```
+
+**Consolidación del consumo**
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant W as Trabajador (cada 10 s)
+  participant R as Redis
+  participant DB as PostgreSQL
+  W->>R: SMEMBERS met:pendientes
+  loop Por cada llave met:{fecha}:{api}:{ruta}:{susc}:{entorno}
+    W->>R: RENAME llave → met:lote:{lote_id}:{llave} (atómico)
+  end
+  W->>R: HGETALL de cada met:lote:{lote_id}:*
+  W->>DB: Transacción: INSERT lote_consolidado(lote_id) + UPSERT consumo_diario (suma)
+  alt El lote ya existía (reintento)
+    DB-->>W: Violación de unicidad: el lote ya se había aplicado
+  end
+  W->>R: DEL met:lote:{lote_id}:*
+  Note over W,R: Al arrancar, el trabajador procesa primero los met:lote:* que hayan quedado.<br/>La unicidad de lote_id evita contar dos veces
+```
+
+### 10.1.4 Diagramas de estados
+
+**Suscripciones** (de plataforma y de API; las dos usan la misma máquina de estados)
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> activa : contratar (cobro autorizado o plan gratuito)
+  activa --> activa : renovar al cerrar el ciclo (cobro autorizado)<br/>o subir de plan (prorrateo)
+  activa --> en_gracia : el cobro de la renovación se rechaza<br/>o termina la Prueba<br/>o el admin revierte el pago del ciclo vigente
+  en_gracia --> activa : pago autorizado (ciclo nuevo desde hoy)
+  en_gracia --> suspendida : llega gracia_hasta sin pago
+  suspendida --> activa : pago autorizado (ciclo nuevo desde hoy)
+  activa --> finalizada : se reemplaza por otra suscripción<br/>(por ejemplo, el cambio de Prueba a un plan de pago)
+  suspendida --> finalizada : el consumidor contrata otro plan
+```
+
+**API**
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "API" as A {
+    [*] --> borrador : registrar (RF-08)
+    borrador --> publicada : publicar (≥1 ruta expuesta, ≥1 plan, correo verificado)
+    publicada --> despublicada : despublicar
+    despublicada --> publicada : publicar
+  }
+```
+
+**Clave**
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "Clave" as K {
+    [*] --> activa : emitir (RF-26)
+    activa --> rotada : rotar (consumidor)
+    rotada --> [*] : pasan 24 h
+    activa --> revocada : revocar (consumidor o proveedor)
+    rotada --> revocada : revocar
+  }
+```
+
+**Dominio propio**
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "Dominio propio" as D {
+    [*] --> pendiente : conectar
+    pendiente --> verificado : el CNAME coincide
+    pendiente --> fallido : 72 h sin verificarse
+    fallido --> pendiente : reintentar
+    verificado --> [*] : desconectar
+  }
+```
+
+**Caso de soporte**
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "Caso" as C {
+    [*] --> abierto : abrir (el proveedor o el soporte)
+    abierto --> abierto : responder / asignar
+    abierto --> cerrado : cerrar (el soporte o el administrador)
+  }
+```
+
+## 10.2 Diagramas de flujo
+
+### 10.2.1 Tubería de filtros de la compuerta
+
+El recorrido de cada petición por la compuerta, con el error que devuelve cada filtro (capítulo 6.5).
+
+```mermaid
+flowchart LR
+  IN(["Petición"]) --> F0
+  F0["0 · CORS<br/>OPTIONS → 204"] --> F1
+  F1["1 · Resolver la API<br/>host → api publicada"] -- "no existe o no está publicada" --> R404(["404 api_no_encontrada"])
+  F1 --> F2["2 · Clave<br/>X-Api-Key → hash → Redis"]
+  F2 -- "ausente" --> R401a(["401 clave_ausente"])
+  F2 -- "no existe, revocada o de otra API" --> R401b(["401 clave_invalida"])
+  F2 -- "en la query string" --> R401c(["401 clave_en_url"])
+  F1 -. "Redis no disponible (en cualquier filtro)" .-> R503(["503 servicio_no_disponible"])
+  F2 --> F3["3 · Organización<br/>estado efectivo"]
+  F3 -- "suspendida" --> R403a(["403 api_no_disponible"])
+  F3 --> F4["4 · Suscripción<br/>activa o en gracia"]
+  F4 -- "suspendida o finalizada" --> R403b(["403 suscripcion_inactiva"])
+  F4 --> F5["5 · Ruta<br/>método + patrón expuestos"]
+  F5 -- "no existe u oculta" --> R403c(["403 ruta_no_permitida"])
+  F5 --> F6["6 · Límites y cuotas<br/>(un script Lua atómico)"]
+  F6 -- "límite del plan o de la ruta" --> R429a(["429 limite_por_minuto"])
+  F6 -- "cuota del consumidor" --> R429b(["429 cuota_agotada"])
+  F6 -- "cuota de plataforma" --> R429c(["429 cuota_plataforma_agotada"])
+  F6 --> F7["7 · Caché<br/>GET con cache_segundos > 0"]
+  F7 -- "acierto" --> HIT(["200 desde caché"])
+  F7 --> F8["8 · Reenvío YARP<br/>transforma las cabeceras"]
+  F8 -- "no se pudo conectar" --> R502(["502 origen_inaccesible<br/>(se devuelve la cuota)"])
+  F8 -- "cortó la conexión sin responder" --> R502b(["502 origen_inaccesible<br/>(se descuenta)"])
+  F8 -- "pasan 30 s" --> R504(["504 origen_sin_respuesta"])
+  F8 --> OK(["Respuesta del origen"])
+  OK & HIT & R404 & R401a & R401b & R401c & R503 & R403a & R403b & R403c & R429a & R429b & R429c & R502 & R502b & R504 --> F9["9 · Medición<br/>(después de responder)"]
+```
+
+### 10.2.2 Publicar y cobrar una API (proveedor)
+
+```mermaid
+flowchart TD
+  A(["Inicio"]) --> B["Registrarse y confirmar el correo<br/>(plan Prueba, 30 días)"]
+  B --> C["Registrar la API: nombre,<br/>URL de origen y subdominio"]
+  C --> D{"¿El origen responde<br/>y no es una dirección interna?"}
+  D -- "No" --> C
+  D -- "Sí" --> E["Cargar la especificación OpenAPI"]
+  E --> F{"¿Especificación válida?"}
+  F -- "No" --> E
+  F -- "Sí" --> G["Exponer rutas y configurar<br/>límite, caché y peso"]
+  G --> H["Personalizar el portal<br/>y crear al menos un plan"]
+  H --> I{"¿Correo verificado, una ruta<br/>expuesta y un plan activo?"}
+  I -- "No" --> G
+  I -- "Sí" --> J["Publicar la API"]
+  J --> K["El portal y la API responden<br/>en sus subdominios con TLS"]
+  K --> L["Consultar consumo, consumidores<br/>y pagos"]
+  L --> M(["Fin"])
+```
+
+### 10.2.3 Contratar y consumir una API (consumidor)
+
+```mermaid
+flowchart TD
+  A(["Inicio"]) --> B["Entrar al portal del proveedor<br/>y leer la documentación"]
+  B --> C["Crear la cuenta o aceptar<br/>una invitación"]
+  C --> D["Confirmar el correo"]
+  D --> E["Elegir un plan"]
+  E --> F{"¿Plan gratuito?"}
+  F -- "Sí" --> H["Suscripción activa"]
+  F -- "No" --> G{"¿La pasarela autoriza<br/>el cobro?"}
+  G -- "No" --> E
+  G -- "Sí" --> H
+  H --> I["Recibir la clave de producción<br/>y la de pruebas (una sola vez)"]
+  I --> J["Llamar a la API con X-Api-Key"]
+  J --> K{"¿La compuerta acepta<br/>la petición?"}
+  K -- "No: 401, 403, 404 o 429" --> L["Revisar la clave, el plan<br/>o esperar Retry-After"]
+  L --> J
+  K -- "Sí" --> M["Respuesta del origen<br/>y cabeceras de cuota"]
+  M --> N["Consultar consumo y pagos;<br/>rotar o revocar claves"]
+  N --> O(["Fin"])
+```
+
+### 10.2.4 Cierre de ciclo de una suscripción
+
+Lo que hace el trabajador cada minuto con las suscripciones que llegan al fin de su ciclo (RF-22, RF-23 y RF-44).
+
+```mermaid
+flowchart TD
+  A(["Cada minuto"]) --> B["Buscar suscripciones activas<br/>con fin ≤ ahora"]
+  B --> C{"¿Tiene un cambio<br/>de plan programado?"}
+  C -- "Sí" --> D["Aplicar el plan programado"]
+  C -- "No" --> E{"¿Qué plan es?"}
+  D --> E
+  E -- "Prueba" --> P["En gracia por 7 días<br/>y correo «su prueba terminó»"]
+  E -- "Gratuito" --> F["Ciclo nuevo sin cobro"]
+  E -- "De pago" --> G{"¿La pasarela autoriza<br/>el cobro con el token?"}
+  G -- "Sí" --> H["Pago autorizado, ciclo nuevo<br/>y cuota reiniciada"]
+  G -- "No" --> I["Pago rechazado, en gracia por 7 días<br/>y correo «pago rechazado»"]
+  P & I --> J{"¿Pagó antes de que<br/>termine la gracia?"}
+  J -- "Sí" --> H
+  J -- "No" --> K["Suspendida: la compuerta<br/>responde 403 y se envía un correo"]
+```
+
+## 10.3 Diagramas de bases de datos
+
+La base de datos es PostgreSQL 16 y su esquema lo crean las migraciones de Entity Framework Core (`src/Shapi.Infraestructura/Persistencia/Migraciones`). Las tablas y columnas usan nombres en español y en `snake_case`.
+
+### 10.3.1 Modelo entidad-relación
+
+Las entidades del negocio y sus relaciones, con la notación de pata de gallo: `||` es «exactamente uno», `o|` «cero o uno», `|{` «uno o más» y `o{` «cero o más». Los atributos de cada entidad están en el modelo relacional (10.3.2) y en `docs/specs/07-modelo-de-datos.md` §2.
+
+```mermaid
+erDiagram
+  ORGANIZACION ||--|{ MEMBRESIA : "tiene"
+  USUARIO ||--|| MEMBRESIA : "pertenece por"
+  ORGANIZACION ||--o{ CONSUMIDOR : "da de alta"
+  ORGANIZACION ||--o{ API : "publica"
+  ORGANIZACION ||--|{ SUSCRIPCION_PLATAFORMA : "contrata"
+  PLAN_PLATAFORMA ||--o{ SUSCRIPCION_PLATAFORMA : "rige"
+  API ||--o{ RUTA : "expone"
+  API ||--o| DOMINIO_PROPIO : "conecta"
+  API ||--o{ PLAN_API : "ofrece"
+  CONSUMIDOR ||--o{ SUSCRIPCION_API : "contrata"
+  PLAN_API ||--o{ SUSCRIPCION_API : "rige"
+  SUSCRIPCION_API ||--|{ CLAVE : "emite"
+  SUSCRIPCION_PLATAFORMA ||--o{ PAGO : "genera"
+  SUSCRIPCION_API ||--o{ PAGO : "genera"
+  MEDIO_PAGO ||--o{ PAGO : "se usa en"
+  ORGANIZACION ||--o{ MEDIO_PAGO : "registra"
+  CONSUMIDOR ||--o{ MEDIO_PAGO : "registra"
+  API ||--o{ CONSUMO_DIARIO : "acumula"
+  RUTA |o--o{ CONSUMO_DIARIO : "desglosa"
+  SUSCRIPCION_API |o--o{ CONSUMO_DIARIO : "desglosa"
+  ORGANIZACION ||--o{ CASO : "abre"
+  CASO ||--|{ CASO_MENSAJE : "contiene"
+  USUARIO ||--o{ CASO_MENSAJE : "escribe"
+  USUARIO ||--o{ SESION : "abre"
+  CONSUMIDOR ||--o{ SESION : "abre"
+  USUARIO ||--o{ TOKEN : "recibe"
+  CONSUMIDOR ||--o{ TOKEN : "recibe"
+  ORGANIZACION |o..o{ BITACORA : "referencia histórica sin FK"
+```
+
+### 10.3.2 Modelo relacional
+
+El modelo relacional tiene **23 tablas**. Cada diagrama muestra un área, con todas las columnas de sus tablas, su tipo en PostgreSQL y sus claves: **PK** clave primaria, **FK** clave foránea y **UK** valor único. Las tablas de otras áreas que se referencian aparecen solo con su clave primaria. La etiqueta de cada relación es la columna que la implementa.
+
+**a) Identidad y acceso**
+
+```mermaid
+erDiagram
+  MEMBRESIA }o--|| ORGANIZACION : "organizacion_id"
+  MEMBRESIA |o--|| USUARIO : "usuario_id"
+  CONSUMIDOR }o--|| ORGANIZACION : "organizacion_id"
+  TOKEN }o--o| CONSUMIDOR : "consumidor_id"
+  TOKEN }o--o| ORGANIZACION : "organizacion_id"
+  TOKEN }o--o| USUARIO : "usuario_id"
+  SESION }o--o| CONSUMIDOR : "consumidor_id"
+  SESION }o--o| USUARIO : "usuario_id"
+  ORGANIZACION {
+    uuid id PK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text estado_admin
+    text motivo_suspension
+    text nombre
+    text tipo
+  }
+  USUARIO {
+    uuid id PK
+    timestamptz actualizado_en
+    timestamptz bloqueado_hasta
+    text correo UK
+    timestamptz correo_verificado_en
+    timestamptz creado_en
+    text estado
+    text hash_contrasena
+    int intentos_fallidos
+    text nombre
+  }
+  MEMBRESIA {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid usuario_id FK, UK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text rol
+  }
+  CONSUMIDOR {
+    uuid id PK
+    uuid organizacion_id FK
+    timestamptz actualizado_en
+    timestamptz bloqueado_hasta
+    text correo
+    timestamptz correo_verificado_en
+    timestamptz creado_en
+    text estado
+    text hash_contrasena
+    int intentos_fallidos
+    text nombre
+    text nombre_empresa
+  }
+  TOKEN {
+    uuid id PK
+    uuid consumidor_id FK
+    uuid organizacion_id FK
+    uuid usuario_id FK
+    timestamptz actualizado_en
+    text correo
+    timestamptz creado_en
+    timestamptz expira_en
+    character(64) hash_token UK
+    text rol
+    text tipo
+    timestamptz usado_en
+  }
+  SESION {
+    uuid id PK
+    uuid consumidor_id FK
+    uuid usuario_id FK
+    timestamptz actualizado_en
+    text agente_usuario
+    text ambito
+    timestamptz creada_en
+    timestamptz expira_en
+    character(64) hash_identificador UK
+    text host
+    inet ip
+    timestamptz revocada_en
+    timestamptz ultimo_uso_en
+  }
+```
+
+**b) APIs**
+
+```mermaid
+erDiagram
+  API }o--|| ORGANIZACION : "organizacion_id"
+  RUTA }o--|| API : "api_id"
+  DOMINIO_PROPIO |o--|| API : "api_id"
+  API {
+    uuid id PK
+    uuid organizacion_id FK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text especificacion
+    timestamptz especificacion_cargada_en
+    text especificacion_descripcion
+    text especificacion_formato
+    text especificacion_titulo
+    text especificacion_version
+    text estado
+    text nombre
+    text portal_bienvenida
+    character(7) portal_color
+    bytea portal_logo
+    text portal_logo_tipo
+    text portal_nombre
+    timestamptz publicada_en
+    text secreto_origen_cifrado
+    text subdominio UK
+    text url_origen
+  }
+  RUTA {
+    uuid id PK
+    uuid api_id FK
+    timestamptz actualizado_en
+    int cache_segundos
+    timestamptz creado_en
+    jsonb definicion
+    text descripcion
+    bool expuesta
+    int limite_minuto
+    text metodo
+    text patron
+    int peso_llamadas
+    text resumen
+  }
+  DOMINIO_PROPIO {
+    uuid id PK
+    uuid api_id FK, UK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text destino_cname
+    text dominio UK
+    text estado
+    text motivo
+    timestamptz ultimo_intento_en
+    timestamptz verificado_en
+  }
+  REGISTRO_DNS_SIMULADO {
+    uuid id PK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text nombre UK
+    text tipo
+    text valor
+  }
+  ORGANIZACION {
+    uuid id PK
+  }
+```
+
+**c) Planes, suscripciones y claves**
+
+```mermaid
+erDiagram
+  PLAN_API }o--|| API : "api_id"
+  SUSCRIPCION_PLATAFORMA }o--o| MEDIO_PAGO : "medio_pago_id"
+  SUSCRIPCION_PLATAFORMA }o--|| ORGANIZACION : "organizacion_id"
+  SUSCRIPCION_PLATAFORMA }o--|| PLAN_PLATAFORMA : "plan_id"
+  SUSCRIPCION_PLATAFORMA }o--o| PLAN_PLATAFORMA : "plan_siguiente_id"
+  SUSCRIPCION_API }o--|| API : "api_id"
+  SUSCRIPCION_API }o--|| CONSUMIDOR : "consumidor_id"
+  SUSCRIPCION_API }o--o| MEDIO_PAGO : "medio_pago_id"
+  SUSCRIPCION_API }o--|| PLAN_API : "plan_id"
+  SUSCRIPCION_API }o--o| PLAN_API : "plan_siguiente_id"
+  CLAVE }o--|| SUSCRIPCION_API : "suscripcion_id"
+  PLAN_PLATAFORMA {
+    uuid id PK
+    bool activo
+    timestamptz actualizado_en
+    timestamptz creado_en
+    bigint cuota_peticiones
+    text descripcion
+    bool dominio_propio
+    bool es_prueba
+    int max_apis
+    int max_miembros
+    text nombre UK
+    int orden
+    numeric(12,2) precio
+    int vigencia_dias
+  }
+  PLAN_API {
+    uuid id PK
+    uuid api_id FK
+    bool activo
+    timestamptz actualizado_en
+    timestamptz creado_en
+    bigint cuota_llamadas
+    text descripcion
+    bool es_gratuito
+    int limite_minuto
+    text nombre
+    numeric(12,2) precio
+    int vigencia_dias
+  }
+  SUSCRIPCION_PLATAFORMA {
+    uuid id PK
+    uuid medio_pago_id FK
+    uuid organizacion_id FK
+    uuid plan_id FK
+    uuid plan_siguiente_id FK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text estado
+    timestamptz fin
+    timestamptz gracia_hasta
+    timestamptz inicio
+  }
+  SUSCRIPCION_API {
+    uuid id PK
+    uuid api_id FK
+    uuid consumidor_id FK
+    uuid medio_pago_id FK
+    uuid plan_id FK
+    uuid plan_siguiente_id FK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text estado
+    timestamptz fin
+    timestamptz gracia_hasta
+    timestamptz inicio
+  }
+  CLAVE {
+    uuid id PK
+    uuid suscripcion_id FK
+    timestamptz actualizado_en
+    timestamptz creado_en
+    text estado
+    timestamptz expira_en
+    character(64) hash_sha256 UK
+    text prefijo
+    timestamptz revocada_en
+    text revocada_por
+    text tipo
+    character(4) ultimos4
+  }
+  API {
+    uuid id PK
+  }
+  CONSUMIDOR {
+    uuid id PK
+  }
+  MEDIO_PAGO {
+    uuid id PK
+  }
+  ORGANIZACION {
+    uuid id PK
+  }
+```
+
+**d) Pagos**
+
+```mermaid
+erDiagram
+  MEDIO_PAGO }o--o| CONSUMIDOR : "consumidor_id"
+  MEDIO_PAGO }o--o| ORGANIZACION : "organizacion_id"
+  PAGO }o--o| API : "api_id"
+  PAGO }o--o| CONSUMIDOR : "consumidor_id"
+  PAGO }o--o| MEDIO_PAGO : "medio_pago_id"
+  PAGO }o--o| USUARIO : "revertido_por"
+  PAGO }o--o| SUSCRIPCION_API : "suscripcion_api_id"
+  PAGO }o--o| SUSCRIPCION_PLATAFORMA : "suscripcion_plataforma_id"
+  MEDIO_PAGO {
+    uuid id PK
+    uuid consumidor_id FK
+    uuid organizacion_id FK
+    smallint anio_vencimiento
+    timestamptz creado_en
+    text marca
+    smallint mes_vencimiento
+    text titular
+    text token_pasarela
+    character(4) ultimos4
+  }
+  PAGO {
+    uuid id PK
+    uuid api_id FK
+    uuid consumidor_id FK
+    uuid medio_pago_id FK
+    uuid revertido_por FK
+    uuid suscripcion_api_id FK
+    uuid suscripcion_plataforma_id FK
+    timestamptz actualizado_en
+    text concepto
+    timestamptz creado_en
+    text descripcion
+    text estado
+    numeric(12,2) monto
+    text motivo_rechazo
+    timestamptz periodo_fin
+    timestamptz periodo_inicio
+    text referencia_pasarela
+    timestamptz revertido_en
+  }
+  API {
+    uuid id PK
+  }
+  CONSUMIDOR {
+    uuid id PK
+  }
+  ORGANIZACION {
+    uuid id PK
+  }
+  SUSCRIPCION_API {
+    uuid id PK
+  }
+  SUSCRIPCION_PLATAFORMA {
+    uuid id PK
+  }
+  USUARIO {
+    uuid id PK
+  }
+```
+
+**e) Consumo**
+
+```mermaid
+erDiagram
+  CONSUMO_DIARIO }o--|| API : "api_id"
+  CONSUMO_DIARIO }o--o| RUTA : "ruta_id"
+  CONSUMO_DIARIO }o--o| SUSCRIPCION_API : "suscripcion_id"
+  CONSUMO_DIARIO {
+    bigint id PK
+    uuid api_id FK
+    uuid ruta_id FK
+    uuid suscripcion_id FK
+    timestamptz actualizado_en
+    bigint bytes_entrada
+    bigint bytes_salida
+    timestamptz creado_en
+    text entorno
+    date fecha
+    bigint latencia_compuerta_suma_ms
+    bigint latencia_total_suma_ms
+    bigint llamadas
+    bigint origen_2xx
+    bigint origen_3xx
+    bigint origen_4xx
+    bigint origen_5xx
+    bigint origen_fallo
+    bigint peticiones
+    bigint rechazos_401
+    bigint rechazos_403
+    bigint rechazos_404
+    bigint rechazos_429
+  }
+  LOTE_CONSOLIDADO {
+    uuid lote_id PK
+    timestamptz procesado_en
+  }
+  API {
+    uuid id PK
+  }
+  RUTA {
+    uuid id PK
+  }
+  SUSCRIPCION_API {
+    uuid id PK
+  }
+```
+
+**f) Soporte, auditoría y correo**
+
+```mermaid
+erDiagram
+  CASO }o--o| API : "api_id"
+  CASO }o--o| USUARIO : "asignado_a"
+  CASO }o--|| USUARIO : "creado_por"
+  CASO }o--|| ORGANIZACION : "organizacion_id"
+  CASO_MENSAJE }o--|| USUARIO : "autor_id"
+  CASO_MENSAJE }o--|| CASO : "caso_id"
+  CASO {
+    uuid id PK
+    uuid api_id FK
+    uuid asignado_a FK
+    uuid creado_por FK
+    uuid organizacion_id FK
+    timestamptz actualizado_en
+    text asunto
+    timestamptz cerrado_en
+    timestamptz creado_en
+    text estado
+    int numero UK
+  }
+  CASO_MENSAJE {
+    uuid id PK
+    uuid autor_id FK
+    uuid caso_id FK
+    timestamptz creado_en
+    text cuerpo
+  }
+  BITACORA {
+    bigint id PK
+    text accion
+    uuid actor_id
+    text actor_nombre
+    text actor_tipo
+    text descripcion
+    jsonb detalle
+    timestamptz fecha
+    inet ip
+    uuid objetivo_id
+    text objetivo_tipo
+    uuid organizacion_id
+  }
+  CORREO_SALIENTE {
+    uuid id PK
+    timestamptz actualizado_en
+    text asunto
+    timestamptz creado_en
+    jsonb datos
+    text destinatario
+    timestamptz enviado_en
+    text estado
+    int intentos
+    text plantilla
+    timestamptz proximo_intento_en
+    text ultimo_error
+  }
+  API {
+    uuid id PK
+  }
+  ORGANIZACION {
+    uuid id PK
+  }
+  USUARIO {
+    uuid id PK
+  }
+```
+
+**Resumen de tablas y claves**
+
+| Tabla | Área | Clave primaria | Claves foráneas |
+|---|---|---|---|
+| `organizacion` | Identidad y acceso | `id` | — |
+| `usuario` | Identidad y acceso | `id` | — |
+| `membresia` | Identidad y acceso | `id` | `organizacion_id` → `organizacion`; `usuario_id` → `usuario` |
+| `consumidor` | Identidad y acceso | `id` | `organizacion_id` → `organizacion` |
+| `token` | Identidad y acceso | `id` | `consumidor_id` → `consumidor`; `organizacion_id` → `organizacion`; `usuario_id` → `usuario` |
+| `sesion` | Identidad y acceso | `id` | `consumidor_id` → `consumidor`; `usuario_id` → `usuario` |
+| `api` | APIs | `id` | `organizacion_id` → `organizacion` |
+| `ruta` | APIs | `id` | `api_id` → `api` |
+| `dominio_propio` | APIs | `id` | `api_id` → `api` |
+| `registro_dns_simulado` | APIs | `id` | — |
+| `plan_plataforma` | Planes, suscripciones y claves | `id` | — |
+| `plan_api` | Planes, suscripciones y claves | `id` | `api_id` → `api` |
+| `suscripcion_plataforma` | Planes, suscripciones y claves | `id` | `medio_pago_id` → `medio_pago`; `organizacion_id` → `organizacion`; `plan_id` → `plan_plataforma`; `plan_siguiente_id` → `plan_plataforma` |
+| `suscripcion_api` | Planes, suscripciones y claves | `id` | `api_id` → `api`; `consumidor_id` → `consumidor`; `medio_pago_id` → `medio_pago`; `plan_id` → `plan_api`; `plan_siguiente_id` → `plan_api` |
+| `clave` | Planes, suscripciones y claves | `id` | `suscripcion_id` → `suscripcion_api` |
+| `medio_pago` | Pagos | `id` | `consumidor_id` → `consumidor`; `organizacion_id` → `organizacion` |
+| `pago` | Pagos | `id` | `api_id` → `api`; `consumidor_id` → `consumidor`; `medio_pago_id` → `medio_pago`; `revertido_por` → `usuario`; `suscripcion_api_id` → `suscripcion_api`; `suscripcion_plataforma_id` → `suscripcion_plataforma` |
+| `consumo_diario` | Consumo | `id` | `api_id` → `api`; `ruta_id` → `ruta`; `suscripcion_id` → `suscripcion_api` |
+| `lote_consolidado` | Consumo | `lote_id` | — |
+| `caso` | Soporte, auditoría y correo | `id` | `api_id` → `api`; `asignado_a` → `usuario`; `creado_por` → `usuario`; `organizacion_id` → `organizacion` |
+| `caso_mensaje` | Soporte, auditoría y correo | `id` | `autor_id` → `usuario`; `caso_id` → `caso` |
+| `bitacora` | Soporte, auditoría y correo | `id` | — |
+| `correo_saliente` | Soporte, auditoría y correo | `id` | — |
+
+La tabla `bitacora` guarda la organización y el actor como referencias históricas **sin clave foránea**, para que el registro se conserve aunque la organización cambie, y dos disparadores de la base de datos rechazan cualquier `UPDATE`, `DELETE` o `TRUNCATE` sobre ella (RF-41).
 
 # 11. Tecnologías utilizadas
 
