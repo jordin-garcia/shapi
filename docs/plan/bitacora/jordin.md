@@ -1098,3 +1098,20 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Emilio:** tu parte (5:30) es el registro de Carmen con su plan de plataforma, la invitación de Tomás como Editor con su aceptación desde el correo, y la recuperación, el consumo y el cambio de plan de María José, más tu elemento de código. El ciclo de cobro con el reloj lo graba Jordin.
   - **José Pablo:** tu parte ya no incluye la terminal: el bloque 4.3 ahora es crear la cuenta de soporte de Mónica y definir su contraseña desde el correo. Al final de tu parte va el cierre del video. En tu elemento de código, muestra las pruebas en el editor, sin ejecutarlas.
   - **Todos:** el video solo muestra la interfaz y el código en el editor; nada de consola o terminal.
+
+## 2026-11-01 · JZ-15 · Manual técnico
+- Hecho:
+  - Terminé el manual técnico de José Pablo con la estructura que pidió la docente: portada, índice y 15 capítulos, desde la introducción hasta los anexos, en `docs/manual-tecnico.md` y en Word (`docs/Manual_Tecnico.docx`).
+  - Probé sus comandos en un proyecto de Compose aislado, incluidos un respaldo y una recuperación completa.
+- Decisiones de Jordin:
+  - El manual se entrega en Markdown y Word, sin PDF.
+  - «Definición del modelo» es el modelo de proceso de desarrollo.
+  - La tabla de requisitos solo lleva «ID · Requisito».
+  - En el cronograma, la fase 0 va por semanas.
+  - Se usa una captura por módulo, más el catálogo completo.
+  - Los comandos exclusivos de Linux no se repiten, y el manual lo dice.
+- Verificación: `node scripts/tareas.mjs --validar`; `node infra/verificar.mjs` y `--demo` en el proyecto aislado; 59 pruebas de `scripts/*.test.mjs`; `node scripts/verificar-entorno.mjs`; revisión con el subagente `revisor` y corrección de sus 7 hallazgos.
+- Pendiente o aviso para otros:
+  - **José Pablo:** terminé tu tarea JZ-15. Cambié `docs/manual-tecnico.md` (reescrito), `docs/manual-tecnico/mockups/` (nuevo), `docs/Manual_Tecnico.docx` (nuevo), `infra/verificar.mjs` (exige los títulos numerados del manual), `docs/plan/instalacion.md` (referencia a 12.8) y el archivo de la tarea. Actualiza tu rama desde `main`. Si en JZ-16 citas el manual técnico, usa los números de sección nuevos.
+  - **JG-17:** ya no se regenera el manual técnico en PDF; el *release* adjunta el Word. Además, el criterio 5 es nuevo: en desarrollo, la API y el trabajador crean llaves de Data Protection distintas.
+
