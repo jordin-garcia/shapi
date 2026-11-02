@@ -801,7 +801,277 @@ Las fechas son de 2026 y la diferencia está en días.
 
 # 9. Diseño de interfaces
 
-_Pendiente: se completa en el paso 4 del plan._
+Las pantallas se diseñaron antes de programarlas y quedaron aprobadas como **mockups**. La interfaz construida debe coincidir con ellos en textos, datos, orden y estados; la revisión visual de DC-16 lo comprobó pantalla por pantalla. El detalle completo está en `docs/specs/11-interfaz.md`.
+
+## 9.1 Sistema visual
+
+El sistema visual oficial es la **variante 4, «Plano azul»** (ADR-32), elegida entre seis propuestas. Sus tokens se implementan como variables CSS y como tema de Tailwind en `frontend/packages/ui`, y los comparten el panel y el portal.
+
+| Elemento | Definición |
+|---|---|
+| Tipografía | **Sora** para títulos, cifras y precios; **IBM Plex Sans** para la interfaz y los datos, con cifras tabulares en las tablas |
+| Color principal | Azul `#3B6FF0` en las superficies claras y `#7FA6FF` en las oscuras. En el portal se reemplaza por el color de la marca de cada API |
+| Superficies | Fondo `#F4F6FA`, paneles blancos, tinta `#0B1220`. El sitio público y las barras del panel usan una superficie oscura (`#060910`) |
+| Estados | Solo tres colores: correcto (activa, pagado, en servicio), alerta (suspendida, rechazado, en gracia, degradado) y neutro (despublicada, pendiente, cerrado) |
+| Componentes | Radio único de 8 px; botones de 46 px; campos de 48 px; tarjetas con borde y sin sombra; tablas con filas de 42 px |
+| Estructura del panel | Barra superior oscura de 76 px y barra lateral oscura de 272 px con los grupos Publicación, API y Organización. Se diseña para 1440 × 900 y funciona desde 1280 px (RNF-12) |
+
+Toda pantalla cubre además cinco estados que no tienen mockup propio: **cargando** (esqueleto con la forma del contenido), **error de red o del servidor** (aviso con el botón «Reintentar»), **error de validación** (mensaje debajo del campo), **sin permiso** («No tiene permiso para ver esta página») y **acción confirmada** (aviso breve de 4 segundos).
+
+## 9.2 Formato de los mockups
+
+Cada mockup es un archivo HTML estático de 1440 × 900 en `mockups/<tanda>/*.dc.html`. El archivo `canvas.json` de cada tanda tiene el orden y el título de sus pantallas, y los archivos `.html` de la raíz de `mockups/` son paquetes autocontenidos que se abren con doble clic en el navegador. Las pantallas usan los **mismos datos que la siembra de demostración** (capítulo 12), así que el sistema instalado se ve igual que los mockups.
+
+Las tandas A0 a A8 son los flujos de cada área (sitio público, acceso, contratación, publicación, portal, administración, soporte y cuenta), y las tandas B1 a B3 reúnen las salidas: consumo, pagos, suscripciones, estado de los componentes y bitácora.
+
+## 9.3 Pantallas principales
+
+Esta sección muestra una o dos pantallas por tanda. Las imágenes se capturaron directamente de los mockups aprobados.
+
+### A0 · Sitio público
+
+![A0.1 · Inicio de Shapi con planes](manual-tecnico/mockups/A0.1.jpg)
+
+**Figura 1. A0.1 · Inicio de Shapi con planes.** El sitio público presenta Shapi, explica los tres pasos para publicar una API y muestra los planes de plataforma. Se muestra la primera pantalla de la página. Fuente: `mockups/A0/Main.dc.html`.
+
+### A1 · Acceso del proveedor
+
+![A1.1 · Registro del proveedor](manual-tecnico/mockups/A1.1.jpg)
+
+**Figura 2. A1.1 · Registro del proveedor.** El proveedor crea su cuenta y su organización; queda en el plan Prueba sin pedirle tarjeta. Fuente: `mockups/A1/Main.dc.html`.
+
+![A1.3 · Inicio de sesión](manual-tecnico/mockups/A1.3.jpg)
+
+**Figura 3. A1.3 · Inicio de sesión.** El mismo formulario sirve al proveedor, al administrador y al soporte; el sistema los enruta según su rol. Fuente: `mockups/A1/Sesion.dc.html`.
+
+### A2 · Plan de plataforma
+
+![A2.1 · Planes de plataforma](manual-tecnico/mockups/A2.1.jpg)
+
+**Figura 4. A2.1 · Planes de plataforma.** Los planes de plataforma con sus límites de APIs, peticiones y miembros, y el plan vigente de la organización. Fuente: `mockups/A2/Main.dc.html`.
+
+### A3 · Publicación de una API
+
+![A3.1 · APIs de la organización](manual-tecnico/mockups/A3.1.jpg)
+
+**Figura 5. A3.1 · APIs de la organización.** La lista de APIs de la organización, con su estado y el uso del límite del plan. Fuente: `mockups/A3/Main.dc.html`.
+
+![A3.5 · Configuración por ruta](manual-tecnico/mockups/A3.5.jpg)
+
+**Figura 6. A3.5 · Configuración por ruta.** El límite por minuto, la caché y el peso en llamadas de cada ruta expuesta. Fuente: `mockups/A3/ConfigRutas.dc.html`.
+
+![A3.6 · Direcciones, dominio propio y secreto de origen](manual-tecnico/mockups/A3.6.jpg)
+
+**Figura 7. A3.6 · Direcciones, dominio propio y secreto de origen.** Los hosts del portal y de la API, el dominio propio verificado con el DNS simulado y el secreto de origen. Fuente: `mockups/A3/Dominio.dc.html`.
+
+### A4 · Planes, claves y equipo
+
+![A4.1 · Planes de la API](manual-tecnico/mockups/A4.1.jpg)
+
+**Figura 8. A4.1 · Planes de la API.** Los planes que el proveedor vende a sus consumidores: precio, vigencia, cuota de llamadas y límite por minuto. Fuente: `mockups/A4/Main.dc.html`.
+
+![A4.3 · Claves de los consumidores](manual-tecnico/mockups/A4.3.jpg)
+
+**Figura 9. A4.3 · Claves de los consumidores.** Las claves de los consumidores, siempre enmascaradas; el proveedor solo puede revocarlas. Fuente: `mockups/A4/Claves.dc.html`.
+
+### A5 · Portal de marca blanca
+
+![A5.0 · Inicio del portal](manual-tecnico/mockups/A5.0.jpg)
+
+**Figura 10. A5.0 · Inicio del portal.** El portal de marca blanca de Envíos Xelajú, con su logotipo y su color y sin la marca de Shapi. Fuente: `mockups/A5/Main.dc.html`.
+
+![A5.1 · Documentación](manual-tecnico/mockups/A5.1.jpg)
+
+**Figura 11. A5.1 · Documentación.** La documentación generada desde la especificación OpenAPI: descripción, parámetros, ejemplos y peso de cada ruta. Fuente: `mockups/A5/Documentacion.dc.html`.
+
+![A5.2 · Consola de pruebas](manual-tecnico/mockups/A5.2.jpg)
+
+**Figura 12. A5.2 · Consola de pruebas.** La consola de pruebas envía peticiones reales a la API con la clave de pruebas del consumidor. Fuente: `mockups/A5/Consola.dc.html`.
+
+### A6 · Administración y soporte
+
+![A6.2 · Organizaciones](manual-tecnico/mockups/A6.2.jpg)
+
+**Figura 13. A6.2 · Organizaciones.** El administrador lista las organizaciones y las suspende o reactiva por motivos administrativos. Fuente: `mockups/A6/Organizaciones.dc.html`.
+
+![A6.4b · Atención de un caso](manual-tecnico/mockups/A6.4b.jpg)
+
+**Figura 14. A6.4b · Atención de un caso.** El soporte atiende un caso: conversación con el proveedor, API afectada, asignación y cierre. Fuente: `mockups/A6/Caso.dc.html`.
+
+### A7 · Soporte del proveedor
+
+![A7.1 · Casos de soporte de la organización y formulario para abrir uno](manual-tecnico/mockups/A7.1.jpg)
+
+**Figura 15. A7.1 · Casos de soporte de la organización y formulario para abrir uno.** El proveedor abre casos de soporte y consulta los de su organización. Fuente: `mockups/A7/Casos.dc.html`.
+
+### A8 · Cuenta del personal
+
+![A8.1 · Mi perfil](manual-tecnico/mockups/A8.1.jpg)
+
+**Figura 16. A8.1 · Mi perfil.** Cualquier persona del personal cambia su nombre y su contraseña, o cierra la sesión. Fuente: `mockups/A8/Perfil.dc.html`.
+
+### B1 · Salidas del proveedor
+
+![B1.1 · Consumo, latencia y errores](manual-tecnico/mockups/B1.1.jpg)
+
+**Figura 17. B1.1 · Consumo, latencia y errores.** Peticiones, llamadas, latencia p95, errores por código y bytes transferidos de una API. Fuente: `mockups/B1/Main.dc.html`.
+
+![B1.4 · Suscripción de plataforma: vigente, en gracia y suspendida](manual-tecnico/mockups/B1.4.jpg)
+
+**Figura 18. B1.4 · Suscripción de plataforma: vigente, en gracia y suspendida.** La suscripción de plataforma vigente, con su ciclo, su consumo y el medio de pago. Fuente: `mockups/B1/Suscripcion.dc.html`.
+
+### B2 · Salidas del consumidor
+
+![B2.1 · Consumo del ciclo por ruta](manual-tecnico/mockups/B2.1.jpg)
+
+**Figura 19. B2.1 · Consumo del ciclo por ruta.** El consumidor ve el consumo de su ciclo desglosado por ruta. Fuente: `mockups/B2/Main.dc.html`.
+
+![B2.3 · Suscripción y claves: vigente, en gracia, no disponible y vacía](manual-tecnico/mockups/B2.3.jpg)
+
+**Figura 20. B2.3 · Suscripción y claves: vigente, en gracia, no disponible y vacía.** La suscripción del consumidor y sus claves enmascaradas, que puede rotar o revocar. Fuente: `mockups/B2/Suscripcion.dc.html`.
+
+### B3 · Salidas del administrador y del soporte
+
+![B3.1 · Estado de los componentes: normal, degradado y vista de soporte](manual-tecnico/mockups/B3.1.jpg)
+
+**Figura 21. B3.1 · Estado de los componentes: normal, degradado y vista de soporte.** El estado de los siete componentes y la latencia p95 que añade la compuerta, actualizado cada 30 segundos. Fuente: `mockups/B3/Main.dc.html`.
+
+![B3.2 · Bitácora](manual-tecnico/mockups/B3.2.jpg)
+
+**Figura 22. B3.2 · Bitácora.** La bitácora de acciones sensibles: actor, organización, acción, objetivo, fecha e IP. Fuente: `mockups/B3/Bitacora.dc.html`.
+
+## 9.4 Catálogo completo de pantallas
+
+El catálogo lista todas las pantallas aprobadas, con su ruta y los requisitos que cubren. Varias pantallas tienen además variantes (vacía, en gracia, suspendida, con error) en el mismo mockup.
+
+### A0 · Sitio público
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A0.1 | Inicio de Shapi con planes | `shapi.localhost/` | RF-19 |
+| A0.2 | Lámina de estilo oficial | `shapi.localhost/_ui` (solo en desarrollo) | — |
+
+### A1 · Acceso del proveedor
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A1.1 | Registro del proveedor | `/registro` | RF-01 |
+| A1.2 | Aviso de verificación de correo | `/verificar-correo` | RF-02 |
+| A1.3 | Inicio de sesión | `/entrar` | RF-04 |
+| A1.4a | Recuperación: pedir el enlace | `/recuperar` | RF-03 |
+| A1.4b | Recuperación: contraseña nueva | `/restablecer?token=` | RF-03 |
+
+### A2 · Plan de plataforma
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A2.1 | Planes de plataforma | `/panel/suscripcion/planes` | RF-19 |
+| A2.2 | Contratar un plan superior | `/panel/suscripcion/contratar/:plan` | RF-20 |
+| A2.3 | Confirmación | — | RF-20 |
+| A2.4 | Tarjeta rechazada | — | RF-20 |
+| A2.5 | Cambio de plan con prorrateo | `/panel/suscripcion/cambiar/:plan` | RF-25 |
+
+### A3 · Publicación de una API
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A3.1 | APIs de la organización (y su variante vacía) | `/panel/apis` | RF-14, RF-43 |
+| A3.2 | Registrar una API | `/panel/apis/nueva` | RF-08 |
+| A3.3 | Cargar especificación | `/panel/apis/:id/especificacion` | RF-09 |
+| A3.4 | Rutas expuestas | `/panel/apis/:id/rutas` | RF-10 |
+| A3.5 | Configuración por ruta | `/panel/apis/:id/configuracion-rutas` | RF-13 |
+| A3.6 | Direcciones, dominio propio y secreto de origen | `/panel/apis/:id/dominios` | RF-11, RF-12, RF-47 |
+| A3.7 | Personalización del portal | `/panel/apis/:id/portal` | RF-15 |
+| A3.7r | Referencia: inicio del portal a tamaño real | — | RF-16 |
+
+### A4 · Planes, claves y equipo
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A4.1 | Planes de la API (vacía, editar, nuevo) | `/panel/apis/:id/planes` | RF-18 |
+| A4.2 | Miembros y roles (vacía, quitar) | `/panel/miembros` | RF-06, RF-43 |
+| A4.3 | Claves de los consumidores (vacía) | `/panel/apis/:id/claves` | RF-26, RF-28 |
+| A4.3b | Revocar una clave | — | RF-28 |
+
+### A5 · Portal de marca blanca
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A5.0 | Inicio del portal | `/` | RF-15, RF-16 |
+| A5.1 | Documentación | `/documentacion` y `/documentacion/:ruta` | RF-16 |
+| A5.2 | Consola de pruebas | `/consola` | RF-16, RF-45 |
+| A5.3 | Registro del consumidor | `/registro` | RF-05 |
+| A5.3b | Registro por invitación | `/invitacion?token=` | RF-05 |
+| A5.4 | Planes de la API (vacía) | `/planes` | RF-19 |
+| A5.4b | Plan contratado y claves (única vez) | — | RF-20, RF-26 |
+| A5.5 | El mismo portal con otra marca (inicio y documentación) | `agro.shapi.localhost` | RF-15 |
+| A5.6 | Pago en el portal | `/contratar/:plan` | RF-20 |
+| A5.7 | Inicio de sesión del consumidor | `/entrar` | RF-04 |
+| A5.8 | Verificación de correo del consumidor | `/verificar-correo` | RF-02 |
+| A5.9 | Recuperación: pedir el enlace | `/recuperar` | RF-03 |
+| A5.10 | Recuperación: contraseña nueva | `/restablecer?token=` | RF-03 |
+
+### A6 · Administración y soporte
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A6.1 | Planes de plataforma (nuevo y editar) | `/admin/planes` | RF-17 |
+| A6.2 | Organizaciones (vacía) | `/admin/organizaciones` | RF-38 |
+| A6.2b | Suspender una organización | — | RF-38 |
+| A6.3 | Pagos de plataforma (vacía) | `/admin/pagos` | RF-24 |
+| A6.3b | Revertir un pago | — | RF-24 |
+| A6.4 | Casos de soporte (vacía) | `/admin/casos` | RF-40 |
+| A6.4b | Atención de un caso | `/admin/casos/:numero` | RF-40 |
+| A6.5 | Cuentas de administración y soporte (vacía) | `/admin/cuentas` | RF-42 |
+
+### A7 · Soporte del proveedor
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A7.1 | Casos de soporte de la organización y formulario para abrir uno | `/panel/soporte` | RF-40 |
+| A7.2 | Conversación de un caso | `/panel/soporte/:numero` | RF-40 |
+
+### A8 · Cuenta del personal
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| A8.1 | Mi perfil (nombre, contraseña, cerrar sesión) | `/panel/perfil` y `/admin/perfil` | RF-04 |
+| A8.2 | Aceptar la invitación de un miembro | `/invitacion?token=` | RF-06 |
+
+### B1 · Salidas del proveedor
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| B1.1 | Consumo, latencia y errores (vacía) | `/panel/apis/:id/consumo` | RF-35 |
+| B1.2 | Consumo y facturación por consumidor (vacía) | `/panel/apis/:id/consumidores` | RF-36 |
+| B1.3 | Historial de pagos (vacía) | `/panel/pagos` | RF-21 |
+| B1.4 | Suscripción de plataforma: vigente, en gracia y suspendida | `/panel/suscripcion` | RF-22, RF-23 |
+| B1.5 | Invitar consumidores | `/panel/apis/:id/consumidores/invitar` | RF-05 |
+
+### B2 · Salidas del consumidor
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| B2.1 | Consumo del ciclo por ruta (vacía) | `/cuenta/consumo` | RF-37 |
+| B2.2 | Historial de pagos (vacía) | `/cuenta/pagos` | RF-21 |
+| B2.3 | Suscripción y claves: vigente, en gracia, no disponible y vacía | `/cuenta/suscripcion` | RF-22, RF-23, RF-26 a RF-28 |
+| B2.4 | Rotar una clave | — | RF-27 |
+| B2.5 | Clave nueva (única vez) | — | RF-27 |
+| B2.6 | Revocar una clave propia | — | RF-28 |
+| B2.7 | Cambio de plan del consumidor | `/cuenta/cambiar-plan/:plan` | RF-25 |
+
+### B3 · Salidas del administrador y del soporte
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| B3.1 | Estado de los componentes: normal, degradado y vista de soporte | `/admin/estado` | RF-39 |
+| B3.2 | Bitácora (vacía) | `/admin/bitacora` | RF-41 |
+
+### N · Navegación
+
+| ID | Pantalla | Ruta | Requisitos |
+|---|---|---|---|
+| N.1 | Barra lateral del proveedor, aplicada a A4.1 | — | — |
 
 # 10. Diagramas
 
