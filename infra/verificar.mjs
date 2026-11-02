@@ -473,19 +473,21 @@ exigirTexto(
   manual,
   [
     "# Manual técnico",
-    "Entorno de desarrollo",
     "docker compose --env-file .env -f infra/compose.yml up -d",
     "docker compose --env-file .env -f infra/compose.yml down -v",
     "Import-Certificate",
     "update-ca-certificates",
     "https://correo.shapi.localhost",
-    "Ambiente productivo simulado",
     "docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up -d --build",
     "exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo",
     "logs -f",
   ],
   "docs/manual-tecnico.md",
 );
+// Las secciones son títulos de segundo nivel, numerados desde JZ-15 («## 12.8 Entorno de desarrollo»).
+for (const seccion of ["Entorno de desarrollo", "Ambiente productivo simulado"]) {
+  assert.match(manual, new RegExp(`^## [\\d.]+ ${seccion}$`, "m"), `docs/manual-tecnico.md debe tener la sección «${seccion}»`);
+}
 
 // Los documentos con comandos para copiar (H-68). Las bitácoras no se revisan: son historial.
 const rutaTareas = join(raiz, "docs", "plan", "tareas");

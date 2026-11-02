@@ -1,5 +1,19 @@
 # Manual técnico
 
+**Shapi** · Plataforma como servicio para publicar APIs, controlar su uso y cobrar por ellas
+
+Universidad Rafael Landívar · Facultad de Ingeniería · Ingeniería en Informática y Sistemas · Campus de Quetzaltenango
+Ingeniería de Software I · Proyecto final 2026 · Equipo 6 · Quetzaltenango, noviembre de 2026
+
+| Integrante | Carné |
+|---|---|
+| Héctor Jordin Adolfo García Coyoy | 2427124 |
+| Ronaldo Emilio Méndez Mayorga | 1563224 |
+| Dominique Guillermo Contreras Sierra | 1508224 |
+| José Pablo Zúñiga de León | 1507524 |
+
+**Índice:** 1. Introducción · 2. Descripción del sistema · 3. Objetivos · 4. Alcance · 5. Requisitos funcionales y no funcionales · 6. Arquitectura · 7. Definición del modelo · 8. Cronograma · 9. Diseño de interfaces · 10. Diagramas · 11. Tecnologías utilizadas · 12. Manual de instalación · 13. Problemas que se pueden presentar · 14. Respaldo y recuperación de datos · 15. Anexos. La versión en Word (`docs/Manual_Tecnico.docx`) tiene la portada completa y el índice con números de página.
+
 # 1. Introducción
 
 Este manual técnico describe **Shapi**, la plataforma como servicio que el equipo 6 desarrolló como proyecto final de Ingeniería de Software I de la Universidad Rafael Landívar, campus de Quetzaltenango, en el segundo ciclo de 2026.
@@ -15,7 +29,7 @@ El manual está dirigido a quien tenga que **entender, instalar, operar o contin
 | 8 | El cronograma pronosticado y el real |
 | 9 y 10 | El diseño: las pantallas aprobadas (mockups) y los diagramas UML, de flujo y de la base de datos |
 | 11 a 14 | La operación: tecnologías, instalación, problemas frecuentes y respaldo de los datos |
-| 15 | Anexos: variables de entorno, cuentas de demostración, puertos y estructura del repositorio |
+| 15 | Anexos: variables de entorno, estructura del repositorio, comandos frecuentes y referencias |
 
 ## 1.2 Documentos relacionados
 
@@ -23,7 +37,7 @@ Este manual resume y enlaza las **especificaciones** del proyecto, que son la fu
 
 - **Documento de Requisitos** (`docs/pdf/Documento_de_Requisitos.pdf`): visión y alcance, glosario, requisitos, roles y permisos, y casos de uso.
 - **Documento de Diseño** (`docs/pdf/Documento_de_Diseno.pdf`): arquitectura, modelo de datos, compuerta, cobros y suscripciones, identidad y seguridad, interfaz y decisiones de diseño (ADR).
-- **Manual de Usuario** (`docs/pdf/Manual_de_Usuario.pdf`): el uso del sistema por cada actor.
+- **Manual de Usuario** (tarea JZ-16, en `docs/manual-usuario.md`): el uso del sistema por cada actor.
 
 Este manual se entrega en Markdown (`docs/manual-tecnico.md`, que GitHub muestra con sus diagramas) y en Word (`docs/Manual_Tecnico.docx`). El código fuente está en el repositorio [github.com/jordin-garcia/shapi](https://github.com/jordin-garcia/shapi).
 
@@ -531,8 +545,9 @@ Shapi se construyó con un **modelo incremental** combinado con **desarrollo dir
 | **0 · Análisis y diseño** | 24 ago – 23 sep | Propuesta, requisitos y diseño preliminar, mockups, especificaciones, auditoría de las especificaciones y plan de tareas |
 | **Avance 1 (30 %)** | 23 – 25 sep | Andamiaje, CI, infraestructura, base de datos, registro y acceso, compuerta básica |
 | **Avance 2 (50 %)** | 26 sep – 9 oct | Publicación de APIs, planes, contratación, claves, portal, compuerta completa y siembra |
-| **Avance 3 (80 %)** | 10 – 31 oct | Consumo y métricas, ciclos y renovación, administración y soporte, dominios propios, pruebas E2E y de carga, video |
-| **Entrega final** | 1 – 6 nov | Documentos en PDF, manuales, congelamiento del código y exposición |
+| **Avance 3 (80 %)** | 10 – 23 oct | Consumo y métricas, ciclos y renovación, administración y soporte, dominios propios y pruebas E2E. El curso movió su entrega al 31 de octubre, como video |
+| **Semana final** | 23 – 29 oct | Correcciones de la convergencia, documentos de requisitos y de diseño en PDF, manuales y congelamiento del código (JG-17) |
+| **Video y entrega final** | 30 oct – 6 nov | Grabación del video del Avance 3 (31 oct) y entrega final con exposición (semana del 2 al 6 de noviembre) |
 
 ## 7.4 Artefactos del proceso
 
@@ -583,7 +598,7 @@ flowchart LR
 
 ## 7.8 Resultado del proceso
 
-Al 1 de noviembre de 2026, el plan tiene 92 tareas: 89 integradas en `main` y 3 de la entrega final en curso (los dos manuales y la convergencia final). Se integraron más de 130 *pull requests*, todos con la CI en verde. El detalle por tarea, con su fecha pronosticada y la real, está en el capítulo 8.
+Al 1 de noviembre de 2026, el plan tiene 92 tareas: 90 integradas en `main`, contando este manual (JZ-15), y 2 pendientes de la entrega final: el manual de usuario (JZ-16) y la convergencia final con el congelamiento del código (JG-17). Se integraron más de 130 *pull requests*, todos con la CI en verde. El detalle por tarea, con su fecha pronosticada y la real, está en el capítulo 8.
 
 # 8. Cronograma
 
@@ -595,6 +610,8 @@ Este capítulo compara lo que se planificó con lo que ocurrió. Las fechas sale
 
 ## 8.1 Hitos del curso
 
+En esta tabla, el pronosticado es la fecha que fijaba el calendario del curso para cada hito; la fecha programada de cada tarea está en 8.4.
+
 | Hito | Pronosticado | Real | Observación |
 |---|---|---|---|
 | Propuesta, alcance y cronograma | vie 28 ago | vie 28 ago | Entregada |
@@ -604,7 +621,7 @@ Este capítulo compara lo que se planificó con lo que ocurrió. Las fechas sale
 | Avance funcional 2 (50 %) | vie 9 oct | vie 9 oct | Demostración en vivo, solo por la interfaz |
 | Convergencia del Avance 3 (JG-14) | jue 22 oct | vie 23 oct | Informe de brechas y tareas nuevas |
 | Avance funcional 3 (80 %) | vie 23 oct | sáb 31 oct | El curso lo movió al 31 de octubre y lo convirtió en un video de 25 minutos |
-| Documentos de requisitos y de diseño en PDF (JG-16) | lun 2 nov | dom 25 oct | Se adelantó |
+| Documentos de requisitos y de diseño en PDF (JG-16) | lun 2 nov | dom 25 oct | Se adelantó. La tarea estaba programada para el 24 de octubre (8.4.4) |
 | Manual técnico (JZ-15) | lun 2 nov | dom 1 nov | Este documento. La tarea JZ-15 estaba programada para el 26 de octubre (8.4.4) |
 | Convergencia final y congelamiento del código (JG-17) | jue 29 oct | pendiente | Se cierra con los dos manuales |
 | Entrega final y exposición | semana del 2 al 6 nov | pendiente | La fecha exacta la confirma el curso |
@@ -673,7 +690,7 @@ gantt
 | Avance | Tareas | Integradas | A tiempo o antes | Con atraso | Diferencia promedio | Atraso máximo |
 |---|---|---|---|---|---|---|
 | Avance 1 (30 %) | 11 | 11 | 4 | 7 | +0.5 días | 2 días |
-| Avance 2 (50 %) | 24 | 24 | 18 | 6 | −1.2 días | 1 días |
+| Avance 2 (50 %) | 24 | 24 | 18 | 6 | −1.2 días | 1 día |
 | Avance 3 (80 %) | 36 | 36 | 19 | 17 | +0.6 días | 3 días |
 | Entrega final | 21 | 19 | 5 | 14 | +1.2 días | 6 días |
 | **Total** | **92** | **90** | **46** | **44** | | |
@@ -682,7 +699,7 @@ gantt
 
 - **El plan creció de 65 a 92 tareas.** Las auditorías del coordinador (25 de septiembre y 3 de octubre) y las convergencias (8 y 22 de octubre) encontraron brechas entre lo construido y las especificaciones, y cada brecha se convirtió en una tarea nueva con su fecha.
 - **El Avance 3 se movió del 23 al 31 de octubre** y pasó de demostración en vivo a video. El equipo decidió grabar el proyecto terminado, así que todas las tareas, incluidos los manuales, se reprogramaron para terminar el 29 de octubre.
-- **Los atrasos fueron cortos.** El mayor fue el de este manual (JZ-15), de 6 días; entre las tareas integradas antes, fue de 5 días (DC-16, la revisión visual contra los mockups, que generó correcciones para tres personas). Varias tareas del Avance 3 se adelantaron al Avance 2 para repartir la carga (JG-09, EM-09, EM-12, DC-09, JZ-10, JZ-11 y JZ-14).
+- **Los atrasos fueron cortos.** El mayor fue el de este manual (JZ-15), de 6 días; entre las tareas integradas antes, fue de 5 días (DC-16, la revisión visual contra los mockups, que generó correcciones para tres personas). Varias tareas se adelantaron a un avance anterior para repartir la carga: JG-09, EM-09, EM-12, DC-09, JZ-10 y JZ-11 al Avance 2, y JZ-14 al Avance 3.
 - **Pendientes al cierre de este manual:** el manual de usuario (JZ-16) y la convergencia final con el congelamiento del código (JG-17).
 
 ## 8.4 Detalle por tarea
@@ -1077,7 +1094,7 @@ El catálogo lista todas las pantallas aprobadas, con su ruta y los requisitos q
 
 # 10. Diagramas
 
-Los diagramas están escritos en Mermaid dentro de las especificaciones (`docs/specs/`), así que se versionan junto al código y GitHub los dibuja. Los de este capítulo son copia fiel de esas fuentes, salvo el modelo relacional, que se generó a partir del modelo real de la base de datos (`ShapiDbContextModelSnapshot.cs`, la instantánea que Entity Framework Core mantiene de las migraciones).
+Los diagramas están escritos en Mermaid dentro de las especificaciones (`docs/specs/`), así que se versionan junto al código y GitHub los dibuja. Los de este capítulo son copia fiel de esas fuentes, con dos excepciones: los flujos de 10.2.2 a 10.2.4, que se escribieron para este manual a partir de las especificaciones (01 §5, 05 y 09), y el modelo relacional, que se generó a partir del modelo real de la base de datos (`ShapiDbContextModelSnapshot.cs`, la instantánea que Entity Framework Core mantiene de las migraciones).
 
 ## 10.1 Diagramas UML
 
@@ -2253,7 +2270,7 @@ Todas las tecnologías son gratuitas y de código abierto, porque el presupuesto
 | Caddy | 2 (`caddy:2` y `caddy:2-alpine`) | HTTPS automático con autoridad certificadora interna y certificados bajo demanda para los dominios propios | Borde |
 | Mailpit | 1.27 (`axllent/mailpit:v1.27`) | Servidor SMTP con bandeja web, gratuito; simula el correo sin depender de terceros | Correo simulado |
 | Docker y Docker Compose | Engine 29, Compose v2 | Levantan todo el sistema con un solo comando, igual en cualquier equipo (RNF-14) | Desarrollo y ambiente productivo simulado |
-| Imágenes base de .NET | `mcr.microsoft.com/dotnet/sdk:10.0` y `aspnet:10.0` | Compilación en varias etapas: la imagen final solo lleva el ejecutable | Imágenes de la API, la compuerta y el trabajador |
+| Imágenes base de .NET | `mcr.microsoft.com/dotnet/sdk:10.0-alpine` y `aspnet:10.0-alpine` (los orígenes de demostración usan las variantes sin `-alpine`) | Compilación en varias etapas: la imagen final solo lleva el ejecutable | Imágenes de la API, la compuerta y el trabajador |
 | GitHub Actions y GHCR | — | Integración continua y registro de imágenes, gratis en repositorios públicos | CI y publicación de imágenes |
 
 ## 11.4 Pruebas
@@ -2285,7 +2302,7 @@ Shapi se puede instalar de dos maneras:
 - **Ambiente productivo simulado** (12.4): todo el sistema corre en contenedores, en configuración `Release`, con un solo comando. Es la forma recomendada para usar o presentar el sistema, y la que se usa en la exposición.
 - **Entorno de desarrollo** (12.8): la infraestructura corre en contenedores y los procesos .NET y Vite corren en el equipo, con recarga en caliente. Es la forma de trabajar en el código.
 
-Todos los comandos de este capítulo se ejecutaron en Windows 10 con Docker Desktop el 1 de noviembre de 2026, en un proyecto de Compose aislado para no tocar los datos de otros ambientes.
+Los comandos de este capítulo y del 14 se ejecutaron en Windows 10 con Docker Desktop el 1 de noviembre de 2026, en un proyecto de Compose aislado para no tocar los datos de otros ambientes. Los exclusivos de Linux (instalación de paquetes y del certificado con `apt`, `update-ca-certificates`, `certutil` y `systemctl`) vienen de la versión anterior del manual y no se repitieron en esa verificación; los de Docker Compose también se ejecutan en Linux en cada corrida de la integración continua.
 
 ## 12.1 Requisitos del equipo
 
@@ -2528,7 +2545,14 @@ Con `SHAPI_MODO_DEMO=true`, el sistema tiene un **reloj de negocio** que se pued
 2. Al final de la página está la tarjeta **Modo demostración**, con la fecha y hora de Guatemala del reloj de negocio.
 3. Adelante 30 días, 7 días o una cantidad de 1 a 365 días. La API y el trabajador actualizan su reloj en menos de un segundo y el trabajador cierra los ciclos vencidos.
 
-El adelanto es **irreversible**: para volver a la fecha real, reinicie la demostración con `sembrar-demo --reiniciar` (12.6). Las sesiones vencen con la hora real, independiente del reloj de negocio. Con `SHAPI_MODO_DEMO=false` la tarjeta no aparece y el endpoint responde 404.
+El adelanto no se puede deshacer desde la interfaz, y reiniciar la siembra no lo borra: `sembrar-demo` respeta el desplazamiento guardado. Para volver a la fecha real, borre el desplazamiento en Redis, espere unos 5 segundos (los procesos lo vuelven a leer y, si falta, usan la hora real) y reinicie la demostración (12.6):
+
+```bash
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec redis redis-cli DEL demo:reloj:desplazamiento
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
+```
+
+ Las sesiones vencen con la hora real, independiente del reloj de negocio. Con `SHAPI_MODO_DEMO=false` la tarjeta no aparece y el endpoint responde 404.
 
 ## 12.8 Entorno de desarrollo
 
@@ -2753,14 +2777,14 @@ docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml up
 - **Frecuencia:** un respaldo diario de la base y de `dpkeys` en un despliegue real, y uno antes de cada cambio importante (actualizar las imágenes, aplicar migraciones o reiniciar la demostración). Se puede programar con el Programador de tareas de Windows o con `cron` en Linux.
 - **Retención:** conserve al menos los últimos 7 respaldos diarios y uno por semana del último mes, con la fecha en el nombre del archivo.
 - **Copia externa:** guarde una copia fuera del equipo, porque el ambiente productivo simulado corre en un solo equipo.
-- **Prueba de restauración:** restaure periódicamente un respaldo en un proyecto de Compose aparte (por ejemplo, con la variable `COMPOSE_PROJECT_NAME=shapi-prueba`), para comprobar que sirve sin tocar los datos reales.
+- **Prueba de restauración:** restaure periódicamente un respaldo en un proyecto de Compose aparte (por ejemplo, con la variable `COMPOSE_PROJECT_NAME=shapi-prueba`), para comprobar que sirve sin tocar los datos reales. Antes, apague el ambiente principal con `down`: los dos usan la red `shapi` y los puertos 80 y 443.
 - **Confidencialidad:** el respaldo contiene correos, hashes de contraseñas y claves, y datos de pagos (sin números de tarjeta). Guárdelo con el mismo cuidado que la base de datos.
 
 # 15. Anexos
 
 ## Anexo A · Variables de entorno
 
-El archivo `.env.example` tiene todas las variables con sus valores de desarrollo. La columna «Por defecto» indica el valor del ejemplo. En el ambiente productivo simulado, `infra/compose.prod.yml` fija algunas variables y no las toma del `.env`, porque los servicios se encuentran por su nombre en la red de Docker.
+El archivo `.env.example` tiene todas las variables `SHAPI_*` con sus valores de desarrollo; después de la tabla están tres ajustes más que no aparecen en él. La columna «Por defecto» indica el valor del ejemplo. En el ambiente productivo simulado, `infra/compose.prod.yml` fija algunas variables y no las toma del `.env`, porque los servicios se encuentran por su nombre en la red de Docker.
 
 | Variable | Descripción | Por defecto | En el ambiente productivo |
 |---|---|---|---|
@@ -2778,19 +2802,27 @@ El archivo `.env.example` tiene todas las variables con sus valores de desarroll
 | `SHAPI_SMTP_USUARIO` | Usuario SMTP; vacío si el servidor no pide autenticación | (vacío) | Del `.env` |
 | `SHAPI_SMTP_CONTRASENA` | Contraseña SMTP | (vacío) | Del `.env` |
 | `SHAPI_SMTP_TLS` | `true`: cifrado obligatorio (SMTPS en el puerto 465, STARTTLS en los demás). `false`: sin cifrar, como Mailpit | `false` | Fija: `false` |
-| `SHAPI_DNS_MODO` | Verificación de dominios propios: `simulado` (tabla `registro_dns_simulado`) o `real` (DNS público) | `simulado` | Del `.env` |
+| `SHAPI_DNS_MODO` | Verificación de dominios propios: `simulado` (tabla `registro_dns_simulado`) o `real` (DNS público) | `simulado` | Del `.env` en la API; el trabajador, que verifica los dominios pendientes, usa siempre `simulado` |
 | `SHAPI_REDES_BORDE` | Redes (CIDR, separadas por comas) desde las que el borde llega a la API; solo de ellas se aceptan `X-Forwarded-For` y `X-Forwarded-Proto`. Vacío: la máquina y la red `shapi` (172.30.0.0/24) | (vacío) | Del `.env` |
 | `SHAPI_ORIGENES_PERMITIDOS` | Hosts que la protección contra SSRF permite aunque sean internos (los orígenes de demostración) | `localhost:5101,localhost:5102,origen-envios:8080,origen-agro:8080` | Fija: `origen-envios:8080,origen-agro:8080` |
 | `SHAPI_DPKEYS_DIR` | Carpeta de las llaves de Data Protection, que la API y el trabajador deben compartir. Una ruta relativa se resuelve desde la carpeta de cada proyecto: en desarrollo, use una ruta absoluta para que los dos usen las mismas llaves | `.shapi/dpkeys` | Fija: `/var/lib/shapi/dpkeys` (volumen `dpkeys`) |
 | `SHAPI_ADMIN_CORREO` | Correo de la primera cuenta de administrador, que se crea al iniciar la API | `admin@shapi.localhost` | Del `.env` |
 | `SHAPI_ADMIN_NOMBRE` | Nombre de esa cuenta | `Administrador Shapi` | Del `.env` |
 | `SHAPI_ADMIN_CONTRASENA` | Contraseña de esa cuenta. Cámbiela fuera de un equipo local | `ShapiLocal2026!` | Del `.env` |
-| `SHAPI_PASARELA_FALLA` | Simula la pasarela de pagos fuera de servicio, para demostraciones | `false` | Del `.env` |
+| `SHAPI_PASARELA_FALLA` | Simula la pasarela de pagos fuera de servicio, para demostraciones | `false` | Del `.env` en la API; el trabajador, que cobra las renovaciones, usa siempre `false` |
 | `SHAPI_URL_ORIGEN_ENVIOS` | URL del origen de demostración de Envíos Xelajú, que usa la siembra | `http://localhost:5101` | Fija: `http://origen-envios:8080` |
 | `SHAPI_URL_ORIGEN_AGRO` | URL del origen de demostración de Agro Precios | `http://localhost:5102` | Fija: `http://origen-agro:8080` |
 | `SHAPI_SECRETO_ORIGEN_ENVIOS` | Secreto que exige el origen de Envíos en `X-Shapi-Secreto`; vacío: no lo exige | (vacío) | Del `.env` |
 | `SHAPI_SECRETO_ORIGEN_AGRO` | Secreto que exige el origen de Agro | (vacío) | Del `.env` |
 | `SHAPI_DOCKER_BIN` | Ejecutable de Docker que usa `infra/verificar.mjs` (no lo usa la aplicación) | El de Docker Desktop en Windows, si existe; si no, `docker` | — |
+
+**Ajustes opcionales.** El código lee además tres valores de configuración de .NET que no están en `.env.example` ni los pasa `infra/compose.prod.yml`. Como variables de entorno se escriben con doble guion bajo; para cambiarlos en el ambiente productivo hay que agregarlos al `environment` del servicio:
+
+| Variable | Descripción | Por defecto | Proceso |
+|---|---|---|---|
+| `Sesion__InactividadHoras` | Horas de inactividad tras las que vence una sesión del personal o de un consumidor (RF-04); el máximo absoluto sigue siendo 7 días | `8` | API |
+| `Autenticacion__LimitePorMinuto` | Peticiones por minuto y por IP permitidas en los endpoints de acceso | `10` | API |
+| `Pagos__DemoraMs` | Demora, en milisegundos, de cada operación de la pasarela simulada | Al azar entre 300 y 800 | API y trabajador |
 
 Además, `infra/compose.prod.yml` fija `ASPNETCORE_ENVIRONMENT=Production` y `ASPNETCORE_URLS=http://+:8080` en la API y la compuerta, y `DOTNET_ENVIRONMENT=Production` en el trabajador. `COMPOSE_PROJECT_NAME` (de Docker Compose) permite levantar un ambiente aparte, con sus propios volúmenes.
 
