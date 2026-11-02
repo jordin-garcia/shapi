@@ -25,7 +25,7 @@ Este manual resume y enlaza las **especificaciones** del proyecto, que son la fu
 - **Documento de Diseño** (`docs/pdf/Documento_de_Diseno.pdf`): arquitectura, modelo de datos, compuerta, cobros y suscripciones, identidad y seguridad, interfaz y decisiones de diseño (ADR).
 - **Manual de Usuario** (`docs/pdf/Manual_de_Usuario.pdf`): el uso del sistema por cada actor.
 
-El código fuente está en el repositorio [github.com/jordin-garcia/shapi](https://github.com/jordin-garcia/shapi).
+Este manual se entrega en Markdown (`docs/manual-tecnico.md`, que GitHub muestra con sus diagramas) y en Word (`docs/Manual_Tecnico.docx`). El código fuente está en el repositorio [github.com/jordin-garcia/shapi](https://github.com/jordin-garcia/shapi).
 
 ## 1.3 Convenciones
 
