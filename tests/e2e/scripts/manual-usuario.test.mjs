@@ -46,6 +46,16 @@ test('JZ-16 CA-2 · cada procedimiento incluye capturas PNG existentes', () => {
   }
 });
 
+test('JZ-16 CA-2 · documenta las pantallas finales de enlaces y secretos de un solo uso', () => {
+  const manual = readFileSync(fuente, 'utf8');
+  for (const nombre of ['restablecer-personal', 'portal-restablecer', 'api-registrada',
+    'plan-contratado', 'clave-nueva', 'aceptar-miembro', 'definir-contrasena-personal']) {
+    const ruta = `manual-usuario/img/${nombre}.png`;
+    assert.ok(manual.includes(`](${ruta})`), `Falta explicar e ilustrar ${nombre}`);
+    assert.ok(existsSync(resolve(dirname(fuente), ruta)), ruta);
+  }
+});
+
 // JZ-16 CA-3: el entregable real es PDF; la carátula se revisa al renderizarlo.
 test('JZ-16 CA-3 · existe el PDF generado', () => {
   const pdf = readFileSync(resolve(raiz, 'docs/pdf/Manual_de_Usuario.pdf'));

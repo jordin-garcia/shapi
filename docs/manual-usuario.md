@@ -75,9 +75,13 @@ Al verificar correctamente, Shapi inicia la sesión y muestra las APIs. Puede re
 
 ### 3.4 Recuperar la contraseña
 
-1. En el acceso seleccione la recuperación de contraseña, escriba su **Correo electrónico** y pulse **Enviar el enlace**. El aviso no confirma si existe la cuenta. Abra el correo de recuperación, siga su enlace, escriba la contraseña nueva y guárdela. El enlace vence a los 60 minutos y solo puede usarse una vez; si venció, solicite otro desde esta misma pantalla.
+1. En el acceso seleccione la recuperación de contraseña, escriba su **Correo electrónico** y pulse **Enviar el enlace**. El aviso no confirma si existe la cuenta. Abra el correo de recuperación y siga su enlace, válido por 60 minutos. Si venció, solicite otro desde esta misma pantalla.
 
 ![Formulario para solicitar el enlace de recuperación del personal.](manual-usuario/img/recuperar-personal.png)
+
+2. En **Definir la contraseña**, escriba la contraseña nueva y pulse **Guardar la contraseña**. El enlace solo se puede utilizar una vez.
+
+![Formulario de contraseña nueva abierto desde un enlace real de recuperación.](manual-usuario/img/restablecer-personal.png)
 
 La recuperación correcta cierra las sesiones anteriores e inicia una nueva. Si solo olvidó su contraseña, no necesita registrar otra organización.
 
@@ -89,11 +93,19 @@ La recuperación correcta cierra las sesiones anteriores e inicia una nueva. Si 
 
 ![Comparación de planes de plataforma para el proveedor.](manual-usuario/img/planes-plataforma-proveedor.png)
 
-2. En la contratación o cambio revise el importe de hoy y la próxima renovación. Complete la tarjeta si se solicita y confirme el pago o el cambio. Al subir desde Prueba se cobra el plan completo; al subir entre planes de pago se calcula el prorrateo. Una bajada se programa para la siguiente renovación y requiere que sus recursos quepan en los límites nuevos. Si el cobro se rechaza, corrija el medio de pago y reintente; el plan vigente no cambia.
+2. Si contrata desde Prueba, revise el importe y el periodo de la contratación, complete los datos de tarjeta y pulse **Pagar … y activar el plan**. Se cobra el precio completo del plan elegido.
+
+![Contratación de un plan de plataforma desde Prueba.](manual-usuario/img/contratar-plataforma.png)
+
+3. Compruebe **Plan activado** y el periodo de servicio. La suscripción queda disponible para consultarla desde el panel.
+
+![Confirmación de un plan de plataforma autorizado en la pasarela simulada.](manual-usuario/img/plan-plataforma-activo.png)
+
+4. Si cambia entre planes de pago, revise el importe de hoy y la próxima renovación. Complete la tarjeta si se solicita y confirme el cambio. Una subida se cobra con el prorrateo mostrado; una bajada se programa para la siguiente renovación y requiere que sus recursos quepan en los límites nuevos. Si el cobro se rechaza, corrija el medio de pago y reintente; el plan vigente no cambia.
 
 ![Formulario de cambio de plan de plataforma con resumen del cobro.](manual-usuario/img/cambio-plan-plataforma.png)
 
-3. Vuelva a **Suscripción de plataforma** para comprobar el resultado. Si está en gracia o suspendida, use **Pagar con otra tarjeta**. Durante los siete días de gracia el servicio sigue disponible; después, la compuerta rechaza el tráfico. Pagar la deuda no elimina una suspensión administrativa: en ese caso debe contactar a soporte. Consulte los cobros en **Historial de pagos**.
+5. Vuelva a **Suscripción de plataforma** para comprobar el resultado. Si está en gracia o suspendida, use **Pagar con otra tarjeta**. Durante los siete días de gracia el servicio sigue disponible; después, la compuerta rechaza el tráfico. Pagar la deuda no elimina una suspensión administrativa: en ese caso debe contactar a soporte. Consulte los cobros en **Historial de pagos**.
 
 ![Resumen de la suscripción de plataforma y próxima renovación.](manual-usuario/img/suscripcion-plataforma.png)
 
@@ -105,7 +117,11 @@ La recuperación correcta cierra las sesiones anteriores e inicia una nueva. Si 
 
 ![Formulario para registrar una API y comprobar la conexión al origen.](manual-usuario/img/registrar-api.png)
 
-Al registrarse, la API queda en borrador y se muestra su secreto de origen una sola vez. Guárdelo antes de **Continuar a la especificación**. Ese secreto identifica las peticiones de Shapi ante su servidor; no es la clave que usan los consumidores. En la demostración, Envíos Xelajú ya tiene una API publicada; puede recorrer su configuración sin registrar otra.
+2. Al registrarse, la API queda en borrador y se muestra su secreto de origen una sola vez. Guárdelo antes de **Continuar a la especificación**. Ese secreto identifica las peticiones de Shapi ante su servidor; no es la clave que usan los consumidores. El recuadro de color de esta captura oculta el secreto; en su pantalla verá el valor completo.
+
+![API recién registrada: conexión probada y secreto de origen oculto en el manual.](manual-usuario/img/api-registrada.png)
+
+En la demostración, Envíos Xelajú ya tiene una API publicada; puede recorrer su configuración sin registrar otra.
 
 ### 3.7 Cargar la especificación OpenAPI
 
@@ -169,17 +185,25 @@ El dominio propio corresponde a la API. **Regenerar**, en la tarjeta del secreto
 
 ![Métricas y consumo de la API del proveedor.](manual-usuario/img/consumo-proveedor.png)
 
-2. Abra **Consumidores** para consultar por cuenta el plan, el consumo y la facturación. Use los filtros disponibles para ubicar el registro que necesita. Para revisar lo que su organización paga a Shapi, abra **Historial de pagos** en el grupo Organización: son pagos distintos de los que sus consumidores hacen por sus APIs.
+2. Abra **Consumidores** para consultar por cuenta el plan, el consumo y la facturación.
 
 ![Consumo y facturación por consumidor de la API.](manual-usuario/img/consumidores.png)
+
+3. Para revisar lo que su organización paga a Shapi, abra **Historial de pagos** en el grupo Organización. Son pagos distintos de los que sus consumidores hacen por sus APIs.
+
+![Historial de pagos del proveedor a la plataforma Shapi.](manual-usuario/img/pagos-proveedor.png)
 
 ### 3.16 Miembros y roles
 
 **Perfil:** propietario.
 
-1. Abra **Miembros y roles**, escriba el correo de la persona, seleccione **Editor** o **Lector** y envíe la invitación. La persona debe abrir el correo, seguir el enlace y completar nombre y contraseña. La invitación vence en siete días y está sujeta al límite de miembros del plan. El correo no puede pertenecer a otra organización. En esta misma pantalla puede cambiar el rol o quitar a un miembro mediante su acción y confirmación; no puede quitarse ni cambiar su propio rol de propietario.
+1. Abra **Miembros y roles**, escriba el correo de la persona, seleccione **Editor** o **Lector** y pulse **Enviar invitación**. La invitación vence en siete días y está sujeta al límite de miembros del plan. El correo no puede pertenecer a otra organización. En esta misma pantalla puede cambiar el rol o quitar a un miembro mediante su acción y confirmación; no puede quitarse ni cambiar su propio rol de propietario.
 
 ![Miembros, roles e invitación al equipo de la organización.](manual-usuario/img/miembros.png)
+
+2. La persona invitada debe abrir el correo y seguir el enlace. En **Unirse a …**, debe revisar la organización y el rol, completar nombre y contraseña y pulsar **Aceptar la invitación**. Si la cuenta ya existe sin organización, conserva sus datos de acceso. El ejemplo siguiente utiliza una organización nueva creada para mostrar este formulario.
+
+![Aceptación de una invitación real a una organización de ejemplo.](manual-usuario/img/aceptar-miembro.png)
 
 ### 3.17 Invitar consumidores
 
@@ -215,9 +239,13 @@ El dominio propio corresponde a la API. **Regenerar**, en la tarjeta del secreto
 
 ![Inicio de sesión del consumidor en Envíos Xelajú.](manual-usuario/img/portal-sesion.png)
 
-2. Si olvidó la contraseña, abra la recuperación, escriba el correo y pulse **Enviar el enlace**. Abra el mensaje, siga el enlace de un solo uso y guarde una contraseña nueva. El enlace dura 60 minutos. La recuperación invalida las sesiones anteriores e inicia una nueva; si venció, solicite otro.
+2. Si olvidó la contraseña, abra la recuperación, escriba el correo y pulse **Enviar el enlace**. Abra el mensaje y siga el enlace de un solo uso, válido por 60 minutos. Si venció, solicite otro.
 
 ![Solicitud de recuperación de contraseña del consumidor.](manual-usuario/img/portal-recuperar.png)
+
+3. En **Definir la contraseña**, escriba la nueva contraseña y pulse **Guardar la contraseña**. La recuperación invalida las sesiones anteriores e inicia una nueva.
+
+![Formulario de contraseña nueva del consumidor abierto desde su correo.](manual-usuario/img/portal-restablecer.png)
 
 ### 4.3 Documentación y consola
 
@@ -239,7 +267,9 @@ El dominio propio corresponde a la API. **Regenerar**, en la tarjeta del secreto
 
 ![Formulario de pago para contratar un plan de API.](manual-usuario/img/pago-consumidor.png)
 
-Cuando se confirme la contratación, guarde las claves de producción y de pruebas: se muestran completas una sola vez. Después se consultan enmascaradas en **Suscripción y claves**. Use una clave únicamente con la API a la que pertenece.
+3. En **Plan contratado**, guarde las claves de producción y de pruebas con **Copiar**: se muestran completas una sola vez. Después se consultan enmascaradas en **Suscripción y claves**. Use una clave únicamente con la API a la que pertenece. Los recuadros de color de esta captura ocultan los valores completos para no publicarlos en el manual.
+
+![Confirmación de contratación y claves de una sola visualización, ocultas en el manual.](manual-usuario/img/plan-contratado.png)
 
 ### 4.5 Suscripción y claves: consultar, rotar y revocar
 
@@ -247,11 +277,15 @@ Cuando se confirme la contratación, guarde las claves de producción y de prueb
 
 ![Suscripción y claves enmascaradas de María José.](manual-usuario/img/suscripcion-consumidor.png)
 
-2. Para sustituir una clave activa pulse **Rotar**, revise la confirmación y pulse **Rotar clave**. Guarde la clave nueva cuando aparezca, actualice su aplicación y finalice con **Ya la guardé**. La anterior sigue funcionando 24 horas; si rota de nuevo durante esa ventana, se invalida la clave rotada más antigua del mismo tipo.
+2. Para sustituir una clave activa pulse **Rotar**, revise la confirmación y pulse **Rotar clave**. La anterior sigue funcionando 24 horas; si rota de nuevo durante esa ventana, se invalida la clave rotada más antigua del mismo tipo.
 
 ![Confirmación antes de rotar una clave de producción.](manual-usuario/img/rotar-clave.png)
 
-3. Para invalidar inmediatamente una clave pulse **Revocar**, compruebe el tipo y confirme con **Revocar clave**. Las solicitudes con esa clave recibirán 401. Si no queda una clave activa de ese tipo, use **Emitir una clave nueva** y guarde el valor que se muestra una sola vez. Si no desea continuar en una confirmación, use **Cancelar**.
+3. En **Su clave nueva de producción** o de pruebas, copie y guarde el valor nuevo, actualice su aplicación y finalice con **Ya la guardé**. Esta es la única ocasión en que puede ver el valor completo. El recuadro de color de la captura lo oculta para este manual.
+
+![Revelación única de una clave nueva tras la rotación, oculta en el manual.](manual-usuario/img/clave-nueva.png)
+
+4. Para invalidar inmediatamente una clave pulse **Revocar**, compruebe el tipo y confirme con **Revocar clave**. Las solicitudes con esa clave recibirán 401. Si no queda una clave activa de ese tipo, use **Emitir una clave nueva** y guarde el valor que se muestra una sola vez. Si no desea continuar en una confirmación, use **Cancelar**.
 
 ![Confirmación de revocación inmediata de una clave propia.](manual-usuario/img/revocar-clave.png)
 
@@ -317,11 +351,15 @@ Ingrese por **Entrar** en Shapi con una cuenta de plataforma. El administrador p
 
 **Perfil:** administrador.
 
-1. Abra **Cuentas de administración y soporte**. En **Crear cuenta** complete nombre, correo y rol y pulse **Crear cuenta**. La persona recibe un enlace para definir su contraseña, válido por siete días. Después de guardarla inicia su sesión. Estas cuentas se crean aquí; no se usa el registro público del proveedor.
+1. Abra **Cuentas de administración y soporte**. En **Crear cuenta** complete nombre, correo y rol y pulse **Crear cuenta**. La persona recibe un enlace para definir su contraseña, válido por siete días. Estas cuentas se crean aquí; no se usa el registro público del proveedor.
 
 ![Cuentas del personal de Shapi y formulario de creación.](manual-usuario/img/admin-cuentas.png)
 
 Para impedir el acceso de una cuenta, use **Desactivar** en su fila; se revocan sus sesiones. **Activar** vuelve a habilitarla. No puede desactivar su propia cuenta. Los roles existentes aparecen en solo lectura.
+
+2. La persona debe abrir el enlace del correo, completar **Contraseña nueva** y pulsar **Guardar la contraseña**. Después de guardarla inicia su sesión con el rol asignado. Si el enlace venció o ya se utilizó, debe comunicarse con el administrador.
+
+![Definición inicial de contraseña de una cuenta de soporte.](manual-usuario/img/definir-contrasena-personal.png)
 
 ### 5.5 Atender casos
 
