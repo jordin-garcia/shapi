@@ -5,7 +5,7 @@ persona: jose-pablo
 responsable: José Pablo Zúñiga
 avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-27
 depende_de: [JG-16, JZ-13]
 no_antes_de: 2026-10-26
@@ -46,3 +46,12 @@ node scripts/tareas.mjs --validar
 
 ## Fuera de alcance
 - Manual técnico (JZ-15)
+
+## Resultado
+
+- Se creó `docs/manual-usuario.md` con 33 procedimientos para proveedor, consumidor, administración y soporte, más acceso al ambiente, cuentas públicas de demostración, diferencias entre roles y solución de problemas frecuentes.
+- Cada paso numerado lleva una captura real del sistema. Las 59 imágenes de `docs/manual-usuario/img/` se tomaron con Chromium sobre el ambiente local con siembra de demostración. Los formularios de enlaces y las pantallas que revelan secretos se recorrieron con cuentas nuevas de ejemplo; no se cambiaron contraseñas ni claves de las cuentas sembradas. Los valores completos del secreto de origen y las claves nuevas se ocultaron al capturar y se explica en el manual.
+- Se generó `docs/pdf/Manual_de_Usuario.pdf` con `scripts/generar-pdf.mjs`: 64 páginas, carátula con los cuatro integrantes y sus carnés, índice, marcadores y capturas locales.
+- `tests/e2e/scripts/manual-usuario.test.mjs` contiene cinco comprobaciones automatizadas de cobertura por perfil, capturas PNG por paso, siete pantallas finales obligatorias, archivo PDF y generación real con carátula, imágenes, tablas y enlaces válidos. La primera ejecución confirmó la ausencia de los entregables; una regresión posterior confirmó la falta de las pantallas finales antes de agregarlas.
+- Verificación: cinco pruebas aprobadas, cero fallidas y cero omitidas; `node scripts/tareas.mjs --validar` válido (92 tareas); `git diff --check` correcto. Poppler renderizó las 64 páginas y se revisó la correspondencia de sus capturas; pypdf comprobó la carátula y pdfplumber confirmó que no hay texto fuera de página. No se modificaron backend, frontend ni contratos.
+- Revisión independiente en contexto limpio según B9: se corrigió el hallazgo de pantallas finales faltantes y se agregó una prueba específica. Segunda revisión: **LISTO**, sin hallazgos de corrección ni opcionales.
