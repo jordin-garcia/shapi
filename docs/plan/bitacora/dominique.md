@@ -168,3 +168,9 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **EM-24:** A2.1 sin «Plan actual», «sept» en A6.3 y encabezado y fecha de B1.4.
   - **JZ-20:** acción «Suspender» en organizaciones suspendidas (A6.2), tabla recortada en A6.5 y texto del aviso de B3.1.
   - **Emilio:** `AvisoError` de `modulos/identidad/Formularios.tsx` ahora usa `Boton` secundario (criterio 4 de DC-16).
+
+## 2026-11-07 · DC-15 · Mejoras visuales y animación en la landing pública (A0.1)
+- Hecho: animación secuencial de encendido en cascada para las tarjetas de planes al entrar en pantalla con fijado dinámico en la tarjeta destacada de Q 599.00 («Producto»), agregando la insignia «✦ RECOMENDADO» al pie de la tarjeta; incorporación de tonos violeta/lavanda complementarios en insignias, botones, arco luminoso, radar y cono de luz; integración del video cósmico en el CTA final.
+- Decisiones: la animación de planes se orquesta mediante clases utilitarias basadas en `es-visible` de `IntersectionObserver`, con respeto estricto a `prefers-reduced-motion` y compatibilidad completa con las pruebas unitarias existentes.
+- Pendiente o aviso para otros:
+  - **Jordin / Colaborador:** cambios disponibles en la rama `dominique/DC-15-cambios-landing-revision` para revisión visual y eventual merge.
