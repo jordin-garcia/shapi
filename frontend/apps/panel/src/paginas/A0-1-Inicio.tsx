@@ -1271,17 +1271,9 @@ export default function PaginaA01Inicio() {
 
           {/* Letras de Shapi y botones sobre el fondo del planeta Tierra giratorio */}
           <div className="relative z-20 flex flex-col items-center px-8 pt-[78px] pb-[410px] text-center lg:px-20">
-            <div className="shapi-anim-heroe-1 shapi-insignia">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path
-                  d="M8 1.5 L9.4 6.6 L14.5 8 L9.4 9.4 L8 14.5 L6.6 9.4 L1.5 8 L6.6 6.6 Z"
-                  fill="#A78BFA"
-                />
-              </svg>
-              <p className="text-etiqueta font-medium uppercase tracking-[0.16em] text-tinta-rotulo">
-                Plataforma como servicio
-              </p>
-            </div>
+            <p className="shapi-anim-heroe-1 text-etiqueta font-medium uppercase tracking-[0.16em] text-tinta-rotulo">
+              Plataforma como servicio
+            </p>
 
             <h1
               className="shapi-anim-heroe-2 mt-[22px] font-display text-[124px] font-light leading-none tracking-[-0.045em] text-transparent bg-clip-text"
