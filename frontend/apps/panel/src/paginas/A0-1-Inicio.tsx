@@ -1284,7 +1284,7 @@ export default function PaginaA01Inicio() {
               Shapi
             </h1>
 
-            <p className="shapi-anim-heroe-3 mt-[26px] max-w-[52ch] text-[20px] leading-[1.55] text-tinta-suave">
+            <p className="shapi-anim-heroe-3 mt-[26px] max-w-[52ch] text-[20px] leading-[1.55] text-[#E2E8F0] [text-shadow:0_2px_10px_rgba(6,9,16,0.95),0_0_2px_rgba(6,9,16,0.9)]">
               Publique su API, controle quién la usa y cobre por ella. Sin modificar el servidor que ya tiene.
             </p>
 
