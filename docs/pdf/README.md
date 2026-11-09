@@ -44,12 +44,13 @@ node scripts/generar-pdf.mjs docs/pdf/Documento_de_Requisitos.pdf docs/specs/01-
 node scripts/generar-pdf.mjs docs/pdf/Documento_de_Diseno.pdf docs/specs/06-arquitectura.md docs/specs/07-modelo-de-datos.md docs/specs/08-compuerta.md docs/specs/09-cobros-y-suscripciones.md docs/specs/10-identidad-y-seguridad.md docs/specs/11-interfaz.md docs/specs/12-decisiones.md
 ```
 
-El título se toma del nombre de salida. Para los manuales de JZ-15 y JZ-16:
+El título se toma del nombre de salida. Para el manual de usuario (JZ-16):
 
 ```text
-node scripts/generar-pdf.mjs docs/pdf/Manual_Tecnico.pdf docs/manual-tecnico.md
 node scripts/generar-pdf.mjs docs/pdf/Manual_de_Usuario.pdf docs/manual-usuario.md
 ```
+
+El manual técnico (JZ-15) no se genera en PDF: se entrega en Markdown (`docs/manual-tecnico.md`) y en Word (`docs/Manual_Tecnico.docx`), por decisión de Jordin del 1 de noviembre de 2026.
 
 Las rutas con espacios se escriben entre comillas. Las imágenes locales de un manual
 se resuelven desde la carpeta de su Markdown. Las referencias entre capítulos incluidos
