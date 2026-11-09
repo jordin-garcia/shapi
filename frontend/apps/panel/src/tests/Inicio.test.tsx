@@ -218,13 +218,31 @@ describe('RF-19 · A0.1 Sitio público: inicio de Shapi (DC-15)', () => {
     expect(texto).not.toMatch(/sk_(live|test)_/);
     expect(texto).not.toMatch(/bearer|jwt/i);
     expect(texto).not.toContain('X-API-Key');
+
+    // RF-45: la clave de pruebas no descuenta cuota y su límite fijo es de 10 por minuto.
+    const filasPrueba = Array.from(document.querySelectorAll('div'))
+      .filter(div => div.children.length === 0 && div.textContent?.startsWith('X-Api-Key: '))
+      .flatMap(div => (div.textContent ?? '').split('X-Api-Key: '))
+      .filter(fila => fila.startsWith('shp_prueba_'));
+    expect(filasPrueba.length).toBeGreaterThan(0);
+    for (const fila of filasPrueba) {
+      expect(fila).not.toContain('cuota');
+      for (const [, limite] of fila.matchAll(/\/([\d,]+) por minuto/g)) {
+        expect(limite).toBe('10');
+      }
+    }
   });
 
   it('RF-19 el cierre trata al usuario de usted y toma la vigencia de la prueba de la API', async () => {
+    // Una vigencia distinta de 30 demuestra que el número sale de la API y no está escrito a mano.
+    const planesConPruebaCorta = planesSiembra.map(plan => (plan.esPrueba ? { ...plan, vigenciaDias: 14 } : plan));
+    server.use(
+      http.get('http://localhost/api/planes-plataforma', () => HttpResponse.json(planesConPruebaCorta)),
+    );
     montar();
     await screen.findByText('Q 1,500.00');
 
-    expect(screen.getByText('Empiece hoy · Prueba gratis 30 días')).toBeDefined();
+    expect(screen.getByText('Empiece hoy · Prueba gratis 14 días')).toBeDefined();
     expect(screen.getByRole('heading', { name: 'Monetice su API en minutos, sin tocar su código.' })).toBeDefined();
     expect(
       screen.getByText(

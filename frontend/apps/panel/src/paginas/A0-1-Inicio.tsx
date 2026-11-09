@@ -29,10 +29,10 @@ const ESTRELLAS_CAPA_3 = Array.from({ length: 85 }, (_, i) => {
 
 const FILAS_MATRIZ_TOKENS = [
   'X-Api-Key: shp_prod_••••7c2e · sha256:4e91a0c3 · GET /v1/pagos · 200 OK · 12ms · cuota 99.4%',
-  'X-Api-Key: shp_prueba_••••a19d · sha256:8b2f19d4 · POST /v1/cobros · 201 · 18ms · 42/120 por minuto',
+  'X-Api-Key: shp_prueba_••••a19d · sha256:8b2f19d4 · POST /v1/cobros · 201 · 18ms · 4/10 por minuto',
   'X-Api-Key: shp_prod_••••d6f1 · sha256:1d6b90e2 · GET /v1/facturas · 200 OK · 9ms · verificada',
   'X-Api-Key: shp_prod_••••5e28 · sha256:0a3c7f21 · POST /v1/clientes · 429 · limite_por_minuto',
-  'X-Api-Key: shp_prueba_••••3b40 · sha256:7f2c81a5 · GET /v1/saldos · 200 OK · 11ms · cuota 84.1%',
+  'X-Api-Key: shp_prueba_••••3b40 · sha256:7f2c81a5 · GET /v1/saldos · 200 OK · 11ms · 312/1,000 hoy',
 ];
 
 // Mapa mundi ASCII real de alta resolución (120 columnas x 48 filas)
@@ -138,7 +138,7 @@ const PAISES_NODOS: PaisApiNodo[] = [
   { id: 'gt', pais: 'Guatemala', etiquetaApi: 'POST /cobros · 200 OK', latDeg: 15, lonDeg: -90.5, color: '#3FBF88', destino: 'izq' },
   { id: 'mx', pais: 'México', etiquetaApi: 'GET /pagos · 12ms', latDeg: 23, lonDeg: -102, color: '#7FA6FF', destino: 'izq' },
   { id: 'us', pais: 'EE. UU.', etiquetaApi: 'X-Api-Key · Válida', latDeg: 38, lonDeg: -96, color: '#A78BFA', destino: 'izq' },
-  { id: 'co', pais: 'Colombia', etiquetaApi: 'GET /saldo · Q 599', latDeg: 5, lonDeg: -74, color: '#3FBF88', destino: 'der' },
+  { id: 'co', pais: 'Colombia', etiquetaApi: 'GET /saldo · 200 OK', latDeg: 5, lonDeg: -74, color: '#3FBF88', destino: 'der' },
   { id: 'br', pais: 'Brasil', etiquetaApi: 'POST /clientes · 201', latDeg: -14, lonDeg: -51, color: '#7FA6FF', destino: 'der' },
   { id: 'es', pais: 'España', etiquetaApi: 'GET /facturas · TLS 1.3', latDeg: 40, lonDeg: -4, color: '#A78BFA', destino: 'der' },
   { id: 'de', pais: 'Alemania', etiquetaApi: 'Cuota · 98.4%', latDeg: 51, lonDeg: 10, color: '#3FBF88', destino: 'der' },
@@ -167,6 +167,7 @@ export default function PaginaA01Inicio() {
   const planPrueba = consulta.data?.find(plan => plan.esPrueba);
   const reducirMovimiento = prefiereMovimientoReducido();
   const visibles = consulta.data?.filter(plan => plan.nombre !== 'Escala anual') ?? [];
+  const indiceDestacado = visibles.findIndex(plan => plan.nombre === 'Producto');
 
   // Planeta Tierra en hileras de puntos + estela blanca exterior + burbujas de países hacia las 2 APIs
   useEffect(() => {
@@ -262,7 +263,7 @@ export default function PaginaA01Inicio() {
         const proy = proyectar(p.lat, p.lon + anguloActual);
 
         if (proy.z > 0.03 && proy.py < H - 30) {
-          // Desvanecido vertical idéntico a la foto: máximo brillo en el polo/cumbre superior (py ~ 325) y desvanecido hacia abajo (py ~ 700)
+          // Desvanecido vertical: máximo brillo en el polo/cumbre superior (py ~ 325) y desvanecido hacia abajo (py ~ 700)
           const factorAltura = Math.max(0, Math.min(1, (705 - proy.py) / 375));
           const factorHorizonte = Math.pow(proy.z, 0.65);
           const alfa = Math.min(0.96, Math.pow(factorAltura, 1.25) * factorHorizonte * 1.15);
@@ -901,7 +902,7 @@ export default function PaginaA01Inicio() {
               0 0 35px rgba(196, 181, 253, 0.55) !important;
           }
 
-          /* Animación de encendido secuencial de cada plan y fijado en Producto (Q 599 - Recomendado) */
+          /* Animación de encendido secuencial de cada plan y fijado del plan destacado */
           @keyframes shapi-plan-secuencia-flash {
             0% {
               border-color: rgba(255, 255, 255, 0.08);
@@ -1001,32 +1002,18 @@ export default function PaginaA01Inicio() {
             }
           }
 
-          .es-visible.shapi-plan-0 {
-            animation: shapi-plan-secuencia-flash 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.30s both;
+          /* Las tarjetas se encienden en orden (--orden-plan) y la destacada se fija al final. */
+          .es-visible.shapi-tarjeta-plan {
+            animation: shapi-plan-secuencia-flash 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation-delay: calc(0.3s + var(--orden-plan, 0) * 0.45s);
           }
-          .es-visible.shapi-plan-1 {
-            animation: shapi-plan-secuencia-flash 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.75s both;
-          }
-          .es-visible.shapi-plan-3 {
-            animation: shapi-plan-secuencia-flash 0.65s cubic-bezier(0.22, 1, 0.36, 1) 1.20s both;
-          }
-          .es-visible.shapi-plan-2 {
+          .es-visible.shapi-tarjeta-plan.shapi-tarjeta-destacada {
             animation:
               shapi-plan-destacado-fijar 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.65s both,
               shapi-plan-destacado-aura-viva 3.8s ease-in-out 2.75s infinite alternate;
           }
-          .es-visible.shapi-plan-2 .shapi-badge-recomendado {
+          .es-visible.shapi-tarjeta-destacada .shapi-badge-recomendado {
             animation: shapi-badge-destacado-anim 0.85s cubic-bezier(0.16, 1, 0.3, 1) 1.95s both;
-          }
-
-          @media (prefers-reduced-motion: reduce) {
-            .shapi-plan-0,
-            .shapi-plan-1,
-            .shapi-plan-2,
-            .shapi-plan-3,
-            .shapi-badge-recomendado {
-              animation: none !important;
-            }
           }
 
           /* Hoyo negro animado (horizonte de sucesos y disco de acreción en azul con morado) */
@@ -1851,11 +1838,13 @@ export default function PaginaA01Inicio() {
                   {visibles.map((plan: Plan, indice: number) => {
                     const destacado = plan.nombre === 'Producto';
                     const esEscala = plan.nombre.startsWith('Escala');
+                    // Orden de encendido entre las tarjetas no destacadas.
+                    const ordenPlan = indiceDestacado >= 0 && indice > indiceDestacado ? indice - 1 : indice;
                     return (
                       <article
                         key={plan.id}
-                        style={{ '--retraso': `${indice * 100}ms` } as React.CSSProperties}
-                        className={`shapi-scroll-item shapi-scroll-zoom shapi-tarjeta-plan shapi-plan-${indice} flex flex-col gap-5 rounded-[16px] border p-[26px] ${
+                        style={{ '--retraso': `${indice * 100}ms`, '--orden-plan': ordenPlan } as React.CSSProperties}
+                        className={`shapi-scroll-item shapi-scroll-zoom shapi-tarjeta-plan flex flex-col gap-5 rounded-[16px] border p-[26px] ${
                           destacado
                             ? 'shapi-tarjeta-destacada shapi-tarjeta-destacada-cristal border-principal bg-fondo-activo'
                             : 'shapi-tarjeta shapi-tarjeta-cristal border-borde bg-panel'
@@ -1987,7 +1976,7 @@ export default function PaginaA01Inicio() {
             </div>
           </div>
 
-          {/* Video oficial Diseño-sin-título.webm mostrando únicamente la mitad superior sobre el horizonte */}
+          {/* Video de fondo del cierre: solo se ve la mitad superior, sobre el horizonte */}
           <div
             aria-hidden="true"
             style={
