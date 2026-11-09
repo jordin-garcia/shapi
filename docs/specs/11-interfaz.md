@@ -74,7 +74,7 @@ Estado: **=** sin cambios · **✎** corregida el 22 de septiembre de 2026 · **
 ### A0 · Sitio público (`mockups/A0`, paquete `a0-inicio.html`)
 | ID | Pantalla | Archivo | Ruta | RF | Estado |
 |---|---|---|---|---|---|
-| A0.1 | Inicio de Shapi con planes | `Main.dc.html` | `shapi.localhost/` | RF-19 | ✎ (peticiones, miembros, Escala mensual/anual, texto de las claves) |
+| A0.1 | Inicio de Shapi con planes | `Main.dc.html` | `shapi.localhost/` | RF-19 | ✎ (peticiones, miembros, Escala mensual/anual, texto de las claves; rediseño de DC-15 en §4) |
 | A0.2 | Lámina de estilo oficial | `Lamina.dc.html` | `shapi.localhost/_ui` (solo en desarrollo) | — | ✎ (subdominio de ejemplo) |
 
 > A0.2 lleva el host completo a propósito: la prueba del catálogo (`frontend/apps/panel/src/tests/rutas.test.tsx`) exige que cada ruta que empieza con `/` muestre su ID, y la lámina no lo muestra. La ruta `/_ui` se prueba aparte.
@@ -305,3 +305,13 @@ B3.1 agrega al final una tarjeta «Modo demostración», aprobada por Jordin el 
 - **A6.2:** una organización con estado efectivo `suspendida` muestra «Reactivar». Si no hay suspensión administrativa, el botón queda deshabilitado con el motivo visible «La suscripción requiere pago.»: no se envía una reactivación sin efecto ni se registra una entrada administrativa engañosa. Si existe suspensión administrativa, conserva el endpoint de RF-38, que no cobra ni elimina una suspensión por falta de pago (07 §3.1, RF-23).
 - **A6.5:** a 1280 px, la lista y el formulario se apilan para mostrar completas las columnas Estado y Acción sin desplazamiento horizontal. Desde 1440 px se muestran en dos columnas, con el formulario de 340 px; desde 1536 px recupera los 440 px.
 - **B3.1:** los avisos usan el artículo y género del componente («La compuerta de APIs está degradada»); el aviso de correo conserva el texto y el impacto del mockup `Degradado`.
+
+### Rediseño de la página de inicio (DC-15, 9 nov)
+
+Jordin autorizó a Dominique a mejorar la presentación de A0.1 (animaciones, tonos violeta, planeta y franja de tráfico, insignia «Recomendado» en Producto y un cierre después de los planes). Los datos de Shapi no cambian respecto del mockup:
+- Los planes, sus precios y su vigencia salen de `GET /api/planes-plataforma`, igual que antes. El cierre toma la vigencia del plan de prueba de esa misma respuesta («Empiece hoy · Prueba gratis 30 días»).
+- Las claves que aparecen en las ilustraciones usan el formato de [08 §2](08-compuerta.md#2-formato-de-la-clave) (`shp_prod_…`, `shp_prueba_…`), enmascaradas como en A4 y B2 (`shp_prod_••••7c2e`), y la cabecera `X-Api-Key`. Las filas de una clave de pruebas no muestran cuota y usan su límite fijo de 10 por minuto y 1,000 por día ([RF-45](03-requisitos.md#rf-45)).
+- Los planes de la ilustración del paso 03 («Definir los planes») son ejemplos de los que un proveedor define para su propia API, no los planes de Shapi.
+- La tarjeta que se fija y lleva «Recomendado» es la de Producto, cualquiera que sea su posición.
+- Los textos tratan al usuario de usted (02, Idioma).
+- Con `prefers-reduced-motion: reduce`, el planeta se dibuja sin girar y el video del cierre no se reproduce solo.

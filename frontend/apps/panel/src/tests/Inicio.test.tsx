@@ -207,6 +207,79 @@ describe('RF-19 · A0.1 Sitio público: inicio de Shapi (DC-15)', () => {
     expect(enrutador.state.location.pathname).toBe('/registro');
   });
 
+  it('RF-19 las claves de ejemplo usan el formato shp_prod_ / shp_prueba_ y la cabecera X-Api-Key', async () => {
+    montar();
+    await screen.findByRole('heading', { level: 1, name: 'Shapi' });
+
+    const texto = document.body.textContent ?? '';
+    expect(texto).toContain('shp_prod_');
+    expect(texto).toContain('shp_prueba_');
+    expect(texto).toContain('X-Api-Key');
+    expect(texto).not.toMatch(/sk_(live|test)_/);
+    expect(texto).not.toMatch(/bearer|jwt/i);
+    expect(texto).not.toContain('X-API-Key');
+
+    // RF-45: la clave de pruebas no descuenta cuota y su límite fijo es de 10 por minuto.
+    const filasPrueba = Array.from(document.querySelectorAll('div'))
+      .filter(div => div.children.length === 0 && div.textContent?.startsWith('X-Api-Key: '))
+      .flatMap(div => (div.textContent ?? '').split('X-Api-Key: '))
+      .filter(fila => fila.startsWith('shp_prueba_'));
+    expect(filasPrueba.length).toBeGreaterThan(0);
+    for (const fila of filasPrueba) {
+      expect(fila).not.toContain('cuota');
+      for (const [, limite] of fila.matchAll(/\/([\d,]+) por minuto/g)) {
+        expect(limite).toBe('10');
+      }
+    }
+  });
+
+  it('RF-19 el cierre trata al usuario de usted y toma la vigencia de la prueba de la API', async () => {
+    // Una vigencia distinta de 30 demuestra que el número sale de la API y no está escrito a mano.
+    const planesConPruebaCorta = planesSiembra.map(plan => (plan.esPrueba ? { ...plan, vigenciaDias: 14 } : plan));
+    server.use(
+      http.get('http://localhost/api/planes-plataforma', () => HttpResponse.json(planesConPruebaCorta)),
+    );
+    montar();
+    await screen.findByText('Q 1,500.00');
+
+    expect(screen.getByText('Empiece hoy · Prueba gratis 14 días')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Monetice su API en minutos, sin tocar su código.' })).toBeDefined();
+    expect(
+      screen.getByText(
+        'Publique su primera API gratis, active cobros automáticos en quetzales y proteja cada petición desde hoy.',
+      ),
+    ).toBeDefined();
+    const enlace = screen.getByRole('link', { name: 'Empiece su prueba gratis ahora' });
+    expect(enlace.getAttribute('href')).toBe('/registro');
+    expect(document.body.textContent).not.toMatch(/\b(Empieza|Monetiza|Publica tu|tu prueba|tu código)\b/);
+
+    const video = document.querySelector('video');
+    expect(video?.getAttribute('src')).toBe('/fondo-cierre-inicio.webm');
+  });
+
+  it('RF-19 con movimiento reducido el video del cierre no se reproduce solo', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((consultaMedia: string) => ({
+      matches: consultaMedia.includes('prefers-reduced-motion: reduce'),
+      media: consultaMedia,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+    try {
+      montar();
+      await screen.findByRole('heading', { level: 1, name: 'Shapi' });
+      const video = document.querySelector('video');
+      expect(video).not.toBeNull();
+      expect(video?.autoplay).toBe(false);
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   it('RF-19 / RNF-12 permite reintentar cuando falla la consulta de planes de plataforma', async () => {
     server.use(
       http.get('http://localhost/api/planes-plataforma', () => new HttpResponse(null, { status: 500 })),
