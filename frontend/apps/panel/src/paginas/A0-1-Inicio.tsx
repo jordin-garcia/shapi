@@ -28,11 +28,11 @@ const ESTRELLAS_CAPA_3 = Array.from({ length: 85 }, (_, i) => {
 }).join(', ');
 
 const FILAS_MATRIZ_TOKENS = [
-  'sk_live_9f8a2b1c · sha256:4e91a0c3 · GET /v1/pagos · 200 OK · 12ms · cuota 99.4%',
-  'sk_test_3d7e5a90 · hmac_v2:8b2f19d4 · POST /v1/cobros · 201 · 18ms · rpm 42/120',
-  'org_shapi_gt_01 · tls1.3_aes256 · GET /v1/facturas · 200 OK · 9ms · verificada',
-  'sk_live_7c1d4e8b · sha256:0a3c7f21 · POST /v1/clientes · 200 · 14ms · activa',
-  'sub_prod_88412a · bearer_jwt_rs256 · GET /v1/saldos · 200 OK · 11ms · cuota 84.1%',
+  'X-Api-Key: shp_prod_••••7c2e · sha256:4e91a0c3 · GET /v1/pagos · 200 OK · 12ms · cuota 99.4%',
+  'X-Api-Key: shp_prueba_••••a19d · sha256:8b2f19d4 · POST /v1/cobros · 201 · 18ms · 42/120 por minuto',
+  'X-Api-Key: shp_prod_••••d6f1 · sha256:1d6b90e2 · GET /v1/facturas · 200 OK · 9ms · verificada',
+  'X-Api-Key: shp_prod_••••5e28 · sha256:0a3c7f21 · POST /v1/clientes · 429 · limite_por_minuto',
+  'X-Api-Key: shp_prueba_••••3b40 · sha256:7f2c81a5 · GET /v1/saldos · 200 OK · 11ms · cuota 84.1%',
 ];
 
 // Mapa mundi ASCII real de alta resolución (120 columnas x 48 filas)
@@ -92,7 +92,7 @@ interface PuntoTierra {
   lon: number;
 }
 
-// Generamos los puntos del planeta Tierra estrictamente organizados en anillos de latitud (como en tu segunda captura)
+// Puntos del planeta organizados en anillos de latitud.
 const PUNTOS_TIERRA: PuntoTierra[] = (() => {
   const filas = MAPA_MUNDI_ASCII.length;
   const cols = MAPA_MUNDI_ASCII[0].length;
@@ -137,13 +137,17 @@ interface PaisApiNodo {
 const PAISES_NODOS: PaisApiNodo[] = [
   { id: 'gt', pais: 'Guatemala', etiquetaApi: 'POST /cobros · 200 OK', latDeg: 15, lonDeg: -90.5, color: '#3FBF88', destino: 'izq' },
   { id: 'mx', pais: 'México', etiquetaApi: 'GET /pagos · 12ms', latDeg: 23, lonDeg: -102, color: '#7FA6FF', destino: 'izq' },
-  { id: 'us', pais: 'EE. UU.', etiquetaApi: 'X-API-Key · Válida', latDeg: 38, lonDeg: -96, color: '#A78BFA', destino: 'izq' },
+  { id: 'us', pais: 'EE. UU.', etiquetaApi: 'X-Api-Key · Válida', latDeg: 38, lonDeg: -96, color: '#A78BFA', destino: 'izq' },
   { id: 'co', pais: 'Colombia', etiquetaApi: 'GET /saldo · Q 599', latDeg: 5, lonDeg: -74, color: '#3FBF88', destino: 'der' },
   { id: 'br', pais: 'Brasil', etiquetaApi: 'POST /clientes · 201', latDeg: -14, lonDeg: -51, color: '#7FA6FF', destino: 'der' },
   { id: 'es', pais: 'España', etiquetaApi: 'GET /facturas · TLS 1.3', latDeg: 40, lonDeg: -4, color: '#A78BFA', destino: 'der' },
   { id: 'de', pais: 'Alemania', etiquetaApi: 'Cuota · 98.4%', latDeg: 51, lonDeg: 10, color: '#3FBF88', destino: 'der' },
   { id: 'jp', pais: 'Japón', etiquetaApi: 'GET /v1/catalogo · 9ms', latDeg: 36, lonDeg: 138, color: '#7FA6FF', destino: 'izq' },
 ];
+
+function prefiereMovimientoReducido() {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 export default function PaginaA01Inicio() {
   const contenedorRef = useRef<HTMLDivElement>(null);
@@ -160,6 +164,8 @@ export default function PaginaA01Inicio() {
   });
 
   const planAnual = consulta.data?.find(plan => plan.nombre === 'Escala anual');
+  const planPrueba = consulta.data?.find(plan => plan.esPrueba);
+  const reducirMovimiento = prefiereMovimientoReducido();
   const visibles = consulta.data?.filter(plan => plan.nombre !== 'Escala anual') ?? [];
 
   // Planeta Tierra en hileras de puntos + estela blanca exterior + burbujas de países hacia las 2 APIs
@@ -171,12 +177,13 @@ export default function PaginaA01Inicio() {
 
     let animId = 0;
     let rotacion = 1.05;
+    const quieto = prefiereMovimientoReducido();
     const W = 1440;
     const H = 880;
     canvas.width = W;
     canvas.height = H;
 
-    // Geometría exacta de domo planetario con inclinación hacia el polo superior como en tu foto
+    // Geometría del domo planetario, inclinado hacia el polo superior.
     const cx = W / 2;
     const cy = 735;
     const R = 410;
@@ -208,7 +215,7 @@ export default function PaginaA01Inicio() {
       const scrollActual = window.scrollY || 0;
       const anguloActual = rotacion + scrollActual * 0.002;
 
-      // 1. Halo / Estela blanca exterior arqueada sobre el planeta Tierra (exactamente como en tu segunda captura)
+      // 1. Halo blanco exterior arqueado sobre el planeta.
       ctx.save();
       const radioHalo = R + 22;
       const gradEstelaBlanca = ctx.createLinearGradient(cx - radioHalo, cy - radioHalo * 0.35, cx + radioHalo, cy - radioHalo * 0.35);
@@ -378,6 +385,8 @@ export default function PaginaA01Inicio() {
       ctx.fillStyle = gradInferior;
       ctx.fillRect(0, H - 175, W, 175);
 
+      // Con movimiento reducido el planeta se dibuja una sola vez, sin girar.
+      if (quieto) return;
       rotacion += 0.0022;
       animId = window.requestAnimationFrame(dibujarFrame);
     };
@@ -1206,7 +1215,7 @@ export default function PaginaA01Inicio() {
                 </text>
                 <path d="M114 386 H244" stroke="#2C3B5C" strokeWidth="1.5" strokeLinecap="round" />
                 <text x="114" y="406" fill="#8FA2C7" fontSize="9.5" fontFamily="monospace">
-                  X-API-Key · Cuota activa
+                  X-Api-Key · Cuota activa
                 </text>
                 <circle cx="272" cy="367" r="4" fill="#3FBF88" className="shapi-anim-pulso" />
               </g>
@@ -1944,7 +1953,7 @@ export default function PaginaA01Inicio() {
             <div className="shapi-scroll-item shapi-insignia">
               <span className="h-1.5 w-1.5 rounded-full bg-[#A78BFA] shapi-anim-pulso" aria-hidden="true" />
               <p className="text-etiqueta font-medium uppercase tracking-[0.16em] text-tinta-rotulo">
-                Empieza hoy · Prueba gratis 30 días
+                {planPrueba ? `Empiece hoy · Prueba gratis ${planPrueba.vigenciaDias} días` : 'Empiece hoy · Prueba gratis'}
               </p>
             </div>
 
@@ -1952,14 +1961,14 @@ export default function PaginaA01Inicio() {
               style={{ '--retraso': '80ms' } as React.CSSProperties}
               className="shapi-scroll-item shapi-titulo-gradiente mt-[18px] max-w-[20ch] font-display text-[46px] font-light leading-[1.12] tracking-[-0.03em] md:text-[54px]"
             >
-              Monetiza tu API en minutos, sin tocar tu código.
+              Monetice su API en minutos, sin tocar su código.
             </h2>
 
             <p
               style={{ '--retraso': '140ms' } as React.CSSProperties}
               className="shapi-scroll-item mt-[16px] max-w-[54ch] text-[17px] leading-[1.6] text-tinta-suave"
             >
-              Publica tu primera API gratis, activa cobros automáticos en quetzales y protege cada petición desde hoy.
+              Publique su primera API gratis, active cobros automáticos en quetzales y proteja cada petición desde hoy.
             </p>
 
             <div
@@ -1970,7 +1979,7 @@ export default function PaginaA01Inicio() {
                 to="/registro"
                 className="group relative inline-flex items-center gap-2.5 rounded-[10px] border border-[#9382FF]/55 bg-[#100E2E]/90 px-6 py-3 text-[15px] font-medium text-white shadow-[inset_0_0_24px_rgba(147,130,255,0.28),0_0_28px_rgba(91,76,245,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#C4B5FD] hover:bg-[#161342] hover:shadow-[inset_0_0_28px_rgba(196,181,253,0.42),0_0_40px_rgba(124,58,237,0.55)]"
               >
-                <span>Empieza tu prueba gratis ahora</span>
+                <span>Empiece su prueba gratis ahora</span>
                 <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
                   →
                 </span>
@@ -1993,8 +2002,8 @@ export default function PaginaA01Inicio() {
             className="shapi-scroll-item shapi-scroll-zoom pointer-events-none relative -mt-8 h-[240px] w-full max-w-[1280px] overflow-hidden sm:h-[300px] md:h-[360px]"
           >
             <video
-              src="/diseno-sin-titulo.webm"
-              autoPlay
+              src="/fondo-cierre-inicio.webm"
+              autoPlay={!reducirMovimiento}
               loop
               muted
               playsInline

@@ -1115,3 +1115,10 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **José Pablo:** terminé tu tarea JZ-15. Cambié `docs/manual-tecnico.md` (reescrito), `docs/manual-tecnico/mockups/` (nuevo), `docs/Manual_Tecnico.docx` (nuevo), `infra/verificar.mjs` (exige los títulos numerados del manual), `docs/plan/instalacion.md` (referencia a 12.8) y el archivo de la tarea. Actualiza tu rama desde `main`. Si en JZ-16 citas el manual técnico, usa los números de sección nuevos.
   - **JG-17:** ya no se regenera el manual técnico en PDF; el *release* adjunta el Word. Además, el criterio 5 es nuevo: en desarrollo, la API y el trabajador crean llaves de Data Protection distintas.
 
+
+## 2026-11-09 · DC-15 · Rediseño de la página de inicio (A0.1)
+- Hecho: terminé el PR #142 de Dominique en un PR propio (protocolo §E4). Las claves de la franja animada pasan de `sk_live_`/`sk_test_`/JWT al formato `shp_prod_••••7c2e` y `shp_prueba_••••a19d` con `X-Api-Key`; el cierre pasa a usted («Monetice su API…», «Empiece su prueba gratis ahora») y toma de la API los días de la prueba; el video se llama `fondo-cierre-inicio.webm`; con movimiento reducido, el planeta no gira y el video no arranca solo. Se quitaron comentarios conversacionales del código.
+- Decisiones de Jordin: el rediseño visual de Dominique queda autorizado, pero los precios y el formato de las claves no cambian. Los planes del paso 03 (Básico, PRO · API y Escala) se conservan porque ilustran los planes que define un proveedor, no los de Shapi. Se conserva el video, con nombre descriptivo.
+- Verificación: tres pruebas nuevas en `Inicio.test.tsx`, primero en rojo y luego en verde; ver el PR para lint, typecheck, pruebas y build.
+- Pendiente o aviso para otros:
+  - **Dominique:** terminé tu PR #142 y lo cerré. Cambié `frontend/apps/panel/src/paginas/A0-1-Inicio.tsx`, `frontend/apps/panel/src/tests/Inicio.test.tsx`, el video (renombrado a `public/fondo-cierre-inicio.webm`), el `## Resultado` de DC-15 y `docs/specs/11-interfaz.md` §4. Actualiza tu rama desde `main`.
