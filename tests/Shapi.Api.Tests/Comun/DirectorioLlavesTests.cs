@@ -6,7 +6,8 @@ using Shapi.Infraestructura.Comun;
 
 namespace Shapi.Api.Tests.Comun;
 
-// Criterio 5 de JG-17: en desarrollo, la API y el trabajador usan las mismas llaves de Data Protection (10 §3).
+// RF-47 y criterio 5 de JG-17: en desarrollo, la API y el trabajador usan las mismas llaves de Data Protection (10 §3),
+// para que el trabajador descifre el secreto de origen que cifró la API.
 // Una ruta relativa en SHAPI_DPKEYS_DIR se resuelve desde la raíz del repositorio (la carpeta de Shapi.slnx), no desde
 // la carpeta de cada proyecto.
 public sealed class DirectorioLlavesTests : IDisposable
