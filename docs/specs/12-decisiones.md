@@ -59,6 +59,7 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
   - `nip.io` o `sslip.io`, que dependen de un servicio externo y producen nombres difíciles de leer.
   - Editar el archivo `hosts`, que no admite comodines.
 - **Consecuencias:** cada equipo confía una vez en la raíz de Caddy. El dominio base se configura con `SHAPI_DOMINIO_BASE`, así que el código no cambia si algún día hay un dominio real. Encaja con el requisito de "gestión de dominios simulados" del enunciado.
+- **Actualización:** para la presentación final se agregó un despliegue público en `shapi.tech`, también sin costo para el equipo (ADR-36). Esta decisión sigue vigente para el desarrollo y el ambiente productivo simulado.
 
 ### ADR-10 · El dominio propio es solo para la API y se verifica con DNS simulado
 - **Decisión:** el proveedor conecta su dominio a `{sub}.api.shapi.localhost` con un CNAME. `IResolutorDns` tiene dos implementaciones: `simulado` (tabla `registro_dns_simulado`, con el botón "Simular la creación del registro" en A3.6) y `real` (DnsClient.NET). En el entorno simulado, los dominios deben terminar en `.localhost`.
@@ -179,3 +180,19 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
   - **Frontend:** React 19, TypeScript, Vite y Tailwind 4, en un *workspace* pnpm con dos aplicaciones y un paquete de UI.
   - **Datos:** PostgreSQL 16 (por `NULLS NOT DISTINCT`) y Redis 7.4.
 - **Consecuencias:** cada integrante instala el SDK de .NET 10, Node 24 o posterior, pnpm y Docker Desktop. (El 26 de septiembre se cambió de Node 22 a Node 24, que es lo que exigen `frontend/package.json` y la CI.)
+
+### ADR-36 · Despliegue público en Azure para la presentación final
+- **Contexto:** los lineamientos de la presentación final (11 y 13 de noviembre de 2026) califican la funcionalidad con la nota máxima solo "en ambiente desplegado", y la bajan si "el sistema solo corre en local". ADR-09 había dejado el sistema sin dominio ni servidor público.
+- **Decisión:** el 9 de noviembre de 2026 se desplegó el mismo ambiente productivo simulado en una máquina virtual de **Azure for Students** (Ubuntu 24.04, `Standard_B2as_v2` de 2 vCPU y 8 GB, en North Central US), con el dominio **`shapi.tech`** registrado en Name.com. Se usan las mismas imágenes de GHCR y los mismos `compose.yml` y `compose.prod.yml`, más dos archivos propios del servidor:
+  - `infra/caddy/Caddyfile.servidor`: certificados de **Let's Encrypt**. Los subdominios de la plataforma (`{sub}.shapi.tech` y `{sub}.api.shapi.tech`) se emiten *on-demand*, y Caddy los autoriza en un puerto local. Los dominios propios siguen preguntando a `/interno/tls/autorizar`. La bandeja de Mailpit se protege con contraseña.
+  - `infra/compose.servidor.yml`: publica el borde en los puertos 80 y 443 de la máquina y hace que Mailpit **reenvíe a Resend** los correos con destinatario real. Mailpit sigue guardando una copia de todo y no reenvía los dominios de la siembra, del guion y de los manuales, que son ficticios.
+- **Alternativas descartadas:**
+  - Oracle Cloud Always Free: exige tarjeta, usa ARM (habría que publicar imágenes `arm64`) y a veces no tiene capacidad.
+  - Plataformas como Render, Railway o Fly.io: habría que partir el sistema en nueve servicios, sus planes gratuitos se suspenden por inactividad y no manejan bien los comodines de dos niveles.
+  - Cloudflare Tunnel desde un equipo del equipo: su certificado gratuito no cubre `*.api.shapi.tech`, y el sistema dependería de que ese equipo esté encendido.
+  - Azure Communication Services para el correo: exige registrar una aplicación en el directorio de la universidad y pedir otra cuota para usar el remitente `no-responder@`.
+- **Consecuencias:**
+  - El costo para el equipo sigue siendo cero: la máquina se paga con el crédito de estudiante (unos US$ 45 al mes encendida) y se **desasigna** después de la presentación.
+  - El código no cambió: solo cambian `SHAPI_DOMINIO_BASE` y la configuración del borde.
+  - `SHAPI_MODO_DEMO=true` sigue activo para la siembra, y sus cuentas usan contraseñas públicas. Por eso el servidor solo se enciende para presentar.
+  - Los pasos están en el manual técnico, 12.11.

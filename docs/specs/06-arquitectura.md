@@ -336,9 +336,10 @@ El proyecto tiene presupuesto Q 0.00 ([ADR-09](12-decisiones.md)), así que:
 |---|---|---|
 | **Desarrollo** | `docker compose up` con los servicios de infraestructura, y los proyectos .NET y Vite corriendo en el equipo con recarga en caliente | `SHAPI_MODO_DEMO=true`, registros detallados y siembra de demostración |
 | **Productivo simulado** (el que se presenta) | `docker compose -f compose.yml -f compose.prod.yml up -d`, con **imágenes publicadas en GHCR** por la integración continua | Compilación *Release*, frontends minificados, `ASPNETCORE_ENVIRONMENT=Production`, variables desde `.env`, volúmenes persistentes, reinicio automático, verificaciones de salud y sin puertos internos expuestos. `SHAPI_MODO_DEMO=true` solo para la exposición |
+| **Desplegado en Azure** (el de la presentación final) | Los mismos dos archivos más `infra/compose.servidor.yml`, en una máquina virtual de Azure con el dominio `shapi.tech` ([ADR-36](12-decisiones.md)) | Lo mismo que el productivo simulado, más certificados de Let's Encrypt, borde en los puertos públicos, Mailpit con contraseña y reenvío a Resend de los correos con destinatario real |
 | **Pruebas (CI)** | GitHub Actions, con Testcontainers para PostgreSQL y Redis | Se ejecuta en cada *pull request* |
 
-El "ambiente productivo" que piden los lineamientos se cumple con el **mismo stack**, contenedores versionados, configuración externa, TLS, persistencia y verificaciones de salud. Como el presupuesto es cero, corre en un equipo del equipo de trabajo el día de la exposición, y no en un servidor público.
+El "ambiente productivo" que piden los lineamientos se cumple con el **mismo stack**, contenedores versionados, configuración externa, TLS, persistencia y verificaciones de salud. Como el presupuesto es cero, corre en un equipo del equipo de trabajo. Para la presentación final corre además en una máquina virtual de Azure for Students, en `https://shapi.tech`, pagada con el crédito de estudiante. Los pasos están en el manual técnico, 12.11.
 
 Para levantar el ambiente productivo simulado con los datos de los mockups en un
 solo comando (RNF-14), desde la raíz y con `.env` preparado:
@@ -388,6 +389,8 @@ flowchart TB
   redis --- V2
   borde --- V3
 ```
+
+En el despliegue de Azure, el equipo anfitrión es la máquina virtual `shapi-vm` (Ubuntu 24.04 con Docker Engine). Su grupo de seguridad de red solo abre a internet los puertos 80 y 443 del borde, y el 22 a la IP de quien la administra. El DNS de `shapi.tech` tiene tres registros A hacia la IP fija de la máquina: `shapi.tech`, `*.shapi.tech` y `*.api.shapi.tech`. Mailpit reenvía por SMTP a Resend (`smtp.resend.com:587`) los correos con destinatario real.
 
 Los orígenes de demostración (`origen-envios` y `origen-agro`) son dos APIs mínimas con su especificación OpenAPI y los datos de los mockups. Sirven para demostrar el sistema de punta a punta ([ADR-33](12-decisiones.md)). En la siembra, sus URL de origen son `http://origen-envios:8080` y `http://origen-agro:8080`, que están en la red de Docker. Por eso la **lista de redes permitidas** de la protección contra SSRF incluye esos dos nombres de servicio **solo** cuando `SHAPI_MODO_DEMO=true`.
 
@@ -459,8 +462,10 @@ shapi/
 ├─ infra/
 │  ├─ caddy/Caddyfile.dev       ← desarrollo (JZ-01)
 │  ├─ caddy/Caddyfile.prod      ← ambiente productivo simulado (JZ-06)
+│  ├─ caddy/Caddyfile.servidor  ← despliegue en Azure (JG-31)
 │  ├─ compose.yml
-│  └─ compose.prod.yml
+│  ├─ compose.prod.yml
+│  └─ compose.servidor.yml      ← despliegue en Azure (JG-31)
 └─ .github/workflows/
 ```
 

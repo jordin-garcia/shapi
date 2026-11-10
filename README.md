@@ -28,7 +28,9 @@ Proyecto final de Ingeniería de Software I, Universidad Rafael Landívar (Quetz
 
 ## Ver el sistema funcionando
 
-La versión entregable es la [**v1.0.0**](https://github.com/jordin-garcia/shapi/releases/tag/v1.0.0). Con Docker abierto y [Node.js](https://nodejs.org/) instalado, desde la raíz del repositorio:
+Para la presentación final, Shapi está publicado en **<https://shapi.tech>**, con los portales en <https://envios.shapi.tech> y <https://agro.shapi.tech> ([manual técnico, 12.11](docs/manual-tecnico.md#1211-despliegue-en-azure)). El servidor solo se enciende para presentar.
+
+La versión entregable es la [**v1.0.1**](https://github.com/jordin-garcia/shapi/releases/tag/v1.0.1). Para levantarla en su equipo, con Docker abierto y [Node.js](https://nodejs.org/) instalado, desde la raíz del repositorio:
 
 ```bash
 cp .env.example .env                                                                              # PowerShell: Copy-Item .env.example .env
@@ -52,12 +54,12 @@ Las cuentas de demostración, como `ana.morales@enviosxelaju.com` (proveedora) y
 |---|---|
 | Documento de requisitos | [PDF](docs/pdf/Documento_de_Requisitos.pdf) · fuente en [`docs/specs/`](docs/specs/README.md) (01 a 05) |
 | Documento de diseño | [PDF](docs/pdf/Documento_de_Diseno.pdf) · fuente en [`docs/specs/`](docs/specs/README.md) (06 a 12) |
-| Manual técnico | [Word](docs/Manual_Tecnico.docx) · [Markdown](docs/manual-tecnico.md) |
+| Manual técnico | [PDF](docs/pdf/Manual_Tecnico.pdf) · [Word](docs/Manual_Tecnico.docx) · [Markdown](docs/manual-tecnico.md) |
 | Manual de usuario | [PDF](docs/pdf/Manual_de_Usuario.pdf) · [Markdown](docs/manual-usuario.md) |
 | Pruebas de carga (RNF-01 y RNF-03) | [`docs/pruebas-de-carga.md`](docs/pruebas-de-carga.md) |
 | Estado final de cada requisito | [`docs/plan/convergencia/2026-10-29.md`](docs/plan/convergencia/2026-10-29.md) |
 
-El *release* [v1.0.0](https://github.com/jordin-garcia/shapi/releases/tag/v1.0.0) adjunta los tres PDF y el Word del manual técnico.
+El *release* [v1.0.1](https://github.com/jordin-garcia/shapi/releases/tag/v1.0.1) adjunta los cuatro PDF y el Word del manual técnico. Todos los documentos están también en <https://github.com/jordin-garcia/shapi/releases/latest>.
 
 ## ¿Cómo trabajamos?
 

@@ -423,9 +423,10 @@ Los navegadores actuales resuelven cualquier `*.localhost` a `127.0.0.1` sin con
 |---|---|---|
 | **Desarrollo** | Docker Compose con la infraestructura; los proyectos .NET y Vite corren en el equipo con recarga en caliente | Modo demostración, registros detallados y siembra de demostración |
 | **Productivo simulado** (el que se presenta) | Docker Compose con `compose.yml` y `compose.prod.yml`, con las imágenes que publica la integración continua en GHCR | Compilación *Release*, frontends minificados, variables desde `.env`, volúmenes persistentes, reinicio automático, verificaciones de salud y sin puertos internos expuestos |
+| **Desplegado en Azure** (el de la presentación final) | Los mismos archivos más `infra/compose.servidor.yml`, en una máquina virtual de Azure con el dominio `shapi.tech` | Lo mismo que el productivo simulado, más certificados de Let's Encrypt, Mailpit con contraseña y reenvío a Resend de los correos con destinatario real |
 | **Pruebas (CI)** | GitHub Actions, con Testcontainers para PostgreSQL y Redis | Se ejecuta en cada *pull request* y en cada integración a `main` |
 
-El "ambiente productivo" que piden los lineamientos se cumple con el mismo stack, contenedores versionados, configuración externa, TLS, persistencia y verificaciones de salud. Como el presupuesto es cero, corre en un equipo del equipo de trabajo el día de la exposición y no en un servidor público.
+El "ambiente productivo" que piden los lineamientos se cumple con el mismo stack, contenedores versionados, configuración externa, TLS, persistencia y verificaciones de salud. Como el presupuesto es cero, corre en un equipo del equipo de trabajo. Para la presentación final corre además en una máquina virtual de Azure for Students, en `https://shapi.tech`, pagada con el crédito de estudiante (12.11).
 
 ```mermaid
 flowchart TB
@@ -2653,6 +2654,222 @@ Las pruebas de carga del 18 de octubre de 2026 cumplieron los dos requisitos. Co
 
 Cada *pull request* ejecuta en GitHub Actions los checks `plan`, `titulo`, `backend`, `frontend`, `revision-claude` y `ambiente-productivo` (las pruebas E2E sobre el ambiente productivo simulado). Un PR solo se integra a `main` con todos en verde. Cada integración a `main` vuelve a ejecutar todo y publica las cuatro imágenes en GHCR con la etiqueta `latest`, que son las que usa la sección «Usar las imágenes publicadas en GHCR».
 
+## 12.11 Despliegue en Azure
+
+Para la presentación final, el mismo ambiente productivo simulado se publicó en internet en `https://shapi.tech` (ADR-36). Corre en una máquina virtual de **Azure for Students** con las imágenes de GHCR, `infra/compose.yml`, `infra/compose.prod.yml` y dos archivos propios del servidor:
+
+- `infra/caddy/Caddyfile.servidor`: certificados de Let's Encrypt y la bandeja de Mailpit protegida con contraseña.
+- `infra/compose.servidor.yml`: el borde en los puertos 80 y 443 de la máquina, y el reenvío de Mailpit a Resend.
+
+Ambos tienen el dominio `shapi.tech` escrito. Para otro dominio, cambie `shapi.tech` en los dos archivos y en el `.env`. Los comandos de esta sección se ejecutan en Git Bash o en Linux, salvo donde se indica.
+
+### Requisitos
+
+- Una suscripción de Azure. En Azure for Students solo se pueden crear recursos en las regiones que permite la política «Allowed resource deployment regions» de la suscripción (en la del equipo: North Central US, Canada Central, Brazil South, France Central y Norway East).
+- La CLI de Azure. En Windows se instala con `winget install -e --id Microsoft.AzureCLI`, y desde Git Bash se agrega al `PATH` la carpeta `C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin`.
+- Un dominio cuyo DNS pueda administrar.
+
+### 1. Crear la máquina virtual
+
+Inicie sesión, elija la suscripción y cree una llave SSH solo para el servidor:
+
+```bash
+az login
+az account set --subscription "Azure for Students"
+ssh-keygen -t ed25519 -f ~/.ssh/shapi_azure -N "" -C "shapi-azure"
+```
+
+Si la suscripción es nueva y Azure dice que no hay tamaños disponibles, registre primero el proveedor de máquinas virtuales:
+
+```bash
+az provider register -n Microsoft.Compute --wait
+```
+
+Cree el grupo de recursos y la máquina, que tiene 2 vCPU y 8 GB, con un disco de 64 GB y una IP fija:
+
+```bash
+az group create -n shapi-rg -l northcentralus --tags proyecto=shapi
+az vm create -g shapi-rg -n shapi-vm --image Ubuntu2404 --size Standard_B2as_v2 \
+  --admin-username shapi --ssh-key-values "$(cat ~/.ssh/shapi_azure.pub)" \
+  --public-ip-sku Standard --public-ip-address shapi-ip --nsg shapi-nsg --nsg-rule NONE \
+  --os-disk-size-gb 64 --storage-sku StandardSSD_LRS --tags proyecto=shapi
+```
+
+Abra el firewall: el 80 y el 443 para todos y el 22 solo para su IP. Cambie `<su-ip>` por la que muestra `curl https://api.ipify.org`:
+
+```bash
+az network nsg rule create -g shapi-rg --nsg-name shapi-nsg -n permitir-ssh-admin --priority 100 \
+  --access Allow --protocol Tcp --source-address-prefixes <su-ip>/32 --destination-port-ranges 22
+az network nsg rule create -g shapi-rg --nsg-name shapi-nsg -n permitir-http --priority 110 \
+  --access Allow --protocol Tcp --source-address-prefixes Internet --destination-port-ranges 80
+az network nsg rule create -g shapi-rg --nsg-name shapi-nsg -n permitir-https --priority 120 \
+  --access Allow --protocol Tcp --source-address-prefixes Internet --destination-port-ranges 443
+az network public-ip show -g shapi-rg -n shapi-ip --query ipAddress -o tsv
+```
+
+El último comando muestra la IP pública de la máquina.
+
+### 2. Apuntar el dominio
+
+En el DNS del dominio, borre los registros de estacionamiento que haya creado el registrador y agregue tres registros A hacia la IP de la máquina, con TTL de 300:
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| A | `shapi.tech` (la raíz) | IP de la máquina |
+| A | `*.shapi.tech` | IP de la máquina |
+| A | `*.api.shapi.tech` | IP de la máquina |
+
+Antes de seguir con el paso 5, compruebe que `nslookup envios.api.shapi.tech 8.8.8.8` responda con esa IP.
+
+### 3. Preparar el servidor
+
+```bash
+ssh -i ~/.ssh/shapi_azure shapi@<ip-de-la-maquina>
+curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sudo sh /tmp/get-docker.sh
+sudo usermod -aG docker shapi
+exit
+```
+
+Vuelva a entrar con el mismo `ssh` para que tome el grupo `docker`, y clone el repositorio:
+
+```bash
+git clone https://github.com/jordin-garcia/shapi.git ~/shapi
+```
+
+### 4. Configurar el `.env` del servidor
+
+En `~/shapi`, cree el `.env` con contraseñas nuevas. El bloque genera valores aleatorios, guarda el `.env` con permisos `600` y deja las contraseñas que se usan a mano en `~/credenciales-shapi.txt`:
+
+```bash
+cd ~/shapi
+gen() { openssl rand -base64 48 | tr -dc "A-Za-z0-9" | head -c 24; }
+PG=$(gen); ADMIN=$(gen); MAIL=$(gen); SE=$(gen); SA=$(gen)
+HASH=$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$MAIL")
+umask 077
+cat > .env <<EOF
+SHAPI_DOMINIO_BASE=shapi.tech
+SHAPI_MODO_DEMO=true
+SHAPI_APLICAR_MIGRACIONES=false
+SHAPI_POSTGRES_USUARIO=shapi
+SHAPI_POSTGRES_CONTRASENA=$PG
+SHAPI_POSTGRES_BASE_DATOS=shapi
+SHAPI_DNS_MODO=simulado
+SHAPI_REDES_BORDE=
+SHAPI_ADMIN_CORREO=admin@shapi.tech
+SHAPI_ADMIN_NOMBRE=Administrador Shapi
+SHAPI_ADMIN_CONTRASENA=$ADMIN
+SHAPI_PASARELA_FALLA=false
+SHAPI_SECRETO_ORIGEN_ENVIOS=$SE
+SHAPI_SECRETO_ORIGEN_AGRO=$SA
+SHAPI_MAILPIT_HASH='$HASH'
+SHAPI_RESEND_CLAVE=
+EOF
+printf "Administrador: admin@shapi.tech / %s\nMailpit: equipo / %s\n" "$ADMIN" "$MAIL" > ~/credenciales-shapi.txt
+chmod 600 .env ~/credenciales-shapi.txt
+```
+
+El hash de Mailpit va entre comillas simples porque contiene `$`, que Docker Compose interpretaría como una variable. La clave de Resend se completa en el paso 6. Como `compose.servidor.yml` la exige, mientras esté vacía Compose no levanta nada: haga los puntos 1 a 4 del paso 6 antes del paso 5, o quite el bloque `mailpit` de ese archivo si no quiere correo real.
+
+### 5. Levantar y sembrar
+
+Defina un atajo para los tres archivos de Compose (repítalo en cada sesión de SSH):
+
+```bash
+cd ~/shapi
+C="docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml -f infra/compose.servidor.yml"
+```
+
+Levante primero todo **menos el borde**, compile los orígenes de demostración y siembre:
+
+```bash
+$C pull api compuerta trabajador borde postgres redis mailpit
+$C build origen-envios origen-agro
+$C up -d postgres redis mailpit origen-envios origen-agro api compuerta trabajador
+$C --profile demo up siembra-demo
+```
+
+Cuando el DNS ya resuelva (paso 2), levante el borde. Caddy pide los certificados de `shapi.tech` al arrancar, y los de cada subdominio con su primera visita:
+
+```bash
+$C up -d borde
+$C logs borde | grep "certificate obtained"
+```
+
+El borde se levanta al final porque, si el DNS todavía no apunta a la máquina, Let's Encrypt rechaza los intentos y, tras varios fallos, bloquea el dominio por una hora.
+
+Compruebe desde su equipo que respondan `https://shapi.tech`, `https://envios.shapi.tech`, `https://correo.shapi.tech` (pide el usuario `equipo` y la contraseña de `~/credenciales-shapi.txt`) y la compuerta:
+
+```bash
+curl -X POST https://envios.api.shapi.tech/cotizaciones -H "Content-Type: application/json" \
+  -H "X-Api-Key: shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e" \
+  -d '{"origen":"Quetzaltenango","destino":"Antigua Guatemala","peso_kg":2}'
+```
+
+### 6. Correo real con Resend
+
+Shapi envía todos los correos a Mailpit. Con `compose.servidor.yml`, Mailpit guarda una copia y **reenvía a Resend** los que tienen un destinatario real. No reenvía los dominios de la siembra, del guion y de los manuales (`enviosxelaju.com`, `mercaditoantigua.com`, `cafedelvolcan.com` y los demás), ni `ejemplo.com`, `example.com`, `shapi.tech` y `*.localhost`. Así, las cuentas de demostración nunca envían correos a dominios ajenos.
+
+1. Cree una cuenta en [resend.com](https://resend.com) (el plan gratuito permite 100 correos al día).
+2. En **Domains → Add Domain**, agregue el dominio y copie al DNS los registros que muestra: el TXT `resend._domainkey` (DKIM), los CNAME `send` y `rsend` y el TXT `_dmarc` (`v=DMARC1; p=none;`). Deje **Enable receiving** apagado. Espere a que el dominio quede **Verified**.
+3. En **API Keys**, cree una clave con permiso **Sending access** para el dominio. Se muestra una sola vez.
+4. Guárdela en el `.env` del servidor editando el archivo, sin pegarla en una terminal ni en un chat:
+
+   ```bash
+   ssh -t -i ~/.ssh/shapi_azure shapi@<ip-de-la-maquina> "nano ~/shapi/.env"
+   ```
+
+   Deje la línea así, con la clave entre comillas simples y sin espacios: `SHAPI_RESEND_CLAVE='re_…'`. Guarde con **Ctrl+O** y salga con **Ctrl+X**.
+5. Recree Mailpit para que la tome (se pierden los mensajes guardados, porque Mailpit los tiene en memoria):
+
+   ```bash
+   $C up -d --force-recreate mailpit
+   $C logs mailpit | grep relay
+   ```
+
+Si Resend rechaza la clave, el registro de Mailpit muestra `535 Authentication credentials invalid`: vuelva al punto 4. Para desplegar sin correo real, quite el bloque `mailpit` de `compose.servidor.yml`.
+
+### 7. Antes de presentar
+
+Deje los datos como recién sembrados. Esto borra las organizaciones, las cuentas y las APIs que no son de la siembra (por ejemplo, las que se registraron por su cuenta en el sitio público), y restablece las cuentas de demostración:
+
+```bash
+$C exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
+```
+
+Después vacíe la bandeja en `https://correo.shapi.tech` con **Delete all**.
+
+Si en un ensayo se adelantó el reloj de demostración, la re-siembra no lo regresa. Bórrelo de Redis y reinicie los procesos que lo usan:
+
+```bash
+$C exec redis redis-cli DEL demo:reloj:desplazamiento
+$C restart api compuerta trabajador
+```
+
+**No use `down -v` en el servidor:** borra también el volumen `caddydata`, con los certificados, y pedirlos de nuevo muchas veces activa los límites de Let's Encrypt.
+
+Para actualizar a las imágenes más recientes de GHCR: `git pull`, `$C pull` y `$C up -d`. Si solo cambió el Caddyfile: `$C exec borde caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile`.
+
+### 8. Apagar y borrar
+
+La máquina cobra cómputo mientras está asignada. Después de presentar, **desasígnela**: deja de cobrar el cómputo y las contraseñas públicas de la siembra dejan de servir. El disco y la IP fija siguen cobrándose (unos US$ 7 a 14 al mes) y conservan los datos:
+
+```bash
+az vm deallocate -g shapi-rg -n shapi-vm
+az vm start -g shapi-rg -n shapi-vm
+```
+
+Los contenedores vuelven solos al encender, porque tienen reinicio automático. Para borrar todo, máquina, disco, IP y firewall incluidos:
+
+```bash
+az group delete -n shapi-rg --yes
+```
+
+Si su IP cambia y el SSH deja de conectar, actualice la regla del firewall:
+
+```bash
+az network nsg rule update -g shapi-rg --nsg-name shapi-nsg -n permitir-ssh-admin --source-address-prefixes <su-ip-nueva>/32
+```
+
 # 13. Problemas que se pueden presentar
 
 | Problema | Causa probable | Solución |
@@ -2824,6 +3041,13 @@ El archivo `.env.example` tiene todas las variables `SHAPI_*` con sus valores de
 | `Autenticacion__LimitePorMinuto` | Peticiones por minuto y por IP permitidas en los endpoints de acceso | `10` | API |
 | `Pagos__DemoraMs` | Demora, en milisegundos, de cada operación de la pasarela simulada | Al azar entre 300 y 800 | API y trabajador |
 
+**Variables del servidor de Azure.** `infra/compose.servidor.yml` (12.11) lee dos variables más del `.env` del servidor. No están en `.env.example`, porque no se usan en un equipo local:
+
+| Variable | Descripción |
+|---|---|
+| `SHAPI_MAILPIT_HASH` | Hash bcrypt de la contraseña de la bandeja de Mailpit (usuario `equipo`), generado con `caddy hash-password`. Va entre comillas simples |
+| `SHAPI_RESEND_CLAVE` | Clave de API de Resend con permiso de envío, con la que Mailpit reenvía los correos con destinatario real. Va entre comillas simples |
+
 Además, `infra/compose.prod.yml` fija `ASPNETCORE_ENVIRONMENT=Production` y `ASPNETCORE_URLS=http://+:8080` en la API y la compuerta, y `DOTNET_ENVIRONMENT=Production` en el trabajador. `COMPOSE_PROJECT_NAME` (de Docker Compose) permite levantar un ambiente aparte, con sus propios volúmenes.
 
 ## Anexo B · Estructura del repositorio
@@ -2849,7 +3073,7 @@ shapi/
 ├─ tests/                     ← dominio, API, compuerta, E2E (Playwright) y carga (k6)
 ├─ frontend/                  ← panel, portal y paquetes compartidos (pnpm)
 ├─ origenes-demo/             ← APIs de Envíos Xelajú y Agro Precios
-├─ infra/                     ← compose.yml, compose.prod.yml, Caddy, borde y verificador
+├─ infra/                     ← compose.yml, compose.prod.yml, compose.servidor.yml (Azure), Caddy, borde y verificador
 ├─ scripts/                   ← tareas, CI, verificación del equipo y PDF
 └─ .github/workflows/         ← integración continua y publicación
 ```
