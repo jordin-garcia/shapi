@@ -19,12 +19,45 @@ Proyecto final de Ingeniería de Software I, Universidad Rafael Landívar (Quetz
 | [`mockups/`](mockups/) | Diseños aprobados. Los `.html` de la raíz se abren directamente en el navegador. El catálogo está en [11 · Interfaz](docs/specs/11-interfaz.md) |
 | [`docs/lineamientos.md`](docs/lineamientos.md) | Lineamientos oficiales del curso (transcripción del PDF de la docente) |
 | [`src/`](src/) | Backend en .NET: `Shapi.Api` (API de control), `Shapi.Compuerta`, `Shapi.Trabajador` y las capas `Shapi.Aplicacion`, `Shapi.Dominio`, `Shapi.Infraestructura` y `Shapi.Contratos` |
-| [`tests/`](tests/) | Pruebas del backend (xUnit y Testcontainers) y las E2E con Playwright (`tests/e2e/`). Más adelante, también las de carga |
+| [`tests/`](tests/) | Pruebas del backend (xUnit y Testcontainers), las E2E con Playwright (`tests/e2e/`) y las de carga con k6 (`tests/carga/`) |
 | [`frontend/`](frontend/) | Panel y portal en React (`apps/`) y los paquetes comunes `ui` y `api` (`packages/`), con pnpm |
 | [`contratos/openapi/`](contratos/openapi/) | Contratos HTTP de la API de control, uno por módulo. Los tipos del frontend se generan desde aquí |
 | [`infra/`](infra/) | Docker Compose y Caddy del entorno local |
 | [`origenes-demo/`](origenes-demo/) | Las dos APIs de ejemplo que se publican con Shapi en la demostración |
 | [`scripts/`](scripts/) | Herramientas del equipo: tareas del plan, tablero, verificación del entorno y veredicto de la revisión |
+
+## Ver el sistema funcionando
+
+La versión entregable es la [**v1.0.0**](https://github.com/jordin-garcia/shapi/releases/tag/v1.0.0). Con Docker abierto y [Node.js](https://nodejs.org/) instalado, desde la raíz del repositorio:
+
+```bash
+cp .env.example .env                                                                              # PowerShell: Copy-Item .env.example .env
+docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml --profile demo up -d --build
+node infra/verificar.mjs --demo
+```
+
+El primer comando prepara la configuración local. El segundo levanta el **ambiente productivo simulado**, todo en contenedores, y carga los datos de demostración. La primera vez tarda varios minutos. El tercero comprueba que todo responde. Después, importe una sola vez el certificado local ([manual técnico, 12.5](docs/manual-tecnico.md#125-confiar-en-la-autoridad-certificadora-local)) y abra:
+
+| Sitio | Dirección |
+|---|---|
+| Panel de Shapi (proveedores, administración y soporte) | <https://shapi.localhost> |
+| Portal de la API de ejemplo Envíos Xelajú | <https://envios.shapi.localhost> |
+| Correo simulado | <https://correo.shapi.localhost> |
+
+Las cuentas de demostración, como `ana.morales@enviosxelaju.com` (proveedora) y `rodrigo.alvarado@shapi.localhost` (administrador), usan la contraseña `Shapi2026!demo`. La tarjeta `4242 4242 4242 4242` aprueba los cobros simulados. El recorrido completo está en el [manual de usuario](docs/manual-usuario.md).
+
+## Documentación entregable
+
+| Documento | Archivos |
+|---|---|
+| Documento de requisitos | [PDF](docs/pdf/Documento_de_Requisitos.pdf) · fuente en [`docs/specs/`](docs/specs/README.md) (01 a 05) |
+| Documento de diseño | [PDF](docs/pdf/Documento_de_Diseno.pdf) · fuente en [`docs/specs/`](docs/specs/README.md) (06 a 12) |
+| Manual técnico | [Word](docs/Manual_Tecnico.docx) · [Markdown](docs/manual-tecnico.md) |
+| Manual de usuario | [PDF](docs/pdf/Manual_de_Usuario.pdf) · [Markdown](docs/manual-usuario.md) |
+| Pruebas de carga (RNF-01 y RNF-03) | [`docs/pruebas-de-carga.md`](docs/pruebas-de-carga.md) |
+| Estado final de cada requisito | [`docs/plan/convergencia/2026-10-29.md`](docs/plan/convergencia/2026-10-29.md) |
+
+El *release* [v1.0.0](https://github.com/jordin-garcia/shapi/releases/tag/v1.0.0) adjunta los tres PDF y el Word del manual técnico.
 
 ## ¿Cómo trabajamos?
 
