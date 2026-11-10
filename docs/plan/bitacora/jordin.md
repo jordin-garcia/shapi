@@ -1121,3 +1121,27 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Verificación: tres pruebas nuevas en `Inicio.test.tsx`, primero en rojo y luego en verde (la del cierre usa una prueba de 14 días para demostrar que el número sale de la API); `pnpm lint`, `typecheck`, `test` y `build` correctos; revisión con el subagente `revisor` y corrección de su hallazgo y de sus opcionales.
 - Pendiente o aviso para otros:
   - **Dominique:** terminé tu PR #142 y lo cerré. Cambié `frontend/apps/panel/src/paginas/A0-1-Inicio.tsx`, `frontend/apps/panel/src/tests/Inicio.test.tsx`, el video (renombrado a `public/fondo-cierre-inicio.webm`), el `## Resultado` de DC-15 y `docs/specs/11-interfaz.md` §4. Actualiza tu rama desde `main`. Tu entrada del 7 nov en tu bitácora todavía anuncia la rama del PR #142 para revisión: puedes dejar una nota de que lo integró este PR.
+
+## 2026-11-09 · JG-17 · Convergencia final y congelamiento del código
+- Hecho:
+  - Informe final en `docs/plan/convergencia/2026-10-29.md`, con los 47 RF y los 15 RNF, su estado y su evidencia.
+  - Ambiente productivo simulado levantado desde cero con el manual técnico, verificado y con las 16 E2E en verde.
+  - PDF regenerados y README con «Ver el sistema funcionando» y «Documentación entregable».
+  - Criterio 5: la API y el trabajador comparten las llaves de Data Protection en desarrollo.
+  - Etiqueta `v1.0.0` y *release* con los tres PDF y el Word, al integrar.
+- Decisiones:
+  - Una ruta relativa de `SHAPI_DPKEYS_DIR` se resuelve desde la raíz del repositorio (`Shapi.slnx`) y, fuera de él, desde la raíz de contenido del *host*. Quedó en 10 §3.
+  - El Word del manual técnico se editó en su XML, sin regenerarlo, para conservar los ajustes a mano de la portada.
+  - El arranque desde cero se hizo en el proyecto aislado `shapi-jg17`, para no borrar los datos del proyecto `shapi`.
+  - RNF-01 y RNF-03 no se repitieron en esta PC de 2 núcleos, porque la medición no sería comparable.
+- Verificación:
+  - `dotnet format` y `dotnet build` correctos.
+  - `dotnet test tests/Shapi.Api.Tests`: 1146 aprobadas, 0 con error y 0 omitidas.
+  - `DirectorioLlavesTests` primero en rojo (2 de 4) y luego en verde.
+  - `node infra/verificar.mjs --demo` correcto y `pnpm test` en `tests/e2e`: 16 aprobadas.
+  - Edge: 10 de 10 pruebas de pantallas.
+  - `node scripts/tareas.mjs --validar` correcto.
+- Pendiente o aviso para otros:
+  - **Todos:** el plan quedó terminado: las 92 tareas están hechas. La versión entregable es `v1.0.0`. Para la exposición usen Chrome o Edge: Firefox no se pudo verificar en la PC de Jordin (informe, §3).
+  - **Todos:** si en desarrollo ya tenían APIs con secreto de origen, copien los `key-*.xml` de `src/Shapi.Api/.shapi/dpkeys` a `.shapi/dpkeys`, en la raíz del repositorio, o regeneren el secreto en A3.6. Ahora la API y el trabajador usan esa carpeta.
+  - **José Pablo:** cambié tu manual técnico (`docs/manual-tecnico.md` y `docs/Manual_Tecnico.docx`), en el capítulo 13, el capítulo 14 y el Anexo A, y `.env.example`, por el criterio 5. Actualiza tu rama desde `main` al integrarse.

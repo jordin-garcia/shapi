@@ -5,7 +5,7 @@ persona: jordin
 responsable: Jordin García
 avance: final
 prioridad: P1
-estado: pendiente
+estado: hecha
 programada: 2026-10-29
 depende_de: [JG-16, JG-21, JG-22, JZ-13, JZ-15, JZ-16]
 no_antes_de: 2026-10-29
@@ -50,3 +50,43 @@ gh release view v1.0.0
 
 ## Fuera de alcance
 - Funcionalidades nuevas
+
+## Resultado
+
+Se ejecutó el 9 de noviembre de 2026, después del video del Avance 3 y de JZ-15, JZ-16 y DC-15. El informe está en `docs/plan/convergencia/2026-10-29.md`.
+
+- **Criterio 1:** el informe lista los 47 RF y los 15 RNF con su estado y su evidencia:
+  - 47 RF ✅;
+  - 12 RNF ✅;
+  - RNF-06 y RNF-11 son objetivos de diseño que no se miden;
+  - RNF-12 queda ⚠️, porque Firefox no se pudo verificar en esta PC.
+
+  Lo que queda fuera se declara en su §3: Firefox, las pruebas de carga no repetidas y los servicios simulados. No se crearon tareas nuevas.
+- **Criterio 2:** con los comandos del manual técnico (12.4), en un proyecto de Compose aislado con volúmenes vacíos (`shapi-jg17`):
+  - el ambiente productivo simulado arrancó en 11 min 19 s;
+  - la siembra terminó con 0;
+  - `node infra/verificar.mjs --demo` pasó;
+  - `http://` redirige con 308 a `https://`;
+  - las 16 E2E del guion pasaron en 4.2 min.
+
+  En Edge pasaron las 10 pruebas de pantallas.
+- **Criterio 3:** al integrar el PR se crean la etiqueta `v1.0.0` y el *release* con los tres PDF y el Word (informe, §5).
+- **Criterio 4:** se regeneraron los PDF de requisitos (37 páginas), de diseño (113) y del manual de usuario (64).
+
+  El Word del manual técnico no se regeneró completo, para conservar los ajustes que Jordin hizo a mano en la portada. Se reemplazaron solo los tres párrafos que cambian por el criterio 5.
+- **Criterio 5:** `DirectorioLlaves.Resolver` (`src/Shapi.Infraestructura/Comun/DirectorioLlaves.cs`):
+  - usa tal cual una ruta absoluta de `SHAPI_DPKEYS_DIR`;
+  - resuelve una relativa desde la raíz del repositorio, la carpeta de `Shapi.slnx`;
+  - fuera del repositorio, la resuelve desde la raíz de contenido del *host*.
+
+  `ServiciosComunes` la usa con `HostDefaults.ContentRootKey`. `DirectorioLlavesTests` tiene cuatro pruebas. Una de ellas cifra con los servicios de la API y descifra con los del trabajador, cada uno con la carpeta de su proyecto como raíz. Antes de la corrección fallaban dos.
+
+  Se actualizaron:
+  - el capítulo 13, el capítulo 14 y el Anexo A del manual técnico (Markdown y Word);
+  - 10 §3;
+  - `.env.example`.
+- **README:** nuevas secciones «Ver el sistema funcionando» (tres comandos, direcciones y cuentas de la demostración) y «Documentación entregable», con enlaces a los PDF, al Word y al *release*.
+- **Verificación:**
+  - formato y compilación sin errores;
+  - 1146 pruebas de `tests/Shapi.Api.Tests`;
+  - plan válido.

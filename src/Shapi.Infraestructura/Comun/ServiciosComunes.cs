@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Shapi.Aplicacion.Comun;
 using Shapi.Infraestructura.Bitacora;
 using Shapi.Infraestructura.Correo;
@@ -35,12 +36,14 @@ public static class ServiciosComunes
         services.AddScoped<IBitacora, BitacoraBaseDatos>();
 
         // Mismo nombre de aplicación y mismo directorio en la API y en el trabajador, para que el trabajador descifre
-        // los secretos que cifró la API (10 §3).
+        // los secretos que cifró la API (10 §3). Una ruta relativa se resuelve desde la raíz del repositorio y no desde
+        // la carpeta de cada proyecto (JG-17).
         var dataProtection = services.AddDataProtection().SetApplicationName("Shapi");
         var directorioLlaves = configuration[VariableDirectorioLlaves];
         if (!string.IsNullOrWhiteSpace(directorioLlaves))
         {
-            dataProtection.PersistKeysToFileSystem(new DirectoryInfo(directorioLlaves));
+            var inicio = configuration[HostDefaults.ContentRootKey] ?? Directory.GetCurrentDirectory();
+            dataProtection.PersistKeysToFileSystem(new DirectoryInfo(DirectorioLlaves.Resolver(directorioLlaves, inicio)));
         }
 
         services.AddSingleton<IProtectorSecretoOrigen, ProtectorSecretoOrigen>();
