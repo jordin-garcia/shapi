@@ -1,0 +1,111 @@
+# Borde del servidor de Azure (shapi.tech). Se monta sobre el Caddyfile de la imagen con compose.servidor.yml.
+# Diferencias con infra/caddy/Caddyfile.prod: certificados reales de Let's Encrypt (en vez de local_certs),
+# certificados al momento para los subdominios de la plataforma y Mailpit protegido con contraseña.
+{
+	on_demand_tls {
+		ask http://localhost:5555/autorizar
+	}
+}
+
+(cabeceras_seguras) {
+	header {
+		>Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		>X-Content-Type-Options "nosniff"
+		>Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+
+(cabeceras_frontend) {
+	header >Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.api.shapi.tech; frame-ancestors 'none'"
+}
+
+(ocultar_interno) {
+	@interno path /interno /interno/*
+	handle @interno {
+		respond 404
+	}
+}
+
+# Autoriza los certificados al momento: los subdominios de la plataforma aquí y los dominios propios en la API.
+http://localhost:5555 {
+	bind 127.0.0.1
+	@plataforma vars_regexp {query.domain} ^[a-z0-9-]+(\.api)?\.shapi\.tech$
+	handle @plataforma {
+		respond 200
+	}
+	handle {
+		rewrite * /interno/tls/autorizar?domain={query.domain}
+		reverse_proxy api:8080
+	}
+}
+
+shapi.tech {
+	import cabeceras_seguras
+	import ocultar_interno
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		import cabeceras_frontend
+		root * /srv/panel
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+correo.shapi.tech {
+	# Lo cubre el comodín *.shapi.tech, así que Caddy no le gestiona un certificado propio: se emite al momento.
+	tls {
+		on_demand
+	}
+	import cabeceras_seguras
+	basic_auth {
+		equipo {$SHAPI_MAILPIT_HASH}
+	}
+	reverse_proxy mailpit:8025
+}
+
+*.api.shapi.tech {
+	tls {
+		on_demand
+	}
+	import cabeceras_seguras
+	import ocultar_interno
+	reverse_proxy compuerta:8080
+}
+
+*.shapi.tech {
+	tls {
+		on_demand
+	}
+	import cabeceras_seguras
+	import ocultar_interno
+
+	handle /api/portal/* {
+		reverse_proxy api:8080 {
+			header_up Host {http.request.host}
+		}
+	}
+
+	handle {
+		import cabeceras_frontend
+		root * /srv/portal
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+https:// {
+	import cabeceras_seguras
+	import ocultar_interno
+	tls {
+		on_demand
+	}
+	reverse_proxy compuerta:8080
+}
+
+http:// {
+	redir https://{host}{uri} permanent
+}

@@ -32,7 +32,16 @@ Utilice un navegador de escritorio, con una ventana de al menos 1280 píxeles de
 | Portal Agro Precios | <https://agro.shapi.localhost> | Otra API con su propia marca |
 | Correo de demostración | <https://correo.shapi.localhost> | Recibir verificaciones, invitaciones y recuperación |
 
-Las direcciones `.localhost` corresponden al ambiente local. En otro despliegue, utilice las direcciones que le facilite el responsable. El portal es el sitio donde navega; el host `envios.api.shapi.localhost` es la dirección del servicio que recibe las peticiones con clave.
+Las direcciones `.localhost` corresponden al ambiente local. Para la presentación final, el sistema también está publicado en internet, sin instalar ningún certificado:
+
+| Sitio | Dirección |
+|---|---|
+| Shapi | <https://shapi.tech> |
+| Portal Envíos Xelajú | <https://envios.shapi.tech> |
+| Portal Agro Precios | <https://agro.shapi.tech> |
+| Correo de demostración | <https://correo.shapi.tech>, con el usuario y la contraseña que le facilite el responsable |
+
+En el ambiente publicado, los correos dirigidos a una dirección real también llegan a su bandeja; los de las cuentas de demostración solo se ven en el correo de demostración. En otro despliegue, utilice las direcciones que le facilite el responsable. El portal es el sitio donde navega; el host `envios.api.shapi.localhost` (o `envios.api.shapi.tech`) es la dirección del servicio que recibe las peticiones con clave.
 
 | Cuenta de demostración | Correo | Acceso |
 |---|---|---|

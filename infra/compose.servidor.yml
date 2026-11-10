@@ -1,0 +1,27 @@
+# Solo para el servidor de Azure. Se usa encima de compose.yml y compose.prod.yml:
+#   docker compose --env-file .env -f infra/compose.yml -f infra/compose.prod.yml -f infra/compose.servidor.yml ...
+services:
+  borde:
+    # compose.yml publica 80 y 443 solo en 127.0.0.1; en el servidor deben escuchar en la IP pública.
+    ports: !override
+      - "80:80"
+      - "443:443"
+    environment:
+      SHAPI_MAILPIT_HASH: ${SHAPI_MAILPIT_HASH:?Falta SHAPI_MAILPIT_HASH en el .env}
+    volumes: !override
+      - ./caddy/Caddyfile.servidor:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+
+  # Mailpit guarda una copia de todo y reenvía a Resend, salvo los dominios de la siembra, del guion y de los
+  # manuales: esas cuentas son ficticias y sus correos no deben salir a internet. Para desactivar el reenvío,
+  # quitar este bloque y recrear mailpit.
+  mailpit:
+    environment:
+      MP_SMTP_RELAY_HOST: smtp.resend.com
+      MP_SMTP_RELAY_PORT: "587"
+      MP_SMTP_RELAY_STARTTLS: "true"
+      MP_SMTP_RELAY_AUTH: plain
+      MP_SMTP_RELAY_USERNAME: resend
+      MP_SMTP_RELAY_PASSWORD: ${SHAPI_RESEND_CLAVE:?Falta SHAPI_RESEND_CLAVE en el .env}
+      MP_SMTP_RELAY_ALL: "true"
+      MP_SMTP_RELAY_BLOCKED_RECIPIENTS: '(?i)(@(agroprecios|boutiquecayala|cafedelvolcan|cafetaleraaltiplano|datoschapines|distribuidorasl|enviosxelaju|farmaciacoban|ferreteriazona11|libreriaxela|mercaditoantigua|panaderiaxela|tiendasolola|tiendazunil|transportespeten)\.com|@(ejemplo|example)\.(com|org|net)|@shapi\.tech|\.localhost)$$'
