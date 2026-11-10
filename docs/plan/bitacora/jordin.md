@@ -1145,3 +1145,17 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
   - **Todos:** el plan quedó terminado: las 92 tareas están hechas. La versión entregable es `v1.0.0`. Para la exposición usen Chrome o Edge: Firefox no se pudo verificar en la PC de Jordin (informe, §3).
   - **Todos:** si en desarrollo ya tenían APIs con secreto de origen, copien los `key-*.xml` de `src/Shapi.Api/.shapi/dpkeys` a `.shapi/dpkeys`, en la raíz del repositorio, o regeneren el secreto en A3.6. Ahora la API y el trabajador usan esa carpeta.
   - **José Pablo:** cambié tu manual técnico (`docs/manual-tecnico.md` y `docs/Manual_Tecnico.docx`), en el capítulo 13, el capítulo 14 y el Anexo A, y `.env.example`, por el criterio 5. Actualiza tu rama desde `main` al integrarse.
+
+## 2026-11-10 · JG-31 · Despliegue público en Azure y documentación para la presentación final
+- Hecho:
+  - Shapi publicado en `https://shapi.tech` (Azure for Students, máquina `shapi-vm`), con certificados de Let's Encrypt, Mailpit con contraseña y correo real por Resend.
+  - Configuración del servidor versionada y ADR-36.
+  - El ambiente en 06 §7 y los pasos en el manual técnico (12.11).
+  - El manual técnico en PDF, y los PDF de diseño y del manual de usuario regenerados.
+- Decisiones:
+  - El despliegue no cambia el código: solo `SHAPI_DOMINIO_BASE`, el Caddyfile del servidor y un compose adicional.
+  - Mailpit reenvía a Resend y bloquea los dominios ficticios de la siembra.
+  - La sección nueva se insertó en el Word sin regenerarlo, para conservar la portada.
+- Pendiente o aviso para otros:
+  - **José Pablo:** agregué `infra/compose.servidor.yml` e `infra/caddy/Caddyfile.servidor`, y cambié tu manual técnico (`docs/manual-tecnico.md`, `docs/Manual_Tecnico.docx` y el PDF nuevo `docs/pdf/Manual_Tecnico.pdf`) en el capítulo 12 (introducción y 12.11), 6.7 y los Anexos A y B. También cambié `docs/manual-usuario.md` (§2) y su PDF. Actualiza tu rama desde `main` al integrarse.
+  - **Todos:** para la presentación final, el sistema está en `https://shapi.tech`; el ambiente local queda de respaldo. Antes de presentar, se re-siembra y se vacía Mailpit (manual técnico, 12.11, paso 7). El servidor se desasigna después de la presentación.
