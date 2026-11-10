@@ -33,12 +33,14 @@ Los lineamientos de la presentación final (11 y 13 de noviembre de 2026) califi
 - `infra/compose.servidor.yml` (crear): borde en los puertos públicos y Mailpit con reenvío a Resend.
 - `infra/caddy/Caddyfile.servidor` (crear): certificados de Let's Encrypt y Mailpit con contraseña.
 - `docs/specs/12-decisiones.md` (modificar): ADR-36 y una nota en ADR-09.
-- `docs/specs/06-arquitectura.md` (modificar): §7.1 y §7.2.
-- `docs/manual-tecnico.md` y `docs/Manual_Tecnico.docx` (modificar): sección 12.11 y Anexo A.
+- `docs/specs/06-arquitectura.md` (modificar): §7.1, §7.2 y §9.
+- `docs/manual-tecnico.md` y `docs/Manual_Tecnico.docx` (modificar): introducción del capítulo 12, 6.7, sección 12.11 y Anexos A y B.
+- `docs/pdf/Manual_Tecnico.pdf` (crear): exportado desde el Word.
 - `docs/manual-usuario.md` (modificar): direcciones del ambiente desplegado.
 - `docs/pdf/Documento_de_Diseno.pdf` y `docs/pdf/Manual_de_Usuario.pdf` (regenerar).
+- `docs/pdf/README.md` (modificar): el manual técnico también se entrega en PDF.
 - `README.md` (modificar): el sistema desplegado y la documentación.
-- `.gitignore` (modificar): los videos de las entregas no se versionan.
+- `.gitignore` (modificar): los videos de las entregas y `caddy-root.crt` no se versionan.
 
 ## Criterios de aceptación
 1. El repositorio contiene la configuración del servidor tal como corre en `shapi.tech`, sin ningún secreto: las contraseñas, el hash de Mailpit y la clave de Resend se leen del `.env` del servidor.
