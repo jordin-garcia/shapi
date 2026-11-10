@@ -33,6 +33,9 @@ coverage/
 # Documentos de trabajo locales que no se versionan
 docs/Shapi-Diagrama-de-Gantt.docx
 
+# Certificado raíz de Caddy exportado para importarlo en el navegador (12.5); es propio de cada equipo
+caddy-root.crt
+
 # Videos de las entregas (ya entregados a la docente; pesan demasiado para el repositorio)
 docs/video/*.mp4
 docs/video/*.webm

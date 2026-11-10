@@ -423,7 +423,7 @@ Los navegadores actuales resuelven cualquier `*.localhost` a `127.0.0.1` sin con
 |---|---|---|
 | **Desarrollo** | Docker Compose con la infraestructura; los proyectos .NET y Vite corren en el equipo con recarga en caliente | Modo demostración, registros detallados y siembra de demostración |
 | **Productivo simulado** (el que se presenta) | Docker Compose con `compose.yml` y `compose.prod.yml`, con las imágenes que publica la integración continua en GHCR | Compilación *Release*, frontends minificados, variables desde `.env`, volúmenes persistentes, reinicio automático, verificaciones de salud y sin puertos internos expuestos |
-| **Desplegado en Azure** (el de la presentación final) | Los mismos archivos más `infra/compose.servidor.yml`, en una máquina virtual de Azure con el dominio `shapi.tech` | Lo mismo que el productivo simulado, más certificados de Let's Encrypt, Mailpit con contraseña y reenvío a Resend de los correos con destinatario real |
+| **Desplegado en Azure** (el de la presentación final; el productivo simulado queda de respaldo) | Los mismos archivos más `infra/compose.servidor.yml`, en una máquina virtual de Azure con el dominio `shapi.tech` | Lo mismo que el productivo simulado, más certificados de Let's Encrypt, Mailpit con contraseña y reenvío a Resend de los correos con destinatario real |
 | **Pruebas (CI)** | GitHub Actions, con Testcontainers para PostgreSQL y Redis | Se ejecuta en cada *pull request* y en cada integración a `main` |
 
 El "ambiente productivo" que piden los lineamientos se cumple con el mismo stack, contenedores versionados, configuración externa, TLS, persistencia y verificaciones de salud. Como el presupuesto es cero, corre en un equipo del equipo de trabajo. Para la presentación final corre además en una máquina virtual de Azure for Students, en `https://shapi.tech`, pagada con el crédito de estudiante (12.11).
@@ -2303,6 +2303,8 @@ Shapi se puede instalar de dos maneras:
 - **Ambiente productivo simulado** (12.4): todo el sistema corre en contenedores, en configuración `Release`, con un solo comando. Es la forma recomendada para usar o presentar el sistema, y la que se usa en la exposición.
 - **Entorno de desarrollo** (12.8): la infraestructura corre en contenedores y los procesos .NET y Vite corren en el equipo, con recarga en caliente. Es la forma de trabajar en el código.
 
+Además, el ambiente productivo simulado se puede publicar en internet en una máquina virtual de Azure (12.11). Así se hizo para la presentación final, y sus comandos se ejecutaron en esa máquina el 9 de noviembre de 2026.
+
 Los comandos de este capítulo y del 14 se ejecutaron en Windows 10 con Docker Desktop el 1 de noviembre de 2026, en un proyecto de Compose aislado para no tocar los datos de otros ambientes. Los exclusivos de Linux (instalación de paquetes y del certificado con `apt`, `update-ca-certificates`, `certutil` y `systemctl`) vienen de la versión anterior del manual y no se repitieron en esa verificación; los de Docker Compose también se ejecutan en Linux en cada corrida de la integración continua.
 
 ## 12.1 Requisitos del equipo
@@ -2801,7 +2803,7 @@ Compruebe desde su equipo que respondan `https://shapi.tech`, `https://envios.sh
 
 ```bash
 curl -X POST https://envios.api.shapi.tech/cotizaciones -H "Content-Type: application/json" \
-  -H "X-Api-Key: shp_prod_4fN8qT2xLm6Rv0Zk9Wd3Hs7c2e" \
+  -H "X-Api-Key: shp_prueba_Jp5sX1cV8nB3yG7tQe2Kv0a19d" \
   -d '{"origen":"Quetzaltenango","destino":"Antigua Guatemala","peso_kg":2}'
 ```
 
@@ -2819,7 +2821,7 @@ Shapi envía todos los correos a Mailpit. Con `compose.servidor.yml`, Mailpit gu
    ```
 
    Deje la línea así, con la clave entre comillas simples y sin espacios: `SHAPI_RESEND_CLAVE='re_…'`. Guarde con **Ctrl+O** y salga con **Ctrl+X**.
-5. Recree Mailpit para que la tome (se pierden los mensajes guardados, porque Mailpit los tiene en memoria):
+5. Recree Mailpit para que la tome (se pierden los mensajes guardados, porque Mailpit no tiene volumen):
 
    ```bash
    $C up -d --force-recreate mailpit
@@ -2830,20 +2832,22 @@ Si Resend rechaza la clave, el registro de Mailpit muestra `535 Authentication c
 
 ### 7. Antes de presentar
 
-Deje los datos como recién sembrados. Esto borra las organizaciones, las cuentas y las APIs que no son de la siembra (por ejemplo, las que se registraron por su cuenta en el sitio público), y restablece las cuentas de demostración:
-
-```bash
-$C exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
-```
-
-Después vacíe la bandeja en `https://correo.shapi.tech` con **Delete all**.
-
-Si en un ensayo se adelantó el reloj de demostración, la re-siembra no lo regresa. Bórrelo de Redis y reinicie los procesos que lo usan:
+Si en un ensayo se adelantó el reloj de demostración, regréselo **primero**, porque la siembra usa la fecha de ese reloj (12.7). Bórrelo de Redis y reinicie los procesos que lo usan:
 
 ```bash
 $C exec redis redis-cli DEL demo:reloj:desplazamiento
 $C restart api compuerta trabajador
 ```
+
+Después deje los datos como recién sembrados. Esto borra las organizaciones, las cuentas y las APIs que no son de la siembra (por ejemplo, las que se registraron por su cuenta en el sitio público), y restablece las cuentas de demostración:
+
+```bash
+$C exec trabajador dotnet Shapi.Trabajador.dll sembrar-demo --reiniciar
+```
+
+Por último, vacíe la bandeja en `https://correo.shapi.tech` con **Delete all**.
+
+En el ambiente publicado no se demuestra el dominio propio de una API: con el DNS simulado, ese dominio termina en `.localhost` y no recibe tráfico ni certificado (ADR-36).
 
 **No use `down -v` en el servidor:** borra también el volumen `caddydata`, con los certificados, y pedirlos de nuevo muchas veces activa los límites de Let's Encrypt.
 
@@ -2851,7 +2855,7 @@ Para actualizar a las imágenes más recientes de GHCR: `git pull`, `$C pull` y 
 
 ### 8. Apagar y borrar
 
-La máquina cobra cómputo mientras está asignada. Después de presentar, **desasígnela**: deja de cobrar el cómputo y las contraseñas públicas de la siembra dejan de servir. El disco y la IP fija siguen cobrándose (unos US$ 7 a 14 al mes) y conservan los datos:
+La máquina cobra cómputo mientras está asignada. Después de presentar, **desasígnela**: deja de cobrar el cómputo y las contraseñas públicas de la siembra dejan de servir. El disco y la IP fija siguen cobrándose (unos US$ 9 al mes) y conservan los datos. Encendida todo el mes, la máquina cuesta unos US$ 55 de cómputo más el disco y la IP, unos US$ 63 en total, que salen del crédito de estudiante:
 
 ```bash
 az vm deallocate -g shapi-rg -n shapi-vm

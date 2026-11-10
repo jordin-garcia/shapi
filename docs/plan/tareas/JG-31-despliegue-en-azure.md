@@ -57,6 +57,7 @@ Todos estos comandos deben pasar:
 node scripts/tareas.mjs --validar
 node --test scripts/generar-pdf.test.mjs
 docker compose --env-file .env.example -f infra/compose.yml -f infra/compose.prod.yml config --quiet
+SHAPI_MAILPIT_HASH='$2a$14$prueba' SHAPI_RESEND_CLAVE=re_prueba docker compose --env-file .env.example -f infra/compose.yml -f infra/compose.prod.yml -f infra/compose.servidor.yml config --quiet
 ```
 
 ## Fuera de alcance
@@ -65,5 +66,6 @@ docker compose --env-file .env.example -f infra/compose.yml -f infra/compose.pro
 - Mover la página de inicio por encima del planeta: Jordin decidió dejarla como está.
 
 ## Notas
-- El manual técnico se entrega en Markdown y Word. Jordin exporta el Word a PDF.
+- El manual técnico se entrega en Markdown, Word y PDF (`docs/pdf/Manual_Tecnico.pdf`, exportado del Word).
+- Al integrar se publica la etiqueta `v1.0.1` y su *release* con los cuatro PDF y el Word, y el QR de la documentación apunta a `https://github.com/jordin-garcia/shapi/releases/latest`.
 - El Word del manual técnico tiene ajustes a mano en la portada: la sección nueva se inserta en él, sin regenerarlo.

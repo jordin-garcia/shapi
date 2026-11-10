@@ -192,7 +192,9 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
   - Cloudflare Tunnel desde un equipo del equipo: su certificado gratuito no cubre `*.api.shapi.tech`, y el sistema dependería de que ese equipo esté encendido.
   - Azure Communication Services para el correo: exige registrar una aplicación en el directorio de la universidad y pedir otra cuota para usar el remitente `no-responder@`.
 - **Consecuencias:**
-  - El costo para el equipo sigue siendo cero: la máquina se paga con el crédito de estudiante (unos US$ 45 al mes encendida) y se **desasigna** después de la presentación.
+  - El costo para el equipo sigue siendo cero: la máquina se paga con el crédito de estudiante (unos US$ 55 al mes de cómputo encendida, más el disco y la IP, unos US$ 63 en total) y se **desasigna** después de la presentación.
   - El código no cambió: solo cambian `SHAPI_DOMINIO_BASE` y la configuración del borde.
   - `SHAPI_MODO_DEMO=true` sigue activo para la siembra, y sus cuentas usan contraseñas públicas. Por eso el servidor solo se enciende para presentar.
+  - Como el DNS tiene comodín y Caddy autoriza cualquier subdominio de la plataforma, alguien que visite subdominios al azar puede gastar el límite de Let's Encrypt (50 certificados por dominio registrado a la semana). Se acepta para un despliegue de pocos días.
+  - Con `SHAPI_DNS_MODO=simulado`, el dominio propio de una API sigue terminando en `.localhost` (ADR-10). En `shapi.tech` se puede conectar y verificar, pero no recibe tráfico ni certificado, así que no se demuestra en el ambiente publicado.
   - Los pasos están en el manual técnico, 12.11.
