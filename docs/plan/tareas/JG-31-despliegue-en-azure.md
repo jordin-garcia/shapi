@@ -103,6 +103,7 @@ SHAPI_MAILPIT_HASH='$2a$14$prueba' SHAPI_RESEND_CLAVE=re_prueba docker compose -
   - El panel, los portales de Envíos y Agro, la compuerta (200 con clave válida, 401 con una inventada) y Mailpit (401 sin contraseña) responden con certificados de Let's Encrypt.
   - `/interno` responde 404 desde internet.
   - Un registro con un correo real recibe el correo de verificación por Resend.
+  - Un correo de prueba a `ana.morales@enviosxelaju.com`, una cuenta sembrada, enviado con `mailpit sendmail` dentro del servidor, quedó en Mailpit y no aparece entre los envíos de Resend. Mailpit no registra los reenvíos exitosos, así que la evidencia es el panel de Resend.
   - Una cuenta sin verificar no puede publicar ni contratar (422 `correo_no_verificado`).
   - `sembrar-demo --reiniciar` deja solo las cuentas de la siembra.
 - La revisión en contexto limpio (subagente `revisor`) dejó 3 correcciones y 8 opcionales, y se aplicaron todas: el orden del reloj y la re-siembra, el costo real de la máquina, el *release* v1.0.1 en la tarea, los riesgos en ADR-36, la clave de pruebas en el manual y otras.
