@@ -61,7 +61,8 @@ Se precisó el 26 de septiembre: la tabla solo tenía el tono de etiqueta, mient
   - las columnas laterales (formularios y resúmenes de 340 a 520 px) se apilan debajo del contenido, y los títulos con botón ponen el botón debajo del texto;
   - las tablas que no caben se desplazan a lo ancho dentro de su tarjeta; la página nunca se desplaza a lo ancho;
   - en el encabezado del portal sin sesión, «Documentación» y «Planes» quedan solo en el pie debajo de 768 px; en A0.1, «Precios» se oculta debajo de 640 px;
-  - la vista previa del portal (A3.7r) se reduce al ancho disponible.
+  - la vista previa del portal (A3.7r) se reduce al ancho disponible;
+  - en A0.1, la barra superior también mide 64 px.
 
 ## 2. Formato de los mockups
 

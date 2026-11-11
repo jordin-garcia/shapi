@@ -462,6 +462,13 @@ describe('RNF-12 · JG-32 menú del portal en pantallas angostas', () => {
     await usuario.keyboard('{Escape}');
     expect(barra.className).toContain('max-lg:hidden');
     await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(document.querySelector<HTMLElement>('[data-fondo-cajon]')!);
+    expect(barra.className).toContain('max-lg:hidden');
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(within(barra).getByRole('link', { name: 'Suscripción y claves' }));
+    await waitFor(() => expect(barra.className).toContain('max-lg:hidden'));
+    expect(enrutador.state.location.pathname).toBe('/cuenta/suscripcion');
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
     await usuario.click(within(barra).getByRole('link', { name: 'Pagos' }));
     await waitFor(() => expect(enrutador.state.location.pathname).toBe('/cuenta/pagos'));
     expect(barra.className).toContain('max-lg:hidden');

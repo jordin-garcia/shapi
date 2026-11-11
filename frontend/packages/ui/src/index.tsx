@@ -236,5 +236,5 @@ export function BotonMenu({ abierto, alternar, idCajon }: { abierto: boolean; al
 /** Fondo oscurecido detrás del cajón abierto; un toque lo cierra. */
 export function FondoCajon({ abierto, cerrar }: { abierto: boolean; cerrar: () => void }) {
   if (!abierto) return null;
-  return <div aria-hidden="true" onClick={cerrar} className="lg:hidden fixed inset-x-0 top-[64px] bottom-0 z-30 bg-tinta/40" />;
+  return <div aria-hidden="true" data-fondo-cajon="" onClick={cerrar} className="lg:hidden fixed inset-x-0 top-[64px] bottom-0 z-30 bg-tinta/40" />;
 }

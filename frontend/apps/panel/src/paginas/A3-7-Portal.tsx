@@ -43,8 +43,8 @@ function Codigo({ valor }: { valor: unknown }) {
 
 
 /**
- * La vista previa A3.7r dibuja el portal a 1440 × 1882 px y lo reduce al ancho de su tarjeta: 0.42569 en escritorio
- * (613 px, 11 §3) y menos en pantallas angostas (JG-32).
+ * La vista previa A3.7r dibuja el portal a 1440 × 1882 px reducido a 0.42569 (803 px de alto, como el mockup). Debajo de
+ * 1024 px se reduce al ancho de su tarjeta (JG-32, 11 §1).
  */
 function useEscalaVistaPrevia() {
   const [elemento, contenedor] = useState<HTMLDivElement | null>(null);
@@ -53,7 +53,8 @@ function useEscalaVistaPrevia() {
     if (!elemento || typeof ResizeObserver === 'undefined') return;
     const observador = new ResizeObserver(([entrada]) => {
       const ancho = entrada.contentRect.width;
-      if (ancho > 0) setEscala(Math.min(ancho / 1440, 0.42569));
+      const escritorio = window.matchMedia?.('(min-width: 1024px)').matches ?? true;
+      if (ancho > 0) setEscala(escritorio ? 0.42569 : Math.min(ancho / 1440, 0.42569));
     });
     observador.observe(elemento);
     return () => observador.disconnect();
@@ -331,7 +332,7 @@ export default function PaginaA37Portal() {
             </a>
           </div>
 
-          <div ref={contenedorVistaPrevia} style={{ height: `${Math.round(1882 * escalaVistaPrevia)}px` }} className="mt-5 w-full overflow-hidden rounded-base border border-borde bg-panel">
+          <div ref={contenedorVistaPrevia} style={{ height: escalaVistaPrevia === 0.42569 ? '803px' : `${Math.round(1882 * escalaVistaPrevia) + 2}px` }} className="mt-5 w-full overflow-hidden rounded-base border border-borde bg-panel">
             <div
               style={{
                 '--marca-principal': colorVivo,

@@ -61,8 +61,8 @@ export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, childr
   children: ReactNode;
   aviso?: ReactNode;
 }) {
-  const { pathname } = useLocation();
-  const cajon = useCajonMovil(pathname);
+  const { key } = useLocation();
+  const cajon = useCajonMovil(key);
   return (
     <div className="h-screen max-lg:h-dvh bg-fondo flex flex-col overflow-hidden">
       <header className="dark h-16 lg:h-[76px] shrink-0 bg-fondo border-b border-borde-barra flex items-center justify-between gap-4 px-4 lg:pl-7 lg:pr-11">

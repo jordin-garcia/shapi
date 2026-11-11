@@ -276,6 +276,17 @@ describe('RNF-12 · JG-32 menú en pantallas angostas', () => {
     await usuario.click(screen.getByRole('button', { name: 'Cerrar menú' }));
     expect(barra.className).toContain('max-lg:hidden');
 
+    // Un toque en el fondo oscurecido cierra el cajón.
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(document.querySelector<HTMLElement>('[data-fondo-cajon]')!);
+    expect(barra.className).toContain('max-lg:hidden');
+
+    // Elegir la opción de la página actual también lo cierra, aunque la ruta no cambie.
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(within(barra).getByRole('link', { name: 'APIs' }));
+    await waitFor(() => expect(barra.className).toContain('max-lg:hidden'));
+    expect(router.state.location.pathname).toBe('/panel/apis');
+
     await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
     await usuario.click(within(barra).getByRole('link', { name: 'Casos de soporte' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/panel/soporte'));

@@ -1233,7 +1233,7 @@ export default function PaginaA01Inicio() {
           </div>
 
           {/* Barra superior integrada de extremo a extremo */}
-          <div className="relative z-20 flex h-16 sm:h-[76px] items-center justify-between gap-4 border-b border-borde-barra/70 px-4 sm:px-8 lg:px-20">
+          <div className="relative z-20 flex h-16 lg:h-[76px] items-center justify-between gap-4 border-b border-borde-barra/70 px-4 sm:px-8 lg:px-20">
             <div className="flex items-center gap-[11px]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="1" y="1" width="22" height="22" rx="6" stroke="var(--principal)" strokeWidth="1.5" />

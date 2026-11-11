@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 
 /**
  * Menú de las barras laterales en pantallas angostas (JG-32, ADR-37). Debajo de 1024 px la barra lateral se oculta y se
- * abre como un cajón con `BotonMenu`; se cierra con Escape, con un toque en el fondo y al cambiar de ruta (`clave`).
+ * abre como un cajón con `BotonMenu`; se cierra con Escape, con un toque en el fondo y en cada navegación, aunque sea a la misma página (`clave` es la
+ * clave de la ubicación de React Router).
  * Desde 1024 px no hace nada: la barra queda fija como en los mockups.
  */
 export function useCajonMovil(clave: string) {

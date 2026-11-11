@@ -11,8 +11,8 @@ import { useSesionConsumidor } from '../modulos/sesion/useSesionConsumidor';
  * superior mide 64 px y la barra lateral se abre como cajón con el botón de menú (JG-32).
  */
 export function EstructuraPortal({ claseContenido = '', children }: { claseContenido?: string; children: ReactNode }) {
-  const { pathname } = useLocation();
-  const cajon = useCajonMovil(pathname);
+  const { key } = useLocation();
+  const cajon = useCajonMovil(key);
   return <div className="h-screen max-lg:h-dvh bg-fondo flex flex-col overflow-hidden">
     <header className="h-16 lg:h-[76px] shrink-0 border-b border-borde bg-panel flex items-center justify-between gap-4 px-4 lg:px-7">
       <MarcaPortal />

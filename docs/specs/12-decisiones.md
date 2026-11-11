@@ -206,4 +206,4 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
   - Mockups nuevos para celular: no había tiempo antes de la presentación final; el diseño móvil se deriva de los de escritorio.
   - Convertir las tablas en tarjetas en celular: cambia la estructura de cada pantalla y su prueba; desplazar la tabla conserva el contenido y el orden del mockup.
   - Una barra de navegación inferior: obliga a elegir solo algunas opciones, y las barras laterales tienen hasta 14.
-- **Consecuencias:** RNF-12 se amplía a celulares y tabletas desde 360 px. La prueba E2E `responsivo.spec.ts` recorre las pantallas a 360, 390 y 768 px y comprueba que no haya desplazamiento horizontal. Las pruebas de escritorio no cambiaron.
+- **Consecuencias:** RNF-12 se amplía a celulares y tabletas desde 360 px. La prueba E2E `responsivo.spec.ts` recorre las pantallas a 360, 390 y 768 px y comprueba que no haya desplazamiento horizontal. Las pruebas de escritorio siguen pasando; solo una aserción de Vitest se precisó para aceptar `max-lg:overflow-y-auto`, el desplazamiento del cajón, y seguir rechazando el de la barra fija.

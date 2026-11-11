@@ -74,6 +74,9 @@ for (const ancho of anchos) {
         ...['especificacion', 'rutas', 'configuracion-rutas', 'dominios', 'portal', 'planes', 'claves', 'consumo', 'consumidores',
           'consumidores/invitar'].map(r => `/panel/apis/${id}/${r}`)];
       if (casos[0]) rutas.push(`/panel/soporte/${casos[0].numero}`);
+      // A2.2 y A2.5: contratar o cambiar a cada plan de plataforma de pago.
+      const planes = await consultar<{ id: string; precio: number }[]>(page, '/api/planes-plataforma');
+      for (const plan of planes.filter(p => p.precio > 0)) rutas.push(`/panel/suscripcion/contratar/${plan.id}`, `/panel/suscripcion/cambiar/${plan.id}`);
       const errores: string[] = [];
       for (const ruta of rutas) {
         const fuera = await desborde(page, panel + ruta);
@@ -101,7 +104,11 @@ for (const ancho of anchos) {
       test.setTimeout(180_000);
       await entrar(page, portal, 'mariajose@mercaditoantigua.com');
       const errores: string[] = [];
-      for (const ruta of ['/', '/documentacion', '/consola', '/planes', '/cuenta/suscripcion', '/cuenta/consumo', '/cuenta/pagos']) {
+      // A5.6 y B2.7: contratar y cambiar a cada plan de la API.
+      const planes = await consultar<{ id: string }[]>(page, '/api/portal/planes');
+      const rutas = ['/', '/documentacion', '/consola', '/planes', '/cuenta/suscripcion', '/cuenta/consumo', '/cuenta/pagos',
+        ...planes.flatMap(plan => [`/contratar/${plan.id}`, `/cuenta/cambiar-plan/${plan.id}`])];
+      for (const ruta of rutas) {
         const fuera = await desborde(page, portal + ruta);
         if (fuera) errores.push(`${ruta} → ${fuera}`);
       }
@@ -115,6 +122,7 @@ test.describe('RNF-12 · menú en pantallas angostas', () => {
 
   for (const [area, host, correo, destino] of [
     ['panel', panel, 'ana.morales@enviosxelaju.com', 'Historial de pagos'],
+    ['administración', panel, 'rodrigo.alvarado@shapi.localhost', 'Bitácora de acciones'],
     ['portal', portal, 'mariajose@mercaditoantigua.com', 'Pagos'],
   ] as const) {
     test(`${area}: la barra lateral se abre como menú y se cierra`, async ({ page }) => {
@@ -130,6 +138,10 @@ test.describe('RNF-12 · menú en pantallas angostas', () => {
       await page.getByRole('button', { name: 'Abrir menú' }).click();
       await page.getByRole('button', { name: 'Cerrar menú' }).click();
       await expect(barra).toBeHidden();
+      // Un toque fuera del cajón (sobre el fondo oscurecido) lo cierra.
+      await page.getByRole('button', { name: 'Abrir menú' }).click();
+      await page.mouse.click(370, 500);
+      await expect(barra).toBeHidden();
       await page.getByRole('button', { name: 'Abrir menú' }).click();
       await barra.getByRole('link', { name: destino, exact: true }).click();
       await expect(barra).toBeHidden();
@@ -137,10 +149,19 @@ test.describe('RNF-12 · menú en pantallas angostas', () => {
     });
   }
 
-  test('desde 1024 px la barra queda fija y no hay botón de menú', async ({ page }) => {
-    await page.setViewportSize({ width: 1366, height: 768 });
-    await entrar(page, panel, 'ana.morales@enviosxelaju.com');
-    await expect(page.getByRole('button', { name: 'Abrir menú' })).toBeHidden();
-    await expect(page.getByRole('navigation').filter({ has: page.getByRole('button', { name: 'Cerrar sesión', exact: true }) })).toBeVisible();
-  });
+});
+
+test.describe('RNF-12 · escritorio', () => {
+  test.use({ viewport: { width: 1024, height: 768 } });
+
+  for (const [area, host, correo] of [
+    ['panel', panel, 'ana.morales@enviosxelaju.com'],
+    ['portal', portal, 'mariajose@mercaditoantigua.com'],
+  ] as const) {
+    test(`${area}: desde 1024 px la barra queda fija y no hay botón de menú`, async ({ page }) => {
+      await entrar(page, host, correo);
+      await expect(page.getByRole('button', { name: 'Abrir menú' })).toBeHidden();
+      await expect(page.getByRole('navigation').filter({ has: page.getByRole('button', { name: 'Cerrar sesión', exact: true }) })).toBeVisible();
+    });
+  }
 });

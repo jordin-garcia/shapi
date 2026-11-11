@@ -30,7 +30,7 @@ export default function PaginaA64Casos() {
 
   return <main>
     <header className="flex flex-col gap-[10px]"><p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Soporte</p><h1 className="font-display text-[32px]">Casos</h1><p className="text-[15px] text-tinta-suave">Casos que abren las organizaciones proveedoras desde su panel, o que el soporte registra a su nombre, y su estado.</p></header>
-    <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+    <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
     <section className="rounded-base border border-borde bg-panel p-5">
       {consulta.isPending && <EstadoCargando />}{consulta.isError && <EstadoError reintentar={() => void consulta.refetch()} />}
       {consulta.data && <>

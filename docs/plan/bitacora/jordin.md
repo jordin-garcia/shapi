@@ -1159,3 +1159,17 @@ Cada tarea terminada agrega una entrada **al final** de este archivo (protocolo,
 - Pendiente o aviso para otros:
   - **José Pablo:** agregué `infra/compose.servidor.yml` e `infra/caddy/Caddyfile.servidor`, y cambié tu manual técnico (`docs/manual-tecnico.md`, `docs/Manual_Tecnico.docx` y el PDF nuevo `docs/pdf/Manual_Tecnico.pdf`) en el capítulo 12 (introducción y 12.11), 6.7 y los Anexos A y B. También cambié `docs/manual-usuario.md` (§2) y su PDF. Actualiza tu rama desde `main` al integrarse.
   - **Todos:** para la presentación final, el sistema está en `https://shapi.tech`; el ambiente local queda de respaldo. Antes de presentar, se re-siembra y se vacía Mailpit (manual técnico, 12.11, paso 7). El servidor se desasigna después de la presentación.
+
+## 2026-11-11 · JG-32 · Interfaz responsiva en celulares y tabletas
+- Hecho:
+  - Panel, administración, portal y sitio público usables desde 360 px de ancho: las barras laterales se abren como cajón con un botón de menú, los márgenes se reducen, las columnas laterales se apilan y las tablas se desplazan dentro de su tarjeta.
+  - RNF-12, 11 §1 y ADR-37 actualizados. Prueba E2E nueva: `tests/e2e/tests/responsivo.spec.ts`.
+- Decisiones:
+  - Desde 1024 px la interfaz no cambia (clases `max-lg:` o `lg:`).
+  - Las tablas se desplazan a lo ancho en vez de convertirse en tarjetas.
+  - Sin mockups de celular.
+- Pendiente o aviso para otros:
+  - **Dominique:** cambié la estructura de `apps/panel` y `apps/portal` (`layouts/Navegacion.tsx`, `LayoutPublico.tsx` de las dos apps, `LayoutPortal.tsx`, `LayoutCuenta.tsx`, `BarraLateralPortal.tsx` y `MarcaPortal.tsx`), `packages/ui` (`index.tsx`, `cajon.ts` nuevo y `package.json`) y tus pantallas `A0-1`, `A3-1`, `A3-2`, `A3-6` y `A3-7`, y `portal/paginas` `A5-0`, `A5-1`, `A5-2`, `A5-4`, `A5-4b`, `A5-6`, `B2-3`, `Error-404` y `Error-Ruta`. Actualiza tu rama desde `main` al integrarse.
+  - **Emilio:** cambié `panel/paginas` `A2-1`, `A2-5`, `A4-1`, `A4-2`, `A6-1`, `B1-4` y `B1-5`, y `modulos/identidad/Formularios.tsx`. Actualiza tu rama desde `main` al integrarse.
+  - **José Pablo:** cambié `panel/paginas` `A6-4`, `A6-4b`, `A6-5`, `A7-1`, `A7-2`, `B3-1` y `B3-2`, agregué `tests/e2e/tests/responsivo.spec.ts` y cambié `docs/manual-usuario.md` y `docs/manual-tecnico.md` (RNF-12 y el navegador). El Word y los PDF de los manuales no se regeneraron. Actualiza tu rama desde `main` al integrarse.
+  - **Todos:** el menú ☰ aparece debajo de 1024 px; en escritorio nada cambia.

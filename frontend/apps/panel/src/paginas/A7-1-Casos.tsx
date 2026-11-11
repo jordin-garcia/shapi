@@ -51,7 +51,7 @@ export default function PaginaA71Casos() {
       <p className="text-[15px] leading-[1.55] text-tinta-suave">Escríbale al equipo de soporte de Shapi. Le avisaremos por correo cada vez que le respondan.</p>
     </header>
 
-    <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+    <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
     <section className="rounded-base border border-borde bg-panel p-5">
       {consulta.isPending && <EstadoCargando />}
       {consulta.isError && <EstadoError reintentar={() => void consulta.refetch()} />}
