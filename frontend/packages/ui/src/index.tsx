@@ -3,7 +3,8 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 // Medidas de 11 §1 y de la lámina oficial (mockups/A0/Lamina.dc.html).
 
 export function Boton({ principal = true, deshabilitado = false, disabled = false, className = '', children, ...props }: React.ComponentPropsWithoutRef<"button"> & { principal?: boolean; deshabilitado?: boolean }) {
-  const base = "h-[46px] rounded-base px-6 text-[15px] font-medium transition-colors inline-flex items-center justify-center";
+  // Debajo de 640 px un texto largo puede ocupar dos líneas en vez de salirse de la pantalla (JG-32).
+  const base = "h-[46px] max-sm:h-auto max-sm:min-h-[46px] max-sm:max-w-full max-sm:py-2 max-sm:text-center rounded-base px-6 text-[15px] font-medium transition-colors inline-flex items-center justify-center";
   let variante = "bg-principal text-white hover:bg-principal-hover";
   if (!principal) {
     variante = "border border-borde-campo text-tinta bg-panel hover:bg-fondo";
