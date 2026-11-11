@@ -53,7 +53,7 @@ export default function PaginaA61PlanesPlataforma() {
 
   return <div>
     {aviso && <Toast key={aviso}>{aviso}</Toast>}
-    <header className="flex items-end justify-between gap-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
       <div className="flex flex-col gap-2.5">
         <p className="text-etiqueta uppercase tracking-[.16em] text-tinta-suave">Plataforma</p>
         <h1 className="font-display text-[32px] leading-[1.2]">Planes de plataforma</h1>
@@ -103,7 +103,7 @@ function FormularioPlan({ original, cancelar, guardado, desactivar, errorDesacti
   const submit = (e: React.FormEvent) => { e.preventDefault(); setError(''); mutacion.mutate(); };
   return <div>
     <header className="flex flex-col gap-2.5"><p className="text-etiqueta uppercase tracking-[.16em] text-tinta-suave">Plataforma</p><h1 className="font-display text-[32px] leading-[1.2]">{original ? 'Editar plan de plataforma' : 'Crear plan de plataforma'}</h1><p className="text-[15px] leading-[1.55] text-tinta-suave">Las organizaciones proveedoras ven estos datos en la página de precios de Shapi.</p></header>
-    <form onSubmit={submit} className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
+    <form onSubmit={submit} className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
       <section className="rounded-base border border-borde bg-panel p-5">
         <h2 className="font-display text-[21px]">Datos del plan</h2>
         <div className="mt-5 flex flex-col gap-4 border-t border-borde-fila pt-5">
@@ -111,7 +111,7 @@ function FormularioPlan({ original, cancelar, guardado, desactivar, errorDesacti
           <Campo label="Descripción" value={descripcion} onChange={setDescripcion} required multiline placeholder="Para qué sirve este plan" />
         </div>
         <h2 className="mt-6 border-t border-borde-fila pt-5 font-display text-[21px]">Límites del plan</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Campo label="APIs" value={apis} onChange={setApis} type="number" min="1" placeholder="0" suffix="APIs" />
           <Campo label="Peticiones por ciclo" value={peticiones} onChange={setPeticiones} type="number" min="1" required placeholder="0" suffix="peticiones" />
           <Campo label="Miembros" value={miembros} onChange={setMiembros} type="number" min="1" placeholder="0" suffix="miembros" />

@@ -44,7 +44,7 @@ export default function PaginaA21PlanesPlataforma() {
     <h1 className="mt-2 font-display text-[44px] leading-[1.15]">Los planes de Shapi.</h1>
     <p className="mt-3 text-[16px] leading-[1.6] text-tinta-suave">Precios en quetzales. La vigencia se cuenta desde la contratación del plan.</p>
     {reactivar && <p className="mt-5 text-sm">Reactive su suscripción antes de cambiar de plan. <Link className="font-medium text-principal underline" to="/panel/suscripcion">Reactivar suscripción</Link></p>}
-    <section aria-label="Planes de plataforma" className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Planes de plataforma" className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
       {visibles.map((plan: Plan) => <article key={plan.id} className={'flex flex-col gap-5 rounded-base border p-6 ' + (plan.nombre === 'Producto' ? 'border-principal bg-white' : 'border-borde bg-panel')}>
         <div>
           <div className="flex h-8 items-center gap-3">

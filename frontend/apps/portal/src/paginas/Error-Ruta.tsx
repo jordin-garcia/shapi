@@ -9,5 +9,5 @@ import Error404 from './Error-404';
 export function ErrorRuta() {
   const error = useRouteError();
   if (isRouteErrorResponse(error) && error.status === 404) return <Error404 />;
-  return <div className="p-11"><EstadoError reintentar={() => window.location.reload()} /></div>;
+  return <div className="p-5 sm:p-8 lg:p-11"><EstadoError reintentar={() => window.location.reload()} /></div>;
 }

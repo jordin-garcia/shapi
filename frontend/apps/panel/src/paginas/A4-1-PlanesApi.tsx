@@ -71,7 +71,7 @@ export default function PaginaA41PlanesApi() {
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="flex flex-col gap-[10px]">
           <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">{nombreApi}</p>
           <h1 className="font-display text-[32px] leading-[1.2]">Planes de la API</h1>

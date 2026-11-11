@@ -66,7 +66,7 @@ Cada tarea pendiente tiene en su archivo el campo `programada: AAAA-MM-DD`: el d
 | Jue 29 oct | **JG-17** Convergencia final y congelamiento del código<br>**JG-29** Guion del video del Avance 3 y elemento de código de Jordin | — | — | — |
 | Vie 30 oct | **JG-30** Encabezado y pie del portal con la sesión abierta (A5.0 y A5.2) | — | — | — |
 | Sáb 31 oct | — | **EM-24** Diferencias visuales de la revisión DC-16 (A2.1, A6.3 y B1.4) | — | **JZ-20** Diferencias visuales de la revisión DC-16 (A6.2, A6.5 y B3.1) |
-| Mar 10 nov | **JG-31** Despliegue público en Azure y documentación para la presentación final | — | — | — |
+| Mar 10 nov | **JG-31** Despliegue público en Azure y documentación para la presentación final<br>**JG-32** Interfaz responsiva en celulares y tabletas | — | — | — |
 
 <!-- calendario:fin -->
 

@@ -89,7 +89,7 @@ export default function PaginaA25CambioPlan() {
       <p className="mt-3">El plan {destino.nombre} empezará el {fecha(actual.proximaRenovacion)}. No se reembolsa el periodo restante.</p>
       {!destino.dominioPropio && <p className="mt-3 text-tinta-suave">Al aplicar el cambio, se desconectarán los dominios propios de sus APIs. Sus direcciones por subdominio seguirán funcionando.</p>}
       <Boton className="mt-6" onClick={() => cambio.mutate()} deshabilitado={cambio.isPending}>Programar cambio de plan</Boton>
-    </section> : <section className="mt-8 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
+    </section> : <section className="mt-8 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
       {[origen, destino].map((plan, indice) => <div key={plan.id} className={'rounded-base border bg-panel p-5 ' + (indice === 1 ? 'border-principal' : 'border-borde')}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-[22px]">{plan.nombre}</h2>

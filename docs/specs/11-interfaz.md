@@ -54,6 +54,14 @@ Se precisó el 26 de septiembre: la tabla solo tenía el tono de etiqueta, mient
 - **Tarjeta:** fondo blanco, borde de 1 px `#DCE3EE`, radio de 8 px y relleno de 20 px, **sin sombra**.
 - **Estructura del panel:** barra superior oscura de 76 px, barra lateral oscura de 272 px con grupos *Publicación · API · Organización* y contenido con un margen de 44 px. Se diseña para 1440 × 900 y funciona desde 1280 px. Desde un área visible de 1366 × 650 px (pantalla de 1366 × 768 con Chrome al 100 %), todas las opciones y el pie de cada barra lateral quedan visibles sin desplazamiento propio. Se compactan filas y grupos sin quitar opciones ni cambiar su orden; este espaciado se aparta de N.1 por decisión de Jordin del 9 de octubre de 2026 (JG-20).
 - **Portal:** usa la misma estructura clara, pero el color principal es `--marca-principal`, el de la API. En el portal no aparece la marca de Shapi.
+- **Pantallas angostas (JG-32, ADR-37):** desde 1024 px todo se ve como en los mockups. Debajo de 1024 px:
+  - la barra superior mide 64 px y lleva a la derecha un botón «Abrir menú» (☰), que cambia a «Cerrar menú» (✕);
+  - la barra lateral del panel, de la administración y del portal se oculta y el botón la abre como un cajón de 272 px (como máximo el 85 % del ancho) sobre el contenido, con un fondo oscurecido. Tiene las mismas opciones, en el mismo orden, y su pie. Se cierra con el botón, con Escape, al tocar el fondo y al elegir una opción;
+  - el margen del contenido baja de 44 px a 32 px (640–1023 px) y a 20 px (menos de 640 px). Los encabezados públicos y del portal pasan de 80 px de margen a 32 y 16 px;
+  - las columnas laterales (formularios y resúmenes de 340 a 520 px) se apilan debajo del contenido, y los títulos con botón ponen el botón debajo del texto;
+  - las tablas que no caben se desplazan a lo ancho dentro de su tarjeta; la página nunca se desplaza a lo ancho;
+  - en el encabezado del portal sin sesión, «Documentación» y «Planes» quedan solo en el pie debajo de 768 px; en A0.1, «Precios» se oculta debajo de 640 px;
+  - la vista previa del portal (A3.7r) se reduce al ancho disponible.
 
 ## 2. Formato de los mockups
 

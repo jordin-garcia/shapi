@@ -33,7 +33,7 @@ export default function PaginaA72Caso() {
   if (consulta.isError || !consulta.data) return <EstadoError reintentar={() => void consulta.refetch()} />;
   const caso = consulta.data;
   return <main>
-    <header className="flex items-start justify-between gap-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="flex flex-col gap-[10px]">
         <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Casos de soporte · CAS-{caso.numero}</p>
         <h1 className="font-display text-[32px] leading-[1.2]">{caso.asunto}</h1>

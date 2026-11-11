@@ -116,20 +116,20 @@ function Bitacora({ hastaInicial }: { hastaInicial: string }) {
   }
 
   return <main>
-    <header className="flex items-end justify-between gap-6">
+    <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
       <div className="flex flex-col gap-[10px]">
         <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Sistema</p>
         <h1 className="font-display text-[32px] leading-[1.2]">Bitácora de acciones sensibles</h1>
         <p className="text-[15px] leading-[1.55] text-tinta-suave">Quedan registradas las acciones que cambian el acceso, el cobro o el estado de una organización.</p>
       </div>
 
-      <div className="relative w-[300px] shrink-0">
+      <div className="relative w-full shrink-0 md:w-[300px]">
         <button type="button" aria-label="Seleccionar periodo" aria-expanded={selectorAbierto} onClick={() => setSelectorAbierto(abierto => !abierto)}
           className="flex w-full items-center justify-between gap-3 rounded-base border border-borde-campo bg-panel px-[14px] py-[11px] text-left text-[15px] leading-[1.5] tabular-nums">
           <span>{etiquetaPeriodo(periodo.desde, periodo.hasta)}</span>
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-tinta-suave"><path d="M4 6 L8 10 L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        {selectorAbierto && <div className="absolute right-0 z-10 mt-2 w-[360px] rounded-base border border-borde bg-panel p-4 shadow-lg">
+        {selectorAbierto && <div className="absolute right-0 z-10 mt-2 w-[min(360px,calc(100vw-2.5rem))] rounded-base border border-borde bg-panel p-4 shadow-lg">
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-[6px] text-[13px] font-semibold">Desde
               <input aria-label="Desde" type="date" value={borrador.desde} max={borrador.hasta} onChange={evento => setBorrador(actual => ({ ...actual, desde: evento.target.value }))} className="h-12 rounded-base border border-borde-campo px-3 text-[15px]" />

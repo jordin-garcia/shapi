@@ -450,3 +450,20 @@ describe('RF-16 · cuenta del consumidor', () => {
     expect(enrutador.state.location.pathname).toBe('/cuenta/suscripcion');
   });
 });
+
+describe('RNF-12 · JG-32 menú del portal en pantallas angostas', () => {
+  it('RNF-12 el botón de menú abre la barra lateral del portal y se cierra con Escape y al navegar', async () => {
+    const usuario = userEvent.setup();
+    const { enrutador } = montar('/cuenta/suscripcion');
+    const barra = await screen.findByRole('navigation', { name: 'Barra lateral del portal' });
+    expect(barra.className).toContain('max-lg:hidden');
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    expect(barra.className).not.toContain('max-lg:hidden');
+    await usuario.keyboard('{Escape}');
+    expect(barra.className).toContain('max-lg:hidden');
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(within(barra).getByRole('link', { name: 'Pagos' }));
+    await waitFor(() => expect(enrutador.state.location.pathname).toBe('/cuenta/pagos'));
+    expect(barra.className).toContain('max-lg:hidden');
+  });
+});

@@ -42,8 +42,8 @@ export default function PaginaA64bCaso() {
   if (caso.isError || !caso.data) return <EstadoError reintentar={() => void caso.refetch()} />;
   const detalle = caso.data;
   return <main>
-    <header className="flex items-start justify-between gap-6"><div className="flex flex-col gap-[10px]"><p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Soporte · CAS-{detalle.numero}</p><h1 className="font-display text-[32px]">{detalle.asunto}</h1><p className="text-[15px] text-tinta-suave">{detalle.organizacion} · Abierto por {detalle.creadoPor} el {fechaLarga(detalle.creadoEn)}{detalle.asignadoA ? ` · Atiende ${detalle.asignadoA}` : ''}</p></div><EtiquetaEstado estado={detalle.estado} /></header>
-    <div className="mt-8 grid grid-cols-[minmax(0,1fr)_440px] items-start gap-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6"><div className="flex flex-col gap-[10px]"><p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Soporte · CAS-{detalle.numero}</p><h1 className="font-display text-[32px]">{detalle.asunto}</h1><p className="text-[15px] text-tinta-suave">{detalle.organizacion} · Abierto por {detalle.creadoPor} el {fechaLarga(detalle.creadoEn)}{detalle.asignadoA ? ` · Atiende ${detalle.asignadoA}` : ''}</p></div><EtiquetaEstado estado={detalle.estado} /></header>
+    <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
       <section className="rounded-base border border-borde bg-panel p-5">
         <Conversacion caso={detalle} proveedor={false} integrada />
         {detalle.estado === 'abierto' && <form className="mt-5 border-t border-borde pt-5" onSubmit={e => { e.preventDefault(); responder.mutate(); }}>

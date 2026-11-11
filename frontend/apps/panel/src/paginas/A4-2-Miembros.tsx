@@ -107,7 +107,7 @@ export default function PaginaA42Miembros() {
         <p className="m-0 max-w-4xl text-[15px] leading-relaxed text-tinta-suave">{descripcion}</p>
       </div>
 
-      <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+      <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
         <Tarjeta className="p-5">
           <Tabla encabezados={['Persona', 'Rol', 'Acción']} filas={filas} />
           {datos.elementos.length === 1 && datos.invitacionesPendientes === 0 && (

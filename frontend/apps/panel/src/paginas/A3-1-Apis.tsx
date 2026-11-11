@@ -66,7 +66,7 @@ export default function PaginaA31Apis() {
     : <>Usa <span className="font-medium text-tinta tabular-nums">{total} de {maxApis}</span> APIs de su plan {planNombre}.</>;
 
   return <div>
-    <div className="flex items-end justify-between gap-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
       <div className="flex flex-col gap-[10px]">
         <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Publicación</p>
         <h1 className="font-display text-[32px] leading-[1.2]">APIs de la organización</h1>

@@ -23,7 +23,7 @@ Las opciones que su rol no permite se ocultan o aparecen en solo lectura. Una se
 
 ## 2. Acceso al ambiente de demostración
 
-Utilice un navegador de escritorio, con una ventana de al menos 1280 píxeles de ancho. El responsable técnico debe haber iniciado el ambiente, cargado los datos de demostración e instalado el certificado local. El procedimiento de instalación está en el [manual técnico, capítulo 12](manual-tecnico.md#12-manual-de-instalación).
+Utilice un navegador de escritorio, con una ventana de al menos 1280 píxeles de ancho. También puede usar Shapi en un celular o una tableta: en pantallas angostas, el menú lateral se abre con el botón ☰ de la barra superior. El responsable técnico debe haber iniciado el ambiente, cargado los datos de demostración e instalado el certificado local. El procedimiento de instalación está en el [manual técnico, capítulo 12](manual-tecnico.md#12-manual-de-instalación).
 
 | Sitio | Dirección | Para qué sirve |
 |---|---|---|

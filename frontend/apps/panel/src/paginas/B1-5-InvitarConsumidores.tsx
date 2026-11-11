@@ -99,7 +99,7 @@ export default function PaginaB15InvitarConsumidores() {
         <p className="m-0 max-w-4xl text-[15px] leading-relaxed text-tinta-suave">Invite a un cliente a crear su cuenta en su portal. La cuenta creada por invitación queda con el correo ya verificado.</p>
       </header>
 
-      <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+      <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
         <Tarjeta className="p-5">
           <h2 className="mb-4 mt-0 font-display text-[21px] leading-snug">Invitaciones pendientes</h2>
           {consulta.data.elementos.length > 0 ? <Tabla encabezados={['Correo', 'Enviada', 'Vence', 'Acción']} filas={filas} /> : (

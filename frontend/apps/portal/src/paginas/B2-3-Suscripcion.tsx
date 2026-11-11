@@ -145,9 +145,9 @@ export default function Suscripcion() {
     <div className={`grid grid-cols-1 gap-6 ${requierePago || apiNoDisponible ? 'mt-5' : 'mt-8'} lg:grid-cols-2 lg:items-start`}>
       <section className="rounded-base border border-borde bg-panel p-5">
         <h2 className="font-display text-[21px] leading-[1.3]">Su suscripción</h2>
-        <div className="mt-5 flex items-end justify-between gap-6 border-t border-borde pt-5">
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-borde pt-5">
           <div><p className="text-[12px] font-medium uppercase tracking-[.14em] text-tinta-suave">Plan de la API</p><div className="mt-2 flex items-center gap-3"><h3 className="font-display text-[22px]">{suscripcion.plan.nombre}</h3><Etiqueta estado={requierePago ? 'alerta' : 'correcto'}>{suspendida ? 'Suspendida' : enGracia ? 'En gracia' : 'Activa'}</Etiqueta></div></div>
-          <div className="text-right"><p className="font-display text-[24px]">{dinero(suscripcion.plan.precio)}</p><p className="mt-1 text-[14px] text-tinta-suave">Vigencia de {vigencia} días</p></div>
+          <div className="text-right"><p className="whitespace-nowrap font-display text-[24px]">{dinero(suscripcion.plan.precio)}</p><p className="mt-1 text-[14px] text-tinta-suave">Vigencia de {vigencia} días</p></div>
         </div>
         <dl className="mt-5 flex flex-col gap-3.5 border-t border-borde pt-5 text-[14px]">
           <Fila nombre={requierePago ? 'Periodo vencido' : 'Periodo activo'} valor={`${fecha(suscripcion.periodo.inicio)} – ${fecha(suscripcion.periodo.fin)}`} />
