@@ -68,7 +68,7 @@ export default function PaginaA32Registro() {
   const subdominioVisible = subdominio || 'subdominio';
 
   return <div className="flex min-h-full items-center justify-center">
-    <form onSubmit={enviar} className="w-[600px] rounded-base border border-borde bg-panel p-10">
+    <form onSubmit={enviar} className="w-full max-w-[600px] rounded-base border border-borde bg-panel p-6 sm:p-10">
       <div className="flex flex-col gap-2">
         <p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Nueva API</p>
         <h1 className="font-display text-[32px] leading-[1.2]">Registrar una API</h1>

@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { crearCliente, ErrorApi } from '@shapi/api';
 import type { components, paths } from '@shapi/api/apis';
@@ -41,11 +41,33 @@ function Codigo({ valor }: { valor: unknown }) {
   );
 }
 
+
+/**
+ * La vista previa A3.7r dibuja el portal a 1440 × 1882 px reducido a 0.42569 (803 px de alto, como el mockup). Debajo de
+ * 1024 px se reduce al ancho de su tarjeta (JG-32, 11 §1).
+ */
+function useEscalaVistaPrevia() {
+  const [elemento, contenedor] = useState<HTMLDivElement | null>(null);
+  const [escala, setEscala] = useState(0.42569);
+  useEffect(() => {
+    if (!elemento || typeof ResizeObserver === 'undefined') return;
+    const observador = new ResizeObserver(([entrada]) => {
+      const ancho = entrada.contentRect.width;
+      const escritorio = window.matchMedia?.('(min-width: 1024px)').matches ?? true;
+      if (ancho > 0) setEscala(escritorio ? 0.42569 : Math.min(ancho / 1440, 0.42569));
+    });
+    observador.observe(elemento);
+    return () => observador.disconnect();
+  }, [elemento]);
+  return { contenedor, escala };
+}
+
 export default function PaginaA37Portal() {
   const puedeConfigurar = usePuedeConfigurarApi();
   const { id = '' } = useParams();
   const cache = useQueryClient();
   const selectorLogo = useRef<HTMLInputElement>(null);
+  const { contenedor: contenedorVistaPrevia, escala: escalaVistaPrevia } = useEscalaVistaPrevia();
 
   const [nombreEditado, setNombreEditado] = useState<string>();
   const [colorEditado, setColorEditado] = useState<string>();
@@ -310,13 +332,13 @@ export default function PaginaA37Portal() {
             </a>
           </div>
 
-          <div className="mt-5 h-[803px] w-full overflow-hidden rounded-base border border-borde bg-panel">
+          <div ref={contenedorVistaPrevia} style={{ height: escalaVistaPrevia === 0.42569 ? '803px' : `${Math.round(1882 * escalaVistaPrevia) + 2}px` }} className="mt-5 w-full overflow-hidden rounded-base border border-borde bg-panel">
             <div
               style={{
                 '--marca-principal': colorVivo,
                 width: '1440px',
                 height: '1882px',
-                transform: 'scale(0.42569)',
+                transform: `scale(${escalaVistaPrevia})`,
                 transformOrigin: 'top left',
               } as CSSProperties}
               className="flex flex-col overflow-hidden bg-panel text-[16px] leading-[1.6] text-tinta"

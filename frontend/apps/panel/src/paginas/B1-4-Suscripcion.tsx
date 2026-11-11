@@ -92,16 +92,16 @@ export default function PaginaB14Suscripcion() {
           <p className="text-etiqueta uppercase tracking-[0.14em] text-tinta-suave">Plan de plataforma</p>
           <div className="mt-2 flex items-center gap-3"><h2 className="font-display text-[25px]">{s.plan.nombre}</h2><span className="rounded-full border border-borde px-3 py-1 text-xs font-medium">{estado}</span></div>
         </div>
-        <div className="text-right"><p className="font-display text-[25px]">{dinero(s.plan.precio)}</p><p className="text-sm text-tinta-suave">Vigencia de {s.plan.vigenciaDias} días</p></div>
+        <div className="text-right"><p className="whitespace-nowrap font-display text-[25px]">{dinero(s.plan.precio)}</p><p className="text-sm text-tinta-suave">Vigencia de {s.plan.vigenciaDias} días</p></div>
       </div>
       <p className="mt-5 text-sm">{s.periodoVigente ?? !(gracia || suspendida) ? 'Periodo activo' : 'Periodo vencido'}</p>
       <p className="mt-1 text-[15px]">{fecha(s.periodo.inicio || s.proximaRenovacion)} – {fecha(s.periodo.fin || s.proximaRenovacion)}</p>
-      <div className="mt-5 grid gap-4 border-t border-borde pt-5 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-4 border-t border-borde pt-5 sm:grid-cols-2">
         <div><p className="text-sm text-tinta-suave">{gratuito ? 'Fin del periodo' : 'Renovación automática'}</p><p className="mt-1">{fechaLarga(s.proximaRenovacion)}</p></div>
         <div><p className="text-sm text-tinta-suave">Tarjeta registrada</p><p className="mt-1">{s.tarjetaEnmascarada || 'Sin tarjeta registrada'}</p></div>
       </div>
       {gracia && <p className="mt-5 text-sm">Periodo de gracia hasta {s.graciaHasta ? fecha(s.graciaHasta) : '—'} · {s.diasRestantes || 0} días restantes</p>}
-      {(gracia || suspendida) && <div className="mt-5 grid gap-3 border-t border-borde pt-5 text-sm sm:grid-cols-2">
+      {(gracia || suspendida) && <div className="mt-5 grid grid-cols-1 gap-3 border-t border-borde pt-5 text-sm sm:grid-cols-2">
         {!gratuito && <p><span className="text-tinta-suave">{revertido ? 'Pago revertido' : 'Cobro rechazado'}</span><br />{revertido ? `${fecha(revertido.fecha)} · ${dinero(revertido.monto)}` : s.ultimoRechazoEn ? fecha(s.ultimoRechazoEn) : '—'}</p>}
         <p><span className="text-tinta-suave">Periodo de gracia</span><br />{fecha(s.graciaDesde ?? s.proximaRenovacion)} – {s.graciaHasta ? fecha(new Date(new Date(s.graciaHasta).getTime() - 86400000).toISOString()) : '—'}</p>
         {suspendida && <p><span className="text-tinta-suave">Suspendida desde</span><br />{s.graciaHasta ? fecha(s.graciaHasta) : '—'}</p>}
@@ -118,7 +118,7 @@ export default function PaginaB14Suscripcion() {
     {puedeGestionar && mostrarPago && !gratuito && <form className="mt-6 rounded-base border border-borde bg-panel p-6" onSubmit={e => { e.preventDefault(); pagar.mutate(); }}>
       <h2 className="font-display text-[21px]">Datos de la tarjeta</h2>
       <p className="mt-2 text-sm text-tinta-suave">Al autorizar el cobro la suscripción se reactiva y comienza un ciclo nuevo desde hoy.</p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo etiqueta="Número de tarjeta" autoComplete="cc-number" value={numero} onChange={e => setNumero(e.target.value)} required />
         <Campo etiqueta="Titular de la tarjeta" autoComplete="cc-name" value={titular} onChange={e => setTitular(e.target.value)} required />
         <Campo etiqueta="Mes de vencimiento" autoComplete="cc-exp-month" value={mes} onChange={e => setMes(e.target.value)} required />

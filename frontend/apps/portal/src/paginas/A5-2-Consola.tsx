@@ -147,11 +147,11 @@ export default function Consola() {
   const [rutaElegida, setRutaElegida] = useState('');
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.isError) return <EstadoError mensaje="No se pudieron cargar las rutas expuestas." reintentar={() => void consulta.refetch()} />;
-  if (consulta.data.length === 0) return <section className="p-11"><h1 className="font-display text-[32px]">Consola de pruebas</h1><p className="mt-3 text-tinta-suave">No hay rutas expuestas para probar.</p></section>;
+  if (consulta.data.length === 0) return <section className="p-5 sm:p-8 lg:p-11"><h1 className="font-display text-[32px]">Consola de pruebas</h1><p className="mt-3 text-tinta-suave">No hay rutas expuestas para probar.</p></section>;
   const ruta = consulta.data.find(item => identificador(item) === rutaElegida) ?? consulta.data[0];
 
   // JG-30: la barra lateral, el encabezado y la sesión los pone LayoutPortal, igual que en la documentación (mockup A5 Consola).
-  return <section className="min-w-0 px-11 pb-11 pt-10">
+  return <section className="min-w-0 px-5 pb-8 pt-6 sm:px-8 lg:px-11 lg:pb-11 lg:pt-10">
     <header>
       <p className="text-[12px] font-medium uppercase tracking-[.16em] text-[var(--marca-principal)]">{marca.nombreApi}</p>
       <h1 className="mt-2 font-display text-[32px] leading-[1.2]">Consola de pruebas</h1>

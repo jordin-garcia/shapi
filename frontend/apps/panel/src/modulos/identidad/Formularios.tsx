@@ -4,8 +4,8 @@ import { Boton, Campo, CampoContrasena } from '@shapi/ui';
 /** Tarjeta centrada de las pantallas de acceso (A1): 520 px o 460 px de ancho, 40 px de relleno. */
 export function MarcoAcceso({ ancho = 520, children }: { ancho?: 460 | 520; children: ReactNode }) {
   return (
-    <div className="flex-grow flex items-center justify-center py-11 px-20">
-      <div style={{ width: ancho }} className="max-w-full bg-white border border-borde rounded-base p-10">
+    <div className="flex-grow flex items-center justify-center py-6 px-4 sm:py-11 sm:px-8 lg:px-20">
+      <div style={{ width: ancho }} className="max-w-full bg-white border border-borde rounded-base p-6 sm:p-10">
         {children}
       </div>
     </div>

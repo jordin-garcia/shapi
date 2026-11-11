@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
+import { BotonMenu, FondoCajon } from '@shapi/ui';
+import { clasesCajon, useCajonMovil } from '@shapi/ui/cajon';
 import { CerrarSesion } from '../modulos/sesion/CerrarSesion';
 
 // Piezas comunes de N.1 (proveedor), A6 (administrador) y B3 (soporte). Las barras son superficie oscura: llevan la
@@ -48,7 +50,8 @@ const nombresDeRol: Record<string, string> = {
 
 /**
  * Estructura del panel y de la administración: barra superior de 76 px, barra lateral de 272 px con el pie fijo y el
- * contenido con 44 px de margen, que es lo único que se desplaza (11 §1).
+ * contenido con 44 px de margen, que es lo único que se desplaza (11 §1). Debajo de 1024 px la barra superior mide 64 px,
+ * la barra lateral se abre como cajón con el botón de menú y el margen baja a 20 o 32 px (JG-32).
  */
 export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, children, aviso }: {
   textoSuperior: string;
@@ -58,14 +61,18 @@ export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, childr
   children: ReactNode;
   aviso?: ReactNode;
 }) {
+  const { key } = useLocation();
+  const cajon = useCajonMovil(key);
   return (
-    <div className="h-screen bg-fondo flex flex-col overflow-hidden">
-      <header className="dark h-[76px] shrink-0 bg-fondo border-b border-borde-barra flex items-center justify-between pl-7 pr-11">
+    <div className="h-screen max-lg:h-dvh bg-fondo flex flex-col overflow-hidden">
+      <header className="dark h-16 lg:h-[76px] shrink-0 bg-fondo border-b border-borde-barra flex items-center justify-between gap-4 px-4 lg:pl-7 lg:pr-11">
         <MarcaShapi />
-        <span className="text-[14px] text-tinta-suave">{textoSuperior}</span>
+        <span className="min-w-0 flex-1 truncate text-right text-[14px] text-tinta-suave">{textoSuperior}</span>
+        <BotonMenu abierto={cajon.abierto} alternar={cajon.alternar} idCajon="barra-lateral" />
       </header>
       <div className="flex-1 flex min-h-0">
-        <nav className="dark w-[272px] shrink-0 bg-fondo border-r border-borde-barra px-4 py-3 flex flex-col justify-between gap-2">
+        <FondoCajon abierto={cajon.abierto} cerrar={cajon.cerrar} />
+        <nav id="barra-lateral" className={`dark w-[272px] shrink-0 bg-fondo border-r border-borde-barra px-4 py-3 flex flex-col justify-between gap-2 ${clasesCajon(cajon.abierto)}`}>
           <div className="flex flex-col gap-3">{children}</div>
           <div className="flex items-center justify-between gap-3 border-t border-borde-barra pt-2 shrink-0 pr-1 pl-3">
             <div className="flex flex-col gap-px min-w-0">
@@ -75,7 +82,7 @@ export function EstructuraConBarras({ textoSuperior, perfil, nombre, rol, childr
             <CerrarSesion />
           </div>
         </nav>
-        <main className="flex-1 min-w-0 p-11 overflow-auto">
+        <main className="flex-1 min-w-0 p-5 sm:p-8 lg:p-11 overflow-auto">
           {aviso}
           <Outlet />
         </main>

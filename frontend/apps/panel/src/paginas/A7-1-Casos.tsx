@@ -51,11 +51,11 @@ export default function PaginaA71Casos() {
       <p className="text-[15px] leading-[1.55] text-tinta-suave">Escríbale al equipo de soporte de Shapi. Le avisaremos por correo cada vez que le respondan.</p>
     </header>
 
-    <div className="mt-8 grid grid-cols-[minmax(0,1fr)_440px] items-start gap-6">
+    <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
     <section className="rounded-base border border-borde bg-panel p-5">
       {consulta.isPending && <EstadoCargando />}
       {consulta.isError && <EstadoError reintentar={() => void consulta.refetch()} />}
-      {consulta.data && <table className="w-full border-collapse text-left">
+      {consulta.data && <div className="overflow-x-auto"><table className="w-full border-collapse text-left">
         <thead><tr>{['Caso', 'Asunto', 'Estado', 'Acción'].map(titulo => <th key={titulo} className="border-b border-borde pb-[10px] pr-4 text-encabezado uppercase text-tinta-suave">{titulo}</th>)}</tr></thead>
         <tbody>{consulta.data.elementos.map(caso => <tr key={caso.numero} className="border-b border-borde-fila last:border-b-0">
           <td className="whitespace-nowrap py-3 pr-4 font-medium tabular-nums">CAS-{caso.numero}</td>
@@ -63,7 +63,7 @@ export default function PaginaA71Casos() {
           <td className="py-3 pr-4"><EtiquetaEstado estado={caso.estado} /></td>
           <td className="py-3"><Link className="font-medium text-principal hover:underline" to={`/panel/soporte/${caso.numero}`}>Abrir</Link></td>
         </tr>)}</tbody>
-      </table>}
+      </table></div>}
     </section>
 
     <form className="rounded-base border border-borde bg-panel p-5" onSubmit={evento => { evento.preventDefault(); abrir.mutate(); }}>

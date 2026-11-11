@@ -33,22 +33,22 @@ export default function Inicio() {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-borde px-20 py-20">
+      <section className="relative overflow-hidden border-b border-borde px-4 py-10 sm:px-8 sm:py-14 lg:px-20 lg:py-20">
         <div aria-hidden="true" className="absolute inset-0 opacity-[.08] [background-image:linear-gradient(var(--marca-principal)_1px,transparent_1px),linear-gradient(90deg,var(--marca-principal)_1px,transparent_1px)] [background-size:48px_48px]" />
-        <div className="relative grid grid-cols-[minmax(0,1fr)_minmax(380px,520px)] items-center gap-16">
+        <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(380px,520px)] lg:gap-16">
           <div>
             <p className="text-[12px] font-medium uppercase tracking-[.16em] text-[var(--marca-principal)]">{marca.nombreApi}</p>
-            <h1 className="mt-5 max-w-[18ch] font-display text-[44px] font-light leading-[1.15] tracking-[-.03em] text-tinta">
+            <h1 className="mt-5 max-w-[18ch] font-display text-[32px] sm:text-[44px] font-light leading-[1.15] tracking-[-.03em] text-tinta">
               {marca.bienvenida ?? `Bienvenido al portal de ${marca.nombreApi}.`}
             </h1>
-            {marca.descripcionApi && <p className="mt-5 max-w-[52ch] text-[20px] leading-[1.55] text-tinta-suave">{marca.descripcionApi}</p>}
-            <div className="mt-8 flex gap-3">
+            {marca.descripcionApi && <p className="mt-5 max-w-[52ch] text-[17px] sm:text-[20px] leading-[1.55] text-tinta-suave">{marca.descripcionApi}</p>}
+            <div className="mt-8 flex flex-wrap gap-3">
               {!sesion.data && <Link to="/registro" className="rounded-base bg-[var(--marca-principal)] px-6 py-[13px] text-[15px] font-medium text-white">Crear cuenta</Link>}
               <Link to="/documentacion" className="rounded-base border border-[#C9D2E1] bg-panel px-6 py-3 text-[15px] font-medium text-tinta">Ver documentación</Link>
             </div>
           </div>
           {primeraConEjemplo && (
-            <div className="overflow-hidden rounded-base border border-borde bg-panel">
+            <div className="min-w-0 overflow-hidden rounded-base border border-borde bg-panel">
               <div className="flex items-center justify-between border-b border-borde px-5 py-3.5">
                 <span className="text-[12px] font-medium uppercase tracking-[.16em] text-tinta-suave">Petición</span>
                 <span className="text-[14px]"><strong className="mr-2 text-[var(--marca-principal)]">{primeraConEjemplo.metodo}</strong>{primeraConEjemplo.patron}</span>
@@ -64,9 +64,9 @@ export default function Inicio() {
         </div>
       </section>
 
-      <section className="px-20 py-16">
+      <section className="px-4 py-10 sm:px-8 lg:px-20 lg:py-16">
         <p className="text-[12px] font-medium uppercase tracking-[.16em] text-tinta-suave">Documentación</p>
-        <h2 className="mt-3 font-display text-[44px] font-light tracking-[-.03em] text-tinta">Rutas disponibles</h2>
+        <h2 className="mt-3 font-display text-[32px] sm:text-[44px] font-light tracking-[-.03em] text-tinta">Rutas disponibles</h2>
         {consulta.data.rutas.length === 0
           ? <p className="mt-8 text-tinta-suave">No hay rutas publicadas.</p>
           : (
@@ -87,9 +87,9 @@ export default function Inicio() {
           )}
       </section>
 
-      <section aria-labelledby="planes-api" className="border-y border-borde bg-[#F4F6FA] px-20 py-16">
+      <section aria-labelledby="planes-api" className="border-y border-borde bg-[#F4F6FA] px-4 py-10 sm:px-8 lg:px-20 lg:py-16">
         <p className="text-[12px] font-medium uppercase tracking-[.16em] text-tinta-suave">Precios</p>
-        <h2 id="planes-api" className="mt-3 font-display text-[44px] font-light tracking-[-.03em] text-tinta">Planes de la API</h2>
+        <h2 id="planes-api" className="mt-3 font-display text-[32px] sm:text-[44px] font-light tracking-[-.03em] text-tinta">Planes de la API</h2>
         {avisoPlan && <div className="mt-6 rounded-base border border-[#EDC3B4] bg-[#FBE9E3] px-4 py-3 text-[14px] text-[#8E3315]" role="alert">{avisoPlan}</div>}
         {planes.data.length === 0 ? <PlanVacio nombrePortal={marca.nombrePortal} /> : <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">{planes.data.map(plan => <PlanCard key={plan.id} plan={plan} contratar={contratarPlan} />)}</div>}
       </section>

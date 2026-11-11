@@ -199,7 +199,9 @@ describe('RNF-12 · H-97 a H-99 medidas, tokens y altura', () => {
     expect(screen.getByRole('banner').className).toContain('pr-11');
     // RNF-12 · JG-20: espaciado compacto autorizado para mostrar todas las opciones a 1366 × 650.
     for (const clase of ['px-4', 'py-3', 'w-[272px]']) expect(barra.className).toContain(clase);
-    expect(barra.className).not.toContain('overflow-y-auto');
+    // Desde 1024 px la barra no se desplaza; solo el cajón de pantallas angostas puede hacerlo (JG-32, `max-lg:`).
+    expect(barra.className.split(' ')).not.toContain('overflow-y-auto');
+    expect(barra.className.split(' ').filter(clase => clase.includes('overflow-y-auto'))).toEqual(['max-lg:overflow-y-auto']);
     expect(within(barra).getByText('Publicación').className).toContain('leading-[1.2]');
     expect(within(barra).getByRole('link', { name: 'APIs' }).className).toContain('leading-[1.5]');
     expect(within(barra).getByRole('link', { name: 'APIs' }).className).toContain('py-[2px]');
@@ -248,5 +250,55 @@ describe('RNF-12 · H-100 y H-101 sesión, selector y lámina', () => {
     montar(createMemoryRouter(crearRutas({ desarrollo: false }), { initialEntries: ['/_ui'] }));
     expect(await screen.findByText('Página no encontrada')).toBeDefined();
     expect(screen.queryByText('Plano azul')).toBeNull();
+  });
+});
+
+describe('RNF-12 · JG-32 menú en pantallas angostas', () => {
+  it('RNF-12 el botón de menú abre la barra lateral como cajón y la cierra con Escape, con «Cerrar menú» y al navegar', async () => {
+    const usuario = userEvent.setup();
+    await abrir('/panel/apis');
+    const barra = await barraLateral();
+    await within(barra).findByText('Casos de soporte');
+    const boton = screen.getByRole('button', { name: 'Abrir menú' });
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    expect(boton.getAttribute('aria-controls')).toBe(barra.id);
+    expect(boton.className).toContain('lg:hidden');
+    expect(barra.className).toContain('max-lg:hidden');
+    expect(barra.className).toContain('max-lg:fixed');
+
+    await usuario.click(boton);
+    expect(screen.getByRole('button', { name: 'Cerrar menú' }).getAttribute('aria-expanded')).toBe('true');
+    expect(barra.className).not.toContain('max-lg:hidden');
+    await usuario.keyboard('{Escape}');
+    expect(barra.className).toContain('max-lg:hidden');
+
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar menú' }));
+    expect(barra.className).toContain('max-lg:hidden');
+
+    // Un toque en el fondo oscurecido cierra el cajón.
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(document.querySelector<HTMLElement>('[data-fondo-cajon]')!);
+    expect(barra.className).toContain('max-lg:hidden');
+
+    // Elegir la opción de la página actual también lo cierra, aunque la ruta no cambie.
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(within(barra).getByRole('link', { name: 'APIs' }));
+    await waitFor(() => expect(barra.className).toContain('max-lg:hidden'));
+    expect(router.state.location.pathname).toBe('/panel/apis');
+
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await usuario.click(within(barra).getByRole('link', { name: 'Casos de soporte' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/panel/soporte'));
+    expect(barra.className).toContain('max-lg:hidden');
+    expect(screen.getByRole('button', { name: 'Abrir menú' })).toBeDefined();
+  });
+
+  it('RNF-12 en escritorio conserva la barra de 76 px, el margen de 44 px y la barra fija de 272 px', async () => {
+    await abrir('/panel/apis');
+    const barra = await barraLateral();
+    expect(screen.getByRole('banner').className).toContain('lg:h-[76px]');
+    expect(screen.getByRole('main').className).toContain('lg:p-11');
+    expect(barra.className).toContain('w-[272px]');
   });
 });

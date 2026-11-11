@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
+import { clasesCajon } from '@shapi/ui/cajon';
 import { useDocumentacionPortal, rutaDocumentacion } from '../paginas/A5-1-Documentacion';
 import { CerrarSesionConsumidor } from '../modulos/sesion/CerrarSesionConsumidor';
 import { useSesionConsumidor } from '../modulos/sesion/useSesionConsumidor';
@@ -35,11 +36,11 @@ function RutasDocumentadas() {
   })}</div>;
 }
 
-export function BarraLateralPortal() {
+export function BarraLateralPortal({ abierto = false }: { abierto?: boolean }) {
   const { pathname } = useLocation();
   const sesion = useSesionConsumidor();
   return (
-    <nav aria-label="Barra lateral del portal" className="w-[272px] shrink-0 border-r border-borde bg-panel px-4 py-3 min-h-0 flex flex-col justify-between gap-3">
+    <nav id="barra-lateral-portal" aria-label="Barra lateral del portal" className={`w-[272px] shrink-0 border-r border-borde bg-panel px-4 py-3 min-h-0 flex flex-col justify-between gap-3 ${clasesCajon(abierto)}`}>
       <div className="flex min-h-0 flex-col gap-3">
         <Grupo titulo="API">
           <Enlace a="/documentacion" activo={pathname.startsWith('/documentacion')}>Documentación</Enlace>

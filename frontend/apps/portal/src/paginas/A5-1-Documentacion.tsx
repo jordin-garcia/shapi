@@ -53,7 +53,7 @@ export default function Documentacion() {
   if (consulta.isPending) return <EstadoCargando />;
   if (consulta.isError) return <EstadoError reintentar={() => void consulta.refetch()} />;
   if (consulta.data.rutas.length === 0) {
-    return <div className="p-11"><h1 className="font-display text-[32px]">Documentación</h1><p className="mt-3 text-tinta-suave">No hay rutas publicadas.</p></div>;
+    return <div className="p-5 sm:p-8 lg:p-11"><h1 className="font-display text-[32px]">Documentación</h1><p className="mt-3 text-tinta-suave">No hay rutas publicadas.</p></div>;
   }
   if (!ruta) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].metodo, consulta.data.rutas[0].patron)} replace />;
 
@@ -62,13 +62,13 @@ export default function Documentacion() {
   if (!seleccionada) return <Navigate to={rutaDocumentacion(consulta.data.rutas[0].metodo, consulta.data.rutas[0].patron)} replace />;
 
   return (
-    <article className="min-w-0 p-11">
-        <header className="flex items-end justify-between gap-8">
+    <article className="min-w-0 p-5 sm:p-8 lg:p-11">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
           <div className="min-w-0">
             <p className="text-[12px] font-medium uppercase tracking-[.16em] text-[var(--marca-principal)]">{marca.nombreApi}</p>
-            <div className="mt-2 flex items-baseline gap-4">
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
               <span className="text-[15px] font-semibold tracking-[.06em] text-[var(--marca-principal)]">{seleccionada.metodo}</span>
-              <h1 className="font-display text-[32px] font-normal tracking-[-.02em] text-tinta">{seleccionada.patron}</h1>
+              <h1 className="min-w-0 break-all font-display text-[26px] sm:text-[32px] font-normal tracking-[-.02em] text-tinta">{seleccionada.patron}</h1>
             </div>
             {seleccionada.descripcion && (
               <div className="mt-2 text-[15px] leading-[1.55] text-tinta-suave [&_strong]:font-semibold [&_strong]:text-tinta">
@@ -76,12 +76,12 @@ export default function Documentacion() {
               </div>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-5 text-[14px] text-tinta-suave">
-              <span className="font-mono text-tinta">{seleccionada.urlCompleta}</span>
+              <span className="min-w-0 break-all font-mono text-tinta">{seleccionada.urlCompleta}</span>
               <span aria-hidden="true" className="h-4 w-px bg-borde" />
               <span>{textoPeso(seleccionada.pesoLlamadas)}</span>
             </div>
           </div>
-          <Link to="/consola" className="shrink-0 rounded-base border border-[#C9D2E1] bg-panel px-6 py-3 text-[15px] font-medium text-tinta">Probar en la consola</Link>
+          <Link to="/consola" className="shrink-0 self-start sm:self-auto rounded-base border border-[#C9D2E1] bg-panel px-6 py-3 text-[15px] font-medium text-tinta">Probar en la consola</Link>
         </header>
 
         <section className="mt-7 rounded-base border border-borde bg-panel p-5">

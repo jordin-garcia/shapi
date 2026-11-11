@@ -1233,7 +1233,7 @@ export default function PaginaA01Inicio() {
           </div>
 
           {/* Barra superior integrada de extremo a extremo */}
-          <div className="relative z-20 flex h-[76px] items-center justify-between border-b border-borde-barra/70 px-8 lg:px-20">
+          <div className="relative z-20 flex h-16 lg:h-[76px] items-center justify-between gap-4 border-b border-borde-barra/70 px-4 sm:px-8 lg:px-20">
             <div className="flex items-center gap-[11px]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <rect x="1" y="1" width="22" height="22" rx="6" stroke="var(--principal)" strokeWidth="1.5" />
@@ -1243,10 +1243,10 @@ export default function PaginaA01Inicio() {
               </svg>
               <span className="font-display text-[20px] font-medium tracking-[-0.02em] text-tinta">Shapi</span>
             </div>
-            <div className="flex items-center gap-[28px]">
+            <div className="flex items-center gap-4 sm:gap-[28px]">
               <a
                 href="#planes"
-                className="text-[14.5px] text-tinta-navegacion transition-colors hover:text-tinta hover:no-underline"
+                className="max-sm:hidden text-[14.5px] text-tinta-navegacion transition-colors hover:text-tinta hover:no-underline"
               >
                 Precios
               </a>
@@ -1258,7 +1258,7 @@ export default function PaginaA01Inicio() {
               </Link>
               <Link
                 to="/registro"
-                className="shapi-btn-primario px-[18px] py-[9px] text-[14.5px] font-medium hover:no-underline"
+                className="shapi-btn-primario whitespace-nowrap px-[18px] py-[9px] text-[14.5px] font-medium hover:no-underline"
               >
                 Crear cuenta
               </Link>
@@ -1646,7 +1646,7 @@ export default function PaginaA01Inicio() {
           <div className="mt-[44px] grid w-full grid-cols-1 gap-6 text-left md:grid-cols-2">
             <div
               style={{ '--retraso': '60ms' } as React.CSSProperties}
-              className="shapi-scroll-item shapi-scroll-izq shapi-tarjeta shapi-tarjeta-cristal flex items-start gap-[26px] rounded-[16px] border border-borde bg-panel p-[30px]"
+              className="shapi-scroll-item shapi-scroll-izq shapi-tarjeta shapi-tarjeta-cristal flex flex-col items-start gap-5 rounded-[16px] border border-borde bg-panel p-6 sm:p-[30px] lg:flex-row lg:gap-[26px]"
             >
               <svg width="132" height="132" viewBox="0 0 132 132" className="shrink-0" aria-hidden="true">
                 <defs>
@@ -1678,7 +1678,7 @@ export default function PaginaA01Inicio() {
 
             <div
               style={{ '--retraso': '160ms' } as React.CSSProperties}
-              className="shapi-scroll-item shapi-scroll-der shapi-tarjeta shapi-tarjeta-cristal flex items-start gap-[26px] rounded-[16px] border border-borde bg-panel p-[30px]"
+              className="shapi-scroll-item shapi-scroll-der shapi-tarjeta shapi-tarjeta-cristal flex flex-col items-start gap-5 rounded-[16px] border border-borde bg-panel p-6 sm:p-[30px] lg:flex-row lg:gap-[26px]"
             >
               <svg width="132" height="132" viewBox="0 0 132 132" className="shrink-0" aria-hidden="true">
                 <defs>
@@ -1707,7 +1707,7 @@ export default function PaginaA01Inicio() {
 
             <div
               style={{ '--retraso': '240ms' } as React.CSSProperties}
-              className="shapi-scroll-item shapi-scroll-izq shapi-tarjeta shapi-tarjeta-cristal flex items-start gap-[26px] rounded-[16px] border border-borde bg-panel p-[30px]"
+              className="shapi-scroll-item shapi-scroll-izq shapi-tarjeta shapi-tarjeta-cristal flex flex-col items-start gap-5 rounded-[16px] border border-borde bg-panel p-6 sm:p-[30px] lg:flex-row lg:gap-[26px]"
             >
               <svg width="132" height="132" viewBox="0 0 132 132" className="shrink-0" aria-hidden="true">
                 <defs>
@@ -1745,7 +1745,7 @@ export default function PaginaA01Inicio() {
 
             <div
               style={{ '--retraso': '340ms' } as React.CSSProperties}
-              className="shapi-scroll-item shapi-scroll-der shapi-tarjeta shapi-tarjeta-cristal flex items-start gap-[26px] rounded-[16px] border border-borde bg-panel p-[30px]"
+              className="shapi-scroll-item shapi-scroll-der shapi-tarjeta shapi-tarjeta-cristal flex flex-col items-start gap-5 rounded-[16px] border border-borde bg-panel p-6 sm:p-[30px] lg:flex-row lg:gap-[26px]"
             >
               <svg width="132" height="132" viewBox="0 0 132 132" className="shrink-0" aria-hidden="true">
                 <defs>

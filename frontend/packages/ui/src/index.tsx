@@ -3,7 +3,8 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 // Medidas de 11 §1 y de la lámina oficial (mockups/A0/Lamina.dc.html).
 
 export function Boton({ principal = true, deshabilitado = false, disabled = false, className = '', children, ...props }: React.ComponentPropsWithoutRef<"button"> & { principal?: boolean; deshabilitado?: boolean }) {
-  const base = "h-[46px] rounded-base px-6 text-[15px] font-medium transition-colors inline-flex items-center justify-center";
+  // Debajo de 640 px un texto largo puede ocupar dos líneas en vez de salirse de la pantalla (JG-32).
+  const base = "h-[46px] max-sm:h-auto max-sm:min-h-[46px] max-sm:max-w-full max-sm:py-2 max-sm:text-center rounded-base px-6 text-[15px] font-medium transition-colors inline-flex items-center justify-center";
   let variante = "bg-principal text-white hover:bg-principal-hover";
   if (!principal) {
     variante = "border border-borde-campo text-tinta bg-panel hover:bg-fondo";
@@ -115,7 +116,7 @@ export function Toast({ children }: React.ComponentPropsWithoutRef<"div">) {
     return () => clearTimeout(temporizador);
   }, []);
   if (!visible) return null;
-  return <div role="status" className="fixed top-4 right-4 bg-tinta text-white px-4 py-2 rounded-base shadow-lg z-50">{children}</div>;
+  return <div role="status" className="fixed top-4 right-4 max-lg:left-4 bg-tinta text-white px-4 py-2 rounded-base shadow-lg z-50">{children}</div>;
 }
 
 const ENFOCABLES = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -171,7 +172,7 @@ export function DialogoConfirmacion({ abierto, titulo, children, textoConfirmar 
   return (
     // Un clic en el fondo no se lleva el foco fuera del diálogo.
     <div onMouseDown={evento => { if (evento.target === evento.currentTarget) evento.preventDefault(); }} className="fixed inset-0 bg-tinta/50 flex items-center justify-center z-50">
-      <div ref={dialogo} role="dialog" aria-modal="true" aria-labelledby={idTitulo} tabIndex={-1} onKeyDown={teclado} className="max-w-md w-full bg-panel border border-borde rounded-base p-5">
+      <div ref={dialogo} role="dialog" aria-modal="true" aria-labelledby={idTitulo} tabIndex={-1} onKeyDown={teclado} className="mx-4 max-w-md w-full bg-panel border border-borde rounded-base p-5">
         <h2 id={idTitulo} className="text-titulo-tarjeta font-display">{titulo}</h2>
         {children && <div className="mt-3 text-tinta-suave">{children}</div>}
         <div className="flex gap-4 justify-end mt-6">
@@ -220,4 +221,21 @@ export function EstadoSinPermiso() {
     <h1 className="text-titulo font-display mb-2">No tiene permiso para ver esta página</h1>
     <p>Su rol no le permite acceder a este recurso.</p>
   </div>;
+}
+
+export function BotonMenu({ abierto, alternar, idCajon }: { abierto: boolean; alternar: () => void; idCajon: string }) {
+  return (
+    <button type="button" onClick={alternar} aria-expanded={abierto} aria-controls={idCajon} aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
+      className="lg:hidden shrink-0 size-10 -mr-2 flex items-center justify-center rounded-base text-tinta hover:bg-fondo-activo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+        {abierto ? <path d="M6 6 L18 18 M18 6 L6 18" /> : <path d="M4 7 H20 M4 12 H20 M4 17 H20" />}
+      </svg>
+    </button>
+  );
+}
+
+/** Fondo oscurecido detrás del cajón abierto; un toque lo cierra. */
+export function FondoCajon({ abierto, cerrar }: { abierto: boolean; cerrar: () => void }) {
+  if (!abierto) return null;
+  return <div aria-hidden="true" data-fondo-cajon="" onClick={cerrar} className="lg:hidden fixed inset-x-0 top-[64px] bottom-0 z-30 bg-tinta/40" />;
 }

@@ -70,7 +70,7 @@ export default function PaginaB31Estado() {
     {consulta.isError && <div className="mt-8"><EstadoError reintentar={() => void consulta.refetch()} /></div>}
     {datos && <>
       {incidencias.map(c => <Aviso key={c.id} componente={c} compuertaSana={compuertaSana} />)}
-      <section aria-label="Latencia de la compuerta" className={`${incidencias.length ? 'mt-5' : 'mt-8'} flex items-center justify-between gap-8 rounded-base border border-borde bg-panel p-5`}>
+      <section aria-label="Latencia de la compuerta" className={`${incidencias.length ? 'mt-5' : 'mt-8'} flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between md:gap-8 rounded-base border border-borde bg-panel p-5`}>
         <div className="flex shrink-0 flex-col gap-[10px]">
           <p className="text-[13px] font-semibold leading-[1.4] text-tinta-suave">Latencia añadida por la compuerta · percentil 95</p>
           <span className="font-display text-[32px] leading-none tracking-[-0.02em] tabular-nums">{datos.latenciaSupera2500 ? '> 2500 ms' : datos.latenciaP95Ms === null ? '—' : `${Math.round(datos.latenciaP95Ms)} ms`}</span>

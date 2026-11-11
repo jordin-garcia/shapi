@@ -43,7 +43,7 @@ export function CerrarSesionConsumidor() {
         </svg>
       </button>
       {cerrar.isError && (
-        <div className="fixed bottom-5 left-[288px] z-50 w-[360px]">
+        <div className="fixed bottom-5 left-4 right-4 z-50 lg:left-[288px] lg:right-auto lg:w-[360px]">
           <AvisoError mensaje="No se pudo cerrar la sesión." reintentar={() => cerrar.mutate()} />
         </div>
       )}

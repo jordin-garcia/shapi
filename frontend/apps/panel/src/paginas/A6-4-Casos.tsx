@@ -30,13 +30,13 @@ export default function PaginaA64Casos() {
 
   return <main>
     <header className="flex flex-col gap-[10px]"><p className="text-etiqueta uppercase font-medium tracking-[0.16em] text-tinta-suave">Soporte</p><h1 className="font-display text-[32px]">Casos</h1><p className="text-[15px] text-tinta-suave">Casos que abren las organizaciones proveedoras desde su panel, o que el soporte registra a su nombre, y su estado.</p></header>
-    <div className="mt-8 grid grid-cols-[minmax(0,1fr)_440px] items-start gap-6">
+    <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
     <section className="rounded-base border border-borde bg-panel p-5">
       {consulta.isPending && <EstadoCargando />}{consulta.isError && <EstadoError reintentar={() => void consulta.refetch()} />}
       {consulta.data && <>
-        <table className="w-full border-collapse text-left"><thead><tr>{['Caso', 'Asunto', 'Estado', 'Acción'].map(x => <th key={x} className="border-b border-borde pb-[10px] pr-4 text-encabezado uppercase text-tinta-suave">{x}</th>)}</tr></thead>
+        <div className="overflow-x-auto"><table className="w-full border-collapse text-left"><thead><tr>{['Caso', 'Asunto', 'Estado', 'Acción'].map(x => <th key={x} className="border-b border-borde pb-[10px] pr-4 text-encabezado uppercase text-tinta-suave">{x}</th>)}</tr></thead>
           {consulta.data.elementos.length > 0 && <tbody>{consulta.data.elementos.map(caso => <tr key={caso.numero} className="border-b border-borde-fila last:border-0"><td className="whitespace-nowrap py-3 pr-4 font-medium">CAS-{caso.numero}</td><td className="py-3 pr-4"><p className="font-medium">{caso.asunto}</p><p className="text-[14px] text-tinta-suave">{caso.organizacion} · {fechaCorta(caso.creadoEn)}</p></td><td className="py-3 pr-4"><EtiquetaEstado estado={caso.estado} /></td><td className="py-3"><Link className="font-medium text-principal" to={`/admin/casos/${caso.numero}`}>Abrir</Link></td></tr>)}</tbody>}
-        </table>
+        </table></div>
         {consulta.data.elementos.length === 0 && <div className="flex flex-col items-center gap-3 py-14 text-center"><h2 className="font-display text-[22px]">Todavía no hay casos</h2><p className="max-w-[600px] text-[15px] text-tinta-suave">Los casos que abran las organizaciones o que registre el soporte aparecerán aquí con su organización y su estado.</p></div>}
       </>}
     </section>

@@ -198,3 +198,12 @@ Formato: **Contexto** → **Decisión** → **Alternativas descartadas** → **C
   - Como el DNS tiene comodín y Caddy autoriza cualquier subdominio de la plataforma, alguien que visite subdominios al azar puede gastar el límite de Let's Encrypt (50 certificados por dominio registrado a la semana). Se acepta para un despliegue de pocos días.
   - Con `SHAPI_DNS_MODO=simulado`, el dominio propio de una API sigue terminando en `.localhost` (ADR-10). En `shapi.tech` se puede conectar y verificar, pero no recibe tráfico ni certificado, así que no se demuestra en el ambiente publicado.
   - Los pasos están en el manual técnico, 12.11.
+
+### ADR-37 · Interfaz responsiva en celulares y tabletas
+- **Contexto:** RNF-12 solo exigía escritorio desde 1280 px, y los mockups se diseñaron a 1440 × 900. El 10 de noviembre de 2026, al probar Shapi en un celular, Jordin vio que el panel y el portal no se podían usar: las barras laterales de 272 px le dejaban 118 px al contenido en una pantalla de 390 px.
+- **Decisión:** la interfaz se adapta a pantallas angostas sin cambiar el escritorio. Todas las reglas nuevas se aplican debajo de 1024 px (`max-lg:` en Tailwind o clases base con su variante `lg:`), así que desde 1024 px se ve igual que en los mockups. La barra lateral se vuelve un cajón que se abre con un botón de menú, los márgenes se reducen, las columnas laterales se apilan y las tablas se desplazan dentro de su tarjeta. Los detalles están en 11 §1 (Pantallas angostas).
+- **Alternativas descartadas:**
+  - Mockups nuevos para celular: no había tiempo antes de la presentación final; el diseño móvil se deriva de los de escritorio.
+  - Convertir las tablas en tarjetas en celular: cambia la estructura de cada pantalla y su prueba; desplazar la tabla conserva el contenido y el orden del mockup.
+  - Una barra de navegación inferior: obliga a elegir solo algunas opciones, y las barras laterales tienen hasta 14.
+- **Consecuencias:** RNF-12 se amplía a celulares y tabletas desde 360 px. La prueba E2E `responsivo.spec.ts` recorre las pantallas a 360, 390 y 768 px y comprueba que no haya desplazamiento horizontal. Las pruebas de escritorio siguen pasando; solo una aserción de Vitest se precisó para aceptar `max-lg:overflow-y-auto`, el desplazamiento del cajón, y seguir rechazando el de la barra fija.

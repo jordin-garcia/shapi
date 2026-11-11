@@ -5,8 +5,8 @@ import { useMarcaPortal } from '../configuracion/useConfiguracionPortal';
 /** Los colores de la marca los define la raíz del portal (`coloresMarca`, en App), para todas las pantallas. */
 export function MarcoAcceso({ children, ancho = 520 }: { children: ReactNode; ancho?: number }) {
   return (
-    <div className="flex min-h-[calc(100vh-76px)] items-center justify-center bg-fondo px-6 py-11">
-      <section className="w-full rounded-base border border-borde bg-panel p-10" style={{ maxWidth: ancho }}>
+    <div className="flex min-h-[calc(100dvh-64px)] lg:min-h-[calc(100dvh-76px)] items-center justify-center bg-fondo px-4 py-6 sm:px-6 sm:py-11">
+      <section className="w-full rounded-base border border-borde bg-panel p-6 sm:p-10" style={{ maxWidth: ancho }}>
         {children}
       </section>
     </div>
